@@ -1,123 +1,126 @@
 'use client'
 
-import React, { useState, useEffect } from "react";
-import { TextField, Button, Checkbox, FormControlLabel, Typography, Box, IconButton } from "@mui/material";
-import { debounce } from "lodash";
-import { getProductList, resetProductList } from "@/app/(dashboard)/products/actions"; // Import the API functions
-import ClearIcon from '@mui/icons-material/Clear';
-import SearchIcon from '@mui/icons-material/Search';
+import React, { useState } from "react";
+import { Box, Button, TextField, FormGroup, FormControlLabel, Checkbox, Typography } from "@mui/material";
+import { getProductList } from '@/app/(dashboard)/products/actions';
 
-const ProductFilter = ({ setProductList, setTotalCount, setPage, page, pagesize }) => {
-  const [key, setKey] = useState([]);
-  const [noData, setNoData] = useState(false);
-  const [searchText, setSearchText] = useState({ value: "", asset: [] });
-  const [searchInputValue, setSearchInputValue] = useState("");
+const ProductFilter = ({ setProductList, setTotalCount, setPage, page, pageSize, onClose }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
 
-  useEffect(() => {
-    if (searchText.asset.length) {
-      setKey([]);
+  const handleSearch = async (value) => {
+    if (!value.trim()) {
+      setSearchResults([]);
+      return;
     }
-  }, [searchText]);
 
-  const onSearchChange = async (val) => {
-    if (val !== "") {
-      try {
-        const response = await getProductList(1, pagesize, val); // Use getProductList with search term
-        if (response.length > 0) {
-          setNoData(false);
-          setSearchText({ value: val, asset: response });
-        } else {
-          setSearchText({ value: val, asset: [] });
-          setNoData(true);
-        }
-      } catch {
-        setNoData(true);
+    try {
+      // Fetch products with search term
+      const response = await getProductList(1, 10, value);
+      const products = response?.data || [];
+      setSearchResults(products);
+    } catch (error) {
+      console.error("Error searching products:", error);
+      setSearchResults([]);
+    }
+  };
+
+  const handleCheckboxChange = (product) => {
+    setSelectedProducts(prev => {
+      const exists = prev.find(p => p._id === product._id);
+      if (exists) {
+        return prev.filter(p => p._id !== product._id);
       }
-    } else {
-      resetList();
-    }
-  };
-
-  const resetList = async () => {
-    const response = await resetProductList(1, pagesize); // Fetch the complete product list
-    setProductList(response || []);
-    setTotalCount(response.length); // Assuming response has a length property
-  };
-
-  const handleCheckboxChange = (event, id) => {
-    const { checked } = event.target;
-    setKey((prev) => (checked ? [...prev, id] : prev.filter((item) => item !== id)));
+      return [...prev, product];
+    });
   };
 
   const handleApplyFilter = async () => {
-    const response = await getProductList(page, pagesize, key.join(",")); // Fetch filtered products
+    try {
+      if (selectedProducts.length > 0) {
+        // Filter the products based on selection
+        setProductList(selectedProducts);
+        setTotalCount(selectedProducts.length);
+        setPage(1);
+      } else if (searchTerm) {
+        // Apply search filter
+        const response = await getProductList(1, pageSize, searchTerm);
+        const products = response?.data || [];
+        setProductList(products);
+        setTotalCount(products.length || 0);
+        setPage(1);
+      }
+      onClose(); // Close the drawer after applying filters
+    } catch (error) {
+      console.error("Error applying filters:", error);
+    }
+  };
+
+  const handleReset = async () => {
+    setSearchTerm("");
+    setSelectedProducts([]);
+    setSearchResults([]);
+
+    // Reset to initial state
+    const response = await getProductList(1, pageSize);
     setProductList(response || []);
-    setTotalCount(response.length); // Assuming response has a length property
+    setTotalCount(response.length || 0);
     setPage(1);
+    onClose();
   };
-
-  const handleFilterClear = () => {
-    setKey([]);
-    setSearchText({ value: "", asset: [] });
-    setNoData(false);
-    setSearchInputValue("");
-    resetList();
-  };
-
-  const onSearchProcessChange = debounce(onSearchChange, 200);
 
   return (
-    <Box>
-      <Typography variant="h6">Filter</Typography>
+    <Box sx={{ p: 2 }}>
       <TextField
-        label="Search Product"
-        variant="outlined"
         fullWidth
-        value={searchInputValue}
+        label="Search Products"
+        value={searchTerm}
         onChange={(e) => {
-          const val = e.target.value.toLowerCase();
-          setSearchInputValue(val);
-          onSearchProcessChange(val);
+          setSearchTerm(e.target.value);
+          handleSearch(e.target.value);
         }}
-        InputProps={{
-          endAdornment: (
-            <IconButton>
-              <SearchIcon />
-            </IconButton>
-          ),
-        }}
+        margin="normal"
       />
-      <Box>
-        {searchText.asset.map((item, index) => (
-          <FormControlLabel
-            key={index}
-            control={
-              <Checkbox
-                checked={key.includes(item._id)}
-                onChange={(e) => handleCheckboxChange(e, item._id)}
-              />
-            }
-            label={item.name}
-          />
-        ))}
-        {noData && <Typography>No products found!</Typography>}
+
+      <Box sx={{ mt: 2, maxHeight: 300, overflow: 'auto' }}>
+        <FormGroup>
+          {Array.isArray(searchResults) && searchResults.map((product) => (
+            <FormControlLabel
+              key={product._id}
+              control={
+                <Checkbox
+                  checked={selectedProducts.some(p => p._id === product._id)}
+                  onChange={() => handleCheckboxChange(product)}
+                />
+              }
+              label={product.name}
+            />
+          ))}
+        </FormGroup>
+        {searchTerm && (!searchResults || searchResults.length === 0) && (
+          <Typography color="text.secondary">No products found</Typography>
+        )}
       </Box>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleApplyFilter}
-        disabled={key.length === 0}
-      >
-        Apply
-      </Button>
-      <Button
-        variant="outlined"
-        color="secondary"
-        onClick={handleFilterClear}
-        startIcon={<ClearIcon />}
-      >
-        Reset
-      </Button>
+
+      <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleApplyFilter}
+          disabled={!searchTerm && selectedProducts.length === 0}
+        >
+          Apply Filter
+        </Button>
+        <Button
+          fullWidth
+          variant="outlined"
+          onClick={handleReset}
+          disabled={!searchTerm && selectedProducts.length === 0}
+        >
+          Reset
+        </Button>
+      </Box>
     </Box>
   );
 };

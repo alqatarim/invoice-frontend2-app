@@ -16,16 +16,15 @@ export const PermissionsProvider = ({ children }) => {
     }
 
     const { role, permissionRes } = session.user;
-console.log('session:', session)
-    if ((role === 'Super Admin' || role === 'Admin') && permissionRes?.allModules) {
+// console.log('session:', session)
+    if (permissionRes?.allModules) {
 
       return {
         isAdmin: true,
         modules: {}, // Admin has access to all, can customize if needed
       };
     }
-     console.log('session userz:')
- console.log(role)
+
     const modules = permissionRes?.modules?.reduce((acc, module) => {
       acc[module.module] = module.permissions;
       return acc;

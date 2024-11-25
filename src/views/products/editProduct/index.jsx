@@ -10,9 +10,9 @@ const EditProductIndex = ({ productId }) => {
 
   useEffect(() => {
     const fetchProductData = async () => {
-      const data = await getProductDetails(productId);
+      const response = await getProductDetails(productId);
 
-      setProductData(data);
+      setProductData(response.data);
     };
     fetchProductData();
   }, [productId]);

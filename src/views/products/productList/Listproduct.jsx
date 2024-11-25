@@ -18,7 +18,7 @@ import ImageIcon from '@mui/icons-material/Image'; // Add this import
 import { getProductList, deleteProduct } from '@/app/(dashboard)/products/actions';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize = 10, initialSortBy = 'name', initialSortDirection = 'asc' }) => {
+const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10, setSize, initialSortBy = 'name', initialSortDirection = 'asc' }) => {
   const canUpdate = usePermission('product', 'update');
   const canDelete = usePermission('product', 'delete');
   const isAdmin = usePermission('product', 'isAdmin'); // Check if the user is an admin
@@ -26,8 +26,7 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
   // Define the state for productList and totalCount
   const [productList, setProductList] = useState(initialProductListData); // Initialize with initialProductListData
   const [totalCount, setTotalCount] = useState(0); // Initialize totalCount as needed
-  const [page, setPage] = useState(initialPage);
-  const [size, setSize] = useState(initialSize);
+
   const [sortBy, setSortBy] = useState(initialSortBy);
   const [sortDirection, setSortDirection] = useState(initialSortDirection);
 
@@ -55,11 +54,35 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
     let newDirection = 'asc';
     if (sortBy === columnKey) {
       newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-      setSortDirection(newDirection);
-    } else {
-      setSortBy(columnKey);
-      setSortDirection('asc');
     }
+    setSortBy(columnKey);
+    setSortDirection(newDirection);
+
+    // Local sorting
+    const sortedList = [...productList].sort((a, b) => {
+      let aValue = a[columnKey] || '';
+      let bValue = b[columnKey] || '';
+
+      // Handle numeric values
+      if (columnKey === 'alertQuantity' || columnKey === 'sellingPrice' || columnKey === 'purchasePrice') {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+      }
+
+      // Handle string values
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      if (newDirection === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    setProductList(sortedList);
   };
 
   const handlePageChange = async (event, newPage) => {
@@ -76,8 +99,8 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
 
   const fetchProductList = async (currentPage, currentSize) => {
     const response = await getProductList(currentPage, currentSize);
-     setProductList(response || []); // Ensure productList is always an array
-    setTotalCount(response.length || 0); // Ensure totalCount is a number
+    setProductList(response || []); // Ensure productList is always an array
+    setTotalCount(Array.isArray(response) ? response.length : 0); // Sum up the array length
   };
 
   const handleDeleteClick = (id) => {
@@ -163,6 +186,30 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
   //   fetchProductList(page, size);
   // }, [page, size]);
 
+  const handleDrawerClose = () => {
+    setIsDrawerOpen(false);
+  };
+
+  // Add this new function near your other handlers
+  const handleReset = () => {
+    // Reset all states to initial values
+    setPage(1);
+    setSize(10);
+    setSortBy(initialSortBy);
+    setSortDirection(initialSortDirection);
+    setProductList(initialProductListData);
+    // Reset columns to their initial visibility state
+    setColumns([
+      { key: "id", label: "#", visible: true },
+      { key: "image", label: "Image", visible: true },
+      { key: "name", label: "Item", visible: true },
+      { key: "alertQuantity", label: "Alert Quantity", visible: true },
+      { key: "sellingPrice", label: "Sales Price", visible: true },
+      { key: "purchasePrice", label: "Purchase Price", visible: true },
+      { key: "action", label: "Action", visible: true },
+    ]);
+  };
+
   return (
     <Box className="flex flex-col gap-2">
       <ToastContainer />
@@ -174,7 +221,7 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
         <Button
           size="medium"
           component={Link}
-          href={`/products/add-product/`}
+          href={`/products/product-add/`}
           variant="contained"
           color="primary"
           passHref
@@ -201,6 +248,13 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
 
           {/* Button to open the drawer */}
           <Grid item xs="auto">
+               <Button
+              variant="text"
+              startIcon={<ClearIcon />}
+              onClick={handleReset}
+            >
+              Reset
+            </Button>
             <Button onClick={toggleDrawer} startIcon={<FilterListIcon />} variant="text">Filter</Button>
             <Button
               variant="text"
@@ -209,6 +263,7 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
             >
               Columns
             </Button>
+
           </Grid>
         </Grid>
 
@@ -216,7 +271,7 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
         <Drawer
           anchor="right"
           open={isDrawerOpen}
-          onClose={toggleDrawer}
+          onClose={handleDrawerClose}
         >
           <Box sx={{ width: 300, padding: 2 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -231,7 +286,8 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
               setTotalCount={setTotalCount}
               setPage={setPage}
               page={page}
-              pagesize={size}
+              pageSize={size}
+              onClose={handleDrawerClose}
             />
           </Box>
         </Drawer>
@@ -274,15 +330,18 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
         <CardContent className="p-0">
           <Table>
             <TableHead>
-              <TableRow>
+              <TableRow
+
+              >
                 {columns.map(
                   (column) =>
                     column.visible && (
                       <TableCell
+
                         key={column.key}
                         sortDirection={sortBy === column.key ? sortDirection : false}
                       >
-                        {column.key !== 'action' ? (
+                        {column.key !== 'action' && column.key !== 'id' ? (
                           <TableSortLabel
                             active={sortBy === column.key}
                             direction={sortBy === column.key ? sortDirection : 'asc'}
@@ -304,7 +363,9 @@ const Listproduct = ({ initialProductListData = [], initialPage = 1, initialSize
                   {columns.map(
                     (column) =>
                       column.visible && (
-                        <TableCell key={column.key}>
+                        <TableCell
+                            size="small"
+                        key={column.key}>
                           {column.key === 'id' && index + 1}
                           {column.key === 'image' && (
                             <Box sx={{ width: 50, height: 50, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>

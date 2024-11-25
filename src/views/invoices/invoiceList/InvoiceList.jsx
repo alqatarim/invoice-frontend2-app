@@ -90,7 +90,12 @@ const InvoiceList = () => {
     const canUpdate = usePermission('invoice', 'update');
     const canView = usePermission('invoice', 'view');
     const canDelete = usePermission('invoice', 'delete');
-    const isAdmin = usePermission('invoice', 'isAdmin'); // Check if the user is an admin
+console.log('can view:')
+console.log(canView)
+
+console.log('can update:')
+console.log(canUpdate)
+
 
     const [invoices, setInvoices] = useState([]);
     const [cardCounts, setCardCounts] = useState({});
@@ -637,7 +642,7 @@ const InvoiceList = () => {
 
             {/* 2nd Segment: Action Buttons */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, mt: 6 }}>
-                {(canCreate || isAdmin) && (
+                {(canCreate) && (
                     <Button variant="contained" color="primary" href="/add-invoice">
                         New Invoice
                     </Button>
@@ -888,7 +893,7 @@ const InvoiceList = () => {
                 open={Boolean(anchorEl)}
                 onClose={handleMenuClose}
             >
-                {(canView || isAdmin) && selectedInvoice && (
+                {(canView) && selectedInvoice && (
                     <MenuItem
                         component={Link}
                         href={`/invoices/invoice-view/${selectedInvoice._id}`}
