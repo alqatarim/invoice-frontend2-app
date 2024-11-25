@@ -12,13 +12,13 @@ const nextConfig = {
     return []
   },
   // Add Turbopack configuration
-  experimental: {
-    turbo: {
-      rules: {
-        // Specify any custom Turbopack rules here
-      },
-    },
-  },
+  // experimental: {
+  //   turbo: {
+  //     rules: {
+  //       // Specify any custom Turbopack rules here
+  //     },
+  //   },
+  // },
 }
 
 module.exports = nextConfig;

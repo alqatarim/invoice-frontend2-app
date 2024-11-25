@@ -125,8 +125,9 @@ const EditProduct = ({ initialProductData, onSave }) => {
   const [preparedData, setPreparedData] = useState(null);
   const [preparedImage, setPreparedImage] = useState(null);
   const [confirmationStatus, setConfirmationStatus] = useState({
-    image: "/images/animated-icons/question.gif", // Use the path directly
-    message: 'Are you sure you want to update this product?',
+    image: "/images/animated-icons/question.gif",
+    message: 'Are you sure you want to update?',
+    isInitialConfirmation: true
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -138,6 +139,7 @@ const EditProduct = ({ initialProductData, onSave }) => {
   const theme = useTheme();
   const [updatingMessage, setUpdatingMessage] = useState('Updating');
   const [dotCount, setDotCount] = useState(0);
+  const [imageFile, setImageFile] = useState(null);
 
   const { control, handleSubmit, setValue, watch, register, formState: { errors, dirtyFields, isValid } } = useForm({
     resolver: yupResolver(schema),
@@ -269,30 +271,40 @@ const EditProduct = ({ initialProductData, onSave }) => {
 
   const onSubmit = async (data) => {
     const preparedData = prepareFormData(data);
-    const imageData = await prepareImageData(data);
+    let preparedImage = null;
+
+    if (imageFile) {
+      preparedImage = {
+        name: imageFile.name,
+        type: imageFile.type,
+        size: imageFile.size,
+        base64: files[0] // This is the base64 string from the FileReader
+      };
+    }
+
     setPreparedData(preparedData);
-    setPreparedImage(imageData);
+    setPreparedImage(preparedImage);
     setOpenConfirmDialog(true);
     setConfirmationStatus({
       image: "/images/animated-icons/question.gif",
       message: 'Are you sure you want to update?',
+      isInitialConfirmation: true
     });
   };
 
   const handleConfirmUpdate = async () => {
     setIsUpdating(true);
-
-    // Update the message with the animated dots
     setConfirmationStatus({
       image: "/images/animated-icons/update.gif",
       message: updatingMessage,
+      isInitialConfirmation: false
     });
 
     const result = await new Promise((resolve) => {
       setTimeout(async () => {
         const updateResult = await updateProduct(preparedData, preparedImage);
         resolve(updateResult);
-      }, 2000); // Simulate a delay for testing purposes
+      }, 2000);
     });
 
     setIsUpdating(false);
@@ -301,12 +313,13 @@ const EditProduct = ({ initialProductData, onSave }) => {
       setConfirmationStatus({
         image: "/images/animated-icons/success.gif",
         message: 'Product updated successfully!',
+        isInitialConfirmation: false
       });
-      setShowSuccessOptions(true);
     } else {
       setConfirmationStatus({
         image: "/images/animated-icons/fail.gif",
         message: result.message || 'Failed to update product',
+        isInitialConfirmation: false
       });
     }
   };
@@ -338,9 +351,7 @@ const EditProduct = ({ initialProductData, onSave }) => {
     event.preventDefault();
     event.stopPropagation();
     const files = event.dataTransfer.files;
-    if (files && files.length > 0) {
-      setValue("images", files);
-    }
+    handleFileSelection(files[0]);
   };
 
   const onDragOver = (event) => {
@@ -350,6 +361,45 @@ const EditProduct = ({ initialProductData, onSave }) => {
 
   const handleCancel = () => {
     router.back();
+  };
+
+  const handleFileSelection = (file) => {
+    if (file) {
+      // Validate file type and size
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      const maxSize = 50 * 1024 * 1024; // 50MB
+
+      if (!validTypes.includes(file.type)) {
+        setImgError('Please upload a valid image file (JPEG, PNG, or GIF)');
+        // Reset the file input value so the same file can trigger another change event
+        const fileInput = document.getElementById('image_upload');
+        if (fileInput) fileInput.value = '';
+        return;
+      }
+
+      if (file.size > maxSize) {
+        setImgError('File size must be less than 50MB');
+        // Reset the file input value so the same file can trigger another change event
+        const fileInput = document.getElementById('image_upload');
+        if (fileInput) fileInput.value = '';
+        return;
+      }
+
+      // Store the file for form submission
+      setImageFile(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFiles([reader.result]);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileInput = (event) => {
+    const file = event.target.files[0];
+    handleFileSelection(file);
   };
 
   return (
@@ -666,34 +716,39 @@ const EditProduct = ({ initialProductData, onSave }) => {
                 }}
                 onClick={() => document.getElementById('image_upload').click()}
                 onDrop={onDrop}
-                onDragOver={onDragOver}
+                onDragOver={(e) => e.preventDefault()}
               >
-                <Icon icon="line-md:upload-loop" width="100" height="100" style={{ color: theme.palette.primary.main }} />
                 <input
                   type="file"
                   id="image_upload"
                   accept="image/*"
                   style={{ display: 'none' }}
-                  {...register("images")}
+                  onChange={handleFileInput}
+                />
+                <Icon
+                  icon="line-md:upload-loop"
+                  width="100"
+                  height="100"
+                  style={{ color: theme.palette.primary.main }}
                 />
                 <Typography>
-                  Drop your files here or <span style={{ strokeWidth: '1', color: 'primary.main' }}>browse</span>
+                  Drop your files here or <span style={{ color: theme.palette.primary.main }}>browse</span>
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
                   Maximum size: 50MB
                 </Typography>
+                {files[0] && !imgerror && (
+                  <Box mt={2}>
+                    <Image
+                      src={files[0]}
+                      alt="Product preview"
+                      width={200}
+                      height={200}
+                      objectFit="contain"
+                    />
+                  </Box>
+                )}
               </Box>
-              {files[0] && !imgerror && (
-                <Box mt={2}>
-                  <Image
-                    src={files[0]}
-                    alt="Uploaded product"
-                    width={200}
-                    height={200}
-                    objectFit="contain"
-                  />
-                </Box>
-              )}
             </Grid>
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, gap:12}}>
@@ -752,7 +807,28 @@ const EditProduct = ({ initialProductData, onSave }) => {
         </DialogContent>
         <DialogActions className='flex flex-row justify-center gap-4'>
           {!isUpdating && (
-            showSuccessOptions ? (
+            confirmationStatus.isInitialConfirmation ? (
+              <>
+                <Button
+                  size='medium'
+                  className='pr-8 pl-8'
+                  variant="contained"
+                  onClick={handleConfirmUpdate}
+                  autoFocus
+                >
+                  Yes
+                </Button>
+                <Button
+                  size='medium'
+                  className='pr-8 pl-8'
+                  variant="outlined"
+                  color='secondary'
+                  onClick={() => setOpenConfirmDialog(false)}
+                >
+                  No
+                </Button>
+              </>
+            ) : (
               <>
                 <Button onClick={handleContinueEditing}>
                   Continue Editing
@@ -760,15 +836,6 @@ const EditProduct = ({ initialProductData, onSave }) => {
                 <Link href="/products/product-list" passHref>
                   <Button component="a">Return to Product List</Button>
                 </Link>
-              </>
-            ) : (
-              <>
-                <Button size='medium' className='pr-8 pl-8' variant="contained" onClick={handleConfirmUpdate} autoFocus>
-                  Yes
-                </Button>
-                <Button size='medium' className='pr-8 pl-8' variant="outlined" color='secondary' onClick={() => setOpenConfirmDialog(false)}>
-                  No
-                </Button>
               </>
             )
           )}

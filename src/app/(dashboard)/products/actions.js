@@ -69,11 +69,20 @@ export const getProductDetails = async (productId) => {
 export const updateProduct = async (productData, preparedImage) => {
   try {
     const formData = new FormData();
+
+    // Append all product data
     for (const key in productData) {
-      formData.append(key, productData[key]);
+      // Handle nested objects (like category, units, tax)
+      if (typeof productData[key] === 'object' && productData[key] !== null) {
+        formData.append(key, productData[key]._id || JSON.stringify(productData[key]));
+      } else {
+        formData.append(key, productData[key]);
+      }
     }
 
+    // Handle image upload
     if (preparedImage) {
+      // Convert base64 to blob
       const base64Data = preparedImage.base64.split(',')[1];
       const mimeType = preparedImage.type;
       const fileName = preparedImage.name;
@@ -93,24 +102,19 @@ export const updateProduct = async (productData, preparedImage) => {
 
       const blob = new Blob(byteArrays, { type: mimeType });
       const file = new File([blob], fileName, { type: mimeType });
-
       formData.append('images', file);
     }
-    // Log the formData object and its type
-    console.log('FormData:', formData);
-    console.log('FormData type:', Object.prototype.toString.call(formData));
-    const response = await fetchWithAuth(`/products/updateProduct/${productData._id}`, {
 
+    const response = await fetchWithAuth(`/products/updateProduct/${productData._id}`, {
       method: 'PUT',
       body: formData,
     });
 
     if (response.error) {
-      return { success: false, message: response.error }; // Propagate the error
+      return { success: false, message: response.error };
     }
 
     return { success: true, data: response.data };
-
   } catch (error) {
     console.error('Error updating product:', error);
     return { success: false, message: error.message || 'Failed to update product' };

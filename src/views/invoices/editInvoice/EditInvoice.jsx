@@ -50,7 +50,6 @@ import { alpha } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
 import { DialogContentText } from '@mui/material';
 import Link from 'next/link';
-import { dataURLtoBlob, blobToObject } from '@/utils/helpers';
 import { useTheme } from '@mui/material/styles';
 import Image from 'next/image';
 
@@ -192,7 +191,6 @@ const EditInvoice = ({ invoiceData, customersData, productData, taxRates, initia
   const [editingItemIndex, setEditingItemIndex] = useState(null);
   const [signatureDataURL, setSignatureDataURL] = useState('');
    const [signatureURL, setSignatureURL] = useState('');
-  const [signatureData, setSignatureData] = useState('');
   const signaturePadRef = useRef(null);
   const [paymentMethods] = useState([
     { label: 'Cash', value: 'Cash' },
@@ -470,13 +468,7 @@ const handleSaveEditItem = async () => {
   }
 };
 
-  const handleSignatureClear = () => {
-    if (signaturePadRef.current) {
-      signaturePadRef.current.clear();
-    }
-    setSignatureDataURL(null);
-    setValue('signatureData', null);
-  };
+
 
   const handleAddBank = async (e) => {
     e.preventDefault();

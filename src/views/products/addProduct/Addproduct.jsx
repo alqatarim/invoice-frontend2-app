@@ -113,24 +113,28 @@ const AddProduct = ({ onSave, dropdownData }) => {
   const [touchedFields, setTouchedFields] = useState({});
   const [validFields, setValidFields] = useState({});
 
+  const [preparedData, setPreparedData] = useState(null);
+  const [preparedImage, setPreparedImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imgerror, setImgError] = useState("");
 
-const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
-  '& .MuiSnackbarContent-root': {
-    backgroundColor:
-      status === 'success'
-        ? theme.palette.success.main
-        : status === 'error'
-          ? theme.palette.error.main
-          : theme.palette.primary.main,
-    color: theme.palette.common.white,
-    display: 'flex',
-    alignItems: 'center',
-  },
-}));
+  const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
+    '& .MuiSnackbarContent-root': {
+      backgroundColor:
+        status === 'success'
+          ? theme.palette.success.main
+          : status === 'error'
+            ? theme.palette.error.main
+            : theme.palette.primary.main,
+      color: theme.palette.common.white,
+      display: 'flex',
+      alignItems: 'center',
+    },
+  }));
 
 
 
-const handleCloseSnackbar = (event, reason) => {
+  const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') {
       return;
     }
@@ -184,6 +188,18 @@ const handleCloseSnackbar = (event, reason) => {
     setUpdatingMessage(`Adding${messages[messageIndex]}`);
   }, [dotCount]);
 
+  useEffect(() => {
+    if (imgerror) {
+      setSnackbar({
+        open: true,
+        message: imgerror,
+        status: 'error'
+      });
+      setValue("images", null);
+      setImgError("");
+    }
+  }, [imgerror, setValue]);
+
 
 
 
@@ -199,7 +215,7 @@ const handleCloseSnackbar = (event, reason) => {
         return;
       }
 
-      setValue("sku", response.data);
+      setValue("sku", response.data, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
 
     } catch (error) {
       console.error("Error generating SKU:", error);
@@ -212,22 +228,7 @@ const handleCloseSnackbar = (event, reason) => {
   };
 
   const onSubmit = async (data) => {
-    setOpenConfirmDialog(true);
-    setConfirmationStatus({
-      image: "/images/animated-icons/question.gif",
-      message: 'Are you sure you want to add this product?',
-    });
-  };
-
-  const handleConfirmAdd = async () => {
-    const data = watch();
-    setIsSubmitting(true);
-    setConfirmationStatus({
-      image: "/images/animated-icons/update.gif",
-      message: updatingMessage,
-    });
-
-    const formData = {
+    const preparedData = {
       name: data.name,
       type: data.type,
       sku: data.sku,
@@ -241,10 +242,36 @@ const handleCloseSnackbar = (event, reason) => {
       tax: data.tax._id,
     };
 
-    const imageData = data.images?.[0];
+    let preparedImage = null;
+    if (imageFile) {
+      preparedImage = {
+        name: imageFile.name,
+        type: imageFile.type,
+        size: imageFile.size,
+        base64: files[0] // This is the base64 string from the FileReader
+      };
+    }
+
+    setPreparedData(preparedData);
+    setPreparedImage(preparedImage);
+    setOpenConfirmDialog(true);
+    setConfirmationStatus({
+      image: "/images/animated-icons/question.gif",
+      message: 'Are you sure you want to add this product?',
+      isInitialConfirmation: true
+    });
+  };
+
+  const handleConfirmAdd = async () => {
+    setIsSubmitting(true);
+    setConfirmationStatus({
+      image: "/images/animated-icons/update.gif",
+      message: updatingMessage,
+      isInitialConfirmation: false
+    });
 
     try {
-      const result = await onSave(formData, imageData);
+      const result = await onSave(preparedData, preparedImage);
 
       setIsSubmitting(false);
 
@@ -252,15 +279,17 @@ const handleCloseSnackbar = (event, reason) => {
         setConfirmationStatus({
           image: "/images/animated-icons/success.gif",
           message: 'Product added successfully!',
+          isInitialConfirmation: false
         });
         setShowSuccessOptions(true);
       } else {
         if (result.message === 'No authentication session found') {
-          router.push('/login?redirect=/products/addProduct'); // Redirect to login with redirect back
+          router.push('/login?redirect=/products/addProduct');
         } else {
           setConfirmationStatus({
             image: "/images/animated-icons/fail.gif",
             message: result.message || 'Failed to add product',
+            isInitialConfirmation: false
           });
         }
       }
@@ -269,6 +298,7 @@ const handleCloseSnackbar = (event, reason) => {
       setConfirmationStatus({
         image: "/images/animated-icons/fail.gif",
         message: 'An error occurred while adding the product.',
+        isInitialConfirmation: false
       });
     }
   };
@@ -295,6 +325,47 @@ const handleCloseSnackbar = (event, reason) => {
     } catch (error) {
       setValidFields(prev => ({ ...prev, [fieldName]: false }));
     }
+  };
+
+  const handleFileSelection = (file) => {
+    if (file) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      const maxSize = 50 * 1024 * 1024; // 50MB
+
+      if (!validTypes.includes(file.type)) {
+        setImgError('Please upload a valid image file (JPEG, PNG, or GIF)');
+        const fileInput = document.getElementById('image_upload');
+        if (fileInput) fileInput.value = '';
+        return;
+      }
+
+      if (file.size > maxSize) {
+        setImgError('File size must be less than 50MB');
+        const fileInput = document.getElementById('image_upload');
+        if (fileInput) fileInput.value = '';
+        return;
+      }
+
+      setImageFile(file);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFiles([reader.result]);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileInput = (event) => {
+    const file = event.target.files[0];
+    handleFileSelection(file);
+  };
+
+  const onDrop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const files = event.dataTransfer.files;
+    handleFileSelection(files[0]);
   };
 
   return (
@@ -368,6 +439,7 @@ const handleCloseSnackbar = (event, reason) => {
                       helperText={errors.sku?.message}
                       InputLabelProps={{
                         component: CustomInputLabel,
+                        shrink: !!field.value,
                       }}
                       onChange={(e) => {
                         field.onChange(e);
@@ -585,7 +657,7 @@ const handleCloseSnackbar = (event, reason) => {
               </Grid>
             </Grid>
 
-            {/* Image Upload */}
+            {/* Image Upload Component */}
             <Grid item xs={4} sx={{ mb: 3 }}>
               <Typography variant="subtitle1" gutterBottom>
                 Product Image
@@ -603,30 +675,21 @@ const handleCloseSnackbar = (event, reason) => {
                   },
                 }}
                 onClick={() => document.getElementById('image_upload').click()}
+                onDrop={onDrop}
+                onDragOver={(e) => e.preventDefault()}
               >
-                <Icon
-                  icon="line-md:upload-loop"
-                  width="100"
-                  height="100"
-                  style={{ color: theme.palette.primary.main }}
-                />
                 <input
                   type="file"
                   id="image_upload"
                   accept="image/*"
                   style={{ display: 'none' }}
-                  {...register("images")}
-                  onChange={(e) => {
-                    const files = e.target.files;
-                    if (files?.length) {
-                      setValue("images", files);
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setFiles([reader.result]);
-                      };
-                      reader.readAsDataURL(files[0]);
-                    }
-                  }}
+                  onChange={handleFileInput}
+                />
+                <Icon
+                  icon="line-md:upload-loop"
+                  width="100"
+                  height="100"
+                  style={{ color: theme.palette.primary.main }}
                 />
                 <Typography>
                   Drop your files here or <span style={{ color: theme.palette.primary.main }}>browse</span>
@@ -634,18 +697,18 @@ const handleCloseSnackbar = (event, reason) => {
                 <Typography variant="caption" color="textSecondary">
                   Maximum size: 50MB
                 </Typography>
+                {files[0] && !imgerror && (
+                  <Box mt={2}>
+                    <Image
+                      src={files[0]}
+                      alt="Product preview"
+                      width={200}
+                      height={200}
+                      objectFit="contain"
+                    />
+                  </Box>
+                )}
               </Box>
-              {files[0] && (
-                <Box mt={2}>
-                  <Image
-                    src={files[0]}
-                    alt="Product preview"
-                    width={200}
-                    height={200}
-                    objectFit="contain"
-                  />
-                </Box>
-              )}
             </Grid>
           </Grid>
 

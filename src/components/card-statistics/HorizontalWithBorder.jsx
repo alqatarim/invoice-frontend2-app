@@ -5,7 +5,6 @@ import MuiCard from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
-import Icon from '@mui/material/Icon'
 //Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'
 
