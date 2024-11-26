@@ -167,7 +167,7 @@ console.log('server success if caught', response)
   }
 };
 
-export const addProduct = async (productData, imageData) => {
+export const addProduct = async (productData, preparedImage) => {
   try {
     const formData = new FormData();
 
@@ -177,8 +177,30 @@ export const addProduct = async (productData, imageData) => {
     });
 
     // Add image if provided
-    if (imageData) {
-      formData.append('images', imageData);
+    if (preparedImage) {
+
+       // Convert base64 to blob
+      const base64Data = preparedImage.base64.split(',')[1];
+      const mimeType = preparedImage.type;
+      const fileName = preparedImage.name;
+
+      const byteCharacters = atob(base64Data);
+      const byteArrays = [];
+
+      for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
+        const slice = byteCharacters.slice(offset, offset + 1024);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+          byteNumbers[i] = slice.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+      }
+
+      const blob = new Blob(byteArrays, { type: mimeType });
+      const file = new File([blob], fileName, { type: mimeType });
+
+      formData.append('images', file);
     }
 
     const response = await fetchWithAuth('/products/addProduct', {

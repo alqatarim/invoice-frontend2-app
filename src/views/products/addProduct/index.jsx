@@ -5,8 +5,11 @@ import AddProduct from '@/views/products/addProduct/AddProduct';
 import { addProduct } from '@/app/(dashboard)/products/actions';
 
 const AddProductIndex = ({ initialData }) => {
-  const handleSave = async (productData, imageData) => {
-    const response = await addProduct(productData, imageData);
+
+
+
+  const handleSave = async (productData, preparedImage) => {
+    const response = await addProduct(productData, preparedImage);
     return response;
   };
 

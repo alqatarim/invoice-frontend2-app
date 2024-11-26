@@ -99,8 +99,8 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
 
   const fetchProductList = async (currentPage, currentSize) => {
     const response = await getProductList(currentPage, currentSize);
-    setProductList(response || []); // Ensure productList is always an array
-    setTotalCount(Array.isArray(response) ? response.length : 0); // Sum up the array length
+    setProductList(response.data || []); // Ensure productList is always an array
+    setTotalCount(Array.isArray(response.data) ? response.data.length : 0); // Sum up the array length
   };
 
   const handleDeleteClick = (id) => {
@@ -155,15 +155,29 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
     { key: "action", label: "Action", visible: true },
   ]);
 
-  // Function to toggle the visibility of a specific column
+  // Add this new state for temporary column changes
+  const [tempColumns, setTempColumns] = useState(columns);
+
+  // Update the toggleColumnVisibility function to work with tempColumns
   const toggleColumnVisibility = (index) => {
-    const newColumns = columns.map((column, idx) => {
+    const newColumns = tempColumns.map((column, idx) => {
       if (idx === index) {
         return { ...column, visible: !column.visible };
       }
       return column;
     });
-    setColumns(newColumns);
+    setTempColumns(newColumns);
+  };
+
+  // Add these new handler functions
+  const handleApplyColumns = () => {
+    setColumns(tempColumns);
+    setIsColumnsDrawerOpen(false);
+  };
+
+  const handleCancelColumns = () => {
+    setTempColumns(columns); // Reset temp columns to match current columns
+    setIsColumnsDrawerOpen(false);
   };
 
   const [anchorEl, setAnchorEl] = useState(null);
@@ -297,18 +311,18 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
           anchor="right"
           open={isColumnsDrawerOpen}
           onClose={() => setIsColumnsDrawerOpen(false)}
+
+
         >
-          <Box sx={{ width: 300, padding: 2 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="h6">Manage Columns</Typography>
-              <IconButton onClick={() => setIsColumnsDrawerOpen(false)}>
-                <CloseIcon />
-              </IconButton>
-            </Box>
-            <Divider sx={{ marginY: 2 }} />
-            <List>
-              {columns.map((column, index) => (
-                <ListItem key={index} button onClick={() => toggleColumnVisibility(index)}>
+          <Box className='flex flex-col w-[250px] gap-2 p-3'>
+
+              <Typography textAlign="center" variant="h5">Manage Columns</Typography>
+
+
+            <Divider sx={{ marginX: 3, marginY: 1 }} />
+            <List className="p-1">
+              {tempColumns.map((column, index) => (
+                <ListItem className="p-1" key={index} button onClick={() => toggleColumnVisibility(index)}>
                   <ListItemIcon>
                     <Checkbox
                       edge="start"
@@ -317,10 +331,19 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
                       disableRipple
                     />
                   </ListItemIcon>
-                  <ListItemText primary={column.label} />
+                  <Typography variant="h6">{column.label}</Typography>
                 </ListItem>
               ))}
             </List>
+            <Box display="flex" width="100%" justifyContent="space-evenly" alignItems="center">
+              <Button className="pl-[10%] pr-[10%]" variant="outlined" onClick={handleApplyColumns}>
+                Apply
+              </Button>
+              <Button className="pl-[10%] pr-[10%]" color="secondary" onClick={handleCancelColumns}>
+                Cancel
+              </Button>
+            </Box>
+
           </Box>
         </Drawer>
       </Box>

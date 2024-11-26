@@ -95,11 +95,14 @@ const AddProduct = ({ onSave, dropdownData }) => {
   const theme = useTheme();
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
   const [showSuccessOptions, setShowSuccessOptions] = useState(false);
   const [files, setFiles] = useState([]);
   const [confirmationStatus, setConfirmationStatus] = useState({
     image: "/images/animated-icons/question.gif",
     message: 'Are you sure you want to add this product?',
+    isInitialConfirmation: true,
+    isCompleted: false
   });
   const [updatingMessage, setUpdatingMessage] = useState('Adding');
   const [dotCount, setDotCount] = useState(0);
@@ -258,7 +261,8 @@ const AddProduct = ({ onSave, dropdownData }) => {
     setConfirmationStatus({
       image: "/images/animated-icons/question.gif",
       message: 'Are you sure you want to add this product?',
-      isInitialConfirmation: true
+      isInitialConfirmation: true,
+      isCompleted: false
     });
   };
 
@@ -267,38 +271,36 @@ const AddProduct = ({ onSave, dropdownData }) => {
     setConfirmationStatus({
       image: "/images/animated-icons/update.gif",
       message: updatingMessage,
-      isInitialConfirmation: false
+      isInitialConfirmation: false,
+      isCompleted: false
     });
 
     try {
       const result = await onSave(preparedData, preparedImage);
-
       setIsSubmitting(false);
 
       if (result.success) {
         setConfirmationStatus({
           image: "/images/animated-icons/success.gif",
           message: 'Product added successfully!',
-          isInitialConfirmation: false
+          isInitialConfirmation: false,
+          isCompleted: true
         });
-        setShowSuccessOptions(true);
       } else {
-        if (result.message === 'No authentication session found') {
-          router.push('/login?redirect=/products/addProduct');
-        } else {
-          setConfirmationStatus({
-            image: "/images/animated-icons/fail.gif",
-            message: result.message || 'Failed to add product',
-            isInitialConfirmation: false
-          });
-        }
+        setConfirmationStatus({
+          image: "/images/animated-icons/fail.gif",
+          message: result.message || 'Failed to add product',
+          isInitialConfirmation: false,
+          isCompleted: true
+        });
       }
     } catch (error) {
       setIsSubmitting(false);
       setConfirmationStatus({
         image: "/images/animated-icons/fail.gif",
         message: 'An error occurred while adding the product.',
-        isInitialConfirmation: false
+        isInitialConfirmation: false,
+        isCompleted: true
       });
     }
   };
@@ -763,26 +765,45 @@ const AddProduct = ({ onSave, dropdownData }) => {
           </DialogContentText>
         </DialogContent>
         <DialogActions className='flex flex-row justify-center gap-4'>
-          {!isSubmitting && (
-            showSuccessOptions ? (
-              <>
-                <Button onClick={handleContinueEditing}>
-                  Add Another Product
-                </Button>
-                <Link href="/products/product-list" passHref>
-                  <Button component="a">Go to Product List</Button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Button size='medium' className='pr-8 pl-8' variant="contained" onClick={handleConfirmAdd} autoFocus>
-                  Yes
-                </Button>
-                <Button size='medium' className='pr-8 pl-8' variant="outlined" color='secondary' onClick={() => setOpenConfirmDialog(false)}>
-                  No
-                </Button>
-              </>
-            )
+          {confirmationStatus.isInitialConfirmation && !isSubmitting && (
+            <>
+              <Button
+                size='medium'
+                className='pr-8 pl-8'
+                variant="contained"
+                onClick={handleConfirmAdd}
+                autoFocus
+              >
+                Yes
+              </Button>
+              <Button
+                size='medium'
+                className='pr-8 pl-8'
+                variant="outlined"
+                color='secondary'
+                onClick={() => setOpenConfirmDialog(false)}
+              >
+                No
+              </Button>
+            </>
+          )}
+
+          {confirmationStatus.isCompleted && !isSubmitting && (
+            <>
+              <Button onClick={() => {
+                setOpenConfirmDialog(false);
+                setConfirmationStatus(prev => ({
+                  ...prev,
+                  isInitialConfirmation: true,
+                  isCompleted: false
+                }));
+              }}>
+                Continue editing
+              </Button>
+              <Link href="/products/product-list" passHref>
+                <Button component="a">Go to Product List</Button>
+              </Link>
+            </>
           )}
         </DialogActions>
       </Dialog>
