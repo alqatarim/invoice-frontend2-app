@@ -51,6 +51,7 @@ import {
     FormControlLabel,
     Checkbox,
     FormGroup,
+    Skeleton,
 } from '@mui/material';
 import {
     Send as SendIcon,
@@ -90,11 +91,7 @@ const InvoiceList = () => {
     const canUpdate = usePermission('invoice', 'update');
     const canView = usePermission('invoice', 'view');
     const canDelete = usePermission('invoice', 'delete');
-console.log('can view:')
-console.log(canView)
 
-console.log('can update:')
-console.log(canUpdate)
 
 
     const [invoices, setInvoices] = useState([]);
@@ -103,7 +100,7 @@ console.log(canUpdate)
     const [tab, setTab] = useState('ALL');
     const [filters, setFilters] = useState({});
     const [filterOpen, setFilterOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [anchorEl, setAnchorEl] = useState(null);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [sortBy, setSortBy] = useState('');
@@ -633,12 +630,60 @@ console.log(canUpdate)
         }
     };
 
+    // Add this component at the top level of your file
+    const TableRowSkeleton = ({ columns }) => (
+        <TableRow>
+            {columns.filter(col => col.visible).map((column) => (
+                <TableCell key={column.key}>
+                    {column.key === 'invoiceTo' ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Skeleton variant="circular" width={40} height={40} />
+                            <Box>
+                                <Skeleton width={120} />
+                                <Skeleton width={180} />
+                            </Box>
+                        </Box>
+                    ) : column.key === 'status' ? (
+                        <Skeleton variant="rounded" width={80} height={24} />
+                    ) : column.key === 'action' ? (
+                        <Skeleton variant="circular" width={32} height={32} />
+                    ) : column.key === 'invoiceNumber' ? (
+                        <Skeleton width={120} />
+                    ) : (
+                        <Skeleton width={80} />
+                    )}
+                </TableCell>
+            ))}
+        </TableRow>
+    );
 
+    // Add this component near your TableRowSkeleton
+    const TableHeaderSkeleton = () => (
+        <TableRow>
+            <TableCell colSpan={100} sx={{ padding: 0 }}>
+                <Skeleton
+                    variant="rectangular"
+                    width="100%"
+                    height={52} // Standard MUI table header height
+                    sx={{
+                        backgroundColor: (theme) => theme.palette.mode === 'light'
+                            ? 'rgba(0, 0, 0, 0.04)'
+                            : 'rgba(255, 255, 255, 0.08)',
+                        transform: 'none' // Prevents the wave animation from changing the height
+                    }}
+                />
+            </TableCell>
+        </TableRow>
+    );
 
     return (
         <div>
             {/* 1st Segment: Stat Cards */}
-            <InvoiceHead invoiceListData={cardCounts} currencyData={currencyData} />
+            <InvoiceHead
+                invoiceListData={loading ? {} : cardCounts}
+                currencyData={currencyData}
+                isLoading={loading}
+            />
 
             {/* 2nd Segment: Action Buttons */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, mt: 6 }}>
@@ -705,136 +750,135 @@ console.log(canUpdate)
             <Card>
                 <Table>
                     <TableHead>
-                        <TableRow>
-                            {columns.map(
-                                (column) =>
-                                    column.visible && (
-                                        <TableCell
-                                            key={column.key}
-                                            sortDirection={sortBy === column.key ? sortDirection : false}
-                                        >
-                                            {column.key !== 'action' ? (
-                                                <TableSortLabel
-                                                    active={sortBy === column.key}
-                                                    direction={sortBy === column.key ? sortDirection : 'asc'}
-                                                    onClick={() => handleSortRequest(column.key)}
-                                                >
-                                                    {column.label}
-                                                </TableSortLabel>
-                                            ) : (
-                                                column.label
-                                            )}
-                                        </TableCell>
-                                    )
-                            )}
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {invoices.map((invoice, index) => (
-                            <TableRow key={invoice.id || invoice._id}>
+                        {loading ? (
+                            <TableHeaderSkeleton />
+                        ) : (
+                            <TableRow>
                                 {columns.map(
                                     (column) =>
                                         column.visible && (
-                                            <TableCell key={column.key}>
-                                                {/* Render based on column key */}
-                                                {column.key === 'index' && index + 1}
-
-                                                {column.key === 'invoiceNumber' && (
-                                                    <Link href={`/invoices/invoice-view/${invoice._id}`} passHref>
-                                                        <Typography
-                                                            component="a"
-                                                            sx={{ cursor: 'pointer', color: 'primary.main', textDecoration: 'none' }}
-                                                        >
-                                                            {invoice.invoiceNumber || 'N/A'}
-                                                        </Typography>
-                                                    </Link>
-                                                )}
-
-                                                {column.key === 'createdOn' && (
-                                                    <Typography>
-                                                        {invoice.invoiceDate
-                                                            ? moment(invoice.invoiceDate).format('DD MMM YYYY')
-                                                            : 'N/A'}
-                                                    </Typography>
-                                                )}
-
-                                                {column.key === 'invoiceTo' && (
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                        <Avatar
-                                                            src={invoice.customerId?.image || '/images/default-avatar.png'}
-                                                            alt={invoice.customerId?.name || 'Deleted Customer'}
-                                                        />
-
-                                                        <Link href={`/invoices/invoice-list/invoice-view/${invoice.customerId?._id}`} passHref>
-                                                            <Typography
-                                                                sx={{ cursor: 'pointer', color: 'primary.main' }}
-                                                            >
-                                                                {invoice.customerId?.name || 'Deleted Customer'}
-                                                            </Typography>
-                                                        </Link>
-                                                    </Box>
-                                                )}
-
-                                                {column.key === 'totalAmount' && (
-                                                    <Typography>
-                                                        {currencyData} {amountFormat(invoice.TotalAmount || 0)}
-                                                    </Typography>
-                                                )}
-
-                                                {column.key === 'paidAmount' && (
-                                                    <Typography>
-                                                        {currencyData} {amountFormat(invoice.paidAmt || 0)}
-                                                    </Typography>
-                                                )}
-
-                                                {column.key === 'paymentMode' && (
-                                                    <Typography>{invoice.payment_method || 'N/A'}</Typography>
-                                                )}
-
-                                                {column.key === 'balance' && (
-                                                    <Typography>
-                                                        {currencyData} {amountFormat(invoice.balance || 0)}
-                                                    </Typography>
-                                                )}
-
-                                                {column.key === 'dueDate' && (
-                                                    <Typography>
-                                                        {invoice.dueDate
-                                                            ? moment(invoice.dueDate).format('DD MMM YYYY')
-                                                            : 'N/A'}
-                                                    </Typography>
-                                                )}
-
-                                                {column.key === 'status' && (
-                                                    getStatusBadge(invoice.status)
-                                                )}
-
-                                                {column.key === 'action' && (
-                                                    <IconButton
-                                                        aria-label="more"
-                                                        aria-controls="long-menu"
-                                                        aria-haspopup="true"
-                                                        onClick={(event) => handleMenuOpen(event, invoice)}
+                                            <TableCell
+                                                key={column.key}
+                                                sortDirection={sortBy === column.key ? sortDirection : false}
+                                            >
+                                                {column.key !== 'action' ? (
+                                                    <TableSortLabel
+                                                        active={sortBy === column.key}
+                                                        direction={sortBy === column.key ? sortDirection : 'asc'}
+                                                        onClick={() => handleSortRequest(column.key)}
                                                     >
-                                                        <MoreVertIcon />
-                                                    </IconButton>
+                                                        {column.label}
+                                                    </TableSortLabel>
+                                                ) : (
+                                                    column.label
                                                 )}
                                             </TableCell>
                                         )
                                 )}
                             </TableRow>
-                        ))}
-                        {invoices.length === 0 && !loading && (
+                        )}
+                    </TableHead>
+                    <TableBody>
+                        {loading ? (
+                            // Show 5 skeleton rows while loading
+                            Array.from(new Array(5)).map((_, index) => (
+                                <TableRowSkeleton key={index} columns={columns} />
+                            ))
+                        ) : invoices.length > 0 ? (
+                            invoices.map((invoice, index) => (
+                                <TableRow key={invoice.id || invoice._id}>
+                                    {columns.map(
+                                        (column) =>
+                                            column.visible && (
+                                                <TableCell key={column.key}>
+                                                    {column.key === 'index' && index + 1}
+
+                                                    {column.key === 'invoiceNumber' && (
+                                                        <Link href={`/invoices/invoice-view/${invoice._id}`} passHref>
+                                                            <Typography
+                                                                component="a"
+                                                                sx={{ cursor: 'pointer', color: 'primary.main', textDecoration: 'none' }}
+                                                            >
+                                                                {invoice.invoiceNumber || 'N/A'}
+                                                            </Typography>
+                                                        </Link>
+                                                    )}
+
+                                                    {column.key === 'createdOn' && (
+                                                        <Typography>
+                                                            {invoice.invoiceDate
+                                                                ? moment(invoice.invoiceDate).format('DD MMM YYYY')
+                                                                : 'N/A'}
+                                                        </Typography>
+                                                    )}
+
+                                                    {column.key === 'invoiceTo' && (
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                            <Avatar
+                                                                src={invoice.customerId?.image || '/images/default-avatar.png'}
+                                                                alt={invoice.customerId?.name || 'Deleted Customer'}
+                                                            />
+                                                            <Link href={`/invoices/invoice-list/invoice-view/${invoice.customerId?._id}`} passHref>
+                                                                <Typography
+                                                                    sx={{ cursor: 'pointer', color: 'primary.main' }}
+                                                                >
+                                                                    {invoice.customerId?.name || 'Deleted Customer'}
+                                                                </Typography>
+                                                            </Link>
+                                                        </Box>
+                                                    )}
+
+                                                    {column.key === 'totalAmount' && (
+                                                        <Typography>
+                                                            {currencyData} {amountFormat(invoice.TotalAmount || 0)}
+                                                        </Typography>
+                                                    )}
+
+                                                    {column.key === 'paidAmount' && (
+                                                        <Typography>
+                                                            {currencyData} {amountFormat(invoice.paidAmt || 0)}
+                                                        </Typography>
+                                                    )}
+
+                                                    {column.key === 'paymentMode' && (
+                                                        <Typography>{invoice.payment_method || 'N/A'}</Typography>
+                                                    )}
+
+                                                    {column.key === 'balance' && (
+                                                        <Typography>
+                                                            {currencyData} {amountFormat(invoice.balance || 0)}
+                                                        </Typography>
+                                                    )}
+
+                                                    {column.key === 'dueDate' && (
+                                                        <Typography>
+                                                            {invoice.dueDate
+                                                                ? moment(invoice.dueDate).format('DD MMM YYYY')
+                                                                : 'N/A'}
+                                                        </Typography>
+                                                    )}
+
+                                                    {column.key === 'status' && getStatusBadge(invoice.status)}
+
+                                                    {column.key === 'action' && (
+                                                        <IconButton
+                                                            aria-label="more"
+                                                            aria-controls="long-menu"
+                                                            aria-haspopup="true"
+                                                            onClick={(event) => handleMenuOpen(event, invoice)}
+                                                        >
+                                                            <MoreVertIcon />
+                                                        </IconButton>
+                                                    )}
+                                                </TableCell>
+                                            )
+                                    )}
+                                </TableRow>
+                            ))
+                        ) : (
                             <TableRow>
                                 <TableCell colSpan={columns.length} align="center">
                                     No invoices found.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                        {loading && (
-                            <TableRow>
-                                <TableCell colSpan={columns.length} align="center">
-                                    Loading...
                                 </TableCell>
                             </TableRow>
                         )}

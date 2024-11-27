@@ -67,18 +67,33 @@ const Dashboard = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-  // Fetch filtered dashboard data based on the selected filter
-  const getDetails = async (filter = '') => {
-    if (filterValue !== filter) setFilterValue(filter);
+  // Unified fetch function that uses the appropriate API based on filter
+  const fetchDashboardData = async (filter = '') => {
     setLoading(true);
     try {
-      const response = await getFilteredDashboardData(filter);
-      setDashboardData(response.data);
+      // Choose appropriate API based on whether filter is provided
+      const response = filter
+        ? await getFilteredDashboardData(filter)
+        : await getDashboardData('/dashboard');
+
+      if (response.code === 200) {
+        setDashboardData(response.data);
+        // Only set invoice data if it's the initial load (no filter)
+        if (!filter) {
+          setInvoiceData(response.data?.invoiceList || []);
+        }
+      } else {
+        setOpenSnackbar({
+          open: true,
+          message: `Failed to fetch ${filter ? 'filtered ' : ''}dashboard data`,
+          type: 'error',
+        });
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setOpenSnackbar({
         open: true,
-        message: 'Failed to fetch filtered dashboard data',
+        message: `Failed to fetch ${filter ? 'filtered ' : ''}dashboard data`,
         type: 'error',
       });
     } finally {
@@ -86,38 +101,29 @@ const Dashboard = () => {
     }
   };
 
-  // Initial data fetch on component mount
+  // Handle filter changes
+  const getDetails = async (filter = '') => {
+    if (filterValue !== filter) {
+      setFilterValue(filter);
+      await fetchDashboardData(filter);
+    }
+  };
+
+  // Initial data fetch with cleanup
   useEffect(() => {
+    let mounted = true;
 
-    const fetchDetails = async () => {
-      setLoading(true);
-      try {
-        const response = await getDashboardData(`/dashboard`);
-
-        if (response.code === 200) {
-          setDashboardData(response.data);
-          setInvoiceData(response.data?.invoiceList || []);
-
-          console.log('Complete response data:', JSON.stringify(response.data, null, 2));
-        } else {
-          setOpenSnackbar({
-            open: true,
-            message: 'Failed to fetch dashboard initial data',
-            type: 'error',
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching initial dashboard initialdata data:', error);
-        setOpenSnackbar({
-          open: true,
-          message: 'Failed to fetch dashboard initial data',
-          type: 'error',
-        });
-      } finally {
-        setLoading(false);
+    const initializeDashboard = async () => {
+      if (mounted) {
+        await fetchDashboardData();
       }
     };
-    fetchDetails();
+
+    initializeDashboard();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Handle converting invoice to sales return

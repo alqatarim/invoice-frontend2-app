@@ -2,87 +2,71 @@
 
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/libs/auth';
-import fs from 'fs';
-import path from 'path';
+
 
    const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+// Add session caching
+let cachedSession = null;
+let sessionExpiry = null;
+const SESSION_CACHE_DURATION = 30 * 1000; // 30 seconds
+
 export async function fetchWithAuth(endpoint, options = {}) {
-  const session = await getServerSession(authOptions);
+  // Generate unique request ID for correlation
+  const requestId = Math.random().toString(36).substring(7);
 
+  // Create log object to store request and response details
+  // const logData = {
+  //   requestId,
+  //   request: {
+  //     endpoint,
+  //     options: { ...options },
+  //     body: options.body ? (
+  //       typeof options.body === 'string' ? JSON.parse(options.body) : options.body
+  //     ) : undefined
+  //   },
+  //   response: null
+  // };
 
+  // console.log(`=== fetchWithAuth [${requestId}] ===`);
+  // console.log(JSON.stringify(logData, null, 2));
 
-  if (!session) {
+    // Use cached session if available and not expired
+  if (!cachedSession || Date.now() > sessionExpiry) {
+    cachedSession = await getServerSession(authOptions);
+    sessionExpiry = Date.now() + SESSION_CACHE_DURATION;
+  }
 
+  if (!cachedSession) {
     return { error: 'No authentication session found' };
-  } else {
-    const headers = {
-      'Authorization': `Bearer ${session.user.token}`,
-      'token': session.user.token,
-      ...options.headers,
-    };
+  }
 
-    try {
+  const headers = {
+    'Authorization': `Bearer ${cachedSession.user.token}`,
+    'token': cachedSession.user.token,
+    ...options.headers,
+  };
+
+  try {
     const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${endpoint}`, {
       ...options,
       headers,
       credentials: 'include',
     });
 
+      // Clone response for logging (since response can only be consumed once)
+      // const responseClone = response.clone();
+      // const responseData = await responseClone.json();
 
+      // // Update log object with response
+      // logData.response = {
+      //   status: response.status,
+      //   // data: responseData
+      // };
 
-
-
-
-     // Clone response for logging
-    const responseClone = response.clone();
-
-    // Get response text first
-    const responseText = await responseClone.text();
-    let responseData;
-
-    try {
-      // Try to parse as JSON
-      responseData = responseText ? JSON.parse(responseText) : null;
-    } catch (parseError) {
-      console.error('Failed to parse response as JSON:', responseText);
-      throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}...`);
-    }
-
-    // Create log entry
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      endpoint,
-      request: {
-        method: options.method || 'GET',
-        body: options.body,
-      },
-      response: {
-        status: response.status,
-        statusText: response.statusText,
-        data: responseData
-      }
-    };
-
-    // Log via API route instead of direct file system access
-    try {
-      await fetch(`${NEXT_PUBLIC_BACKEND_URL}/api/log`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(logEntry),
-      });
-
-      console.log('API Log saved:', {
-        endpoint,
-        method: options.method || 'GET',
-        status: response.status,
-        data: responseData.data
-      });
-    } catch (logError) {
-      console.error('Error saving API log:', logError);
-    }
+      // Log complete request-response cycle
+      console.log(`=== fetchWithAuth Complete [${requestId}] ===`);
+      // console.log(JSON.stringify(logData, null, 2));
 
     if (!response.ok) {
       const error = await response.clone().json();
@@ -108,9 +92,16 @@ export async function fetchWithAuth(endpoint, options = {}) {
 
     return await response.json();
   } catch (error) {
-    console.error('Error in fetchWithAuth:', error.message);
+     console.error('Error in fetchWithAuth:', error.message);
+    // Update log object with error
+    logData.response = {
+      error: error.message
+    };
+
+    console.log(`=== fetchWithAuth Error [${requestId}] ===`);
+    console.log(JSON.stringify(logData, null, 2));
     throw error;
   }
 
-  }
+
 }

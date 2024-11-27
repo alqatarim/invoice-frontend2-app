@@ -222,3 +222,36 @@ export const addProduct = async (productData, preparedImage) => {
     return { success: false, message: error.message || 'Failed to add product' };
   }
 };
+
+// Fetch the list of categories with optional search term
+export const getCategoryList = async (page = 1, pageSize = 10, searchTerm = '') => {
+  let url = `/category?limit=${pageSize}&skip=${(page - 1) * pageSize}`;
+  if (searchTerm) {
+    url += `&search=${searchTerm}`;
+  }
+  const response = await fetchWithAuth(url);
+
+  if (response.error) {
+    return { success: false, message: response.error };
+  }
+
+  return { success: true, data: response.data };
+};
+
+// Delete a category by ID
+export const deleteCategory = async (categoryId) => {
+  try {
+    const response = await fetchWithAuth(`/category/${categoryId}`, {
+      method: 'PATCH',
+    });
+
+    if (response.error) {
+      return { success: false, message: response.error };
+    }
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    return { success: false, message: error.message };
+  }
+};

@@ -1,7 +1,7 @@
 // app/invoices/page.jsx
 
 import React from 'react';
-import ListproductComponent from '@/views/products/productList/index';
+import ProductListComponent from '@/views/products/listProduct/index';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
 
@@ -12,7 +12,7 @@ const ProductsPage = async ({ params }) => {
 
   return (
     <ProtectedComponent>
-      <ListproductComponent />
+      <ProductListComponent />
     </ProtectedComponent>
   )
 }

@@ -14,18 +14,35 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ImageIcon from '@mui/icons-material/Image'; // Add this import
+import Skeleton from '@mui/material/Skeleton';
 
 import { getProductList, deleteProduct } from '@/app/(dashboard)/products/actions';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10, setSize, initialSortBy = 'name', initialSortDirection = 'asc' }) => {
+const Listproduct = ({
+  initialProductListData = [],
+  totalCount = 0,
+  setTotalCount,
+  page = 1,
+  setPage,
+  size = 10,
+  setSize,
+  initialSortBy = 'name',
+  initialSortDirection = 'asc',
+  loading,
+  fetchProductList
+}) => {
   const canUpdate = usePermission('product', 'update');
   const canDelete = usePermission('product', 'delete');
   const isAdmin = usePermission('product', 'isAdmin'); // Check if the user is an admin
 
   // Define the state for productList and totalCount
-  const [productList, setProductList] = useState(initialProductListData); // Initialize with initialProductListData
-  const [totalCount, setTotalCount] = useState(0); // Initialize totalCount as needed
+  const [productList, setProductList] = useState(initialProductListData);
+
+  // Update productList when initialProductListData changes
+  useEffect(() => {
+    setProductList(initialProductListData);
+  }, [initialProductListData]);
 
   const [sortBy, setSortBy] = useState(initialSortBy);
   const [sortDirection, setSortDirection] = useState(initialSortDirection);
@@ -51,6 +68,8 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
   };
 
   const handleSortRequest = (columnKey) => {
+    if (!productList) return; // Guard clause
+
     let newDirection = 'asc';
     if (sortBy === columnKey) {
       newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -58,18 +77,15 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
     setSortBy(columnKey);
     setSortDirection(newDirection);
 
-    // Local sorting
     const sortedList = [...productList].sort((a, b) => {
-      let aValue = a[columnKey] || '';
-      let bValue = b[columnKey] || '';
+      let aValue = a?.[columnKey] ?? '';
+      let bValue = b?.[columnKey] ?? '';
 
-      // Handle numeric values
       if (columnKey === 'alertQuantity' || columnKey === 'sellingPrice' || columnKey === 'purchasePrice') {
         aValue = parseFloat(aValue) || 0;
         bValue = parseFloat(bValue) || 0;
       }
 
-      // Handle string values
       if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase();
         bValue = bValue.toLowerCase();
@@ -87,20 +103,12 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
 
   const handlePageChange = async (event, newPage) => {
     setPage(newPage + 1);
-    await fetchProductList(newPage + 1, size);
   };
 
   const handlePageSizeChange = async (event) => {
     const newSize = parseInt(event.target.value, 10);
     setSize(newSize);
     setPage(1);
-    await fetchProductList(1, newSize);
-  };
-
-  const fetchProductList = async (currentPage, currentSize) => {
-    const response = await getProductList(currentPage, currentSize);
-    setProductList(response.data || []); // Ensure productList is always an array
-    setTotalCount(Array.isArray(response.data) ? response.data.length : 0); // Sum up the array length
   };
 
   const handleDeleteClick = (id) => {
@@ -224,6 +232,44 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
     ]);
   };
 
+  // Add this helper function
+  const TableRowSkeleton = () => (
+    <TableRow>
+      {columns.filter(col => col.visible).map((column) => (
+        <TableCell key={column.key}>
+          {column.key === 'image' ? (
+            <Skeleton variant="rectangular" width={50} height={50} />
+          ) : column.key === 'action' ? (
+            <Box display="flex" gap={1}>
+              <Skeleton variant="circular" width={32} height={32} />
+            </Box>
+          ) : column.key === 'name' ? (
+            <Skeleton variant="text" width={200} />
+          ) : (
+            <Skeleton variant="text" width={80} />
+          )}
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+
+  // Update the TableHeadSkeleton component
+  const TableHeadSkeleton = () => (
+    <TableRow>
+      <TableCell colSpan={columns.filter(col => col.visible).length}>
+        <Skeleton
+          variant="rectangular"
+          width="100%"
+          height={24}
+          sx={{
+            borderRadius: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.08)'
+          }}
+        />
+      </TableCell>
+    </TableRow>
+  );
+
   return (
     <Box className="flex flex-col gap-2">
       <ToastContainer />
@@ -255,7 +301,7 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
               scrollButtons="auto"
             >
               <Tab label="Product" value="PRODUCT" />
-              <Tab label="Category" value="CATEGORY" />
+              <Tab label="Category" value="CATEGORY" component={Link} href="/products/category-list" />
               <Tab label="Units" value="UNITS" />
             </Tabs>
           </Grid>
@@ -353,101 +399,123 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
         <CardContent className="p-0">
           <Table>
             <TableHead>
-              <TableRow
-
-              >
-                {columns.map(
-                  (column) =>
-                    column.visible && (
-                      <TableCell
-
-                        key={column.key}
-                        sortDirection={sortBy === column.key ? sortDirection : false}
-                      >
-                        {column.key !== 'action' && column.key !== 'id' ? (
-                          <TableSortLabel
-                            active={sortBy === column.key}
-                            direction={sortBy === column.key ? sortDirection : 'asc'}
-                            onClick={() => handleSortRequest(column.key)}
-                          >
-                            {column.label}
-                          </TableSortLabel>
-                        ) : (
-                          column.label
-                        )}
-                      </TableCell>
-                    )
-                )}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {productList.map((product, index) => (
-                <TableRow key={product._id}>
+              {loading ? (
+                <TableHeadSkeleton />
+              ) : (
+                <TableRow>
                   {columns.map(
                     (column) =>
                       column.visible && (
                         <TableCell
-                            size="small"
-                        key={column.key}>
-                          {column.key === 'id' && index + 1}
-                          {column.key === 'image' && (
-                            <Box sx={{ width: 50, height: 50, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                              {product.images ? (
-                                <img src={product.images} alt={product.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                              ) : (
-                                <ImageIcon color="disabled" />
-                              )}
-                            </Box>
-                          )}
-                          {column.key === 'name' && (
-                            <Typography>{product.name || 'N/A'}</Typography>
-                          )}
-                          {column.key === 'alertQuantity' && (
-                            <Typography>{product.alertQuantity || 'N/A'}</Typography>
-                          )}
-                          {column.key === 'sellingPrice' && (
-                            <Typography>{product.sellingPrice || 'N/A'}</Typography>
-                          )}
-                          {column.key === 'purchasePrice' && (
-                            <Typography>{product.purchasePrice || 'N/A'}</Typography>
-                          )}
-                          {column.key === 'action' && (
-                            <div>
-                              <IconButton onClick={(event) => handleMenuOpen(event, product)}>
-                                <MoreVertIcon />
-                              </IconButton>
-                            </div>
+                          key={column.key}
+                          sortDirection={sortBy === column.key ? sortDirection : false}
+                        >
+                          {column.key !== 'action' && column.key !== 'id' ? (
+                            <TableSortLabel
+                              active={sortBy === column.key}
+                              direction={sortBy === column.key ? sortDirection : 'asc'}
+                              onClick={() => handleSortRequest(column.key)}
+                            >
+                              {column.label}
+                            </TableSortLabel>
+                          ) : (
+                            column.label
                           )}
                         </TableCell>
                       )
                   )}
                 </TableRow>
-              ))}
-              {productList.length === 0 && (
+              )}
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                // Show skeleton rows while loading
+                [...Array(size || 5)].map((_, index) => (
+                  <TableRowSkeleton key={`skeleton-${index}`} />
+                ))
+              ) : Array.isArray(productList) && productList.length > 0 ? (
+                productList.map((product, index) => (
+                  <TableRow key={product?._id || index}>
+                    {columns.map(
+                      (column) =>
+                        column.visible && (
+                          <TableCell
+                              size="small"
+                          key={column.key}>
+                            {column.key === 'id' && (index + 1)}
+                            {column.key === 'image' && (
+                              <Box sx={{ width: 50, height: 50, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                {product?.images ? (
+                                  <img
+                                    src={product.images}
+                                    alt={product?.name || 'Product image'}
+                                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                                  />
+                                ) : (
+                                  <ImageIcon color="disabled" />
+                                )}
+                              </Box>
+                            )}
+                            {column.key === 'name' && (
+                              <Typography>{product?.name || 'N/A'}</Typography>
+                            )}
+                            {column.key === 'alertQuantity' && (
+                              <Typography>{product?.alertQuantity ?? 'N/A'}</Typography>
+                            )}
+                            {column.key === 'sellingPrice' && (
+                              <Typography>{product?.sellingPrice ?? 'N/A'}</Typography>
+                            )}
+                            {column.key === 'purchasePrice' && (
+                              <Typography>{product?.purchasePrice ?? 'N/A'}</Typography>
+                            )}
+                            {column.key === 'action' && (
+                              <div>
+                                <IconButton
+                                  onClick={(event) => handleMenuOpen(event, product)}
+                                  disabled={!product}
+                                >
+                                  <MoreVertIcon />
+                                </IconButton>
+                              </div>
+                            )}
+                          </TableCell>
+                        )
+                    )}
+                  </TableRow>
+                ))
+              ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} align="center">
-                    No products found.
+                  <TableCell colSpan={columns.filter(col => col.visible).length} align="center">
+                    <Typography variant="body1" color="textSecondary">
+                      No products found.
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
-          <TablePagination
-            component="div"
-            count={totalCount}
-            page={page - 1}
-            onPageChange={handlePageChange}
-            rowsPerPage={size}
-            onRowsPerPageChange={handlePageSizeChange}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-          />
+          {loading ? (
+            <Box sx={{ p: 2 }}>
+              <Skeleton variant="rectangular" height={52} />
+            </Box>
+          ) : (
+            <TablePagination
+              component="div"
+              count={totalCount}
+              page={page - 1}
+              onPageChange={handlePageChange}
+              rowsPerPage={size}
+              onRowsPerPageChange={handlePageSizeChange}
+              rowsPerPageOptions={[5, 10, 25, 50]}
+            />
+          )}
           <Menu
             anchorEl={anchorEl}
             keepMounted
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
           >
-            {(canUpdate || isAdmin) && selectedProduct && (
+            {(canUpdate || isAdmin) && selectedProduct?._id && (
               <MenuItem
                 component={Link}
                 href={`/products/product-edit/${selectedProduct._id}`}
@@ -460,7 +528,7 @@ const Listproduct = ({ initialProductListData = [], page = 1, setPage, size = 10
                 <ListItemText primary="Edit" />
               </MenuItem>
             )}
-            {(canDelete || isAdmin) && selectedProduct && (
+            {(canDelete || isAdmin) && selectedProduct?._id && (
               <MenuItem
                 onClick={() => {
                   handleDeleteClick(selectedProduct._id);
