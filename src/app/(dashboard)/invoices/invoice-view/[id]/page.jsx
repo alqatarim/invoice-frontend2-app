@@ -16,22 +16,19 @@ import ProtectedComponent from '@/components/ProtectedComponent';
 const InvoiceViewPage = async ({ params }) => {
   const { id } = params;
 
-  try {
-    const invoiceData = await getInvoiceById(id);
 
-    if (!invoiceData) {
-      notFound();
-    }
+
+
+
 
     return (
       <ProtectedComponent>
-        <InvoiceView initialInvoiceData={invoiceData} />
+        <InvoiceView id={params.id} />
       </ProtectedComponent>
     );
-  } catch (error) {
-    console.error('Error loading invoice data:', error);
-    notFound();
-  }
+
+
+
 }
 
 export default InvoiceViewPage;

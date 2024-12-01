@@ -9,7 +9,7 @@ import moment from "moment"; // Import moment for date formatting
 import ClearIcon from '@mui/icons-material/Clear';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
-import ProductFilter from './ProductFilter'; // Import the new ProductFilter component
+import ProductFilter from '@/views/products/listProduct/ProductFilter'; // Import the new ProductFilter component
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -300,9 +300,9 @@ const Listproduct = ({
               variant="scrollable"
               scrollButtons="auto"
             >
-              <Tab label="Product" value="PRODUCT" />
-              <Tab label="Category" value="CATEGORY" component={Link} href="/products/category-list" />
-              <Tab label="Units" value="UNITS" />
+              <Tab label="Products" value="PRODUCT" />
+              <Tab label="Categories" value="CATEGORY" component={Link} href="/products/category-list" />
+              <Tab label="Units" value="UNITS" component={Link} href="/products/unit-list" />
             </Tabs>
           </Grid>
 

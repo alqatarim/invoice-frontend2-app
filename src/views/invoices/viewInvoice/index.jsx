@@ -1,141 +1,60 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  Grid,
-  Snackbar,
-  Alert,
+import { Box, Container, Paper, CircularProgress } from '@mui/material';
+import ViewInvoice from './ViewInvoice.jsx';
+import { useEffect, useState } from 'react';
+import { getInvoiceById } from '@/app/(dashboard)/invoices/actions';
 
-} from '@mui/material';
-import moment from 'moment';
-import { addPayment } from '@/app/(dashboard)/invoices/actions';
-
-import InvoiceView from './InvoiceView'; // Adjust the path if necessary
-import InvoiceActions from './InvoiceActions'; // Adjust the path if necessary
-
-
-const ViewInvoice = ({ initialInvoiceData }) => {
-
-  // const [addPaymentOpen, setAddPaymentOpen] = useState(false);
-  // const [items, setItems] = useState([]);
-  // const [dueDays, setDueDays] = useState(0);
-  // const [companyData, setCompanyData] = useState(null);
-
-
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+export default function ViewInvoiceComponent({ id }) {
   const [invoiceData, setInvoiceData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+
+  const fetchInvoiceData = async (id) => {
+         console.log('My view invoice Data: ');
+    setLoading(true);
+    try {
+      const response = await getInvoiceById(id);
+      console.log('My view invoice Data: ');
+      console.log(response);
+      setInvoiceData(response);
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching invoice data:', error);
+      setError(error.message || 'Failed to fetch invoice data');
+      setInvoiceData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (initialInvoiceData) {
-      setInvoiceData(initialInvoiceData.invoice_details);
-
+    console.log('useEffect triggered with id:', id);
+    if (id) {
+      fetchInvoiceData(id);
+    } else {
+      console.warn('No id provided to fetch invoice data');
     }
-  }, [initialInvoiceData]);
+  }, [id]);
 
-  // useEffect(() => {
-  //   if (invoiceData?.dueDate) {
-  //     const calculateDaysRemaining = () => {
-  //       const currentDate = moment();
-  //       const dueDateTime = moment(invoiceData.dueDate);
-  //       const diffInDays = dueDateTime.diff(currentDate, 'days');
-  //       setDueDays(diffInDays);
-  //     };
-  //     calculateDaysRemaining();
-  //   }
-  // }, [invoiceData]);
-
-  const handleOpenAddPayment = () => {
-    setAddPaymentOpen(true);
-  };
-
-  const handleCloseAddPayment = () => {
-    setAddPaymentOpen(false);
-  };
-
-  const handleAddPayment = async (paymentData) => {
-    try {
-      const response = await addPayment(paymentData);
-      if (response.code === 200) {
-        setSnackbar({
-          open: true,
-          message: 'Payment added successfully.',
-          severity: 'success',
-        });
-        // Optionally, refresh invoice data or update state
-      } else {
-        setSnackbar({
-          open: true,
-          message: response.error || 'Failed to add payment.',
-          severity: 'error',
-        });
-      }
-    } catch (error) {
-      console.error('Error adding payment:', error);
-      setSnackbar({
-        open: true,
-        message: 'An unexpected error occurred.',
-        severity: 'error',
-      });
-    } finally {
-      handleCloseAddPayment();
-    }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
-  };
-
-  if (!invoiceData) {
+  if (error) {
     return (
-      <Box sx={{ padding: 4 }}>
-        <Typography variant="h6">Loading Invoice...</Typography>
-      </Box>
+      <Container>
+        <Paper sx={{ p: 3, mt: 3, textAlign: 'center', color: 'error.main' }}>
+          {error}
+        </Paper>
+      </Container>
     );
   }
 
-  const handleImageError = (event) => {
-    event.target.src = '/default/logo.png'; // Provide a default logo path
-  };
-
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-
-
-      {/* Refactored Preview Sections */}
-      <Grid container spacing={6}>
-        <Grid item xs={12} md={9}>
-          <InvoiceView invoiceData={invoiceData} id={invoiceData?.invoiceNumber} />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <InvoiceActions
-            id={invoiceData?._id}
-            onButtonClick={() => window.print()}
-          />
-        </Grid>
-      </Grid>
-
-
-
-
-
-
-      {/* Snackbar Notification */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+    <Box>
+      <ViewInvoice
+        invoiceData={invoiceData}
+        isLoading={loading}
+        refreshData={fetchInvoiceData}
+      />
+    </Box>
   );
-};
-
-export default ViewInvoice;
+}

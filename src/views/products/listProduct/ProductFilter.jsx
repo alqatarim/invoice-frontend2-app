@@ -37,23 +37,19 @@ const ProductFilter = ({ setProductList, setTotalCount, setPage, page, pageSize,
   };
 
   const handleApplyFilter = async () => {
-    try {
-      if (selectedProducts.length > 0) {
-        // Filter the products based on selection
-        setProductList(selectedProducts);
-        setTotalCount(selectedProducts.length);
-        setPage(1);
-      } else if (searchTerm) {
-        // Apply search filter
-        const response = await getProductList(1, pageSize, searchTerm);
-        const products = response?.data || [];
-        setProductList(products);
-        setTotalCount(products.length || 0);
-        setPage(1);
+    if (selectedProducts.length > 0) {
+      try {
+        const productIds = selectedProducts.map(product => product._id).join(',');
+        const response = await getProductList(1, pageSize, '', productIds);
+        if (response.success) {
+          setProductList(response.data || []);
+          setTotalCount(response.totalRecords);
+          setPage(1);
+          onClose();
+        }
+      } catch (error) {
+        console.error('Error applying filter:', error);
       }
-      onClose(); // Close the drawer after applying filters
-    } catch (error) {
-      console.error("Error applying filters:", error);
     }
   };
 
@@ -62,11 +58,17 @@ const ProductFilter = ({ setProductList, setTotalCount, setPage, page, pageSize,
     setSelectedProducts([]);
     setSearchResults([]);
 
-    // Reset to initial state
-    const response = await getProductList(1, pageSize);
-    setProductList(response || []);
-    setTotalCount(response.length || 0);
-    setPage(1);
+    try {
+      const response = await getProductList(1, pageSize);
+      if (response.success) {
+        setProductList(response.data || []);
+        setTotalCount(response.totalRecords);
+        setPage(1);
+      }
+    } catch (error) {
+      console.error('Error resetting filters:', error);
+    }
+
     onClose();
   };
 

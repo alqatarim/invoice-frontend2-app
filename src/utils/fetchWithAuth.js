@@ -16,17 +16,17 @@ export async function fetchWithAuth(endpoint, options = {}) {
   const requestId = Math.random().toString(36).substring(7);
 
   // Create log object to store request and response details
-  // const logData = {
-  //   requestId,
-  //   request: {
-  //     endpoint,
-  //     options: { ...options },
-  //     body: options.body ? (
-  //       typeof options.body === 'string' ? JSON.parse(options.body) : options.body
-  //     ) : undefined
-  //   },
-  //   response: null
-  // };
+  const logData = {
+    requestId,
+    request: {
+      endpoint,
+      options: { ...options },
+      body: options.body ? (
+        typeof options.body === 'string' ? JSON.parse(options.body) : options.body
+      ) : undefined
+    },
+    response: null
+  };
 
   // console.log(`=== fetchWithAuth [${requestId}] ===`);
   // console.log(JSON.stringify(logData, null, 2));
@@ -55,17 +55,17 @@ export async function fetchWithAuth(endpoint, options = {}) {
     });
 
       // Clone response for logging (since response can only be consumed once)
-      // const responseClone = response.clone();
-      // const responseData = await responseClone.json();
+      const responseClone = response.clone();
+      const responseData = await responseClone.json();
 
-      // // Update log object with response
-      // logData.response = {
-      //   status: response.status,
-      //   // data: responseData
-      // };
+      // Update log object with response
+      logData.response = {
+        status: response.status,
+         data: responseData
+      };
 
       // Log complete request-response cycle
-      console.log(`=== fetchWithAuth Complete [${requestId}] ===`);
+      // console.log(`=== fetchWithAuth Complete [${requestId}] ===`);
       // console.log(JSON.stringify(logData, null, 2));
 
     if (!response.ok) {

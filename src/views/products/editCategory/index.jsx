@@ -1,15 +1,10 @@
-import React from "react";
-import { EditCategoryComponentController } from "./editCategory.control";
-import EditCategory from "./editCategory";
+'use client';
 
-const AddcategoryComponent = () => {
-  return (
-    <>
-      <EditCategoryComponentController>
-        <EditCategory />
-      </EditCategoryComponentController>
-    </>
-  );
+import React from 'react';
+import EditCategory from './editCategory';
+
+const EditCategoryComponent = ({ id }) => {
+  return <EditCategory id={id} />;
 };
 
-export default AddcategoryComponent;
+export default EditCategoryComponent;

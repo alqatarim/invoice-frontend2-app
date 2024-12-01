@@ -1,229 +1,202 @@
-import React, { useState, useEffect, useContext } from "react";
-import { DropIcon } from "../../../../common/imagepath";
-import { Link } from "react-router-dom";
-import { useForm, Controller } from "react-hook-form";
-import { useDropzone } from "react-dropzone";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { EditCategoryContext } from "./editCategory.control";
-import useFilePreview from "../hooks/useFilePreview";
-import { warningToast } from "../../../../core/core-index";
-import {
-  handleCharacterRestriction,
-  handleCharacterRestrictionSpace,
-} from "../../../../constans/globals";
+'use client';
 
-const EditCategory = () => {
-  const { addcategoryPageschema, categoryDeatil, setFileImage, onSubmit } =
-    useContext(EditCategoryContext);
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Grid,
+  TextField,
+  Typography,
+  IconButton,
+  CircularProgress
+} from '@mui/material';
+import Link from 'next/link';
+import { getCategoryDetails, updateCategory } from '@/app/(dashboard)/products/actions';
+import { toast } from 'react-toastify';
+import { Upload as UploadIcon } from '@mui/icons-material';
+import EditCategorySchema from '@/views/products/editCategory/EditCategorySchema';
+
+const EditCategory = ({ id }) => {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [existingImage, setExistingImage] = useState(null);
 
   const {
-    handleSubmit,
-    control,
-    setValue,
-    trigger,
-    resetField,
-    watch,
     register,
+    handleSubmit,
     formState: { errors },
-  } = useForm({ resolver: yupResolver(addcategoryPageschema) });
-  const [imgerror, setImgError] = useState("");
-  const file = watch("image");
-  const [filePreview] = useFilePreview(file, setImgError);
-  const [img, setImg] = useState("");
-  useEffect(() => {
-    if (imgerror) {
-      warningToast(imgerror);
-      resetField("image");
-      setImgError("");
-    }
-  }, [imgerror]);
-  useEffect(() => {
-    setValue("name", categoryDeatil?.name);
-    setValue("slug", categoryDeatil?.slug);
-    // setValue("parent_Category", categoryDeatil?.parent_Category);
-    // setValue("image", categoryDeatil?.image);
-    setImg(categoryDeatil?.image);
-  }, [categoryDeatil]);
-
-  // eslint-disable-next-line no-unused-vars
-  const { getRootProps, getInputProps } = useDropzone({
-    maxLength: 4,
-    onDrop: (acceptedFile) => {
-      setValue("image", acceptedFile);
-      setFileImage(acceptedFile);
-    },
+    reset
+  } = useForm({
+    resolver: yupResolver(EditCategorySchema)
   });
-  useEffect(() => {
-    if (imgerror) {
-      warningToast(imgerror);
-      setImgError("");
-    }
-  }, [imgerror]);
 
-  // const handleImageError = (event) => {
-  //   event.target.src = DetailsLogo;
-  // };
+  useEffect(() => {
+    const fetchCategoryDetails = async () => {
+      try {
+        const response = await getCategoryDetails(id);
+        if (response.success) {
+          const categoryData = response.data.category_details;
+          reset({
+            name: categoryData.name,
+            slug: categoryData.slug
+          });
+          setExistingImage(categoryData.image);
+        } else {
+          toast.error(response.message || 'Failed to fetch category details');
+        }
+      } catch (error) {
+        toast.error(error.message || 'Error fetching category details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategoryDetails();
+  }, [id, reset]);
+
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 50 * 1024 * 1024) { // 50MB limit
+        toast.error('File size should not exceed 50MB');
+        return;
+      }
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const onSubmit = async (data) => {
+    try {
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('slug', data.slug);
+      formData.append('type', 'product');
+
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      } else if (existingImage) {
+        formData.append('image', existingImage);
+      }
+
+      const response = await updateCategory(id, formData);
+      if (response.success) {
+        toast.success('Category updated successfully');
+        router.push('/products/category-list');
+      } else {
+        toast.error(response.message || 'Failed to update category');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Error updating category');
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <div className="page-wrapper">
-      <div className="content container-fluid">
-        <div className="content-page-header">
-          <h5>Edit Category</h5>
-        </div>
-        <div className="row">
-          <div className="col-md-12">
-            <div className="card-body">
-              <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="form-group-item border-0 pb-0 mb-0">
-                  <div className="row">
-                    <div className="col-lg-4 col-sm-12">
-                      <div className="form-group">
-                        <label>
-                          Name <span className="text-danger">*</span>
-                        </label>
-                        <Controller
-                          name="name"
-                          control={control}
-                          render={({ field: { value, onChange } }) => (
-                            <>
-                              <input
-                                className="form-control"
-                                value={value}
-                                type="text"
-                                placeholder="Enter Name"
-                                label={"Name"}
-                                // maxLength={20}
-                                onKeyPress={handleCharacterRestrictionSpace}
-                                onChange={(val) => {
-                                  onChange(val);
-                                  trigger("name");
-                                }}
-                              />
-                              {errors.name && (
-                                <p className="text-danger">
-                                  {errors.name.message}
-                                </p>
-                              )}
-                            </>
-                          )}
-                          defaultValue=""
-                        />
+    <Box className="flex flex-col gap-4">
+      <Typography variant="h4" color="secondary">
+        Edit Category
+      </Typography>
 
-                      </div>
-                    </div>
-                    <div className="col-lg-4 col-sm-12">
-                      <div className="form-group">
-                        <label>
-                          Slug<span className="text-danger"> *</span>
-                        </label>
-                        <Controller
-                          name="slug"
-                          control={control}
-                          render={({ field: { value, onChange } }) => (
-                            <>
-                              <input
-                                className="form-control"
-                                value={value}
-                                type="text"
-                                placeholder="Enter Slug"
-                                label={"Name"}
-                                onKeyPress={handleCharacterRestriction}
-                                maxLength={20}
-                                onChange={(val) => {
-                                  onChange(val);
-                                  trigger("slug");
-                                }}
-                              />
-                              {errors.slug && (
-                                <p className="text-danger">
-                                  {errors.slug.message}
-                                </p>
-                              )}
-                            </>
-                          )}
-                          defaultValue=""
-                        />
-                      </div>
-                    </div>
+      <Card>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Name"
+                  {...register('name')}
+                  error={!!errors.name}
+                  helperText={errors.name?.message}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Slug"
+                  {...register('slug')}
+                  error={!!errors.slug}
+                  helperText={errors.slug?.message}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Box className="border-2 border-dashed rounded-md p-4">
+                  <input
+                    accept="image/*"
+                    type="file"
+                    id="image-upload"
+                    hidden
+                    onChange={handleImageChange}
+                  />
+                  <label htmlFor="image-upload">
+                    <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+                      <IconButton component="span">
+                        <UploadIcon />
+                      </IconButton>
+                      <Typography>
+                        Drop your files here or <span style={{ color: 'primary.main' }}>browse</span>
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Maximum size: 50MB
+                      </Typography>
+                    </Box>
+                  </label>
+                  {(imagePreview || existingImage) && (
+                    <Box mt={2} display="flex" justifyContent="center">
+                      <img
+                        src={imagePreview || existingImage}
+                        alt="Category"
+                        style={{ maxWidth: '200px', maxHeight: '200px' }}
+                      />
+                    </Box>
+                  )}
+                </Box>
+              </Grid>
+            </Grid>
 
-                    <div className="col-lg-6 col-sm-12">
-                      <div className="form-group mb-0 pb-0">
-                        <label>Image</label>
-                        <div className="form-group service-upload mb-0">
-                          <div
-
-                          >
-                            <span>
-                              <img src={DropIcon} alt="upload" />
-                            </span>
-                            <h6 className="drop-browse align-center">
-                              Drop your files here or
-                              <span className="text-primary ms-1">browse</span>
-                            </h6>
-                            <p className="text-muted">Maximum size: 50MB</p>
-                            <>
-                              <Controller
-                                name="image"
-                                control={control}
-                                // eslint-disable-next-line no-unused-vars
-                                render={({ field: { value, onChange } }) => (
-                                  <>
-                                    <input
-                                      type="file"
-                                      multiple=""
-                                      id="image"
-                                      {...register("image")}
-                                    />
-                                  </>
-                                )}
-                              />
-                              <div id="frames" />
-                            </>
-                          </div>
-                        </div>
-
-                        {!imgerror && filePreview ? (
-                          <img
-                            src={filePreview}
-                            className="uploaded-imgs"
-                            style={{
-                              display: "flex",
-                              maxWidth: "200px",
-                              maxHeight: "200px",
-                            }}
-                          />
-                        ) : (
-                          img && (
-                            <img
-                              src={img}
-                              // onError={handleImageError}
-                              className="uploaded-imgs"
-                              style={{
-                                display: "flex",
-                                maxWidth: "200px",
-                                maxHeight: "200px",
-                              }}
-                            />
-                          )
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-end">
-                  <Link to="/category" className="btn btn-primary cancel me-2">
-                    Cancel
-                  </Link>
-                  <button className="btn btn-primary" type="submit">
-                    Update Category
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            <Box display="flex" justifyContent="flex-end" gap={2} mt={4}>
+              <Button
+                component={Link}
+                href="/products/category-list"
+                variant="outlined"
+                color="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+              >
+                Update Category
+              </Button>
+            </Box>
+          </form>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 

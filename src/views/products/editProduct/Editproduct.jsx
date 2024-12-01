@@ -35,46 +35,7 @@ import { styled, useTheme } from '@mui/material/styles';
 import { updateProduct, generateSKU } from '@/app/(dashboard)/products/actions';
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
-// import questionmarkGif from '/images/animated-icons/question.gif'
-const schema = yup.object().shape({
-  name: yup.string().required('Product name is required'),
-  type: yup.string().required('Product type is required'),
-  sku: yup.string().required('SKU is required'),
-  category: yup.object().shape({
-    _id: yup.string().required('Category is required'),
-  }),
-  sellingPrice: yup.number()
-    .required('Selling Price is required')
-    .positive('Selling Price must be a positive number')
-    .typeError('Enter a valid Selling Price')
-    .test('is-greater', 'Selling Price must be greater than Purchase Price', function (value) {
-      const purchasePrice = this.parent.purchasePrice;
-      if (value && purchasePrice) {
-        return value > purchasePrice;
-      }
-      return true;
-    }),
-  purchasePrice: yup.number()
-    .required('Purchase Price is required')
-    .positive('Purchase Price must be a positive number')
-    .typeError('Enter a valid Purchase Price'),
-  discountValue: yup.number()
-    .required('Discount Value is required')
-    .min(0, 'Discount Value must be non-negative')
-    .typeError('Enter a valid Discount Value'),
-  units: yup.object().shape({
-    _id: yup.string().required('Unit is required'),
-  }),
-  discountType: yup.string().required('Discount Type is required'),
-  alertQuantity: yup.number()
-    .required('Alert Quantity is required')
-    .typeError('Enter a valid Alert Quantity')
-    .positive('Alert Quantity must be a positive number')
-    .integer('Alert Quantity must be an integer'),
-  tax: yup.object().shape({
-    _id: yup.string().required('Tax is required'),
-  }),
-});
+import EditProductSchema from '@/views/products/editProduct/EditProductSchema';
 
 const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
   '& .MuiSnackbarContent-root': {
@@ -142,7 +103,7 @@ const EditProduct = ({ initialProductData, onSave }) => {
   const [imageFile, setImageFile] = useState(null);
 
   const { control, handleSubmit, setValue, watch, register, formState: { errors, dirtyFields, isValid } } = useForm({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(EditProductSchema),
     defaultValues: {
       ...initialProductData,
       category: initialProductData.category,

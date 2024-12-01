@@ -794,10 +794,17 @@ const InvoiceList = () => {
                                                     {column.key === 'index' && index + 1}
 
                                                     {column.key === 'invoiceNumber' && (
-                                                        <Link href={`/invoices/invoice-view/${invoice._id}`} passHref>
+                                                        <Link
+                                                            href={`/invoices/invoice-view/${invoice._id}`}
+                                                            style={{ textDecoration: 'none' }}
+                                                        >
                                                             <Typography
-                                                                component="a"
-                                                                sx={{ cursor: 'pointer', color: 'primary.main', textDecoration: 'none' }}
+                                                                component="span"
+                                                                sx={{
+                                                                    cursor: 'pointer',
+                                                                    color: 'primary.main',
+                                                                    '&:hover': { textDecoration: 'underline' }
+                                                                }}
                                                             >
                                                                 {invoice.invoiceNumber || 'N/A'}
                                                             </Typography>

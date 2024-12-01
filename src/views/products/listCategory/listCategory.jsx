@@ -8,6 +8,7 @@ import { MoreVert as MoreVertIcon, FilterList as FilterListIcon, ViewColumn as V
 import { getCategoryList, deleteCategory } from '@/app/(dashboard)/products/actions';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import CategoryFilter from '@/views/products/listCategory/CategoryFilter';
 
 const ListCategory = ({
   page = 1,
@@ -33,6 +34,7 @@ const ListCategory = ({
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, categoryId: null });
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   // Define columns
   const [columns, setColumns] = useState([
@@ -108,6 +110,14 @@ const ListCategory = ({
     setIsColumnsDrawerOpen(false);
   };
 
+  const handleReset = async () => {
+    setPage(1);
+    setSize(10);
+    setSortBy(initialSortBy);
+    setSortDirection(initialSortDirection);
+    await fetchCategoryList(1, 10);
+  };
+
   return (
     <Box className="flex flex-col gap-2">
       <ToastContainer />
@@ -139,13 +149,27 @@ const ListCategory = ({
               onChange={(e, value) => setTab(value)}
               aria-label="Category Tabs"
             >
-              <Tab label="Product" value="PRODUCT" component={Link} href="/products/product-list" />
-              <Tab label="Category" value="CATEGORY" />
-              <Tab label="Units" value="UNITS" component={Link} href="/products/units" />
+              <Tab label="Products" value="PRODUCT" component={Link} href="/products/product-list" />
+              <Tab label="Categories" value="CATEGORY" />
+              <Tab label="Units" value="UNITS" component={Link} href="/products/unit-list" />
             </Tabs>
           </Grid>
 
           <Grid item xs="auto">
+            <Button
+              variant="text"
+              startIcon={<ClearIcon />}
+              onClick={handleReset}
+            >
+              Reset
+            </Button>
+            <Button
+              variant="text"
+              startIcon={<FilterListIcon />}
+              onClick={() => setIsFilterDrawerOpen(true)}
+            >
+              Filter
+            </Button>
             <Button
               variant="text"
               startIcon={<ViewColumnIcon />}
@@ -299,6 +323,21 @@ const ListCategory = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Drawer
+        anchor="right"
+        open={isFilterDrawerOpen}
+        onClose={() => setIsFilterDrawerOpen(false)}
+      >
+        <CategoryFilter
+          onClose={() => setIsFilterDrawerOpen(false)}
+          setCategoryList={setCategoryList}
+          setTotalCount={setTotalCount}
+          setPage={setPage}
+          page={page}
+          pageSize={size}
+        />
+      </Drawer>
     </Box>
   );
 };

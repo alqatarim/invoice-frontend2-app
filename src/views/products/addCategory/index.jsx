@@ -1,16 +1,10 @@
-import React from "react";
-import { AddcategoryComponentController } from "./AddCategory.control";
-// import AddCategory from "./AddCategory";
-import Addcategory from "./AddCategory";
+'use client';
 
-const AddcategoryComponent = () => {
-  return (
-    <>
-      <AddcategoryComponentController>
-        <Addcategory />
-      </AddcategoryComponentController>
-    </>
-  );
+import React from 'react';
+import AddCategory from '@/views/products/addCategory/AddCategory';
+
+const AddCategoryComponent = () => {
+  return <AddCategory />;
 };
 
-export default AddcategoryComponent;
+export default AddCategoryComponent;

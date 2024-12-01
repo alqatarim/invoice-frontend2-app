@@ -81,14 +81,14 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
   </MenuSection>
   <MenuSection label="Inventory">
     <SubMenu label="Product / Services">
-      <MenuItem href="/products/product-list">Product List</MenuItem>
-      <MenuItem href="/products/category">Category</MenuItem>
-      <MenuItem href="/products/units">Units</MenuItem>
+      <MenuItem href="/products/product-list">Products</MenuItem>
+      <MenuItem href="/products/category-list">Categories</MenuItem>
+      <MenuItem href="/products/unit-list">Units</MenuItem>
     </SubMenu>
     <MenuItem href="/inventory">Inventory</MenuItem>
   </MenuSection>
   <MenuSection label="Sales">
-    <MenuItem href="/invoice-list">Invoice</MenuItem>
+    <MenuItem href="/invoices/invoice-list">Invoices</MenuItem>
     <MenuItem href="/sales-return">Sales Return</MenuItem>
   </MenuSection>
   <MenuSection label="Purchases">

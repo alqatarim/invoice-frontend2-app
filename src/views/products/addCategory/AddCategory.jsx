@@ -1,178 +1,164 @@
-import React, { useContext, useState } from "react";
-import { DropIcon } from "../../../../common/imagepath";
-import { Controller } from "react-hook-form";
-import { AddcategoryContext } from "./AddCategory.control";
-import { Link } from "react-router-dom";
-import useFilePreview from "../hooks/useFilePreview";
+'use client';
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 import {
-  handleCharacterRestriction,
-  handleCharacterRestrictionSpace,
-} from "../../../../constans/globals";
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Grid,
+  TextField,
+  Typography,
+  IconButton,
+} from '@mui/material';
+import Link from 'next/link';
+import { addCategory } from '@/app/(dashboard)/products/actions';
+import { toast } from 'react-toastify';
+import { Upload as UploadIcon } from '@mui/icons-material';
+import AddCategorySchema from '@/views/products/addCategory/AddCategorySchema'
 
-const Addcategory = () => {
+const AddCategory = () => {
+  const router = useRouter();
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+
   const {
-    SubmitCategoryForm,
-    handleSubmit,
-    watch,
-    control,
-    trigger,
     register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm({
+    resolver: yupResolver(AddCategorySchema)
+  });
 
-    formState: { errors },
-  } = useContext(AddcategoryContext);
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 50 * 1024 * 1024) { // 50MB limit
+        toast.error('File size should not exceed 50MB');
+        return;
+      }
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
+  const onSubmit = async (data) => {
+    try {
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('slug', data.slug);
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
+      formData.append('type', 'product');
 
-  const [imgerror, setImgError] = useState("");
-  const file = watch("image");
-  const [filePreview] = useFilePreview(file, setImgError);
+      const response = await addCategory(formData);
+      if (response.success) {
+        toast.success('Category added successfully');
+        router.push('/products/category-list');
+      } else {
+        toast.error(response.message || 'Failed to add category');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Error adding category');
+    }
+  };
 
   return (
-    <div className="page-wrapper">
-      <div className="content container-fluid">
-        <div className="content-page-header">
-          <h5>Add Category</h5>
-        </div>
-        <div className="row">
-          <div className="col-md-12">
-            <div className="card-body">
-              <form onSubmit={handleSubmit(SubmitCategoryForm)}>
-                <div className="form-group-item border-0 pb-0 mb-0">
-                  <div className="row">
-                    <div className="col-lg-4 col-sm-12">
-                      <div className="form-group">
-                        <label>
-                          Name <span className="text-danger">*</span>
-                        </label>
-                        <Controller
-                          name="name"
-                          control={control}
-                          defaultValue=""
-                          render={({ field: { value, onChange } }) => (
-                            <>
-                              <input
-                                className="form-control"
-                                value={value}
-                                type="text"
-                                placeholder="Enter Name"
-                                label={"Name"}
-                                onKeyPress={handleCharacterRestrictionSpace}
-                                // maxLength={21}
-                                onChange={(val) => {
-                                  onChange(val);
-                                  trigger("name");
-                                }}
-                              />
-                              {errors.name && (
-                                <p className="text-danger">
-                                  {errors.name.message}
-                                </p>
-                              )}
-                            </>
-                          )}
-                        />
-                      </div>
-                    </div>
-                    <div className="col-lg-4 col-sm-12">
-                      <div className="form-group">
-                        <label>
-                          Slug<span className="text-danger"> *</span>
-                        </label>
-                        <Controller
-                          name="slug"
-                          control={control}
-                          defaultValue=""
-                          render={({ field: { value, onChange } }) => (
-                            <>
-                              <input
-                                className="form-control"
-                                value={value}
-                                type="text"
-                                placeholder="Enter Slug"
-                                label={"Name"}
-                                maxLength={21}
-                                onKeyPress={handleCharacterRestriction}
-                                onChange={(val) => {
-                                  onChange(val);
-                                  trigger("slug");
-                                }}
-                              />
+    <Box className="flex flex-col gap-4">
+      <Typography variant="h4" color="secondary">
+        Add Category
+      </Typography>
 
-                              {errors.slug && (
-                                <p className="text-danger">
-                                  {errors.slug.message}
-                                </p>
-                              )}
-                            </>
-                          )}
-                        />
-                      </div>
-                    </div>
+      <Card>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Name"
+                  {...register('name')}
+                  error={!!errors.name}
+                  helperText={errors.name?.message}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Slug"
+                  {...register('slug')}
+                  error={!!errors.slug}
+                  helperText={errors.slug?.message}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Box className="border-2 border-dashed rounded-md p-4">
+                  <input
+                    accept="image/*"
+                    type="file"
+                    id="image-upload"
+                    hidden
+                    onChange={handleImageChange}
+                  />
+                  <label htmlFor="image-upload">
+                    <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+                      <IconButton component="span">
+                        <UploadIcon />
+                      </IconButton>
+                      <Typography>
+                        Drop your files here or <span style={{ color: 'primary.main' }}>browse</span>
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        Maximum size: 50MB
+                      </Typography>
+                    </Box>
+                  </label>
+                  {imagePreview && (
+                    <Box mt={2} display="flex" justifyContent="center">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        style={{ maxWidth: '200px', maxHeight: '200px' }}
+                      />
+                    </Box>
+                  )}
+                </Box>
+              </Grid>
+            </Grid>
 
-                    <div className="col-lg-6 col-sm-12">
-                      <div className="form-group mb-0 pb-0">
-                        <label>Image</label>
-                        <div className="form-group service-upload mb-0">
-                          <div
-
-                          >
-                            <span>
-                              <img src={DropIcon} alt="upload" />
-                            </span>
-                            <h6 className="drop-browse align-center">
-                              Drop your files here or
-                              <span className="text-primary ms-1">browse</span>
-                            </h6>
-                            <p className="text-muted">Maximum size: 50MB</p>
-                            <>
-                              <Controller
-                                name="image"
-                                control={control}
-                                render={({ field: { value, onChange } }) => (
-                                  <>
-                                    <input
-                                      type="file"
-                                      multiple=""
-                                      id="image"
-                                      {...register("image")}
-                                    />
-                                  </>
-                                )}
-                              />
-                              <div id="frames" />
-                            </>
-                          </div>
-                        </div>
-
-                        {!imgerror && filePreview && (
-                          <img
-                            src={filePreview}
-                            className="uploaded-imgs"
-                            style={{
-                              display: "flex",
-                              maxWidth: "200px",
-                              maxHeight: "200px",
-                            }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-end">
-                  <Link to="/category" className="btn btn-primary cancel me-2">
-                    Cancel
-                  </Link>
-                  <button className="btn btn-primary" type="submit">
-                    Add Category
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            <Box display="flex" justifyContent="flex-end" gap={2} mt={4}>
+              <Button
+                component={Link}
+                href="/products/category-list"
+                variant="outlined"
+                color="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+              >
+                Add Category
+              </Button>
+            </Box>
+          </form>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 
-export default Addcategory;
+export default AddCategory;
