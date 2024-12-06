@@ -9,7 +9,7 @@ import { dataURLtoBlob } from '@/utils/helpers';
 
 
 
-/**
+/*
  * Get invoice details by ID.
  *
  * @param {string} id - Invoice ID.

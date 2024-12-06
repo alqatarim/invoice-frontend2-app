@@ -58,15 +58,17 @@ export async function fetchWithAuth(endpoint, options = {}) {
       const responseClone = response.clone();
       const responseData = await responseClone.json();
 
+   console.log(`=== Request Data [${requestId}] ===`);
+   console.log(JSON.stringify(options, null, 2));
+
+   console.log(`=== Response Data [${requestId}] ===`);
+   console.log(JSON.stringify(responseData, null, 2));
+
       // Update log object with response
       logData.response = {
         status: response.status,
          data: responseData
       };
-
-      // Log complete request-response cycle
-      // console.log(`=== fetchWithAuth Complete [${requestId}] ===`);
-      // console.log(JSON.stringify(logData, null, 2));
 
     if (!response.ok) {
       const error = await response.clone().json();
