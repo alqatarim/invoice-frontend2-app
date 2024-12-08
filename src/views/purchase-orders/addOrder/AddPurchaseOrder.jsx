@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -29,7 +29,8 @@ import {
   DialogActions,
   RadioGroup,
   FormControlLabel,
-  Radio
+  Radio,
+  FormHelperText
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
@@ -41,7 +42,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { dataURLtoBlob } from '@/utils/helpers';
 
-const AddPurchaseOrder = ({ onSave, dropdownData }) => {
+const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatures }) => {
   const router = useRouter();
   const [items, setItems] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
@@ -52,9 +53,9 @@ const AddPurchaseOrder = ({ onSave, dropdownData }) => {
   const [signatureDataURL, setSignatureDataURL] = useState(null);
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
   const [selectedSignature, setSelectedSignature] = useState(null);
-  const [signOptions, setSignOptions] = useState([]);
+  const [selectedSignType, setSelectedSignType] = useState("manualSignature");
 
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+  const { control, handleSubmit, watch, setValue, formState: { errors }, trigger } = useForm({
     resolver: yupResolver(PurchaseOrderSchema),
     defaultValues: {
       purchaseOrderDate: dayjs(),
@@ -65,18 +66,9 @@ const AddPurchaseOrder = ({ onSave, dropdownData }) => {
   });
 
   useEffect(() => {
-    const fetchSignatures = async () => {
-      try {
-        const response = await fetchWithAuth('/drop_down/signature');
-        if (response.code === 200) {
-          setSignOptions(response.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching signatures:', error);
-      }
-    };
-    fetchSignatures();
-  }, []);
+    setValue('sign_type', 'eSignature');
+    setSignType('eSignature');
+  }, [setValue]);
 
   const calculateTotals = (items) => {
     let subtotal = 0;
@@ -116,14 +108,15 @@ const AddPurchaseOrder = ({ onSave, dropdownData }) => {
   };
 
   const handleProductChange = (index, productId) => {
-    const product = dropdownData.products.find(p => p._id === productId);
+    const product = products.find(p => p._id === productId);
     if (product) {
       const newItems = [...items];
       newItems[index] = {
         ...newItems[index],
         productId: product._id,
         rate: product.sellingPrice,
-        tax: product.tax?.taxRate || 0
+        tax: product.tax?.taxRate || 0,
+        discount: product.discountValue || 0
       };
       setItems(newItems);
       setValue(`items.${index}`, newItems[index]);
@@ -199,467 +192,541 @@ const AddPurchaseOrder = ({ onSave, dropdownData }) => {
   const handleSignatureSelection = (selectedOption, field) => {
     field.onChange(selectedOption);
     setSelectedSignature(selectedOption?.signatureImage);
+    trigger('signatureId');
+  };
+
+  const renderSignatureSection = () => {
+    return (
+      <Box className="mt-6">
+        <Typography variant="h6" className="mb-4">Signature</Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Controller
+              name="sign_type"
+              control={control}
+              defaultValue="eSignature"
+              render={({ field: { onChange, value } }) => (
+                <RadioGroup
+                  row
+                  value={value || 'eSignature'}
+                  onChange={(e) => {
+                    onChange(e.target.value);
+                    setSignType(e.target.value);
+                    if (e.target.value === 'eSignature') {
+                      setValue('signatureId', '');
+                      setValue('signatureName', '');
+                    } else {
+                      setValue('signatureData', '');
+                      setValue('signatureName', '');
+                      setSignatureDataURL('');
+                    }
+                  }}
+                >
+                  <FormControlLabel value="eSignature" control={<Radio />} label="E-Signature" />
+                  <FormControlLabel value="manualSignature" control={<Radio />} label="Manual Signature" />
+                </RadioGroup>
+              )}
+            />
+          </Grid>
+
+          {watch('sign_type') === 'manualSignature' && (
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1" gutterBottom>
+                Select Signature Name <span style={{ color: 'red' }}>*</span>
+              </Typography>
+              <Controller
+                name="signatureId"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth error={!!errors.signatureId}>
+                    <Select
+                      value={field.value || ''}
+                      onChange={(event) => {
+                        handleSignatureSelection(event.target.value, field);
+                      }}
+                      size="small"
+                    >
+                      {signatures.map((option) => (
+                        <MenuItem key={option._id} value={option}>
+                          {option.signatureName}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {errors.signatureId && (
+                      <FormHelperText>{errors.signatureId.message}</FormHelperText>
+                    )}
+                  </FormControl>
+                )}
+              />
+              {selectedSignature && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Signature Image
+                  </Typography>
+                  <Box
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      p: 1,
+                      maxWidth: '200px'
+                    }}
+                  >
+                    <img
+                      src={selectedSignature}
+                      alt="Signature"
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        maxHeight: '200px',
+                        objectFit: 'contain'
+                      }}
+                      onError={(e) => {
+                        console.error('Error loading signature image');
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </Box>
+                </Box>
+              )}
+            </Grid>
+          )}
+
+          {watch('sign_type') === 'eSignature' && (
+            <>
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="signatureName"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Signature Name"
+                      variant="outlined"
+                      fullWidth
+                      margin="normal"
+                      error={!!errors.signatureName}
+                      helperText={errors.signatureName?.message}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Box className="flex flex-row mt-6 items-center justify-between">
+                  <Typography variant="body1">eSignature</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={handleOpenSignatureDialog}
+                    sx={{
+                      border: '2px solid',
+                      borderColor: 'text.primary',
+                      borderRadius: '12px',
+                      color: 'text.primary',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        color: 'primary.main',
+                      },
+                    }}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                {signatureDataURL ? (
+                  <img
+                    src={signatureDataURL}
+                    alt="Signature"
+                    style={{
+                      maxWidth: '60%',
+                      marginBottom: '1rem',
+                      border: '3px solid #eee',
+                      borderRadius: '8px',
+                      padding: '5px',
+                    }}
+                  />
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    No signature drawn
+                  </Typography>
+                )}
+              </Grid>
+            </>
+          )}
+        </Grid>
+      </Box>
+    );
   };
 
   return (
-     <LocalizationProvider dateAdapter={AdapterDayjs}>
-    <Box className="flex flex-col gap-4 p-4">
-      <Typography variant="h5" color="primary">
-        Create Purchase Order
-      </Typography>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box className="flex flex-col gap-4 p-4">
+        <Typography variant="h5" color="primary">
+          Create Purchase Order
+        </Typography>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <Card>
-          <CardContent>
-            <Grid container spacing={3}>
-              {/* Vendor Selection */}
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="vendorId"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.vendorId}>
-                      <InputLabel>Vendor</InputLabel>
-                      <Select {...field} label="Vendor">
-                        {dropdownData.vendors.map(vendor => (
-                          <MenuItem key={vendor._id} value={vendor._id}>
-                            {vendor.vendor_name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-
-              {/* Dates */}
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="purchaseOrderDate"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      label="Order Date"
-                      {...field}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.purchaseOrderDate
-                        }
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="dueDate"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      label="Due Date"
-                      {...field}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.dueDate
-                        }
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-
-              {/* Reference Number */}
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="referenceNo"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Reference Number"
-                      fullWidth
-                      error={!!errors.referenceNo}
-                      helperText={errors.referenceNo?.message}
-                    />
-                  )}
-                />
-              </Grid>
-            </Grid>
-
-            {/* Items Table */}
-            <Box className="mt-6">
-              <Box className="flex justify-between items-center mb-4">
-                <Typography variant="h6">Items</Typography>
-                <Button
-                  startIcon={<AddIcon />}
-                  onClick={handleAddItem}
-                  variant="contained"
-                  size="small"
-                >
-                  Add Item
-                </Button>
-              </Box>
-
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Product</TableCell>
-                      <TableCell>Quantity</TableCell>
-                      <TableCell>Rate</TableCell>
-                      <TableCell>Tax (%)</TableCell>
-                      <TableCell>Discount (%)</TableCell>
-                      <TableCell>Amount</TableCell>
-                      <TableCell>Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {items.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Controller
-                            name={`items.${index}.productId`}
-                            control={control}
-                            render={({ field }) => (
-                              <FormControl fullWidth size="small" error={!!errors.items?.[index]?.productId}>
-                                <Select
-                                  {...field}
-                                  value={field.value || ''}
-                                  onChange={(e) => {
-                                    field.onChange(e);
-                                    handleProductChange(index, e.target.value);
-                                  }}
-                                >
-                                  {dropdownData.products
-                                    .filter(product => !selectedProducts.includes(product._id) || product._id === field.value)
-                                    .map(product => (
-                                      <MenuItem key={product._id} value={product._id}>
-                                        {product.name}
-                                      </MenuItem>
-                                    ))
-                                  }
-                                </Select>
-                              </FormControl>
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Controller
-                            name={`items.${index}.quantity`}
-                            control={control}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                type="number"
-                                size="small"
-                                error={!!errors.items?.[index]?.quantity}
-                                inputProps={{ min: 1 }}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  const newItems = [...items];
-                                  newItems[index] = { ...newItems[index], quantity: parseInt(e.target.value) || 0 };
-                                  setItems(newItems);
-                                }}
-                              />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Controller
-                            name={`items.${index}.rate`}
-                            control={control}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                type="number"
-                                size="small"
-                                error={!!errors.items?.[index]?.rate}
-                                inputProps={{ min: 0, step: "0.01" }}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  const newItems = [...items];
-                                  newItems[index] = { ...newItems[index], rate: parseFloat(e.target.value) || 0 };
-                                  setItems(newItems);
-                                }}
-                              />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Controller
-                            name={`items.${index}.tax`}
-                            control={control}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                type="number"
-                                size="small"
-                                error={!!errors.items?.[index]?.tax}
-                                inputProps={{ min: 0, step: "0.01" }}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  const newItems = [...items];
-                                  newItems[index] = { ...newItems[index], tax: parseFloat(e.target.value) || 0 };
-                                  setItems(newItems);
-                                }}
-                              />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Controller
-                            name={`items.${index}.discount`}
-                            control={control}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                type="number"
-                                size="small"
-                                error={!!errors.items?.[index]?.discount}
-                                inputProps={{ min: 0, step: "0.01" }}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  const newItems = [...items];
-                                  newItems[index] = { ...newItems[index], discount: parseFloat(e.target.value) || 0 };
-                                  setItems(newItems);
-                                }}
-                              />
-                            )}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {(item.quantity * item.rate * (1 - (item.discount || 0) / 100) * (1 + (item.tax || 0) / 100)).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <IconButton onClick={() => handleRemoveItem(index)} size="small" color="error">
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
-
-            {/* Totals */}
-            <Box className="mt-6 flex justify-end">
-              <Grid container spacing={2} maxWidth="sm">
-                <Grid item xs={6}>
-                  <Typography>Subtotal:</Typography>
-                </Grid>
-                <Grid item xs={6} className="text-right">
-                  <Typography>${calculateTotals(items).subtotal.toFixed(2)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography>Tax:</Typography>
-                </Grid>
-                <Grid item xs={6} className="text-right">
-                  <Typography>${calculateTotals(items).totalTax.toFixed(2)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography>Discount:</Typography>
-                </Grid>
-                <Grid item xs={6} className="text-right">
-                  <Typography>${calculateTotals(items).totalDiscount.toFixed(2)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="h6">Total:</Typography>
-                </Grid>
-                <Grid item xs={6} className="text-right">
-                  <Typography variant="h6">${calculateTotals(items).total.toFixed(2)}</Typography>
-                </Grid>
-              </Grid>
-            </Box>
-
-            {/* Additional Fields */}
-            <Grid container spacing={3} className="mt-4">
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="bank"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth>
-                      <InputLabel>Bank Account</InputLabel>
-                      <Select {...field} label="Bank Account">
-                        <MenuItem value="">None</MenuItem>
-                        {dropdownData.banks.map(bank => (
-                          <MenuItem key={bank._id} value={bank._id}>
-                            {bank.bankName} - {bank.accountNumber}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Controller
-                  name="notes"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Notes"
-                      multiline
-                      rows={3}
-                      fullWidth
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Controller
-                  name="termsAndCondition"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Terms and Conditions"
-                      multiline
-                      rows={3}
-                      fullWidth
-                    />
-                  )}
-                />
-              </Grid>
-            </Grid>
-
-            {/* Signature */}
-            <Box className="mt-6">
-              <Typography variant="h6" className="mb-4">Signature</Typography>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Card>
+            <CardContent>
               <Grid container spacing={3}>
+                {/* Vendor Selection */}
                 <Grid item xs={12} md={6}>
                   <Controller
-                    name="sign_type"
+                    name="vendorId"
                     control={control}
-                    defaultValue="eSignature"
-                    render={({ field: { onChange, value } }) => (
-                      <RadioGroup
-                        value={value}
-                        onChange={(e) => {
-                          onChange(e.target.value);
-                          setSignType(e.target.value);
-                        }}
-                      >
-                        <FormControlLabel value="eSignature" control={<Radio />} label="E-Signature" />
-                        <FormControlLabel value="manualSignature" control={<Radio />} label="Manual Signature" />
-                      </RadioGroup>
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.vendorId}>
+                        <InputLabel>Vendor</InputLabel>
+                        <Select {...field} label="Vendor">
+                          {vendors.map(vendor => (
+                            <MenuItem key={vendor._id} value={{ value: vendor._id, label: vendor.vendor_name }}>
+                              {vendor.vendor_name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     )}
                   />
                 </Grid>
 
-                {watch('sign_type') === 'eSignature' ? (
-                  <>
-                    <Grid item xs={12} md={6}>
-                      <Controller
-                        name="signatureName"
-                        control={control}
-                        render={({ field }) => (
-                          <TextField
-                            {...field}
-                            label="Signature Name"
-                            fullWidth
-                            error={!!errors.signatureName}
-                            helperText={errors.signatureName?.message}
-                          />
-                        )}
+                {/* Dates */}
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="purchaseOrderDate"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        label="Order Date"
+                        {...field}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            error: !!errors.purchaseOrderDate
+                          }
+                        }}
                       />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Button
-                        variant="outlined"
-                        onClick={handleOpenSignatureDialog}
-                        startIcon={<EditIcon />}
-                      >
-                        Draw Signature
-                      </Button>
-                    </Grid>
-                  </>
-                ) : (
-                  <Grid item xs={12} md={6}>
-                    <Controller
-                      name="signatureId"
-                      control={control}
-                      render={({ field }) => (
-                        <FormControl fullWidth error={!!errors.signatureId}>
-                          <Select
-                            value={field.value || ''}
-                            onChange={(event) => handleSignatureSelection(event.target.value, field)}
-                          >
-                            {signOptions.map((option) => (
-                              <MenuItem key={option._id} value={option}>
-                                {option.signatureName}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      )}
-                    />
-                  </Grid>
-                )}
+                    )}
+                  />
+                </Grid>
 
-                {(signatureDataURL || selectedSignature) && (
-                  <Grid item xs={12}>
-                    <img
-                      src={signatureDataURL || selectedSignature}
-                      alt="Signature"
-                      style={{
-                        maxWidth: '60%',
-                        marginBottom: '1rem',
-                        border: '3px solid #eee',
-                        borderRadius: '8px',
-                        padding: '5px',
-                      }}
-                    />
-                  </Grid>
-                )}
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="dueDate"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        label="Due Date"
+                        {...field}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            error: !!errors.dueDate
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Reference Number */}
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="referenceNo"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Reference Number"
+                        fullWidth
+                        error={!!errors.referenceNo}
+                        helperText={errors.referenceNo?.message}
+                      />
+                    )}
+                  />
+                </Grid>
               </Grid>
-            </Box>
 
-            {/* Form Actions */}
-            <Box className="mt-6 flex justify-end gap-2">
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => router.push('/purchase-orders/order-list')}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-              >
-                Create Purchase Order
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      </form>
-      <Dialog open={showSignatureDialog} onClose={handleCloseSignatureDialog}>
-        <DialogTitle>Draw Your Signature</DialogTitle>
-        <DialogContent>
-          <SignaturePad
-            ref={signaturePadRef}
-            canvasProps={{
-              width: 500,
-              height: 200,
-              className: 'signature-canvas',
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseSignatureDialog}>Cancel</Button>
-          <Button onClick={handleSaveSignature} color="primary">
-            Save Signature
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+              {/* Items Table */}
+              <Box className="mt-6">
+                <Box className="flex justify-between items-center mb-4">
+                  <Typography variant="h6">Items</Typography>
+                  <Button
+                    startIcon={<AddIcon />}
+                    onClick={handleAddItem}
+                    variant="contained"
+                    size="small"
+                  >
+                    Add Item
+                  </Button>
+                </Box>
+
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Product</TableCell>
+                        <TableCell>Quantity</TableCell>
+                        <TableCell>Rate</TableCell>
+                        <TableCell>Tax (%)</TableCell>
+                        <TableCell>Discount (%)</TableCell>
+                        <TableCell>Amount</TableCell>
+                        <TableCell>Action</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Controller
+                              name={`items.${index}.productId`}
+                              control={control}
+                              render={({ field }) => (
+                                <FormControl fullWidth size="small" error={!!errors.items?.[index]?.productId}>
+                                  <Select
+                                    {...field}
+                                    value={field.value || ''}
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      handleProductChange(index, e.target.value);
+                                    }}
+                                  >
+                                    {products
+                                      .filter(product => !selectedProducts.includes(product._id) || product._id === field.value)
+                                      .map(product => (
+                                        <MenuItem key={product._id} value={product._id}>
+                                          {product.name} ({product.type})
+                                        </MenuItem>
+                                      ))
+                                    }
+                                  </Select>
+                                </FormControl>
+                              )}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Controller
+                              name={`items.${index}.quantity`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  type="number"
+                                  size="small"
+                                  error={!!errors.items?.[index]?.quantity}
+                                  inputProps={{ min: 1 }}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    const newItems = [...items];
+                                    newItems[index] = { ...newItems[index], quantity: parseInt(e.target.value) || 0 };
+                                    setItems(newItems);
+                                  }}
+                                />
+                              )}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Controller
+                              name={`items.${index}.rate`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  type="number"
+                                  size="small"
+                                  error={!!errors.items?.[index]?.rate}
+                                  inputProps={{ min: 0, step: "0.01" }}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    const newItems = [...items];
+                                    newItems[index] = { ...newItems[index], rate: parseFloat(e.target.value) || 0 };
+                                    setItems(newItems);
+                                  }}
+                                />
+                              )}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Controller
+                              name={`items.${index}.tax`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  type="number"
+                                  size="small"
+                                  error={!!errors.items?.[index]?.tax}
+                                  inputProps={{ min: 0, step: "0.01" }}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    const newItems = [...items];
+                                    newItems[index] = { ...newItems[index], tax: parseFloat(e.target.value) || 0 };
+                                    setItems(newItems);
+                                  }}
+                                />
+                              )}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Controller
+                              name={`items.${index}.discount`}
+                              control={control}
+                              render={({ field }) => (
+                                <TextField
+                                  {...field}
+                                  type="number"
+                                  size="small"
+                                  error={!!errors.items?.[index]?.discount}
+                                  inputProps={{ min: 0, step: "0.01" }}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    const newItems = [...items];
+                                    newItems[index] = { ...newItems[index], discount: parseFloat(e.target.value) || 0 };
+                                    setItems(newItems);
+                                  }}
+                                />
+                              )}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {(item.quantity * item.rate * (1 - (item.discount || 0) / 100) * (1 + (item.tax || 0) / 100)).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            <IconButton onClick={() => handleRemoveItem(index)} size="small" color="error">
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+
+              {/* Totals */}
+              <Box className="mt-6 flex justify-end">
+                <Grid container spacing={2} maxWidth="sm">
+                  <Grid item xs={6}>
+                    <Typography>Subtotal:</Typography>
+                  </Grid>
+                  <Grid item xs={6} className="text-right">
+                    <Typography>${calculateTotals(items).subtotal.toFixed(2)}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography>Tax:</Typography>
+                  </Grid>
+                  <Grid item xs={6} className="text-right">
+                    <Typography>${calculateTotals(items).totalTax.toFixed(2)}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography>Discount:</Typography>
+                  </Grid>
+                  <Grid item xs={6} className="text-right">
+                    <Typography>${calculateTotals(items).totalDiscount.toFixed(2)}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="h6">Total:</Typography>
+                  </Grid>
+                  <Grid item xs={6} className="text-right">
+                    <Typography variant="h6">${calculateTotals(items).total.toFixed(2)}</Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Additional Fields */}
+              <Grid container spacing={3} className="mt-4">
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="bank"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth>
+                        <InputLabel>Bank Account</InputLabel>
+                        <Select {...field} label="Bank Account">
+                          <MenuItem value="">None</MenuItem>
+                          {banks.map(bank => (
+                            <MenuItem key={bank._id} value={bank._id}>
+                              {bank.bankName} - {bank.accountNumber}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Controller
+                    name="notes"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Notes"
+                        multiline
+                        rows={3}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Controller
+                    name="termsAndCondition"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Terms and Conditions"
+                        multiline
+                        rows={3}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </Grid>
+              </Grid>
+
+              {renderSignatureSection()}
+
+              {/* Form Actions */}
+              <Box className="mt-6 flex justify-end gap-2">
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => router.push('/purchase-orders/order-list')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                >
+                  Create Purchase Order
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </form>
+
+        {/* Signature Dialog */}
+        <Dialog open={showSignatureDialog} onClose={handleCloseSignatureDialog}>
+          <DialogTitle>Draw Your Signature</DialogTitle>
+          <DialogContent>
+            <SignaturePad
+              ref={signaturePadRef}
+              canvasProps={{
+                width: 500,
+                height: 200,
+                className: 'signature-canvas'
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseSignatureDialog}>Cancel</Button>
+            <Button onClick={handleSaveSignature} color="primary">
+              Save Signature
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </LocalizationProvider>
   );
 };

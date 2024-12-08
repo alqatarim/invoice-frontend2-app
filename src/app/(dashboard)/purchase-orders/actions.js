@@ -15,7 +15,7 @@ const ENDPOINTS = {
   }
 };
 
-export const getPurchaseOrderList = async (page = 1, pageSize = 10, searchTerm = '', filters = {}) => {
+export async function getPurchaseOrderList  (page = 1, pageSize = 10, searchTerm = '', filters = {}) {
   try {
     let url = `${ENDPOINTS.PURCHASE_ORDER.LIST}?limit=${pageSize}&skip=${(page - 1) * pageSize}`;
 
@@ -39,7 +39,7 @@ export const getPurchaseOrderList = async (page = 1, pageSize = 10, searchTerm =
   }
 };
 
-export const deletePurchaseOrder = async (id) => {
+export async function deletePurchaseOrder (id) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.DELETE}/${id}/softDelete`, {
       method: 'PATCH'
@@ -55,7 +55,7 @@ export const deletePurchaseOrder = async (id) => {
   }
 };
 
-export const convertToPurchase = async (id, data) => {
+export async function convertToPurchase (id, data) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.CONVERT}`, {
       method: 'POST',
@@ -72,7 +72,7 @@ export const convertToPurchase = async (id, data) => {
   }
 };
 
-export const clonePurchaseOrder = async (id) => {
+export async function clonePurchaseOrder  (id)  {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.CLONE}/${id}/clone`, {
       method: 'POST'
@@ -88,7 +88,7 @@ export const clonePurchaseOrder = async (id) => {
   }
 };
 
-export const getPurchaseOrderNumber = async () => {
+export async function getPurchaseOrderNumber  () {
   try {
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.GET_NUMBER);
     return {
@@ -101,31 +101,57 @@ export const getPurchaseOrderNumber = async () => {
   }
 };
 
-export const getDropdownData = async () => {
+export async function getVendors  () {
   try {
-    const [vendorsResponse, productsResponse, taxResponse, bankResponse] = await Promise.all([
-      fetchWithAuth('/drop_down/vendor'),
-      fetchWithAuth('/drop_down/product'),
-      fetchWithAuth('/drop_down/tax'),
-      fetchWithAuth('/drop_down/bank')
-    ]);
-
-    return {
-      success: true,
-      data: {
-        vendors: vendorsResponse.data || [],
-        products: productsResponse.data || [],
-        taxes: taxResponse.data || [],
-        banks: bankResponse.data || []
-      }
-    };
+    const response = await fetchWithAuth('/drop_down/vendor');
+    return response.data || [];
   } catch (error) {
-    console.error('Error fetching dropdown data:', error);
-    return { success: false, message: error.message };
+    console.error('Error fetching vendors:', error);
+    return [];
   }
 };
 
-export const addPurchaseOrder = async (data) => {
+export async function getProducts ()  {
+  try {
+    const response = await fetchWithAuth('/drop_down/product');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
+};
+
+export async function getTaxRates () {
+  try {
+    const response = await fetchWithAuth('/drop_down/tax');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching tax rates:', error);
+    return [];
+  }
+};
+
+export async function getBanks  () {
+  try {
+    const response = await fetchWithAuth('/drop_down/bank');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching banks:', error);
+    return [];
+  }
+};
+
+export async function getSignatures ()  {
+  try {
+    const response = await fetchWithAuth('/drop_down/signature');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching signatures:', error);
+    return [];
+  }
+};
+
+export async function addPurchaseOrder  (data)  {
   try {
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.ADD, {
       method: 'POST',
@@ -143,7 +169,7 @@ export const addPurchaseOrder = async (data) => {
   }
 };
 
-export const getPurchaseOrderDetails = async (id) => {
+export async function getPurchaseOrderDetails (id)  {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.VIEW}/${id}`);
     return {
@@ -156,7 +182,7 @@ export const getPurchaseOrderDetails = async (id) => {
   }
 };
 
-export const updatePurchaseOrder = async (id, data) => {
+export async function updatePurchaseOrderc (id, data) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.UPDATE}/${id}`, {
       method: 'PUT',

@@ -1,15 +1,26 @@
 import React from 'react';
-import AddPurchaseOrder from '@/views/purchase-orders/addOrder';
+import AddPurchaseOrderIndex from '@/views/purchase-orders/addOrder/index';
 import ProtectedComponent from '@/components/ProtectedComponent';
-import { getDropdownData } from '@/app/(dashboard)/purchase-orders/actions';
+import { getVendors, getProducts, getTaxRates, getBanks, getSignatures } from '@/app/(dashboard)/purchase-orders/actions';
 
 const AddPurchaseOrderPage = async () => {
   try {
-    const dropdownData = await getDropdownData();
+    // Fetch all data separately
+    const vendors = await getVendors();
+    const products = await getProducts();
+    const taxRates = await getTaxRates();
+    const banks = await getBanks();
+    const signatures = await getSignatures();
 
     return (
       <ProtectedComponent>
-        <AddPurchaseOrder initialData={dropdownData.data} />
+        <AddPurchaseOrderIndex 
+          vendors={vendors}
+          products={products}
+          taxRates={taxRates}
+          banks={banks}
+          signatures={signatures}
+        />
       </ProtectedComponent>
     );
   } catch (error) {
