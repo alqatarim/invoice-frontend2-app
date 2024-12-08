@@ -289,22 +289,27 @@ const InventoryList = ({
                    className='m-0 p-0'
                   >
                     {canUpdate && (
-                        <div className='flex flex-col gap-4 items-start'>
 
 
-                      <ButtonGroup variant='outlined' color='primary' >
+
+                      <ButtonGroup
+                        variant='outlined'
+                        color= 'secondary'
+                      >
                         <Button
-                          color="success"
+
+
 
                           onClick={() => {
                             setSelectedItem(item);
                             handleStockDialogOpen('add');
                           }}
                         >
-                          <AddIcon className='size-5' />
+                          <AddIcon color='success' />
                         </Button>
                         <Button
-                          color="error"
+
+
 
                           onClick={() => {
                             setSelectedItem(item);
@@ -312,10 +317,10 @@ const InventoryList = ({
                           }}
                           title="Remove Stock"
                         >
-                          <RemoveIcon className='size-5' />
+                          <RemoveIcon color='error' className='size-5' />
                         </Button>
                       </ButtonGroup>
-                      </div>
+
                     )}
                   </TableCell>
                 </TableRow>
