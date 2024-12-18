@@ -1,11 +1,16 @@
 import React from 'react';
-import ViewPurchaseOrder from '@/views/purchase-orders/viewOrder';
+import ViewPurchaseOrderIndex from '@/views/purchase-orders/viewOrder/index';
 import ProtectedComponent from '@/components/ProtectedComponent';
+
+export const metadata = {
+  title: 'View Purchase Order',
+  description: 'View purchase order details'
+};
 
 const ViewPurchaseOrderPage = async ({ params }) => {
   return (
     <ProtectedComponent>
-      <ViewPurchaseOrder orderId={params.id} />
+      <ViewPurchaseOrderIndex orderId={params.id} />
     </ProtectedComponent>
   );
 };

@@ -1,11 +1,16 @@
 import React from 'react';
-import EditPurchaseOrder from '@/views/purchase-orders/editOrder';
+import EditPurchaseOrderIndex from '@/views/purchase-orders/editOrder';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
-const EditPurchaseOrderPage = async ({ params }) => {
+export const metadata = {
+  title: 'Edit Purchase Order | Invoicing System',
+  description: 'Edit an existing purchase order'
+};
+
+const EditPurchaseOrderPage = ({ params }) => {
   return (
     <ProtectedComponent>
-      <EditPurchaseOrder orderId={params.id} />
+      <EditPurchaseOrderIndex orderId={params.id} />
     </ProtectedComponent>
   );
 };

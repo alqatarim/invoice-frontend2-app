@@ -1,6 +1,7 @@
 'use server';
 
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { dataURLtoBlob } from '@/utils/helpers';
 
 const ENDPOINTS = {
   PURCHASE_ORDER: {
@@ -15,29 +16,19 @@ const ENDPOINTS = {
   }
 };
 
-export async function getPurchaseOrderList  (page = 1, pageSize = 10, searchTerm = '', filters = {}) {
+export async function getPurchaseOrderList(page = 1, pageSize = 10) {
   try {
-    let url = `${ENDPOINTS.PURCHASE_ORDER.LIST}?limit=${pageSize}&skip=${(page - 1) * pageSize}`;
-
-    if (searchTerm) {
-      url += `&search=${searchTerm}`;
-    }
-
-    if (filters.vendor) {
-      url += `&vendor=${filters.vendor}`;
-    }
-
-    const response = await fetchWithAuth(url);
+    const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.LIST);
     return {
-      success: response.code === 200,
+      success: true,
       data: response.data || [],
-      totalRecords: response.totalRecords
+      totalRecords: response.data?.length || 0
     };
   } catch (error) {
     console.error('Error fetching purchase order list:', error);
     return { success: false, message: error.message };
   }
-};
+}
 
 export async function deletePurchaseOrder (id) {
   try {
@@ -151,11 +142,35 @@ export async function getSignatures ()  {
   }
 };
 
-export async function addPurchaseOrder  (data)  {
+export async function addPurchaseOrder(data, signatureURL) {
   try {
+    const formData = new FormData();
+
+    // Add items data
+    data.items.forEach((item, i) => {
+      Object.keys(item).forEach(key => {
+        if (item[key] !== undefined && item[key] !== null) {
+          formData.append(`items[${i}][${key}]`, item[key]);
+        }
+      });
+    });
+
+    // Add all other fields
+    Object.keys(data).forEach(key => {
+      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
+        formData.append(key, data[key]);
+      }
+    });
+
+    // Handle signature if provided
+    if (signatureURL) {
+      const blob = await dataURLtoBlob(signatureURL);
+      formData.append('signatureImage', blob);
+    }
+
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.ADD, {
       method: 'POST',
-      body: data
+      body: formData
     });
 
     return {
@@ -199,3 +214,71 @@ export async function updatePurchaseOrderc (id, data) {
     return { success: false, message: error.message };
   }
 };
+
+export async function updatePurchaseOrder(id, data, signatureURL) {
+  try {
+    const formData = new FormData();
+
+    // Add items data
+    data.items.forEach((item, i) => {
+      Object.keys(item).forEach(key => {
+        if (item[key] !== undefined && item[key] !== null) {
+          formData.append(`items[${i}][${key}]`, item[key]);
+        }
+      });
+    });
+
+    // Add all other fields
+    Object.keys(data).forEach(key => {
+      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
+        formData.append(key, data[key]);
+      }
+    });
+
+    // Handle signature if provided
+    if (signatureURL) {
+      const blob = await dataURLtoBlob(signatureURL);
+      formData.append('signatureImage', blob);
+    }
+
+    const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.UPDATE}/${id}`, {
+      method: 'PUT',
+      body: formData
+    });
+
+    return {
+      success: response.code === 200,
+      data: response.data,
+      message: response.message
+    };
+  } catch (error) {
+    console.error('Error updating purchase order:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function getDropdownData() {
+  try {
+    const [vendors, products, taxRates, banks, signatures] = await Promise.all([
+      getVendors(),
+      getProducts(),
+      getTaxRates(),
+      getBanks(),
+      getSignatures()
+    ]);
+
+    return {
+      success: true,
+      data: {
+        vendors,
+        products,
+        taxRates,
+        banks,
+        signatures
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching dropdown data:', error);
+    return { success: false, message: error.message };
+  }
+}

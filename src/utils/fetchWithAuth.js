@@ -22,7 +22,9 @@ export async function fetchWithAuth(endpoint, options = {}) {
       endpoint,
       options: { ...options },
       body: options.body ? (
-        typeof options.body === 'string' ? JSON.parse(options.body) : options.body
+        typeof options.body === 'string' ? JSON.parse(options.body) :
+        options.body instanceof FormData ? { formData: Object.fromEntries(options.body.entries()) } :
+        { json: options.body }
       ) : undefined
     },
     response: null
@@ -58,10 +60,11 @@ export async function fetchWithAuth(endpoint, options = {}) {
       const responseClone = response.clone();
       const responseData = await responseClone.json();
 
-   console.log(`=== Request Data [${requestId}] ===`);
-   console.log(JSON.stringify(options, null, 2));
+   console.log(`=== Request to ${endpoint} [${requestId}] ===`);
+   console.log('Request Details:', JSON.stringify(logData.request, null, 2));
 
-   console.log(`=== Response Data [${requestId}] ===`);
+
+   console.log(`=== Response Data from ${endpoint} [${requestId}] ===`);
    console.log(JSON.stringify(responseData, null, 2));
 
       // Update log object with response

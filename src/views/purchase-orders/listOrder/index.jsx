@@ -1,22 +1,34 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getPurchaseOrderList } from '@/app/(dashboard)/purchase-orders/actions';
+import { getPurchaseOrderList, getVendors } from '@/app/(dashboard)/purchase-orders/actions';
 import PurchaseOrderList from './PurchaseOrderList';
 
 const PurchaseOrderListIndex = () => {
+  const [allOrders, setAllOrders] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [orderList, setOrderList] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [vendors, setVendors] = useState([]);
+  const [filterCriteria, setFilterCriteria] = useState({});
 
-  const fetchOrderList = async (currentPage = page, currentPageSize = pageSize) => {
+  const fetchVendors = async () => {
+    const vendorsList = await getVendors();
+    setVendors(vendorsList);
+  };
+
+  useEffect(() => {
+    fetchVendors();
+    fetchOrders();
+  }, [page, pageSize, filterCriteria]);
+
+  const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await getPurchaseOrderList(currentPage, currentPageSize);
+      const response = await getPurchaseOrderList(page, pageSize, {}, filterCriteria);
       if (response.success) {
-        setOrderList(response.data);
+        setAllOrders(response.data);
         setTotalCount(response.totalRecords);
       }
     } catch (error) {
@@ -26,20 +38,23 @@ const PurchaseOrderListIndex = () => {
     }
   };
 
-  useEffect(() => {
-    fetchOrderList();
-  }, [page, pageSize]);
+  const resetAllFilters = () => {
+    setFilterCriteria({});
+    setPage(1);
+  };
 
   return (
     <PurchaseOrderList
-      orderList={orderList}
+      orderList={allOrders}
       totalCount={totalCount}
       page={page}
       setPage={setPage}
       pageSize={pageSize}
       setPageSize={setPageSize}
       loading={loading}
-      fetchOrderList={fetchOrderList}
+      setFilterCriteria={setFilterCriteria}
+      vendors={vendors}
+      resetAllFilters={resetAllFilters}
     />
   );
 };
