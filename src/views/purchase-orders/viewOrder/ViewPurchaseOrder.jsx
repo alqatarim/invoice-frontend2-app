@@ -186,28 +186,17 @@ const ViewPurchaseOrder = ({ data }) => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {data.items?.map((item, index) => {
-                      const quantity = Number(item.quantity) || 0;
-                      const rate = Number(item.rate) || 0;
-                      const tax = Number(item.tax) || 0;
-                      const discount = Number(item.discount) || 0;
-                      const amount = quantity * rate;
-                      const discountAmount = (amount * discount) / 100;
-                      const taxAmount = ((amount - discountAmount) * tax) / 100;
-                      const totalAmount = amount - discountAmount + taxAmount;
-
-                      return (
-                        <TableRow key={index}>
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell>{quantity}</TableCell>
-                          <TableCell>{formatCurrency(rate.toFixed(2))}</TableCell>
-                          <TableCell>{tax.toFixed(2)}</TableCell>
-                          <TableCell>{discount.toFixed(2)}</TableCell>
-                          <TableCell>{formatCurrency(totalAmount.toFixed(2))}</TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {data.items?.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{item.name}</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>{formatCurrency(item.rate)}</TableCell>
+                        <TableCell>{item.tax}</TableCell>
+                        <TableCell>{item.discount}</TableCell>
+                        <TableCell>{formatCurrency(item.amount)}</TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </Box>

@@ -4,7 +4,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { Icon } from '@iconify/react';
+import CustomIconButton from '@core/components/mui/CustomIconButton'
 import {
+FormLabel,
   Box,
   Card,
   CardContent,
@@ -33,9 +36,12 @@ import {
   FormHelperText,
   Skeleton,
   Divider,
-  Modal
+  Modal,
+  Snackbar,
+  Alert,
+  InputAdornment
 } from '@mui/material';
-
+import { useTheme } from '@mui/material/styles';
 import {
 
   Add as AddIcon,
@@ -48,43 +54,44 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
-import { toast } from 'react-toastify';
 import { PurchaseOrderSchema } from './PurchaseOrderSchema';
 import SignaturePad from 'react-signature-canvas';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { alpha } from '@mui/material/styles';
+import { addBank } from '@/app/(dashboard)/purchase-orders/actions';
+
+
 
 // Updated calculation functions
 function calculateItemValues(item) {
-  if (!item) return { rate: 0, discount: 0, tax: 0, amount: 0 };
+  if (!item) return { rate: 0, discountValue: 0, tax: 0, amount: 0 };
 
   const quantity = Number(item.quantity) || 1;
-  const purchasePrice = Number(item.purchasePrice || item.rate) || 0;
-  const rate = purchasePrice * quantity;
+  const purchasePrice = Number(parseFloat(item.purchasePrice || item.rate).toFixed(2)) || 0;
+  const rate = parseFloat((purchasePrice * quantity).toFixed(2));
   let discountValue = 0;
 
   // Calculate discount based on type
-  if (item.discountType === 2) { // percentage discount
-    const discountPercentage = Number(item.discount || 0);
-    discountValue = (discountPercentage / 100) * rate;
+  if (parseInt(item.discountType) === 2) { // percentage discount
+    discountValue = parseFloat(((Number(item.discount) / 100) * rate).toFixed(2));
   } else { // fixed discount
-    discountValue = Number(item.discount || 0);
+    discountValue = parseFloat(Number(item.discount || 0).toFixed(2));
   }
 
   // Calculate tax
   const taxRate = Number(item.taxInfo?.taxRate || item.tax || 0);
-  const discountedAmount = rate - discountValue;
-  const tax = (taxRate / 100) * discountedAmount;
+  const discountedAmount = parseFloat((rate - discountValue).toFixed(2));
+  const tax = parseFloat(((taxRate / 100) * discountedAmount).toFixed(2));
 
   // Calculate final amount
-  const amount = discountedAmount + tax;
+  const amount = parseFloat((discountedAmount + tax).toFixed(2));
 
   return {
-    rate: Number(rate),
-    discount: Number(discountValue),
-    tax: Number(tax),
-    amount: Number(amount)
+    rate,
+    tax,
+    discountValue,
+    amount
   };
 }
 
@@ -95,9 +102,9 @@ function calculateTotals(items) {
   let total = 0;
 
   items.forEach((item) => {
-    const { rate, discount, tax, amount } = calculateItemValues(item);
+    const { rate, discountValue, tax, amount } = calculateItemValues(item);
     subtotal += rate;
-    totalDiscount += discount;
+    totalDiscount += discountValue;
     vat += tax;
     total += amount;
   });
@@ -110,166 +117,321 @@ function calculateTotals(items) {
   };
 }
 
-const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatures, purchaseOrderNumber, orderData }) => {
+const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatures, purchaseOrderNumber }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState('');
-  const [openSignatureDialog, setOpenSignatureDialog] = useState(false);
   const signaturePadRef = useRef(null);
-  const [signType, setSignType] = useState(orderData?.sign_type || 'eSignature');
+  const [signType, setSignType] = useState('eSignature');
   const [signatureDataURL, setSignatureDataURL] = useState(null);
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
-  const [selectedSignature, setSelectedSignature] = useState(orderData?.signatureId?.signatureImage || null);
+  const [selectedSignature, setSelectedSignature] = useState(null);
   const [openModal, setOpenModal] = useState(false);
-  const [editingItemIndex, setEditingItemIndex] = useState(null);
   const [productsCloneData, setProductsCloneData] = useState(products);
   const [editModalData, setEditModalData] = useState(null);
-  const [editModalErrors, setEditModalErrors] = useState({});
   const [submissionResult, setSubmissionResult] = useState(null);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
+  const [openBankModal, setOpenBankModal] = useState(false);
+  const [newBank, setNewBank] = useState({
+    name: '',
+    bankName: '',
+    branch: '',
+    accountNumber: '',
+    IFSCCode: ''
+  });
 
-  const { control, handleSubmit, watch, setValue, trigger, formState: { errors, isValid } } = useForm({
+  const theme = useTheme();
+  const { control, handleSubmit, watch, setValue, trigger, formState: { errors, isValid, isDirty } } = useForm({
     resolver: yupResolver(PurchaseOrderSchema),
     mode: 'onChange',
     defaultValues: {
       purchaseOrderDate: dayjs(),
       dueDate: dayjs().add(30, 'days'),
       items: [],
-      sign_type: orderData?.sign_type || 'eSignature',
-      signatureId: orderData?.signatureId || '',
-      signatureName: orderData?.signatureName || ''
+      sign_type: 'eSignature',
+      // signatureId: '',
+      // signatureName: '',
+      vendorId: '',
+      referenceNo: '',
+      bank: '',
+      notes: '',
+      termsAndCondition: ''
     }
   });
 
   const [totals, setTotals] = useState({ subtotal: 0, totalDiscount: 0, vat: 0, total: 0 });
 
-  // Recalculate totals whenever items change
-  useEffect(() => {
-    setTotals(calculateTotals(items));
-    // Keep form in sync
-    setValue('items', items);
-  }, [items, setValue]);
-
-  useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (orderData) {
-      // Set the sign_type in form and state
-      setValue('sign_type', orderData.sign_type || 'eSignature');
-      setSignType(orderData.sign_type || 'eSignature');
-
-      // Handle signature data based on type
-      if (orderData.sign_type === 'manualSignature' && orderData.signatureId) {
-        setSelectedSignature(orderData.signatureId.signatureImage);
-        setValue('signatureId', orderData.signatureId);
-      } else if (orderData.sign_type === 'eSignature') {
-        setValue('signatureName', orderData.signatureName || '');
-      }
-    }
-  }, [orderData, setValue]);
-
   const handleRemoveItem = (index) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    setItems(newItems);
-    setValue('items', newItems);
+    try {
+      // Log initial state for debugging
+      console.log('Current items:', items);
+      console.log('Attempting to remove item at index:', index);
+
+      // Create a copy of current items
+      const currentItems = [...items];
+
+      // Get the item to be removed
+      const removedItem = currentItems[index];
+
+      console.log('Item to be removed:', removedItem);
+
+      // Safety check
+      if (!removedItem) {
+        console.warn('No item found at index:', index);
+        return;
+      }
+
+      // Remove the item from the array
+      currentItems.splice(index, 1);
+
+      // If the removed item had a productId, add it back to available products
+      if (removedItem.productId) {
+        const originalProduct = products.find(p => p._id === removedItem.productId);
+        if (originalProduct) {
+          setProductsCloneData(prevProducts => {
+            console.log('Adding product back to available products:', originalProduct);
+            return [...prevProducts, originalProduct];
+          });
+        }
+      }
+
+      // Update state with new arrays
+      console.log('Updated items array:', currentItems);
+
+      // Update all related state in a single batch
+      setItems(currentItems);
+      setTotals(calculateTotals(currentItems));
+      setValue('items', currentItems);
+
+    } catch (error) {
+      console.error('Error in handleRemoveItem:', error);
+    }
   };
 
   const handleProductChange = (productId) => {
-    if (!productId) return;
+    try {
+      if (!productId) return;
 
-    const selectedProduct = productsCloneData.find(prod => prod._id === productId);
-    if (!selectedProduct) return;
+      const selectedProduct = productsCloneData.find(prod => prod._id === productId);
+      if (!selectedProduct) return;
 
-    // Remove selected product from clone data
-    setProductsCloneData(prev => prev.filter(p => p._id !== productId));
+      // Remove selected product from clone data
+      setProductsCloneData(prev => prev.filter(p => p._id !== productId));
 
-    // Create new item with initial values
-    const newItem = {
-      key: items.length,
-      name: selectedProduct.name,
-      productId: selectedProduct._id,
-      units: selectedProduct.units?.name,
-      unit_id: selectedProduct.units?._id,
-      quantity: 1,
-      discountType: selectedProduct.discountType || 3, // Default to fixed discount if not set
-      discount: Number(selectedProduct.discountValue || 0).toFixed(2),
-      purchasePrice: Number(selectedProduct.purchasePrice || 0),
-      rate: Number(selectedProduct.purchasePrice || 0),
-      taxInfo: selectedProduct.tax || null,
-      tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0).toFixed(2) : "0.00",
-      isRateFormUpadted: false,
-      form_updated_discounttype: selectedProduct.discountType || 3,
-      form_updated_discount: Number(selectedProduct.discountValue || 0),
-      form_updated_rate: Number(selectedProduct.purchasePrice || 0),
-      form_updated_tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0
+      // Create new item with initial values
+      const newItem = {
+        key: Date.now(), // Use timestamp for unique key instead of array length
+        name: selectedProduct.name,
+        productId: selectedProduct._id,
+        units: selectedProduct.units?.name,
+        unit: selectedProduct.units?._id,
+        quantity: 1,
+        discountType: selectedProduct.discountType || 3,
+        discount: Number(selectedProduct.discountValue || 0),
+        purchasePrice: Number(selectedProduct.purchasePrice || 0),
+        rate: Number(selectedProduct.purchasePrice || 0),
+        taxInfo: selectedProduct.tax || null,
+        tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0,
+        isRateFormUpadted: false,
+        form_updated_discounttype: selectedProduct.discountType || 3,
+        form_updated_discount: Number(selectedProduct.discountValue || 0),
+        form_updated_rate: Number(selectedProduct.purchasePrice || 0),
+        form_updated_tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0
+      };
+
+      // Calculate values
+      const rateValue = Number(newItem.quantity) * Number(newItem.purchasePrice);
+      let discountedAmount;
+
+      if (parseInt(newItem.discountType) === 2) {
+        discountedAmount = rateValue - (rateValue * (Number(newItem.discount) / 100));
+      } else {
+        discountedAmount = rateValue - Number(newItem.discount);
+      }
+
+      newItem.tax = (discountedAmount * (Number(newItem.tax) / 100));
+      newItem.amount = discountedAmount + newItem.tax;
+
+      // Update state
+      setItems(prevItems => {
+        const newItems = [...prevItems, newItem];
+        console.log('Updated items after adding:', newItems);
+        return newItems;
+      });
+
+      // Update other state
+      setTotals(prevTotals => {
+        const newTotals = calculateTotals([...items, newItem]);
+        console.log('Updated totals:', newTotals);
+        return newTotals;
+      });
+
+      setValue('items', [...items, newItem]);
+      setSelectedProduct('');
+
+    } catch (error) {
+      console.error('Error in handleProductChange:', error);
+    }
+  };
+
+
+
+  // Add this new state for managing multiple snackbars
+  const [snackbars, setSnackbars] = useState([]);
+
+  // Replace the old handleError function with this new one
+  const handleError = (errors) => {
+    const errorCount = Object.keys(errors).length;
+
+    if (errorCount === 0) return;
+
+    let message;
+    if (errorCount === 1) {
+      // For single error, be specific
+      const [field, error] = Object.entries(errors)[0];
+      const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1');
+      message = error?.message || `Please review the ${fieldName} field`;
+    } else {
+      // For multiple errors, group by type if possible
+      const hasRequiredFieldErrors = Object.values(errors).some(error =>
+        error?.message?.toLowerCase().includes('required')
+      );
+      const hasInvalidFieldErrors = Object.values(errors).some(error =>
+        error?.message?.toLowerCase().includes('invalid')
+      );
+
+      if (hasRequiredFieldErrors && hasInvalidFieldErrors) {
+        message = `Please fill in required fields and correct invalid entries`;
+      } else if (hasRequiredFieldErrors) {
+        message = `Please fill in all required fields`;
+      } else if (hasInvalidFieldErrors) {
+        message = `Please correct invalid entries`;
+      } else {
+        message = `Please review ${errorCount} highlighted fields`;
+      }
+    }
+
+    const newSnackbar = {
+      id: Date.now(),
+      message,
+      severity: 'error',
+      open: true
     };
 
-    // Calculate initial values
-    const calculatedValues = calculateItemValues(newItem);
-
-    // Update the item with calculated values
-    newItem.rate = calculatedValues.rate.toFixed(2);
-    newItem.discount = calculatedValues.discount.toFixed(2);
-    newItem.tax = calculatedValues.tax.toFixed(2);
-    newItem.amount = calculatedValues.amount.toFixed(2);
-
-    setItems(prev => [...prev, newItem]);
-    setSelectedProduct('');
+    setSnackbars(prev => [...prev, newSnackbar]);
   };
+
+  // Add this new handler for closing individual snackbars
+  const handleSnackbarClose = (id) => (event, reason) => {
+    if (reason === 'clickaway') return;
+
+    setSnackbars(prev => prev.filter(snackbar => snackbar.id !== id));
+  };
+
+  // Replace the old Snackbar component with this new implementation
+  const renderSnackbars = () => (
+    <>
+      {snackbars.map((snackbar, index) => (
+        <Snackbar
+          key={snackbar.id}
+          open={snackbar.open}
+          autoHideDuration={2000}
+          onClose={handleSnackbarClose(snackbar.id)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          // sx={{
+          //   maxWidth: '400px',
+          //   // Reduce vertical spacing between snackbars
+          //   top: `${(index * 48) + 24}px !important` // Reduced from 80 to 48
+          // }}
+        >
+          <Alert
+            onClose={handleSnackbarClose(snackbar.id)}
+            severity={snackbar.severity}
+            variant="filled"
+            sx={{
+              width: '100%',
+
+            }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      ))}
+    </>
+  );
 
   const onSubmit = async (data) => {
     try {
+      // Trigger validation for all fields and wait for it to complete
+      const isFormValid = await trigger();
+
+      // Check if there are any validation errors
+      if (!isFormValid) {
+        handleError(errors);
+        return;
+      }
+
       const purchaseOrderData = {
         items: items.map(item => ({
-          ...item,
-          taxInfo: JSON.stringify(item.taxInfo)
+          key: item.key,
+          name: item.name,
+          productId: item.productId,
+          quantity: item.quantity,
+          units: item.units || '',
+          unit: item.unit || '',
+          rate: item.rate,
+          discount: item.discount,
+          tax: item.tax,
+          taxInfo: item.taxInfo ? JSON.stringify(item.taxInfo) : null,
+          amount: item.amount,
+          discountType: item.discountType,
+          isRateFormUpadted: item.isRateFormUpadted,
+          form_updated_discounttype: item.form_updated_discounttype,
+          form_updated_discount: item.form_updated_discount,
+          form_updated_rate: item.form_updated_rate,
+          form_updated_tax: item.form_updated_tax,
         })),
-        vendorId: data.vendorId,
+        vendorId: data.vendorId || '',
         dueDate: data.dueDate.toISOString(),
         purchaseOrderDate: data.purchaseOrderDate.toISOString(),
         referenceNo: data.referenceNo || '',
-        purchaseOrderId: purchaseOrderNumber,
-        taxableAmount: totals.subtotal,
-        TotalAmount: totals.total,
-        vat: totals.vat,
-        totalDiscount: totals.totalDiscount,
+        purchaseOrderId: purchaseOrderNumber || '',
+        taxableAmount: totals.subtotal || 0,
+        TotalAmount: totals.total || 0,
+        vat: totals.vat || 0,
+        totalDiscount: totals.totalDiscount || 0,
         roundOff: false,
         bank: data.bank || '',
         notes: data.notes || '',
         termsAndCondition: data.termsAndCondition || '',
         sign_type: data.sign_type,
-        signatureName: data.sign_type === 'eSignature' ? (data.signatureName || '') : '',
-        signatureId: data.sign_type === 'manualSignature' ? (data.signatureId?._id || '') : ''
+        ...(data.sign_type === 'manualSignature'
+          ? { signatureId: data.signatureId }
+          : { signatureName: data.signatureName })
       };
 
-      const response = await onSave(purchaseOrderData, signatureDataURL);
+      // Continue with form submission
+      const response = await onSave(
+        purchaseOrderData,
+        data.sign_type === 'eSignature' ? signatureDataURL : null
+      );
 
-      if (response.success) {
-        setSubmissionResult('Purchase order created successfully!');
-      } else {
-        setSubmissionResult(response.message || 'Error creating purchase order');
+      if (response) {
+        setSubmissionResult(
+          response.success
+            ? `Purchase order ${purchaseOrderNumber} created successfully!`
+            : `Failed to create purchase order ${purchaseOrderNumber}. Please try again.`
+        );
+        setShowResultDialog(true);
       }
+
     } catch (error) {
-      setSubmissionResult('Error creating purchase order');
-      console.error(error);
-    } finally {
+      console.error('Form submission error:', error);
+      setSubmissionResult(`Error creating purchase order ${purchaseOrderNumber}: ${error.message}`);
       setShowResultDialog(true);
     }
-  };
-
-  const handleError = (errors) => {
-    const errorMessages = Object.values(errors).map(error => error.message).join(', ');
-    toast.error(`Validation errors: ${errorMessages}`);
   };
 
   const handleOpenSignatureDialog = () => {
@@ -285,6 +447,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
       const signatureData = signaturePadRef.current.toDataURL();
       setSignatureDataURL(signatureData);
       setValue('signatureData', signatureData);
+      trigger('signatureData');
       handleCloseSignatureDialog();
     }
   };
@@ -294,28 +457,21 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
       signaturePadRef.current.clear();
     }
     setSignatureDataURL(null);
-    setValue('signatureData', null);
+    setValue('signatureData', '');
+    trigger('signatureData');
   };
 
   const handleSignatureSelection = (selectedOption, field) => {
-    field.onChange(selectedOption);
-    setSelectedSignature(selectedOption?.signatureImage);
-    trigger('signatureId');
+    if (selectedOption) {
+      field.onChange(selectedOption._id);
+      setSelectedSignature(selectedOption.signatureImage);
+      trigger('signatureId');
+    } else {
+      field.onChange('');
+      setSelectedSignature(null);
+    }
   };
 
-  const handleEditItem = (index) => {
-    const item = items[index];
-    setEditingItemIndex(index);
-    setEditModalData({
-      rate: item.purchasePrice,
-      discountType: item.discountType || '',
-      discount: item.discount || '',
-      quantity: item.quantity,
-      productId: item.productId,
-      taxInfo: item.taxInfo
-    });
-    setOpenModal(true);
-  };
 
   const handleEditModalSave = () => {
     if (!editModalData) return;
@@ -326,11 +482,11 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
     const item = newItems[index];
 
-    // Save form updated values
-    item.form_updated_rate = Number(editModalData.rate);
-    item.form_updated_discount = Number(editModalData.discount);
+    // Save form updated values with 2 decimal places
+    item.form_updated_rate = parseFloat(Number(editModalData.rate).toFixed(2));
+    item.form_updated_discount = parseFloat(Number(editModalData.discount).toFixed(2));
     item.form_updated_discounttype = editModalData.discountType;
-    item.form_updated_tax = Number(editModalData.taxInfo?.taxRate || 0);
+    item.form_updated_tax = parseFloat(Number(editModalData.taxInfo?.taxRate || 0).toFixed(2));
     item.isRateFormUpadted = true;
 
     // Update tax info
@@ -338,28 +494,30 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
     // Calculate new values based on quantity
     const quantity = Number(item.quantity);
-    const rateValue = quantity * Number(editModalData.rate);
+    const rateValue = parseFloat((quantity * Number(editModalData.rate)).toFixed(2));
 
     // Calculate discount
     let calculatedDiscount;
-    if (editModalData.discountType === 2) { // percentage
-      calculatedDiscount = (rateValue * (Number(editModalData.discount) / 100));
+    if (parseInt(editModalData.discountType) === 2) { // percentage
+      calculatedDiscount = parseFloat((rateValue * (Number(editModalData.discount) / 100)).toFixed(2));
     } else { // fixed
-      calculatedDiscount = Number(editModalData.discount);
+      calculatedDiscount = parseFloat(Number(editModalData.discount).toFixed(2));
     }
 
     // Calculate tax and final amount
-    const discountedAmount = rateValue - calculatedDiscount;
-    const taxAmount = discountedAmount * (Number(editModalData.taxInfo?.taxRate || 0) / 100);
+    const discountedAmount = parseFloat((rateValue - calculatedDiscount).toFixed(2));
+    const taxAmount = parseFloat((discountedAmount * (Number(editModalData.taxInfo?.taxRate || 0) / 100)).toFixed(2));
 
     // Update item with new values
-    item.rate = rateValue.toFixed(2);
-    item.discount = calculatedDiscount.toFixed(2);
+    item.rate = rateValue;
+    item.discount =  editModalData.discount
     item.discountType = editModalData.discountType;
-    item.tax = taxAmount.toFixed(2);
-    item.amount = (rateValue - calculatedDiscount + taxAmount).toFixed(2);
+    item.tax = taxAmount;
+    item.amount = parseFloat((rateValue - calculatedDiscount + taxAmount).toFixed(2));
 
     setItems(newItems);
+    setTotals(calculateTotals(newItems));
+    setValue('items', newItems);
     setOpenEditModal(false);
     setEditModalData(null);
   };
@@ -368,68 +526,60 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
     const newItems = [...items];
     const item = newItems[index];
 
-    // Use form updated values if they exist
-    const updatedItem = {
-      ...item,
-      quantity: Number(newQuantity),
-      rate: item.isRateFormUpadted ? item.form_updated_rate : item.purchasePrice,
-      discount: item.isRateFormUpadted ? item.form_updated_discount : item.discount,
-      discountType: item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType,
-      tax: item.isRateFormUpadted ? item.form_updated_tax : (item.taxInfo?.taxRate || 0)
-    };
+    // Get base rate (either form updated or original purchase price)
+    const baseRate = parseFloat((item.isRateFormUpadted ? item.form_updated_rate : item.purchasePrice).toFixed(2));
+    const baseDiscount = parseFloat((item.isRateFormUpadted ? item.form_updated_discount : item.discount).toFixed(2));
+    const baseDiscountType = item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType;
+    const baseTaxRate = parseFloat((item.isRateFormUpadted ? item.form_updated_tax : (item.taxInfo?.taxRate || 0)));
 
-    // Calculate new values
-    const calculatedValues = calculateItemValues(updatedItem);
+    // Calculate new rate based on quantity * base rate
+    const newRate = parseFloat((Number(newQuantity) * Number(baseRate)).toFixed(2));
 
-    // Update item with calculated values
+    // Calculate discount
+    let calculatedDiscount;
+    if (parseInt(baseDiscountType) === 2) { // percentage
+      calculatedDiscount = parseFloat((newRate * (Number(baseDiscount) / 100)).toFixed(2));
+    } else { // fixed
+      calculatedDiscount = parseFloat(Number(baseDiscount).toFixed(2));
+    }
+
+    // Calculate tax
+    const discountedAmount = parseFloat((newRate - calculatedDiscount).toFixed(2));
+    const taxAmount = parseFloat((discountedAmount * (Number(baseTaxRate) / 100)).toFixed(2));
+
+    // Update item with new values
     newItems[index] = {
       ...item,
       quantity: Number(newQuantity),
-      rate: calculatedValues.rate.toFixed(2),
-      discount: calculatedValues.discount.toFixed(2),
-      tax: calculatedValues.tax.toFixed(2),
-      amount: calculatedValues.amount.toFixed(2)
+      rate: newRate,
+      tax: taxAmount,
+      amount: parseFloat((newRate - calculatedDiscount + taxAmount).toFixed(2))
     };
 
     setItems(newItems);
-  };
-
-  const handleDiscountTypeChange = (newDiscountType) => {
-    const { rate, discountType, discount } = editModalData;
-    let newDiscountValue = Number(discount);
-    const currentRate = Number(rate);
-
-    // Ensure we have valid numbers
-    if (isNaN(newDiscountValue) || isNaN(currentRate) || currentRate === 0) {
-      console.error('Invalid values for conversion:', { discount, rate });
-      return;
-    }
-
-    // Convert based on the new type selected
-    if (newDiscountType === 3) { // Converting TO Fixed
-      newDiscountValue = (newDiscountValue / 100) * currentRate;
-    } else if (newDiscountType === 2) { // Converting TO Percentage
-      newDiscountValue = (newDiscountValue / currentRate) * 100;
-    }
-
-
-    setEditModalData({
-      ...editModalData,
-      discountType: newDiscountType,
-      discount: Number(newDiscountValue.toFixed(2))
-    });
+    setTotals(calculateTotals(newItems));
+    setValue('items', newItems);
   };
 
   const renderSignatureSection = () => {
     return (
-      <Box className="mt-6">
-        <Typography variant="h6" className="mb-4">Signature</Typography>
+      <Box className=" p-0">
+
+                <Typography className='text-[16px] text-secondary' gutterBottom>
+                  Signature
+                </Typography>
+
+
+        {/* Signature section*/}
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+
+          <Grid item xs={12} md={12}>
+
+            {/* Signature Type */}
             <Controller
               name="sign_type"
               control={control}
-              defaultValue={orderData?.sign_type || 'eSignature'}
+              defaultValue={'eSignature'}
               render={({ field: { onChange, value } }) => (
                 <RadioGroup
                   row
@@ -439,11 +589,12 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                     onChange(newValue);
                     setSignType(newValue);
 
-                    // Clear appropriate fields based on selection
                     if (newValue === 'eSignature') {
+                      // Clear manual signature fields
                       setValue('signatureId', '');
                       setSelectedSignature(null);
                     } else {
+                      // Clear eSignature fields
                       setValue('signatureName', '');
                       setSignatureDataURL(null);
                     }
@@ -464,24 +615,24 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
             />
           </Grid>
 
+          {/* Manual Signature */}
           {signType === 'manualSignature' && (
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>
-                Select Signature Name <span style={{ color: 'red' }}>*</span>
-              </Typography>
+            <Grid container item xs={9} gap={2}>
               <Controller
                 name="signatureId"
                 control={control}
-                defaultValue={orderData?.signatureId || ''}
+                defaultValue={''}
                 render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.signatureId}>
+                  <FormControl fullWidth error={!!errors.signatureId} variant='standard'>
+                    <InputLabel>
+                      Select Signature Name <span style={{ color: 'red' }}>*</span>
+                    </InputLabel>
                     <Select
-                      value={field.value?._id || ''}
+                      value={field.value || ''}
                       onChange={(event) => {
                         const selectedSignature = signatures.find(sig => sig._id === event.target.value);
                         handleSignatureSelection(selectedSignature, field);
                       }}
-                      size="small"
                     >
                       {signatures.map((option) => (
                         <MenuItem key={option._id} value={option._id}>
@@ -495,116 +646,139 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                   </FormControl>
                 )}
               />
-              {selectedSignature && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Signature Image
-                  </Typography>
-                  <Box
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      p: 1,
-                      maxWidth: '200px'
-                    }}
-                  >
-                    <img
-                      src={selectedSignature}
-                      alt="Signature"
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        maxHeight: '200px',
-                        objectFit: 'contain'
-                      }}
-                      onError={(e) => {
-                        console.error('Error loading signature image');
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                  </Box>
-                </Box>
-              )}
-            </Grid>
-          )}
 
-          {signType === 'eSignature' && (
-            <>
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="signatureName"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Signature Name"
-                      variant="outlined"
-                      fullWidth
-                      margin="normal"
-                      error={!!errors.signatureName}
-                      helperText={errors.signatureName?.message}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Box className="flex flex-row mt-6 items-center justify-between">
-                  <Typography variant="body1">eSignature</Typography>
-                  <IconButton
-                    size="small"
-                    onClick={handleOpenSignatureDialog}
-                    sx={{
-                      border: '2px solid',
-                      borderColor: 'text.primary',
-                      borderRadius: '12px',
-                      color: 'text.primary',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                        color: 'primary.main',
-                      },
-                    }}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                {signatureDataURL ? (
+              <Box
+                sx={{
+
+                    height: '136px',
+                    width: '136px',
+                    padding: '10px',
+
+
+                  }}
+              >
+                {selectedSignature ? (
+
+
                   <img
-                    src={signatureDataURL}
+                    src={selectedSignature}
                     alt="Signature"
                     style={{
-                      maxWidth: '60%',
-                      marginBottom: '1rem',
-                      border: '3px solid #eee',
-                      borderRadius: '8px',
-                      padding: '5px',
+
+                      maxHeight: '136px',
+                      maxWidth: '340px',
+                      objectFit: 'contain'
+                    }}
+                    onError={(e) => {
+                      console.error('Error loading signature image');
+                      e.target.style.display = 'none';
                     }}
                   />
                 ) : (
-                  <Typography variant="body2" color="textSecondary">
-                    No signature drawn
-                  </Typography>
+
+
+
+                        <Icon
+                      //  color= {alpha(theme.palette.secondary.main, 0.2)}
+                      // color= {alpha(theme.palette.primary.main, 0.2)}
+                      color= {alpha(theme.palette.secondary.light, 0.2)}
+                       width="120px"
+                       height='102px'
+
+                       icon="mdi:signature-image"
+                      //  className='p-0 m-0'
+
+
+                     />
+
+
+
+
                 )}
-              </Grid>
-            </>
+              </Box>
+            </Grid>
+          )}
+
+          {/* E-Signature */}
+          {signType === 'eSignature' && (
+            <Grid container item xs={9} gap={2} alignItems="flex-start">
+              <Controller
+                item xs={12}
+                name="signatureName"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    variant='standard'
+                    fullWidth
+                    {...field}
+                    label="Signature Name"
+                    error={!!errors.signatureName}
+                    helperText={errors.signatureName?.message}
+                  />
+                )}
+              />
+
+              <Box item xs={6}
+                sx={{
+                    height: '136px',
+                    width: '136px',
+                    padding: '10px',
+
+                }}
+              >
+                {signatureDataURL ? (
+                  <CustomIconButton
+                    aria-label='Signature'
+                    onClick={handleOpenSignatureDialog}
+                    variant='rounded'
+                    height='136px'
+                    skin='light'
+                  >
+                    <img
+                      src={signatureDataURL}
+                      alt="E-Signature"
+                      style={{
+                        maxHeight: '120px',
+                        maxWidth: '400px',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </CustomIconButton>
+                ) : (
+                  <Controller
+                    name="signatureData"
+                    control={control}
+                    defaultValue=""
+                    render={({ field }) => (
+                      <CustomIconButton
+                        aria-label='Signature'
+                        onClick={handleOpenSignatureDialog}
+                        size='130px'
+                        skin='light'
+                        color={errors.signatureData && signType === 'eSignature' ? 'error' : 'primary'}
+                      >
+                        <Icon
+                          width="120"
+                          height='120'
+                          icon="material-symbols-light:signature-outline-rounded"
+                        />
+                      </CustomIconButton>
+                    )}
+                  />
+                )}
+              </Box>
+
+
+            </Grid>
           )}
         </Grid>
       </Box>
     );
   };
 
-  const handleEditModalChange = (field, value) => {
-    const updatedData = { ...editModalData, [field]: value };
-    const calculated = calculateItemValues(updatedData);
 
-    setEditModalData({
-      ...updatedData,
-      rate: calculated.rate,
-      discount: calculated.discount,
-      tax: calculated.tax,
-      amount: calculated.amount
-    });
-  };
 
   const handleEditClick = (item) => {
     setEditModalData({
@@ -623,6 +797,30 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
     setOpenEditModal(false);
   };
 
+  const handleAddBank = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await addBank(newBank);
+      if (response) {
+        const newBankWithDetails = {
+          _id: response._id,
+          name: newBank.name,
+          bankName: newBank.bankName,
+          branch: newBank.branch,
+          accountNumber: newBank.accountNumber,
+          IFSCCode: newBank.IFSCCode,
+        };
+        setBanks((prevBanks) => [...prevBanks, newBankWithDetails]);
+        setValue('bank', newBankWithDetails._id);
+        trigger('bank');
+        setOpenBankModal(false);
+        setNewBank({ name: '', bankName: '', branch: '', accountNumber: '', IFSCCode: '' });
+      }
+    } catch (error) {
+      console.error('Failed to add bank:', error);
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box className="flex flex-col gap-4 p-4">
@@ -631,10 +829,20 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
         </Typography>
 
         <form onSubmit={handleSubmit(onSubmit, handleError)}>
+          {/* Header Information Card */}
           <Card>
             <CardContent>
-              <Grid container spacing={3}>
-                {/* Purchase Order Number */}
+              <Grid container spacing={5}>
+
+
+             <Grid item xs={12}>
+                <Typography variant='h5'  gutterBottom>
+                  Details
+                </Typography>
+              </Grid>
+
+
+                {/* Purchase Order Number, Vendor, Dates */}
                 <Grid item xs={12} md={4}>
                   {isLoading ? (
                     <Skeleton variant="rectangular" height={40} />
@@ -644,7 +852,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                       value={purchaseOrderNumber || ''}
                       variant="outlined"
                       fullWidth
-                      size="small"
+                      size="medium"
                       disabled
                       InputProps={{
                         readOnly: true,
@@ -663,11 +871,11 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                       control={control}
                       render={({ field }) => (
                         <FormControl fullWidth variant="outlined" error={!!errors.vendorId}>
-                          <InputLabel>Vendor</InputLabel>
+                          <InputLabel size='medium'>Vendor</InputLabel>
                           <Select
                             {...field}
                             label="Vendor"
-                            size="small"
+                            size="medium"
                             sx={{
                               borderColor: errors.vendorId ? 'red' : field.value ? 'green' : 'default',
                               '& .MuiOutlinedInput-notchedOutline': {
@@ -676,7 +884,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                             }}
                           >
                             {vendors.map(vendor => (
-                              <MenuItem key={vendor._id} value={vendor._id}>
+                              <MenuItem size='medium'  key={vendor._id} value={vendor._id}>
                                 {vendor.vendor_name}
                               </MenuItem>
                             ))}
@@ -702,9 +910,10 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                         <DatePicker
                           {...field}
                           label="Purchase Order Date"
+                          format="DD/MM/YYYY"
                           slotProps={{
                             textField: {
-                              size: "small",
+                              size: "medium",
                               fullWidth: true,
                               error: !!errors.purchaseOrderDate,
                               helperText: errors.purchaseOrderDate?.message,
@@ -734,9 +943,10 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                         <DatePicker
                           {...field}
                           label="Due Date"
+                          format="DD/MM/YYYY"
                           slotProps={{
                             textField: {
-                              size: "small",
+                              size: "medium",
                               fullWidth: true,
                               error: !!errors.dueDate,
                               helperText: errors.dueDate?.message,
@@ -768,7 +978,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                           label="Reference No"
                           variant="outlined"
                           fullWidth
-                          size="small"
+                          size="medium"
                           error={!!errors.referenceNo}
                           helperText={errors.referenceNo?.message}
                           sx={{
@@ -783,304 +993,428 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                   )}
                 </Grid>
               </Grid>
+            </CardContent>
+          </Card>
 
-              {/* Products Table */}
-              <Box sx={{ my: 6 }}>
-                <Typography variant="h6" gutterBottom>
+          {/* Products Card */}
+          <Card sx={{ mt: 4 }}>
+            <CardContent className='flex flex-col gap-3'>
+              {/* Product label */}
+              <Box>
+                 <Typography variant='h5'  gutterBottom>
                   Products
                 </Typography>
+              </Box>
+
+              {/* Products selector and table */}
+
+                  <Grid container spacing={2}>
+              <Grid item xs={10} md={5} lg={4}>
                 {isLoading ? (
                   <Skeleton variant="rectangular" height={200} />
                 ) : (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <FormControl variant="outlined" sx={{ flexGrow: 1 }}>
-                      <InputLabel size="small">Select Product</InputLabel>
-                      <Select
-                        size="small"
-                        value={selectedProduct}
-                        onChange={(e) => handleProductChange(e.target.value)}
-                        label="Select Product"
-                      >
-                        {productsCloneData.map((product) => (
-                          <MenuItem key={product._id} value={product._id}>
-                            {product.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <Link href="/products/product-add" passHref>
-                      <IconButton
-                        color="primary"
-                        className="transition-transform duration-200 ease-in-out hover:scale-110 active:scale-95"
-                      >
-                        <AddIcon />
-                      </IconButton>
-                    </Link>
-                  </Box>
+
+                     <FormControl className="w-full" variant="outlined" >
+                        <InputLabel size="medium">Select Product</InputLabel>
+                        <Select
+                          size="medium"
+                          value={selectedProduct}
+                          onChange={(e) => handleProductChange(e.target.value)}
+                          label="Select Product"
+                        >
+                          {productsCloneData.map((product) => (
+                            <MenuItem key={product._id} value={product._id}>
+                              {product.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                 )}
                 {errors.items && (
                   <Typography variant="caption" color="error">
                     {errors.items.message}
                   </Typography>
                 )}
-              </Box>
+              </Grid>
+
+
+
+                    <Grid item xs={2} md={1} lg={1} >
+
+                          <Link  href="/products/product-add" passHref>
+                      <IconButton
+                        color="primary"
+                        className="transition-transform duration-200 ease-in-out hover:scale-110 active:scale-100"
+                      >
+                        <AddIcon />
+                      </IconButton>
+                    </Link>
+
+
+                    </Grid>
+
+                    </Grid>
+
 
               {/* Items Table */}
-              <Box sx={{ mb: 6 }}>
-                <Table size="small">
-                  <TableHead
+              <Box className='border rounded overflow-hidden'>
+                <TableContainer
+                  sx={{
+                    maxWidth: '100%',
+                    overflowX: 'auto',
+                    // Add smooth scrolling
+                    '&::-webkit-scrollbar': {
+                      height: 8
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      borderRadius: 2,
+                      bgcolor: theme => alpha(theme.palette.secondary.main, 0.1)
+                    }
+                  }}
+                >
+                  <Table
+                    size='small'
                     sx={{
-                      bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.16),
+                      minWidth: {
+                        xs: 650, // Minimum width on extra-small screens
+                        sm: 750, // Minimum width on small screens
+                        md: '100%' // Full width on medium and up
+                      },
+                      '& .MuiTableCell-root': {
+                        borderColor: theme => alpha(theme.palette.secondary.main, 0.15),
+                        // Responsive padding
+                        px: { xs: 1, sm: 2, md: 3 },
+                        py: { xs: 1, sm: 1.5 },
+                        // Responsive text size
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                      }
                     }}
                   >
-                    <TableRow>
-                      <TableCell>Product / Service</TableCell>
-                      <TableCell>Unit</TableCell>
-                      <TableCell>Quantity</TableCell>
-                      <TableCell>Rate</TableCell>
-                      <TableCell>Discount</TableCell>
-                      <TableCell>VAT</TableCell>
-                      <TableCell>Amount</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {items.map((item, index) => (
-                      <TableRow key={item.key}>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell>{item.units}</TableCell>
-                        <TableCell>
-                          <TextField
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => handleQuantityChange(index, e.target.value)}
-                            inputProps={{ min: 1 }}
-                          />
-                        </TableCell>
-                        <TableCell>{Number(item.rate).toFixed(2)}</TableCell>
-                        <TableCell>{Number(item.discount).toFixed(2)}</TableCell>
-                        <TableCell>{Number(item.tax).toFixed(2)}</TableCell>
-                        <TableCell>{Number(item.amount).toFixed(2)}</TableCell>
-                        <TableCell>
-                          <IconButton onClick={() => handleEditClick(item)}>
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton onClick={() => handleDelete(item.key)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
+                    <TableHead
+                      sx={{
+                        bgcolor: theme => alpha(theme.palette.secondary.main, 0.03),
+                      }}
+                    >
+                      <TableRow>
+                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 120, sm: 150 } }}>Product / Service</TableCell>
+                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 60, sm: 80 } }}>Unit</TableCell>
+                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>Quantity</TableCell>
+                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>Rate</TableCell>
+                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 100, sm: 120 } }}>Discount</TableCell>
+                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>VAT</TableCell>
+                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>Amount</TableCell>
+                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>Actions</TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHead>
+                    <TableBody>
+                      {items.length > 0 ? (
+                        items.map((item, index) => (
+                          <TableRow key={item.key}>
+                            <TableCell sx={{ maxWidth: { xs: 120, sm: 150 } }}>
+                              <Typography noWrap>{item.name}</Typography>
+                            </TableCell>
+                            <TableCell>{item.units}</TableCell>
+                            <TableCell>
+                              <TextField
+                                size='small'
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => handleQuantityChange(index, e.target.value)}
+                                inputProps={{
+                                  min: 1,
+                                  style: {
+                                    padding: { xs: '4px 8px', sm: '8px 12px' }
+                                  }
+                                }}
+                                sx={{
+                                  width: { xs: '70px', sm: '100px' },
+                                  '& .MuiInputBase-input': {
+                                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                                  }
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>{Number(item.rate).toFixed(2)}</TableCell>
+                            <TableCell>
+                              <Box sx={{
+                                display: 'flex',
+                                flexDirection: { xs: 'column', sm: 'row' },
+                                gap: { xs: 0.5, sm: 1 },
+                                alignItems: { sm: 'center' }
+                              }}>
+                                {Number(item.discount) === 0 ? (
+                                  "0"
+                                ) : Number(item.discountType) === 2 ? (
+                                  <>
+                                    <span>{Number(item.discount)}%</span>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: 'text.secondary',
+                                        display: 'inline-block'
+                                      }}
+                                    >
+                                      ({((Number(item.discount) / 100) * item.rate).toFixed(2)} SAR)
+                                    </Typography>
+                                  </>
+                                ) : (
+                                  <>{Number(item.discount).toFixed(2)} SAR</>
+                                )}
+                              </Box>
+                            </TableCell>
+                            <TableCell>{item.tax.toLocaleString('en-IN', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}</TableCell>
+                            <TableCell>{Number(item.amount).toFixed(2)}</TableCell>
+                            <TableCell>
+                              <Box sx={{
+                                display: 'flex',
+                                gap: { xs: 0.5, sm: 1 }
+                              }}>
+                                <IconButton
+                                  onClick={() => handleEditClick(item)}
+                                  size="small"
+                                  sx={{
+                                    // Use sx for conditional sizing instead
+                                    [theme.breakpoints.up('sm')]: {
+                                      padding: '8px'
+                                    }
+                                  }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  onClick={() => handleRemoveItem(index)}
+                                  size="small"
+                                  sx={{
+                                    [theme.breakpoints.up('sm')]: {
+                                      padding: '8px'
+                                    }
+                                  }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={8}
+                            align="center"
+                            sx={{
+                              py: { xs: 4, sm: 6, md: 8 },
+                              color: theme => theme.palette.text.secondary,
+                              borderBottom: 'none'
+                            }}
+                          >
+                            <Box sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: { xs: 1, sm: 2 }
+                            }}>
+                              <Icon
+                                icon="material-symbols:production-quantity-limits-rounded"
+                                width={{ xs: 32, sm: 40 }}
+                                height={{ xs: 32, sm: 40 }}
+                              />
+                              <Typography variant="body1">No items added yet</Typography>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  px: { xs: 2, sm: 4 },
+                                  textAlign: 'center'
+                                }}
+                              >
+                                Use the product selector above to add items to your purchase order
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </Box>
 
-              {/* Edit/Add Item Modal */}
-              <Modal
-                open={openModal}
-                onClose={() => setOpenModal(false)}
-                aria-labelledby="edit-item-modal"
-                aria-describedby="edit-item-modal-description"
-              >
-                <Box sx={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: 400,
-                  bgcolor: 'background.paper',
-                  boxShadow: 24,
-                  p: 4,
-                  borderRadius: 1
-                }}>
-                  <Typography variant="h6" component="h2" gutterBottom>
-                    Edit Item
-                  </Typography>
-                  {editModalData && (
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="Rate"
-                          type="number"
-                          value={editModalData.rate}
-                          onChange={(e) => setEditModalData({...editModalData, rate: e.target.value})}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <FormControl fullWidth>
-                          <InputLabel>Discount Type</InputLabel>
-                          <Select
-                            value={editModalData.discountType}
-                            onChange={(e) => handleDiscountTypeChange(e.target.value)}
-                            label="Discount Type"
-                          >
-                            <MenuItem value={2}>Percentage</MenuItem>
-                            <MenuItem value={3}>Fixed</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label={`Discount ${editModalData.discountType === 2 ? '(%)' : ''}`}
-                          type="number"
-                          value={editModalData.discount}
-                          onChange={(e) => setEditModalData({...editModalData, discount: e.target.value})}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <FormControl fullWidth>
-                          <InputLabel>Tax Rate (%)</InputLabel>
-                          <Select
-                            value={editModalData.taxInfo?._id || ''}
-                            onChange={(e) => {
-                              const selectedTax = taxRates.find(tax => tax._id === e.target.value);
-                              setEditModalData({
-                                ...editModalData,
-                                taxInfo: selectedTax,
-                                tax: selectedTax?.taxRate || 0
-                              });
-                            }}
-                            label="Tax Rate (%)"
-                          >
-
-                            {taxRates.map((tax) => (
-                              <MenuItem key={tax._id} value={tax._id}>
-                                {tax.name} ({tax.taxRate}%)
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                    </Grid>
-                  )}
-                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                    <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-                    <Button variant="contained" onClick={handleEditModalSave}>Save</Button>
-                  </Box>
-                </Box>
-              </Modal>
-
-              {/* Totals Section */}
-              <Box className="mt-6">
-                <Grid container spacing={2} justifyContent="flex-end">
-                  <Grid item xs={12} md={4}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={6}>
-                        <Typography>Subtotal:</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                          {totals.subtotal.toFixed(2)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography>Tax:</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                          {totals.vat.toFixed(2)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography>Discount:</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                          {totals.totalDiscount.toFixed(2)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Divider sx={{ my: 1 }} />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="h6">Total:</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                          {totals.total.toFixed(2)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
+              {/* Add Totals Section here */}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                <Grid container spacing={2} sx={{ maxWidth: '300px' }}>
+                  <Grid item xs={6}>
+                    <Typography color='secondary.main'>Subtotal:</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="h6" sx={{ textAlign: 'right' }}>
+                      {totals.subtotal.toFixed(2)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography>Tax:</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="h6" sx={{ textAlign: 'right' }}>
+                      {totals.vat.toLocaleString('en-IN', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography>Discount:</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="h6" sx={{ textAlign: 'right' }}>
+                      {totals.totalDiscount.toFixed(2)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 1 }} />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="h6">Total:</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="h6" sx={{ textAlign: 'right' }}>
+                      {totals.total.toFixed(2)}
+                    </Typography>
                   </Grid>
                 </Grid>
               </Box>
-
-              {/* Additional Fields */}
-              <Grid container spacing={3} className="mt-4">
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="bank"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl fullWidth>
-                        <InputLabel>Bank Account</InputLabel>
-                        <Select {...field} label="Bank Account">
-                          <MenuItem value="">None</MenuItem>
-                          {banks.map(bank => (
-                            <MenuItem key={bank._id} value={bank._id}>
-                              {bank.bankName} - {bank.accountNumber}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Controller
-                    name="notes"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Notes"
-                        multiline
-                        rows={3}
-                        fullWidth
-                      />
-                    )}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Controller
-                    name="termsAndCondition"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Terms and Conditions"
-                        multiline
-                        rows={3}
-                        fullWidth
-                      />
-                    )}
-                  />
-                </Grid>
-              </Grid>
-
-              {renderSignatureSection()}
-
-              {/* Form Actions */}
-              <Box className="mt-6 flex justify-end gap-2">
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={() => router.push('/purchase-orders/order-list')}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                >
-                  Create Purchase Order
-                </Button>
-              </Box>
             </CardContent>
           </Card>
+
+          {/* Bottom Section with Bank, Terms, Totals, and Signature */}
+          <Grid container spacing={4} sx={{ mt: 4 }} className='justify-between'>
+            {/* Left Side - Bank and Terms */}
+            <Grid item xs={12} md={6} lg={6}>
+              <Card >
+                <CardContent>
+                  <Grid container spacing={3}>
+
+                    <Grid item xs={12} md={12}>
+
+                      <Typography className='text-[16px] text-secondary'>Bank & Notes</Typography>
+
+                    </Grid>
+
+                    <Grid item xs={12} md={12}>
+
+                       <Grid container spacing={3} alignItems='center'>
+
+                          <Grid item xs={8} md={7} lg={7}>
+                            <Controller
+                          name="bank"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl variant='standard' fullWidth>
+                              <InputLabel>Bank Account</InputLabel>
+                              <Select {...field}>
+                                <MenuItem value="">None</MenuItem>
+                                {banks.map(bank => (
+                                  <MenuItem key={bank._id} value={bank._id}>
+                                    {bank.bankName} - {bank.accountNumber}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          )}
+                        />
+                          </Grid>
+
+                          <Grid item xs={4} md={3} lg={2}>
+
+                            <Button
+                          variant="text"
+                          size='medium'
+                          onClick={() => setOpenBankModal(true)}
+                          startIcon={<Icon width='27px' icon="mdi:bank-plus" />}
+                          sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
+                        >
+                          Add Bank
+                        </Button>
+
+                          </Grid>
+
+
+                       </Grid>
+
+
+                    </Grid>
+                    <Grid item xs={11} md={10} lg={9.5}>
+                      <Controller
+                        name="notes"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                          variant={'standard'}
+                            {...field}
+                            label="Notes"
+                            multiline
+                            minRows={1}
+                            maxRows={4}
+                            fullWidth
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={11} md={10} lg={9.5}>
+                      <Controller
+                        name="termsAndCondition"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            variant={'standard'}
+                            label="Terms and Conditions"
+                             multiline
+                            minRows={1}
+                            maxRows={4}
+                            fullWidth
+                          />
+                        )}
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Right Side - Totals and Signature */}
+            <Grid item xs={12} md={6} lg={6}>
+              <Card>
+                <CardContent>
+
+
+                    {/* Signature Section */}
+
+                      {renderSignatureSection()}
+
+
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* Form Actions */}
+          <Box className="mt-6 flex justify-end gap-2">
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => router.push('/purchase-orders/order-list')}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+            >
+              Create Purchase Order
+            </Button>
+          </Box>
         </form>
 
         {/* Signature Dialog */}
@@ -1088,11 +1422,14 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
           <DialogTitle>Draw Your Signature</DialogTitle>
           <DialogContent>
             <SignaturePad
+
               ref={signaturePadRef}
               canvasProps={{
                 width: 500,
                 height: 200,
-                className: 'signature-canvas'
+                // className: 'signature-canvas',
+                className:'border  rounded-md'
+
               }}
             />
           </DialogContent>
@@ -1106,30 +1443,79 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
         </Dialog>
 
         {/* Result Dialog */}
-        <Dialog open={showResultDialog} onClose={() => setShowResultDialog(false)}>
-          <DialogTitle>Submission Result</DialogTitle>
+        <Dialog
+          open={showResultDialog}
+          onClose={() => setShowResultDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            {submissionResult?.includes('success') ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Icon icon="mdi:check-circle" color="success" width={24} />
+                Success
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Icon icon="mdi:alert-circle" color="error" width={24} />
+                Error
+              </Box>
+            )}
+          </DialogTitle>
           <DialogContent>
             <Typography>{submissionResult}</Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => router.push('/purchase-orders/order-list')} color="primary">
-              Go to Order List
-            </Button>
-            <Button onClick={() => setShowResultDialog(false)} color="secondary">
-              Close
-            </Button>
+            {submissionResult?.includes('success') ? (
+              <>
+                <Button
+                  onClick={() => router.push('/purchase-orders/order-list')}
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Icon icon="mdi:format-list-bulleted" />}
+                >
+                  Go to Order List
+                </Button>
+
+              </>
+            ) : (
+              <Button
+                onClick={() => setShowResultDialog(false)}
+                variant="contained"
+                color="primary"
+              >
+                Try Again
+              </Button>
+            )}
           </DialogActions>
         </Dialog>
 
         {/* Edit Item Dialog */}
-        <Dialog open={openEditModal} onClose={handleCloseEditModal}>
-          <DialogTitle>Edit Item</DialogTitle>
+        <Dialog open={openEditModal} onClose={handleCloseEditModal}
+        maxWidth="sm"
+
+        >
+
+
+
           <DialogContent>
             {editModalData && (
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12}>
+              <Grid container spacing={3}>
+
+                <Grid item xs={12} >
+                <Typography variant='h5' color='primary' className=''>Edit Item</Typography>
+
+                </Grid>
+
+
+
+                      {/* Rate */}
+                      <Grid item xs={12} md={5} lg={5} >
+                    <FormControl        fullWidth>
+
                   <TextField
-                    fullWidth
+
+                    size='small'
                     label="Rate"
                     type="number"
                     value={editModalData.rate}
@@ -1138,38 +1524,15 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                       rate: e.target.value
                     })}
                   />
-                </Grid>
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel>Discount Type</InputLabel>
-                    <Select
-                      value={editModalData.discountType}
-                      onChange={(e) => setEditModalData({
-                        ...editModalData,
-                        discountType: e.target.value
-                      })}
-                      label="Discount Type"
-                    >
-                      <MenuItem value={2}>Percentage</MenuItem>
-                      <MenuItem value={3}>Fixed</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label={`Discount ${editModalData.discountType === 2 ? '(%)' : ''}`}
-                    type="number"
-                    value={editModalData.discount}
-                    onChange={(e) => setEditModalData({
-                      ...editModalData,
-                      discount: e.target.value
-                    })}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel>Tax Rate (%)</InputLabel>
+
+                 </FormControl>
+                      </Grid>
+
+
+                      {/* VAT */}
+                  <Grid item xs={12} md={6} lg={6}>
+                  <FormControl size='small' fullWidth>
+                    <InputLabel>VAT (%)</InputLabel>
                     <Select
                       value={editModalData.taxInfo?._id || ''}
                       onChange={(e) => {
@@ -1180,7 +1543,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                           tax: selectedTax?.taxRate || 0
                         });
                       }}
-                      label="Tax Rate (%)"
+                      label="VAT (%)"
                     >
                       {taxRates.map((tax) => (
                         <MenuItem key={tax._id} value={tax._id}>
@@ -1189,10 +1552,123 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                       ))}
                     </Select>
                   </FormControl>
+
+
+
+
+                   </Grid>
+
+                {/* Discount  */}
+                <Grid item xs={12} md={5} lg={5}>
+
+       <TextField
+                      size='small'
+                        fullWidth
+                        label='Discount'
+                        type="number"
+                        value={editModalData.discount}
+                        onChange={(e) => setEditModalData({
+                          ...editModalData,
+                          discount: e.target.value
+                        })}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment
+                            className='text-secondary'
+                              position="end"
+                              color='secondary'
+
+                            >
+                              {Number(editModalData.discountType) === 2 ?
+                              <>
+                              <Typography className='text-[16px]'>
+                               %
+                              </Typography>
+
+                              <Typography className='text-[13px] ml-1'>
+                                ({((Number(editModalData.rate) || 0) * (Number(editModalData.discount) || 0) / 100).toFixed(2)} SAR)
+                              </Typography>
+
+                              </>
+
+                                                            : 'SAR'}
+                            </InputAdornment>
+
+
+                          ),
+                        }}
+                      />
                 </Grid>
+
+                {/* Discount Type */}
+                <Grid item xs={12} md={6} lg={6}>
+                  <FormControl component="fieldset" className="h-full flex items-center">
+                    <RadioGroup
+                      row
+                      value={editModalData.discountType}
+                      onChange={(e) => setEditModalData({
+                        ...editModalData,
+                        discountType: Number(e.target.value)
+                      })}
+                      className="flex items-center"
+                    >
+                      <Box sx={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+
+                          <FormControlLabel
+                            value={2}
+                            control={
+                            <Radio
+                              icon={
+                                <Icon
+                                icon="ri:discount-percent-line"
+                                width={32}
+                                />
+                                  }
+                                checkedIcon={
+                                <Icon
+                                icon="ri:discount-percent-line"
+                                width={32}
+                                />
+                                  }
+                              size="medium"
+                                  />}
+                            label="Percentage"
+                          />
+
+
+
+                          <FormControlLabel
+                            value={3}
+                            control={
+                            <Radio
+                              icon={
+                                <Icon
+                                icon="mdi:cash-multiple"
+                                width={32}
+                                />
+                                  }
+                                checkedIcon={
+                                <Icon
+                                icon="mdi:cash-multiple"
+                                width={32}
+                                />
+                                  }
+                              size="medium"
+                                  />}
+                            label="Fixed"
+                          />
+
+
+                      </Box>
+                    </RadioGroup>
+                  </FormControl>
+                </Grid>
+
               </Grid>
             )}
           </DialogContent>
+
+
           <DialogActions>
             <Button onClick={handleCloseEditModal} color="secondary">
               Cancel
@@ -1203,11 +1679,94 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                 handleCloseEditModal();
               }}
               color="primary"
+              variant='contained'
             >
               Save
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Add Snackbar component */}
+        {renderSnackbars()}
+
+        {/* Add Bank Modal */}
+        <Modal open={openBankModal} onClose={() => setOpenBankModal(false)}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 400,
+              bgcolor: 'background.paper',
+              boxShadow: 24,
+              p: 4,
+              borderRadius: 1
+            }}
+          >
+            <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
+              Add Bank Details
+            </Typography>
+            <form onSubmit={handleAddBank}>
+              <TextField
+                fullWidth
+                label="Bank Name"
+                value={newBank.bankName}
+                onChange={(e) => setNewBank({ ...newBank, bankName: e.target.value })}
+                margin="normal"
+                required
+              />
+              <TextField
+                fullWidth
+                label="Account Number"
+                value={newBank.accountNumber}
+                onChange={(e) => setNewBank({ ...newBank, accountNumber: e.target.value })}
+                margin="normal"
+                required
+              />
+              <TextField
+                fullWidth
+                label="Account Holder Name"
+                value={newBank.name}
+                onChange={(e) => setNewBank({ ...newBank, name: e.target.value })}
+                margin="normal"
+                required
+              />
+              <TextField
+                fullWidth
+                label="Branch Name"
+                value={newBank.branch}
+                onChange={(e) => setNewBank({ ...newBank, branch: e.target.value })}
+                margin="normal"
+                required
+              />
+              <TextField
+                fullWidth
+                label="IFSC Code"
+                value={newBank.IFSCCode}
+                onChange={(e) => setNewBank({ ...newBank, IFSCCode: e.target.value })}
+                margin="normal"
+                required
+              />
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                <Button
+                  onClick={() => setOpenBankModal(false)}
+                  variant="outlined"
+                  color="secondary"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                >
+                  Save
+                </Button>
+              </Box>
+            </form>
+          </Box>
+        </Modal>
       </Box>
     </LocalizationProvider>
   );

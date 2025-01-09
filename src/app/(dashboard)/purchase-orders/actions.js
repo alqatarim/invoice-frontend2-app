@@ -144,28 +144,64 @@ export async function getSignatures ()  {
 
 export async function addPurchaseOrder(data, signatureURL) {
   try {
+    // Debug log the incoming data
+    console.log('Submitting purchase order data:', data);
+
     const formData = new FormData();
 
-    // Add items data
+    // Add items data with proper format
     data.items.forEach((item, i) => {
       Object.keys(item).forEach(key => {
         if (item[key] !== undefined && item[key] !== null) {
-          formData.append(`items[${i}][${key}]`, item[key]);
+          // Handle special cases
+          if (key === 'taxInfo') {
+            const taxInfoStr = typeof item[key] === 'string'
+              ? item[key]
+              : JSON.stringify(item[key]);
+            formData.append(`items[${i}][${key}]`, taxInfoStr);
+
+          } else {
+            formData.append(`items[${i}][${key}]`, item[key]);
+          }
         }
       });
+
+
     });
 
-    // Add all other fields
+    // Add all other fields with proper formatting
     Object.keys(data).forEach(key => {
       if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
-        formData.append(key, data[key]);
+        if (key === 'dueDate' || key === 'purchaseOrderDate') {
+          // Ensure dates are in ISO format
+          formData.append(key, new Date(data[key]).toISOString());
+        } else if (key === 'taxableAmount' || key === 'TotalAmount' || key === 'vat' || key === 'totalDiscount') {
+          // Ensure numbers are properly formatted
+          formData.append(key, Number(data[key]).toString());
+        } else {
+          formData.append(key, data[key]);
+        }
       }
     });
 
-    // Handle signature if provided
+    // Ensure required fields are present
+    formData.append('roundOff', data.roundOff || false);
+    formData.append('sign_type', data.sign_type || 'eSignature');
+
+    // Handle signature
     if (signatureURL) {
-      const blob = await dataURLtoBlob(signatureURL);
-      formData.append('signatureImage', blob);
+      try {
+        const blob = await dataURLtoBlob(signatureURL);
+        formData.append('signatureImage', blob, 'signature.png');
+      } catch (error) {
+        console.error('Error processing signature:', error);
+        throw new Error('Failed to process signature');
+      }
+    }
+
+    // Debug log the FormData
+    for (let pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
     }
 
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.ADD, {
@@ -173,16 +209,29 @@ export async function addPurchaseOrder(data, signatureURL) {
       body: formData
     });
 
+    if (!response || response.code !== 200) {
+      console.error('Server response:', response);
+      throw new Error(response?.message || 'Failed to add purchase order');
+    }
+
     return {
-      success: response.code === 200,
+      success: true,
       data: response.data,
       message: response.message
     };
   } catch (error) {
-    console.error('Error adding purchase order:', error);
-    return { success: false, message: error.message };
+    console.error('Error details:', error);
+
+    // Extract error messages from the response
+    const errorMessages = error.response?.data?.message || [error.message || 'Error adding purchase order'];
+
+    return {
+      success: false,
+      message: error.message || 'Error adding purchase order',
+      errors: errorMessages
+    };
   }
-};
+}
 
 export async function getPurchaseOrderDetails (id)  {
   try {
@@ -280,5 +329,24 @@ export async function getDropdownData() {
   } catch (error) {
     console.error('Error fetching dropdown data:', error);
     return { success: false, message: error.message };
+  }
+}
+
+export async function addBank(bankData) {
+  try {
+    const response = await fetchWithAuth('/bankSettings/addBank', {
+      method: 'POST',
+      body: JSON.stringify(bankData),
+    });
+
+    if (response.code === 200) {
+      return response.data || {};
+    } else {
+      console.error('Failed to add bank');
+      throw new Error(response.message || 'Failed to add bank');
+    }
+  } catch (error) {
+    console.error('Error in addBank:', error);
+    throw error;
   }
 }
