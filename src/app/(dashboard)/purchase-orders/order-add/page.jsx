@@ -14,19 +14,6 @@ const AddPurchaseOrderPage = async () => {
     const purchaseOrderNumber = await getPurchaseOrderNumber();
 
 
-    // console.log("signatures: ");
-    // console.log(signatures);
-    // console.log("banks: ");
-    // console.log(banks);
-    // console.log("taxRates: ");
-    // console.log(taxRates);
-    //  console.log("products:");
-    //  console.log(products);
-    // console.log("vendors");
-    // console.log(vendors);
-    // console.log("purchaseOrderNumber: ");
-    // console.log(purchaseOrderNumber);
-
     return (
       <ProtectedComponent>
         <AddPurchaseOrderIndex

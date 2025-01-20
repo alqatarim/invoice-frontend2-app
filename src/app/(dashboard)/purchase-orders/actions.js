@@ -2,6 +2,7 @@
 
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import { dataURLtoBlob } from '@/utils/helpers';
+import dayjs from 'dayjs';
 
 const ENDPOINTS = {
   PURCHASE_ORDER: {
@@ -246,57 +247,86 @@ export async function getPurchaseOrderDetails (id)  {
   }
 };
 
-export async function updatePurchaseOrderc (id, data) {
-  try {
-    const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.UPDATE}/${id}`, {
-      method: 'PUT',
-      body: data
-    });
-
-    return {
-      success: response.code === 200,
-      data: response.data,
-      message: response.message
-    };
-  } catch (error) {
-    console.error('Error updating purchase order:', error);
-    return { success: false, message: error.message };
-  }
-};
-
 export async function updatePurchaseOrder(id, data, signatureURL) {
+  // 1. ID Validation
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid purchase order ID');
+  }
+
   try {
     const formData = new FormData();
 
-    // Add items data
-    data.items.forEach((item, i) => {
-      Object.keys(item).forEach(key => {
-        if (item[key] !== undefined && item[key] !== null) {
-          formData.append(`items[${i}][${key}]`, item[key]);
-        }
-      });
-    });
+    // 2. Items Data Processing - Match exact structure from old code
+    const dataSource = data.items || [];
+    for (let i = 0; i < dataSource.length; i++) {
+      formData.append(`items[${i}][name]`, dataSource[i]?.name);
+      formData.append(`items[${i}][key]`, i);
+      formData.append(`items[${i}][productId]`, dataSource[i]?.productId);
+      formData.append(`items[${i}][quantity]`, dataSource[i]?.quantity);
+      formData.append(`items[${i}][units]`, dataSource[i]?.units);
+      formData.append(`items[${i}][unit]`, dataSource[i]?.unit_id); // Important: use unit_id
+      formData.append(`items[${i}][rate]`, dataSource[i]?.rate);
+      formData.append(`items[${i}][discount]`, dataSource[i]?.discount);
+      formData.append(`items[${i}][tax]`, dataSource[i]?.tax);
 
-    // Add all other fields
-    Object.keys(data).forEach(key => {
-      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
-        formData.append(key, data[key]);
+      // Special handling for taxInfo
+      let taxIfoFormdata = dataSource[i].taxInfo;
+      if (typeof dataSource[i].taxInfo !== "string") {
+        taxIfoFormdata = JSON.stringify(dataSource[i].taxInfo);
       }
-    });
+      formData.append(`items[${i}][taxInfo]`, taxIfoFormdata);
 
-    // Handle signature if provided
-    if (signatureURL) {
-      const blob = await dataURLtoBlob(signatureURL);
-      formData.append('signatureImage', blob);
+      formData.append(`items[${i}][amount]`, dataSource[i]?.amount);
+      formData.append(`items[${i}][discountType]`, dataSource[i]?.discountType);
+      formData.append(`items[${i}][isRateFormUpadted]`, dataSource[i]?.isRateFormUpadted);
+      formData.append(`items[${i}][form_updated_discounttype]`, dataSource[i]?.form_updated_discounttype);
+      formData.append(`items[${i}][form_updated_discount]`, dataSource[i]?.form_updated_discount);
+      formData.append(`items[${i}][form_updated_rate]`, dataSource[i]?.form_updated_rate);
+      formData.append(`items[${i}][form_updated_tax]`, dataSource[i]?.form_updated_tax);
     }
 
+    // 3. Main Form Fields - Match exact structure
+    formData.append("purchaseOrderId", data.purchaseOrderId);
+    formData.append("vendorId", data.vendorId);
+    formData.append("dueDate", dayjs(data?.dueDate || new Date()).toISOString());
+    formData.append("purchaseOrderDate", dayjs(data?.purchaseOrderDate || new Date()).toISOString());
+    formData.append("referenceNo", data.referenceNo);
+    formData.append("taxableAmount", data.taxableAmount);
+    formData.append("TotalAmount", data.TotalAmount);
+    formData.append("vat", data.vat);
+    formData.append("totalDiscount", data.totalDiscount);
+    formData.append("roundOff", data.roundOff);
+    formData.append("bank", data.bank?._id || "");
+    formData.append("notes", data.notes);
+    formData.append("termsAndCondition", data.termsAndCondition);
+    formData.append("sign_type", data.sign_type);
+
+    // 4. Signature Handling
+    if (data.sign_type === "eSignature") {
+      formData.append("signatureName", data.signatureName || "");
+      if (signatureURL) {
+        const blob = await dataURLtoBlob(signatureURL);
+        formData.append("signatureImage", blob);
+      }
+    } else {
+      formData.append("signatureId", data.signatureId || "");
+    }
+
+    // Debug logging
+    console.log('Submitting purchase order data:', Object.fromEntries(formData));
+
+    // 5. API Call
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.UPDATE}/${id}`, {
       method: 'PUT',
       body: formData
     });
 
+    if (!response || response.code !== 200) {
+      throw new Error(response?.message || 'Failed to update purchase order');
+    }
+
     return {
-      success: response.code === 200,
+      success: true,
       data: response.data,
       message: response.message
     };

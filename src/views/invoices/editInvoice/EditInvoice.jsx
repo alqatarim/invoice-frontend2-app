@@ -532,9 +532,7 @@ const handleSaveEditItem = async () => {
     setValue('signatureData', null);
   };
 
-  const handleConfirmDialogClose = () => {
-    setConfirmDialogOpen(false);
-  };
+
 
   useEffect(() => {
     let interval;

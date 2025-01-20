@@ -6,6 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton'
+import CustomIconButtonTwo from '@core/components/mui/CustomIconButtonTwo'
 import {
 FormLabel,
   Box,
@@ -60,6 +61,7 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { alpha } from '@mui/material/styles';
 import { addBank } from '@/app/(dashboard)/purchase-orders/actions';
+import { bgBG } from '@mui/x-date-pickers/locales';
 
 
 
@@ -565,7 +567,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
     return (
       <Box className=" p-0">
 
-                <Typography className='text-[16px] text-secondary' gutterBottom>
+                <Typography variant='h5' gutterBottom>
                   Signature
                 </Typography>
 
@@ -623,11 +625,15 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                 control={control}
                 defaultValue={''}
                 render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.signatureId} variant='standard'>
-                    <InputLabel>
+                  <FormControl fullWidth error={!!errors.signatureId} variant='outlined'>
+
+
+
+                    <InputLabel size="medium">
                       Select Signature Name <span style={{ color: 'red' }}>*</span>
                     </InputLabel>
                     <Select
+                     label="Select Signature Name"
                       value={field.value || ''}
                       onChange={(event) => {
                         const selectedSignature = signatures.find(sig => sig._id === event.target.value);
@@ -639,6 +645,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                           {option.signatureName}
                         </MenuItem>
                       ))}
+
                     </Select>
                     {errors.signatureId && (
                       <FormHelperText error>{errors.signatureId.message}</FormHelperText>
@@ -707,11 +714,12 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                 name="signatureName"
                 control={control}
                 render={({ field }) => (
+
                   <TextField
                     variant='standard'
                     fullWidth
                     {...field}
-                    label="Signature Name"
+                    label={<Typography variant="" >Add Signature Name <span style={{ color: 'red' }}>*</span></Typography>}
                     error={!!errors.signatureName}
                     helperText={errors.signatureName?.message}
                   />
@@ -730,7 +738,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                   <CustomIconButton
                     aria-label='Signature'
                     onClick={handleOpenSignatureDialog}
-                    variant='rounded'
+                    variant='outlined'
                     height='136px'
                     skin='light'
                   >
@@ -1008,7 +1016,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
               {/* Products selector and table */}
 
-                  <Grid container spacing={2}>
+                  <Grid container spacing={3} className='items-center'>
               <Grid item xs={10} md={5} lg={4}>
                 {isLoading ? (
                   <Skeleton variant="rectangular" height={200} />
@@ -1039,16 +1047,20 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
 
 
-                    <Grid item xs={2} md={1} lg={1} >
+                    <Grid item xs={2} md={1} lg={1} className='flex items-center'>
 
                           <Link  href="/products/product-add" passHref>
-                      <IconButton
-                        color="primary"
-                        className="transition-transform duration-200 ease-in-out hover:scale-110 active:scale-100"
-                      >
-                        <AddIcon />
-                      </IconButton>
+
+                         <CustomIconButtonTwo size='large' variant='outlined' color='primary' className='min-is-fit'>
+              <i className='ri-add-line' />
+            </CustomIconButtonTwo>
+
+
                     </Link>
+
+
+
+
 
 
                     </Grid>
@@ -1092,18 +1104,18 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                   >
                     <TableHead
                       sx={{
-                        bgcolor: theme => alpha(theme.palette.secondary.main, 0.03),
+                        bgcolor: theme => alpha(theme.palette.secondary.main, 0.09),
                       }}
                     >
-                      <TableRow>
-                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 120, sm: 150 } }}>Product / Service</TableCell>
-                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 60, sm: 80 } }}>Unit</TableCell>
-                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>Quantity</TableCell>
-                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>Rate</TableCell>
-                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 100, sm: 120 } }}>Discount</TableCell>
-                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>VAT</TableCell>
-                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>Amount</TableCell>
-                        <TableCell className='!bg-transparent' sx={{ minWidth: { xs: 80, sm: 100 } }}>Actions</TableCell>
+                      <TableRow >
+                        <TableCell  sx={{ minWidth: { xs: 120, sm: 150 } }}>Product / Service</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 60, sm: 80 } }}>Unit</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>Quantity</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>Rate</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 100, sm: 120 } }}>Discount</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>VAT</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>Amount</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1211,25 +1223,31 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                             }}
                           >
                             <Box sx={{
+                              position: 'relative',
                               display: 'flex',
-                              flexDirection: 'column',
+                              justifyContent: 'center',
                               alignItems: 'center',
-                              gap: { xs: 1, sm: 2 }
+                              py: 3
                             }}>
                               <Icon
-                                icon="material-symbols:production-quantity-limits-rounded"
-                                width={{ xs: 32, sm: 40 }}
-                                height={{ xs: 32, sm: 40 }}
+                                color={alpha(theme.palette.secondary.light, 0.2)}
+                                icon="line-md:alert-circle-loop"
+                                width='120px'
+                                height='120px'
                               />
-                              <Typography variant="body1">No items added yet</Typography>
                               <Typography
-                                variant="caption"
+                                variant="h5"
+                                color='secondary.light'
                                 sx={{
-                                  px: { xs: 2, sm: 4 },
-                                  textAlign: 'center'
+                                  position: 'absolute',
+                                  top: '50%',
+                                  left: '50%',
+                                  transform: 'translate(-50%, -50%)',
+                                  zIndex: 1,
+                                  fontWeight: 700
                                 }}
                               >
-                                Use the product selector above to add items to your purchase order
+                                No items added yet
                               </Typography>
                             </Box>
                           </TableCell>
@@ -1244,7 +1262,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
                 <Grid container spacing={2} sx={{ maxWidth: '300px' }}>
                   <Grid item xs={6}>
-                    <Typography color='secondary.main'>Subtotal:</Typography>
+                    <Typography>Subtotal:</Typography>
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="h6" sx={{ textAlign: 'right' }}>
@@ -1296,22 +1314,25 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
                     <Grid item xs={12} md={12}>
 
-                      <Typography className='text-[16px] text-secondary'>Bank & Notes</Typography>
+                      <Typography variant='h5'>Bank & Notes</Typography>
 
                     </Grid>
 
                     <Grid item xs={12} md={12}>
 
-                       <Grid container spacing={3} alignItems='center'>
+                       <Grid container spacing={4} alignItems='center'>
 
-                          <Grid item xs={8} md={7} lg={7}>
+                          <Grid item xs={7} md={7} lg={7}>
                             <Controller
                           name="bank"
                           control={control}
                           render={({ field }) => (
-                            <FormControl variant='standard' fullWidth>
+                            <FormControl variant='outlined' fullWidth>
                               <InputLabel>Bank Account</InputLabel>
-                              <Select {...field}>
+                              <Select
+                                 label='Bank Account'
+                                 size="medium"
+                              {...field}>
                                 <MenuItem value="">None</MenuItem>
                                 {banks.map(bank => (
                                   <MenuItem key={bank._id} value={bank._id}>
@@ -1324,14 +1345,16 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                         />
                           </Grid>
 
-                          <Grid item xs={4} md={3} lg={2}>
+                          <Grid item xs={5} md={2} lg={1} >
 
                             <Button
-                          variant="text"
-                          size='medium'
+
+                          variant="contained"
+                          size='large'
                           onClick={() => setOpenBankModal(true)}
-                          startIcon={<Icon width='27px' icon="mdi:bank-plus" />}
-                          sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
+                          startIcon={<Icon  icon="mdi:bank-outline" width='25px' />}
+                          sx={{  whiteSpace: 'nowrap' }}
+                          // className='max-sm:is-full is-auto'
                         >
                           Add Bank
                         </Button>
@@ -1704,7 +1727,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
               borderRadius: 1
             }}
           >
-            <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
+            <Typography variant="h5" color='primary' sx={{ mb: 2 }}>
               Add Bank Details
             </Typography>
             <form onSubmit={handleAddBank}>

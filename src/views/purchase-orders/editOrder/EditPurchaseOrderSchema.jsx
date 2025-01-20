@@ -1,51 +1,100 @@
 import * as yup from 'yup';
 
 export const EditPurchaseOrderSchema = yup.object().shape({
-//   purchaseId: yup.string().required('Purchase ID is required'),
-//   vendorId: yup.object().shape({
-//     value: yup.string().required('Vendor is required'),
-//     label: yup.string().required()
-//   }),
-//   purchaseOrderDate: yup.date().required('Purchase order date is required'),
-//   dueDate: yup.date().required('Due date is required'),
-//   referenceNo: yup.string().nullable(),
-//   items: yup.array().of(
-//     yup.object().shape({
-//       productId: yup.string().required('Product is required'),
-//       name: yup.string().required('Product name is required'),
-//       quantity: yup.number().required('Quantity is required').min(1, 'Quantity must be at least 1'),
-//       rate: yup.number().required('Rate is required').min(0, 'Rate must be positive'),
-//       discount: yup.number().min(0, 'Discount must be positive'),
-//       tax: yup.number().min(0, 'Tax must be positive'),
-//       amount: yup.number().min(0, 'Amount must be positive'),
-//       units: yup.string(),
-//       unit_id: yup.string(),
-//       taxInfo: yup.mixed()
-//     })
-//   ).min(1, 'At least one item is required'),
-//   bank: yup.object().nullable().shape({
-//     value: yup.string(),
-//     label: yup.string()
-//   }),
-//   notes: yup.string().nullable(),
-//   termsAndCondition: yup.string().nullable(),
-//   sign_type: yup.string().required('Signature type is required'),
-//   signatureName: yup.string().when('sign_type', {
-//     is: 'eSignature',
-//     then: yup.string().required('Signature name is required'),
-//     otherwise: yup.string().nullable()
-//   }),
-//   signatureId: yup.object().nullable().when('sign_type', {
-//     is: 'manualSignature',
-//     then: yup.object().shape({
-//       value: yup.string().required('Please select a signature'),
-//       label: yup.string().required()
-//     }),
-//     otherwise: yup.object().nullable()
-//   }),
-//   roundOff: yup.boolean().default(false),
-//   taxableAmount: yup.number().min(0),
-//   totalTax: yup.number().min(0),
-//   totalDiscount: yup.number().min(0),
-//   totalAmount: yup.number().min(0)
-});
+  vendorId: yup
+    .string()
+    .required("Choose any vendor"),
+
+  sign_type: yup
+    .string()
+    .required("Choose signature type"),
+
+  signatureName: yup
+    .string()
+    .when('sign_type', {
+      is: 'eSignature',
+      then: yup.string().required('Enter signature name'),
+      otherwise: yup.string().nullable()
+    }),
+
+  signatureData: yup
+    .string()
+    .when('sign_type', {
+      is: 'eSignature',
+      then: yup.string().required('Draw your signature'),
+      otherwise: yup.string().nullable()
+    }),
+
+  signatureId: yup
+    .string()
+    .when('sign_type', {
+      is: 'manualSignature',
+      then: yup.string().required('Select a signature'),
+      otherwise: yup.string().nullable()
+    }),
+
+  items: yup
+    .array()
+    .of(
+      yup.object().shape({
+        productId: yup.string().required("Product is required"),
+        quantity: yup
+          .number()
+          .required("Quantity is required")
+          .positive("Quantity must be positive")
+          .typeError("Quantity must be a number"),
+        rate: yup
+          .number()
+          .required("Rate is required")
+          .min(0, "Rate cannot be negative")
+          .typeError("Rate must be a number"),
+        discount: yup
+          .number()
+          .min(0, "Discount must be positive")
+          .typeError("Discount must be a number"),
+        tax: yup
+          .number()
+          .min(0, "Tax must be positive")
+          .typeError("Tax must be a number"),
+        amount: yup
+          .number()
+          .min(0, "Amount must be positive")
+          .typeError("Amount must be a number"),
+        units: yup.string().nullable(),
+        unit_id: yup.string().nullable(),
+        taxInfo: yup.object().nullable()
+      })
+    )
+    .min(1, "At least one item is required"),
+
+  purchaseOrderDate: yup
+    .date()
+    .required("Purchase Order Date is required")
+    .typeError("Invalid date format"),
+
+  dueDate: yup
+    .date()
+    .required("Due Date is required")
+    .min(yup.ref('purchaseOrderDate'), "Due date cannot be earlier than purchase order date")
+    .typeError("Invalid date format"),
+
+  referenceNo: yup
+    .string()
+    .nullable(),
+
+  bank: yup
+    .string()
+    .nullable(),
+
+  notes: yup
+    .string()
+    .nullable(),
+
+  termsAndCondition: yup
+    .string()
+    .nullable()
+}, [
+  ['signatureName', 'sign_type'],
+  ['signatureData', 'sign_type'],
+  ['signatureId', 'sign_type']
+]);
