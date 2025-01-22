@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -26,7 +26,8 @@ import {
   DialogContentText,
   DialogActions,
   Chip,
-  TableSortLabel
+  TableSortLabel,
+  Skeleton
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,12 +40,13 @@ import {
   RestartAlt as RestartAltIcon
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
-import { deletePurchaseOrder, convertToPurchase, clonePurchaseOrder } from '@/app/(dashboard)/purchase-orders/actions';
+import { deletePurchaseOrder, convertToPurchase, clonePurchaseOrder, getPurchaseOrderDetails } from '@/app/(dashboard)/purchase-orders/actions';
 import { usePermission } from '@/hooks/usePermission';
 import PurchaseOrderFilter from './PurchaseOrderFilter';
 import dayjs from 'dayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import debounce from 'lodash/debounce';
 
 const PurchaseOrderList = ({
   orderList,
@@ -55,7 +57,6 @@ const PurchaseOrderList = ({
   setPageSize,
   loading,
   setFilterCriteria,
-  setSortConfig,
   vendors,
   resetAllFilters
 }) => {
@@ -66,21 +67,18 @@ const PurchaseOrderList = ({
   const [openConvertDialog, setOpenConvertDialog] = useState(false);
   const [openCloneDialog, setOpenCloneDialog] = useState(false);
   const [openFilter, setOpenFilter] = useState(false);
-  const [filters, setFilters] = useState({
-    vendorId: '',
-    startDate: null,
-    endDate: null,
-    minAmount: '',
-    maxAmount: '',
-    // Add other filter states if necessary
-  });
-
-  const [orderBy, setOrderBy] = useState('');
-  const [orderDirection, setOrderDirection] = useState('asc');
 
   const canUpdate = usePermission('purchaseOrder', 'update');
   const canDelete = usePermission('purchaseOrder', 'delete');
   const isAdmin = usePermission('purchaseOrder', 'isAdmin');
+
+  // Debounced filter handler
+  const debouncedSetFilterCriteria = useCallback(
+    debounce((criteria) => {
+      setFilterCriteria(criteria);
+    }, 300),
+    []
+  );
 
   const handleMenuOpen = (event, order) => {
     setAnchorEl(event.currentTarget);
@@ -90,13 +88,6 @@ const PurchaseOrderList = ({
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedOrder(null);
-  };
-
-  const handleRequestSort = (property) => {
-    setSortConfig(prev => ({
-      sortBy: property,
-      sortDirection: prev.sortBy === property && prev.sortDirection === 'asc' ? 'desc' : 'asc'
-    }));
   };
 
   const handlePageChange = (event, newPage) => {
@@ -115,32 +106,84 @@ const PurchaseOrderList = ({
   };
 
   const handleDelete = async () => {
+    if (!selectedOrder?._id) {
+      toast.error('Invalid order selected');
+      setOpenDeleteDialog(false);
+      handleMenuClose();
+      return;
+    }
+
     try {
       const response = await deletePurchaseOrder(selectedOrder._id);
+
       if (response.success) {
+        setOpenDeleteDialog(false);
+        handleMenuClose();
         toast.success('Purchase order deleted successfully');
-        fetchOrderList();
+        setPage(1);
       } else {
-        toast.error(response.message || 'Error deleting purchase order');
+        throw new Error(response.message || 'Failed to delete purchase order');
       }
     } catch (error) {
-      toast.error('Error deleting purchase order');
+      console.error('Error deleting purchase order:', error);
+      toast.error(error.message || 'Error deleting purchase order');
+      setOpenDeleteDialog(false);
+      handleMenuClose();
     }
-    setOpenDeleteDialog(false);
-    handleMenuClose();
   };
 
   const handleConvert = async () => {
     try {
-      const response = await convertToPurchase(selectedOrder._id);
+      // Get the purchase order details first
+      const orderDetails = await getPurchaseOrderDetails(selectedOrder._id);
+
+      if (!orderDetails.success) {
+        throw new Error(orderDetails.message || 'Failed to fetch purchase order details');
+      }
+
+      const orderData = orderDetails.data;
+
+      // Prepare the data for conversion
+      const conversionData = {
+        items: orderData.items.map(item => ({
+          name: item.name,
+          key: item.key,
+          productId: item.productId,
+          quantity: item.quantity,
+          units: item.name,
+          unit: item.unit_id,
+          rate: item.rate,
+          discount: item.discount,
+          tax: item.tax,
+          amount: item.amount
+        })),
+        purchaseId: orderData.purchaseId,
+        taxableAmount: orderData.taxableAmount,
+        totalDiscount: orderData.totalDiscount,
+        roundOff: orderData.roundOff,
+        TotalAmount: orderData.TotalAmount,
+        bank: orderData.bank,
+        notes: orderData.notes,
+        termsAndCondition: orderData.termsAndCondition,
+        signatureName: orderData.signatureName,
+        vendorId: orderData.vendorId,
+        purchaseOrderDate: orderData.purchaseOrderDate,
+        dueDate: orderData.dueDate,
+        referenceNo: orderData.referenceNo,
+        _id: selectedOrder._id
+      };
+
+      const response = await convertToPurchase(selectedOrder._id, conversionData);
+
       if (response.success) {
         toast.success('Purchase order converted successfully');
         router.push('/purchases/purchase-list');
       } else {
-        toast.error(response.message || 'Error converting purchase order');
+        throw new Error(response.message || 'Error converting purchase order');
       }
     } catch (error) {
-      toast.error('Error converting purchase order');
+      console.error('Error converting purchase order:', error);
+      toast.error(error.message || 'Error converting purchase order');
     }
     setOpenConvertDialog(false);
     handleMenuClose();
@@ -151,7 +194,7 @@ const PurchaseOrderList = ({
       const response = await clonePurchaseOrder(selectedOrder._id);
       if (response.success) {
         toast.success('Purchase order cloned successfully');
-        fetchOrderList();
+        setPage(1);
       } else {
         toast.error(response.message || 'Error cloning purchase order');
       }
@@ -161,30 +204,6 @@ const PurchaseOrderList = ({
     setOpenCloneDialog(false);
     handleMenuClose();
   };
-
-  const sortedOrderList = React.useMemo(() => {
-    const comparator = (a, b) => {
-      if (orderBy === 'amount') {
-        return orderDirection === 'asc'
-          ? a.TotalAmount - b.TotalAmount
-          : b.TotalAmount - a.TotalAmount;
-      } else {
-        const aValue = a[orderBy] || '';
-        const bValue = b[orderBy] || '';
-        return orderDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
-    };
-
-    return [...orderList].sort(comparator);
-  }, [orderList, orderBy, orderDirection]);
-
-  const paginatedOrderList = React.useMemo(() => {
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return sortedOrderList.slice(startIndex, endIndex);
-  }, [sortedOrderList, page, pageSize]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -223,43 +242,49 @@ const PurchaseOrderList = ({
           </Box>
         </Box>
 
-        <Card>
-          <CardContent>
-            <TableContainer>
-              <Table size='small'>
+        <Card className="card-table">
+          <CardContent className="card-body purchase">
+            <div className="table-responsive table-hover">
+              <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell className='text-[15px]'>
+                    <TableCell className="text-[15px] font-medium">
                       Order ID
                     </TableCell>
-                    <TableCell className='text-[15px]'>
+                    <TableCell className="text-[15px] font-medium">
                       Vendor
                     </TableCell>
-                    <TableCell className='text-[15px]'>
+                    <TableCell className="text-[15px] font-medium">
                       Amount
                     </TableCell>
-                    <TableCell className='text-[15px]'>
+                    <TableCell className="text-[15px] font-medium">
                       P.O. Date
                     </TableCell>
-                    <TableCell className='text-[15px]'>
+                    <TableCell className="text-[15px] font-medium">
                       Due Date
                     </TableCell>
-                    <TableCell className='text-[15px]' align="right">
+                    <TableCell className="text-[15px] font-medium" align="right">
                       Actions
                     </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center">Loading...</TableCell>
-                    </TableRow>
+                    Array(pageSize).fill(0).map((_, index) => (
+                      <TableRow key={index}>
+                        {Array(6).fill(0).map((_, cellIndex) => (
+                          <TableCell key={cellIndex}>
+                            <Skeleton animation="wave" height={24} />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
                   ) : orderList.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} align="center">No records found</TableCell>
                     </TableRow>
                   ) : (
-                    paginatedOrderList.map((order) => (
+                    orderList.map((order) => (
                       <TableRow key={order._id}>
                         <TableCell>
                           <Link
@@ -318,7 +343,7 @@ const PurchaseOrderList = ({
                                 return (
                                   <Chip
                                     size="small"
-                                    className="p-0 m-0 "
+                                    className="p-0 m-0"
                                     variant="tonal"
                                     color="warning"
                                     label={`${String(Math.abs(daysUntilDue)).padStart(2, '0')} days left`}
@@ -339,7 +364,7 @@ const PurchaseOrderList = ({
                   )}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
 
             <TablePagination
               component="div"
@@ -348,7 +373,10 @@ const PurchaseOrderList = ({
               onPageChange={handlePageChange}
               rowsPerPage={pageSize}
               onRowsPerPageChange={handlePageSizeChange}
-              rowsPerPageOptions={[5, 10, 25, 50]}
+              rowsPerPageOptions={[10, 25, 50, 100]}
+              labelDisplayedRows={({ from, to, count }) =>
+                `Showing ${from} to ${to} of ${count} entries`
+              }
             />
           </CardContent>
         </Card>
@@ -358,6 +386,7 @@ const PurchaseOrderList = ({
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={handleMenuClose}
+          className="dropdown-menu dropdown-menu-right credit-note-dropdown purchase-order-dropdown-menu"
         >
           {(canUpdate || isAdmin) && (
             <MenuItem
@@ -387,46 +416,64 @@ const PurchaseOrderList = ({
         </Menu>
 
         {/* Dialogs */}
-        <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-          <DialogTitle>Confirm Delete</DialogTitle>
+        <Dialog
+          open={openDeleteDialog}
+          onClose={() => setOpenDeleteDialog(false)}
+          className="modal custom-modal fade"
+        >
+          <DialogTitle>Delete Purchase Order</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to delete this purchase order?
+              Are you sure you want to delete purchase order {selectedOrder?.purchaseOrderId}?
             </DialogContentText>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-            <Button onClick={handleDelete} color="error" autoFocus>
+          <DialogActions className="modal-btn delete-action">
+            <Button onClick={() => setOpenDeleteDialog(false)} className="btn-primary paid-cancel-btn">
+              Cancel
+            </Button>
+            <Button onClick={handleDelete} color="error" className="btn-primary paid-continue-btn" autoFocus>
               Delete
             </Button>
           </DialogActions>
         </Dialog>
 
-        <Dialog open={openConvertDialog} onClose={() => setOpenConvertDialog(false)}>
+        <Dialog
+          open={openConvertDialog}
+          onClose={() => setOpenConvertDialog(false)}
+          className="modal custom-modal fade"
+        >
           <DialogTitle>Convert to Purchase</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to convert this to a purchase?
+              Are you sure you want to convert purchase order {selectedOrder?.purchaseOrderId} to a purchase?
             </DialogContentText>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenConvertDialog(false)}>Cancel</Button>
-            <Button onClick={handleConvert} color="primary" autoFocus>
+          <DialogActions className="modal-btn delete-action">
+            <Button onClick={() => setOpenConvertDialog(false)} className="btn-primary paid-cancel-btn">
+              Cancel
+            </Button>
+            <Button onClick={handleConvert} color="primary" className="btn-primary paid-continue-btn" autoFocus>
               Convert
             </Button>
           </DialogActions>
         </Dialog>
 
-        <Dialog open={openCloneDialog} onClose={() => setOpenCloneDialog(false)}>
+        <Dialog
+          open={openCloneDialog}
+          onClose={() => setOpenCloneDialog(false)}
+          className="modal custom-modal fade"
+        >
           <DialogTitle>Clone Purchase Order</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to clone this purchase order?
+              Are you sure you want to clone purchase order {selectedOrder?.purchaseOrderId}?
             </DialogContentText>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenCloneDialog(false)}>Cancel</Button>
-            <Button onClick={handleClone} color="primary" autoFocus>
+          <DialogActions className="modal-btn delete-action">
+            <Button onClick={() => setOpenCloneDialog(false)} className="btn-primary paid-cancel-btn">
+              Cancel
+            </Button>
+            <Button onClick={handleClone} color="primary" className="btn-primary paid-continue-btn" autoFocus>
               Clone
             </Button>
           </DialogActions>
@@ -436,7 +483,7 @@ const PurchaseOrderList = ({
         <PurchaseOrderFilter
           open={openFilter}
           onClose={() => setOpenFilter(false)}
-          onFilter={setFilterCriteria}
+          onFilter={debouncedSetFilterCriteria}
           vendors={vendors}
           onReset={handleReset}
         />

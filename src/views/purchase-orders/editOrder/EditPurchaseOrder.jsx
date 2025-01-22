@@ -106,18 +106,18 @@ function calculateTotals(items) {
   let total = 0;
 
   items.forEach((item) => {
-    const { rate, discountValue, tax, amount } = calculateItemValues(item);
-    subtotal += rate;
-    totalDiscount += discountValue;
-    vat += tax;
-    total += amount;
+    // Use the actual values from the item instead of recalculating
+    subtotal += Number(item.rate) || 0;
+    totalDiscount += Number(item.discount) || 0;
+    vat += Number(item.tax) || 0;  // Use the actual tax value stored in the item
+    total += Number(item.amount) || 0;
   });
 
   return {
-    subtotal: Number(subtotal),
-    totalDiscount: Number(totalDiscount),
-    vat: Number(vat),
-    total: Number(total)
+    subtotal: Number(subtotal.toFixed(2)),
+    totalDiscount: Number(totalDiscount.toFixed(2)),
+    vat: Number(vat.toFixed(2)),
+    total: Number(total.toFixed(2))
   };
 }
 
@@ -347,26 +347,40 @@ const EditPurchaseOrder = ({
     const newItems = [...items];
     const item = newItems[index];
 
-    // Get base rate (either form updated or original purchase price)
-    const baseRate = parseFloat((item.isRateFormUpadted ? item.form_updated_rate : item.purchasePrice).toFixed(2));
-    const baseDiscount = parseFloat((item.isRateFormUpadted ? item.form_updated_discount : item.discount).toFixed(2));
-    const baseDiscountType = item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType;
-    const baseTaxRate = parseFloat((item.isRateFormUpadted ? item.form_updated_tax : (item.taxInfo?.taxRate || 0)));
+    // Get base values and ensure they are numbers before using toFixed
+    const baseRateValue = item.isRateFormUpadted
+      ? Number(item.form_updated_rate)
+      : Number(item.purchasePrice);
+    const baseRate = parseFloat(baseRateValue.toFixed(2));
+
+    const baseDiscountValue = item.isRateFormUpadted
+      ? Number(item.form_updated_discount)
+      : Number(item.discount);
+    const baseDiscount = parseFloat(baseDiscountValue.toFixed(2));
+
+    const baseDiscountType = item.isRateFormUpadted
+      ? item.form_updated_discounttype
+      : item.discountType;
+
+    const baseTaxRateValue = item.isRateFormUpadted
+      ? Number(item.form_updated_tax)
+      : Number(item.taxInfo?.taxRate || 0);
+    const baseTaxRate = parseFloat(baseTaxRateValue.toFixed(2));
 
     // Calculate new rate based on quantity * base rate
-    const newRate = parseFloat((Number(newQuantity) * Number(baseRate)).toFixed(2));
+    const newRate = parseFloat((Number(newQuantity) * baseRate).toFixed(2));
 
     // Calculate discount
     let calculatedDiscount;
     if (parseInt(baseDiscountType) === 2) { // percentage
-      calculatedDiscount = parseFloat((newRate * (Number(baseDiscount) / 100)).toFixed(2));
+      calculatedDiscount = parseFloat((newRate * (baseDiscount / 100)).toFixed(2));
     } else { // fixed
-      calculatedDiscount = parseFloat(Number(baseDiscount).toFixed(2));
+      calculatedDiscount = baseDiscount;
     }
 
     // Calculate tax
     const discountedAmount = parseFloat((newRate - calculatedDiscount).toFixed(2));
-    const taxAmount = parseFloat((discountedAmount * (Number(baseTaxRate) / 100)).toFixed(2));
+    const taxAmount = parseFloat((discountedAmount * (baseTaxRate / 100)).toFixed(2));
 
     // Update item with new values
     newItems[index] = {

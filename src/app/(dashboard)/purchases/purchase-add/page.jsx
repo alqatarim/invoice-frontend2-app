@@ -1,21 +1,13 @@
-import React from 'react';
-import AddPurchase from '@/views/purchases/addPurchase';
-import ProtectedComponent from '@/components/ProtectedComponent';
-import { getDropdownData } from '@/app/(dashboard)/purchase-orders/actions';
+import { getDropdownData, getPurchaseNumber } from '../actions';
+import PurchaseAdd from '@/views/purchases/addPurchase';
 
-const AddPurchasePage = async () => {
-  try {
-    const dropdownData = await getDropdownData();
+async function PurchaseAddPage() {
+  const [dropdownData, purchaseNumber] = await Promise.all([
+    getDropdownData(),
+    getPurchaseNumber()
+  ]);
 
-    return (
-      <ProtectedComponent>
-        <AddPurchase initialData={dropdownData.data} />
-      </ProtectedComponent>
-    );
-  } catch (error) {
-    console.error('Error loading form data:', error);
-    return <div>Error loading form data</div>;
-  }
-};
+  return <PurchaseAdd dropdownData={dropdownData} purchaseNumber={purchaseNumber} />;
+}
 
-export default AddPurchasePage;
+export default PurchaseAddPage;

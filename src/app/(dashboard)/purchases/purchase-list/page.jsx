@@ -1,13 +1,15 @@
-import React from 'react';
-import PurchaseList from '@/views/purchases/listPurchase';
+import { getPurchaseList } from '../actions';
+import PurchaseListIndex from '@/views/purchases/listPurchase';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
-const PurchaseListPage = () => {
+async function PurchaseListPage() {
+  const initialData = await getPurchaseList();
+
   return (
     <ProtectedComponent>
-      <PurchaseList />
+      <PurchaseListIndex initialData={initialData} />
     </ProtectedComponent>
   );
-};
+}
 
 export default PurchaseListPage;

@@ -1,6 +1,7 @@
 'use server';
 
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { dataURLtoBlob } from '@/utils/helpers';
 
 const ENDPOINTS = {
   PURCHASE: {
@@ -13,7 +14,7 @@ const ENDPOINTS = {
   }
 };
 
-export const getPurchaseList = async (page = 1, pageSize = 10, searchTerm = '', filters = {}) => {
+export async function getPurchaseList(page = 1, pageSize = 10, searchTerm = '', filters = {}) {
   try {
     let url = `${ENDPOINTS.PURCHASE.LIST}?limit=${pageSize}&skip=${(page - 1) * pageSize}`;
 
@@ -35,9 +36,9 @@ export const getPurchaseList = async (page = 1, pageSize = 10, searchTerm = '', 
     console.error('Error fetching purchase list:', error);
     return { success: false, message: error.message };
   }
-};
+}
 
-export const deletePurchase = async (id) => {
+export async function deletePurchase(id) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE.DELETE}`, {
       method: 'POST',
@@ -52,9 +53,9 @@ export const deletePurchase = async (id) => {
     console.error('Error deleting purchase:', error);
     return { success: false, message: error.message };
   }
-};
+}
 
-export const getPurchaseDetails = async (id) => {
+export async function getPurchaseDetails(id) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE.VIEW}/${id}`);
     return {
@@ -65,13 +66,56 @@ export const getPurchaseDetails = async (id) => {
     console.error('Error fetching purchase details:', error);
     return { success: false, message: error.message };
   }
-};
+}
 
-export const addPurchase = async (data) => {
+export async function addPurchase(data, signatureURL) {
   try {
+    // Convert data to FormData
+    const formData = new FormData();
+
+    // Add items data with proper format
+    data.items.forEach((item, i) => {
+      Object.keys(item).forEach(key => {
+        if (item[key] !== undefined && item[key] !== null) {
+          if (key === 'taxInfo') {
+            const taxInfoStr = typeof item[key] === 'string'
+              ? item[key]
+              : JSON.stringify(item[key]);
+            formData.append(`items[${i}][${key}]`, taxInfoStr);
+          } else {
+            formData.append(`items[${i}][${key}]`, item[key]);
+          }
+        }
+      });
+    });
+
+    // Add all other fields with proper formatting
+    Object.keys(data).forEach(key => {
+      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
+        if (key === 'dueDate' || key === 'purchaseDate') {
+          formData.append(key, new Date(data[key]).toISOString());
+        } else if (key === 'taxableAmount' || key === 'TotalAmount' || key === 'vat' || key === 'totalDiscount') {
+          formData.append(key, Number(data[key]).toString());
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+    });
+
+    // Handle signature if provided
+    if (signatureURL) {
+      try {
+        const blob = await dataURLtoBlob(signatureURL);
+        formData.append('signatureImage', blob, 'signature.png');
+      } catch (error) {
+        console.error('Error processing signature:', error);
+        throw new Error('Failed to process signature');
+      }
+    }
+
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE.ADD, {
       method: 'POST',
-      body: data
+      body: formData
     });
 
     return {
@@ -83,13 +127,56 @@ export const addPurchase = async (data) => {
     console.error('Error adding purchase:', error);
     return { success: false, message: error.message };
   }
-};
+}
 
-export const updatePurchase = async (id, data) => {
+export async function updatePurchase(id, data, signatureURL) {
   try {
+    // Convert data to FormData
+    const formData = new FormData();
+
+    // Add items data with proper format
+    data.items.forEach((item, i) => {
+      Object.keys(item).forEach(key => {
+        if (item[key] !== undefined && item[key] !== null) {
+          if (key === 'taxInfo') {
+            const taxInfoStr = typeof item[key] === 'string'
+              ? item[key]
+              : JSON.stringify(item[key]);
+            formData.append(`items[${i}][${key}]`, taxInfoStr);
+          } else {
+            formData.append(`items[${i}][${key}]`, item[key]);
+          }
+        }
+      });
+    });
+
+    // Add all other fields with proper formatting
+    Object.keys(data).forEach(key => {
+      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
+        if (key === 'dueDate' || key === 'purchaseDate') {
+          formData.append(key, new Date(data[key]).toISOString());
+        } else if (key === 'taxableAmount' || key === 'TotalAmount' || key === 'vat' || key === 'totalDiscount') {
+          formData.append(key, Number(data[key]).toString());
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+    });
+
+    // Handle signature if provided
+    if (signatureURL) {
+      try {
+        const blob = await dataURLtoBlob(signatureURL);
+        formData.append('signatureImage', blob, 'signature.png');
+      } catch (error) {
+        console.error('Error processing signature:', error);
+        throw new Error('Failed to process signature');
+      }
+    }
+
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE.UPDATE}/${id}`, {
       method: 'PUT',
-      body: data
+      body: formData
     });
 
     return {
@@ -101,9 +188,9 @@ export const updatePurchase = async (id, data) => {
     console.error('Error updating purchase:', error);
     return { success: false, message: error.message };
   }
-};
+}
 
-export const getPurchaseNumber = async () => {
+export async function getPurchaseNumber() {
   try {
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE.GET_NUMBER);
     return {
@@ -114,4 +201,97 @@ export const getPurchaseNumber = async () => {
     console.error('Error getting purchase number:', error);
     return { success: false, message: error.message };
   }
-};
+}
+
+// Dropdown data functions
+export async function getVendors() {
+  try {
+    const response = await fetchWithAuth('/drop_down/vendor');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching vendors:', error);
+    return [];
+  }
+}
+
+export async function getProducts() {
+  try {
+    const response = await fetchWithAuth('/drop_down/product');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
+}
+
+export async function getTaxRates() {
+  try {
+    const response = await fetchWithAuth('/drop_down/tax');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching tax rates:', error);
+    return [];
+  }
+}
+
+export async function getBanks() {
+  try {
+    const response = await fetchWithAuth('/drop_down/bank');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching banks:', error);
+    return [];
+  }
+}
+
+export async function getSignatures() {
+  try {
+    const response = await fetchWithAuth('/drop_down/signature');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching signatures:', error);
+    return [];
+  }
+}
+
+export async function getUnits() {
+  try {
+    const response = await fetchWithAuth('/drop_down/unit');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching units:', error);
+    return [];
+  }
+}
+
+export async function getDropdownData() {
+  try {
+    const [vendors, products, taxRates, banks, signatures, units] = await Promise.all([
+      getVendors(),
+      getProducts(),
+      getTaxRates(),
+      getBanks(),
+      getSignatures(),
+      getUnits()
+    ]);
+
+    return {
+      vendors,
+      products,
+      taxRates,
+      banks,
+      signatures,
+      units
+    };
+  } catch (error) {
+    console.error('Error fetching dropdown data:', error);
+    return {
+      vendors: [],
+      products: [],
+      taxRates: [],
+      banks: [],
+      signatures: [],
+      units: []
+    };
+  }
+}

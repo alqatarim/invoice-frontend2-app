@@ -47,22 +47,49 @@ export async function deletePurchaseOrder (id) {
   }
 };
 
-export async function convertToPurchase (id, data) {
+export async function convertToPurchase(id, data) {
   try {
+    // Convert data to FormData
+    const formData = new FormData();
+
+    // Add items data
+    data.items.forEach((item, i) => {
+      Object.keys(item).forEach(key => {
+        if (item[key] !== undefined && item[key] !== null) {
+          formData.append(`items[${i}][${key}]`, item[key]);
+        }
+      });
+    });
+
+    // Add all other fields
+    Object.keys(data).forEach(key => {
+      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
+        if (key === 'dueDate' || key === 'purchaseOrderDate') {
+          formData.append(key, new Date(data[key]).toISOString());
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+    });
+
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.CONVERT}`, {
       method: 'POST',
-      body: data
+      body: formData
     });
 
     return {
       success: response.code === 200,
-      data: response.data
+      data: response.data,
+      message: response.message
     };
   } catch (error) {
     console.error('Error converting purchase order:', error);
-    return { success: false, message: error.message };
+    return {
+      success: false,
+      message: error.message || 'Failed to convert purchase order'
+    };
   }
-};
+}
 
 export async function clonePurchaseOrder  (id)  {
   try {

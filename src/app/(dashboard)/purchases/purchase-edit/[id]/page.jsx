@@ -1,13 +1,13 @@
-import React from 'react';
-import EditPurchase from '@/views/purchases/editPurchase';
-import ProtectedComponent from '@/components/ProtectedComponent';
+import { getDropdownData, getPurchaseDetails } from '../../actions';
+import PurchaseEdit from '@/views/purchases/editPurchase';
 
-const EditPurchasePage = async ({ params }) => {
-  return (
-    <ProtectedComponent>
-      <EditPurchase purchaseId={params.id} />
-    </ProtectedComponent>
-  );
-};
+async function PurchaseEditPage({ params }) {
+  const [dropdownData, purchaseData] = await Promise.all([
+    getDropdownData(),
+    getPurchaseDetails(params.id)
+  ]);
 
-export default EditPurchasePage;
+  return <PurchaseEdit dropdownData={dropdownData} purchaseData={purchaseData} />;
+}
+
+export default PurchaseEditPage;

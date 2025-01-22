@@ -23,7 +23,10 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Chip
+  Chip,
+  Snackbar,
+  Alert,
+  Skeleton
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -32,7 +35,6 @@ import {
   Delete as DeleteIcon,
   FilterList as FilterIcon
 } from '@mui/icons-material';
-import { toast } from 'react-toastify';
 import { deletePurchase } from '@/app/(dashboard)/purchases/actions';
 import { usePermission } from '@/hooks/usePermission';
 import PurchaseFilter from './PurchaseFilter';
@@ -46,16 +48,37 @@ const PurchaseList = ({
   pageSize,
   setPageSize,
   loading,
-  fetchPurchaseList
+  setFilterCriteria,
+  vendors,
+  resetAllFilters
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openFilter, setOpenFilter] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
 
   const canUpdate = usePermission('purchase', 'update');
   const canDelete = usePermission('purchase', 'delete');
   const isAdmin = usePermission('purchase', 'isAdmin');
+
+  // Define default columns
+  const defaultColumns = [
+    { key: 'index', label: '#', visible: true },
+    { key: 'purchaseId', label: 'Purchase ID', visible: true },
+    { key: 'vendor', label: 'Vendor', visible: true },
+    { key: 'amount', label: 'Amount', visible: true },
+    { key: 'paymentMode', label: 'Payment Mode', visible: true },
+    { key: 'date', label: 'Date', visible: true },
+    { key: 'status', label: 'Status', visible: true },
+    { key: 'action', label: 'Actions', visible: true }
+  ];
+
+  const [columns, setColumns] = useState(defaultColumns);
 
   const handleMenuOpen = (event, purchase) => {
     setAnchorEl(event.currentTarget);
@@ -80,16 +103,32 @@ const PurchaseList = ({
     try {
       const response = await deletePurchase(selectedPurchase._id);
       if (response.success) {
-        toast.success('Purchase deleted successfully');
-        fetchPurchaseList();
+        setSnackbar({
+          open: true,
+          message: 'Purchase deleted successfully',
+          severity: 'success'
+        });
       } else {
-        toast.error(response.message || 'Error deleting purchase');
+        setSnackbar({
+          open: true,
+          message: response.message || 'Error deleting purchase',
+          severity: 'error'
+        });
       }
     } catch (error) {
-      toast.error('Error deleting purchase');
+      setSnackbar({
+        open: true,
+        message: 'Error deleting purchase',
+        severity: 'error'
+      });
     }
     setOpenDeleteDialog(false);
     handleMenuClose();
+  };
+
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   return (
@@ -120,61 +159,170 @@ const PurchaseList = ({
       </Box>
 
       <Card>
-        <CardContent>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Purchase ID</TableCell>
-                  <TableCell>Vendor</TableCell>
-                  <TableCell>Amount</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {purchaseList.map((purchase) => (
-                  <TableRow key={purchase._id}>
-                    <TableCell>
-                      <Link
-                        href={`/purchases/purchase-view/${purchase._id}`}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        {purchase.purchaseId}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{purchase.vendorInfo?.vendor_name}</TableCell>
-                    <TableCell>${purchase.TotalAmount}</TableCell>
-                    <TableCell>{dayjs(purchase.purchaseDate).format('DD-MM-YYYY')}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={purchase.status}
-                        color={purchase.status === 'PAID' ? 'success' : 'warning'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton onClick={(e) => handleMenuOpen(e, purchase)}>
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                {columns.map(column =>
+                  column.visible && (
+                    <TableCell
+                      key={column.key}
+                      sx={{
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
 
-          <TablePagination
-            component="div"
-            count={totalCount}
-            page={page - 1}
-            onPageChange={handlePageChange}
-            rowsPerPage={pageSize}
-            onRowsPerPageChange={handlePageSizeChange}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-          />
-        </CardContent>
+                      }}
+                    >
+                      {column.label}
+                    </TableCell>
+                  )
+                )}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                // Show loading skeleton
+                Array.from(new Array(5)).map((_, index) => (
+                  <TableRow key={index}>
+                    {columns.map(column =>
+                      column.visible && (
+                        <TableCell key={column.key}>
+                          <Skeleton variant={column.key === 'vendor' ? 'rectangular' : 'text'} />
+                        </TableCell>
+                      )
+                    )}
+                  </TableRow>
+                ))
+              ) : purchaseList.length > 0 ? (
+                purchaseList.map((purchase, index) => (
+                  <TableRow key={purchase._id} hover>
+                    {columns.map(column =>
+                      column.visible && (
+                        <TableCell key={column.key}>
+                          {column.key === 'index' && (
+                            <Typography variant="body2">
+                              {(page - 1) * pageSize + (index + 1)}
+                            </Typography>
+                          )}
+
+                          {column.key === 'purchaseId' && (
+                            <Link
+                              href={`/purchases/purchase-view/${purchase._id}`}
+                              className="text-decoration-none"
+                            >
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  color: 'primary.main',
+                                  '&:hover': { textDecoration: 'underline' }
+                                }}
+                              >
+                                {purchase.purchaseId}
+                              </Typography>
+                            </Link>
+                          )}
+
+                          {column.key === 'vendor' && (
+                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                              <Link
+                                href={`/vendors/vendor-view/${purchase.vendorId?._id}`}
+                                className="text-decoration-none"
+                              >
+                                <Typography
+                                  variant="h6"
+                                  sx={{
+                                    color: 'primary.main',
+                                    '&:hover': { textDecoration: 'underline' }
+                                  }}
+                                >
+                                  {purchase.vendorId?.vendor_name}
+                                </Typography>
+                              </Link>
+                              <Typography variant="caption" color="textSecondary">
+                                {purchase.vendorId?.vendor_phone}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {column.key === 'amount' && (
+                            <Typography variant="body1">
+                              {'$'}
+                              {purchase.roundOff
+                                ? Number(purchase.TotalAmount).toLocaleString('en-IN', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })
+                                : Number(purchase.taxableAmount).toLocaleString('en-IN', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                            </Typography>
+                          )}
+
+                          {column.key === 'paymentMode' && (
+                            <Chip variant="outlined" color="secondary" label={purchase.paymentMode} />
+                          )}
+
+                          {column.key === 'date' && (
+                            <Typography variant="body1">
+                              {dayjs(purchase.purchaseDate).format('DD MMM YYYY')}
+                            </Typography>
+                          )}
+
+                          {column.key === 'status' && (
+                            <Chip
+                              label={purchase.status}
+                              variant="tonal"
+                              color={
+                                purchase.status === 'PAID'
+                                  ? 'success'
+                                  : purchase.status === 'Pending'
+                                  ? 'warning'
+                                  : 'error'
+                              }
+
+
+                            />
+                          )}
+
+                          {column.key === 'action' && (canUpdate || isAdmin) && (
+                            <IconButton
+                              size="small"
+                              onClick={(e) => handleMenuOpen(e, purchase)}
+                            >
+                              <MoreVertIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                        </TableCell>
+                      )
+                    )}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} align="center">
+                    <Typography variant="body2">No purchases found.</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page - 1}
+          onPageChange={handlePageChange}
+          rowsPerPage={pageSize}
+          onRowsPerPageChange={handlePageSizeChange}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          sx={{
+            borderTop: '1px solid',
+            borderColor: 'divider'
+          }}
+        />
       </Card>
 
       {/* Action Menu */}
@@ -221,8 +369,27 @@ const PurchaseList = ({
       <PurchaseFilter
         open={openFilter}
         onClose={() => setOpenFilter(false)}
-        onFilter={fetchPurchaseList}
+        setFilterCriteria={setFilterCriteria}
+        vendors={vendors}
+        resetAllFilters={resetAllFilters}
       />
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

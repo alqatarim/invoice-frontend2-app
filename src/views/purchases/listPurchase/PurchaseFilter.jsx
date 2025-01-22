@@ -1,64 +1,63 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Drawer,
   Box,
-  Typography,
-  TextField,
+  Card,
+  Grid,
   Button,
-  IconButton,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Checkbox,
+  Typography,
   FormControlLabel,
-  Checkbox
+  TextField
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { useForm, Controller } from 'react-hook-form';
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import debounce from 'lodash/debounce';
 
-const PurchaseFilter = ({ open, onClose, onFilter }) => {
-  const [vendors, setVendors] = useState([]);
-  const { control, handleSubmit, reset } = useForm({
-    defaultValues: {
-      dateFrom: null,
-      dateTo: null,
-      vendor: '',
-      status: '',
-      amountFrom: '',
-      amountTo: ''
+const PurchaseFilter = ({ open, onClose, setFilterCriteria, vendors = [], resetAllFilters }) => {
+  const [selectedVendors, setSelectedVendors] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredVendors, setFilteredVendors] = useState(vendors);
+
+  // Debounced search function
+  const debouncedSearch = debounce((searchValue) => {
+    const filtered = vendors.filter(vendor =>
+      vendor.vendor_name.toLowerCase().includes(searchValue.toLowerCase()) ||
+      vendor.vendor_phone?.toLowerCase().includes(searchValue.toLowerCase())
+    );
+    setFilteredVendors(filtered);
+  }, 300);
+
+  const handleVendorSearch = (event) => {
+    const value = event.target.value;
+    setSearchTerm(value);
+    debouncedSearch(value);
+  };
+
+  const handleVendorToggle = (vendorId) => {
+    const currentIndex = selectedVendors.indexOf(vendorId);
+    const newSelectedVendors = [...selectedVendors];
+
+    if (currentIndex === -1) {
+      newSelectedVendors.push(vendorId);
+    } else {
+      newSelectedVendors.splice(currentIndex, 1);
     }
-  });
 
-  useEffect(() => {
-    const fetchVendors = async () => {
-      try {
-        const response = await fetchWithAuth('/drop_down/vendor');
-        if (response.code === 200) {
-          setVendors(response.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching vendors:', error);
-      }
-    };
+    setSelectedVendors(newSelectedVendors);
+  };
 
-    if (open) {
-      fetchVendors();
-    }
-  }, [open]);
-
-  const handleFilter = (data) => {
-    onFilter(1, 10, '', data); // Reset to first page when filtering
+  const handleApplyFilter = () => {
+    setFilterCriteria(prev => ({
+      ...prev,
+      vendors: selectedVendors
+    }));
     onClose();
   };
 
-  const handleReset = () => {
-    reset();
-    onFilter(1, 10);
+  const handleClearFilter = () => {
+    setSelectedVendors([]);
+    resetAllFilters();
     onClose();
   };
 
@@ -68,136 +67,72 @@ const PurchaseFilter = ({ open, onClose, onFilter }) => {
       open={open}
       onClose={onClose}
       PaperProps={{
-        sx: { width: 320 }
+        sx: { width: { xs: '100%', sm: 400 } }
       }}
     >
-      <Box className="p-4 h-full flex flex-col">
-        <Box className="flex justify-between items-center mb-4">
-          <Typography variant="h6">Filter Purchases</Typography>
-          <IconButton onClick={onClose}>
-            <CloseIcon />
-          </IconButton>
-        </Box>
+      <Box sx={{ p: 5 }}>
+        <Typography variant="h6" sx={{ mb: 4 }}>
+          Filters
+        </Typography>
 
-        <Divider className="mb-4" />
-
-        <form onSubmit={handleSubmit(handleFilter)} className="flex flex-col gap-4 flex-1">
-          <Controller
-            name="dateFrom"
-            control={control}
-            render={({ field }) => (
-              <DatePicker
-                label="Date From"
-                {...field}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    size: "small"
-                  }
-                }}
-              />
-            )}
-          />
-
-          <Controller
-            name="dateTo"
-            control={control}
-            render={({ field }) => (
-              <DatePicker
-                label="Date To"
-                {...field}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    size: "small"
-                  }
-                }}
-              />
-            )}
-          />
-
-          <Controller
-            name="vendor"
-            control={control}
-            render={({ field }) => (
-              <FormControl fullWidth size="small">
-                <InputLabel>Vendor</InputLabel>
-                <Select {...field} label="Vendor">
-                  <MenuItem value="">All</MenuItem>
-                  {vendors.map(vendor => (
-                    <MenuItem key={vendor._id} value={vendor._id}>
-                      {vendor.vendor_name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-          />
-
-          <Controller
-            name="status"
-            control={control}
-            render={({ field }) => (
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select {...field} label="Status">
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="PAID">Paid</MenuItem>
-                  <MenuItem value="PENDING">Pending</MenuItem>
-                  <MenuItem value="CANCELLED">Cancelled</MenuItem>
-                </Select>
-              </FormControl>
-            )}
-          />
-
-          <Controller
-            name="amountFrom"
-            control={control}
-            render={({ field }) => (
+        <Card sx={{ p: 4 }}>
+          <Grid container spacing={4}>
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                Vendor
+              </Typography>
               <TextField
-                {...field}
-                label="Amount From"
-                type="number"
                 fullWidth
                 size="small"
+                value={searchTerm}
+                placeholder="Search Vendor"
+                onChange={handleVendorSearch}
+                sx={{ mb: 2 }}
               />
-            )}
-          />
-
-          <Controller
-            name="amountTo"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Amount To"
-                type="number"
-                fullWidth
-                size="small"
-              />
-            )}
-          />
-
-          <Box className="mt-auto">
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              type="submit"
-              className="mb-2"
-            >
-              Apply Filter
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              color="secondary"
-              onClick={handleReset}
-            >
-              Reset
-            </Button>
-          </Box>
-        </form>
+              <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                {filteredVendors.map((vendor) => (
+                  <FormControlLabel
+                    key={vendor._id}
+                    control={
+                      <Checkbox
+                        checked={selectedVendors.includes(vendor._id)}
+                        onChange={() => handleVendorToggle(vendor._id)}
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2">{vendor.vendor_name}</Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          {vendor.vendor_phone}
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ display: 'block', mb: 1 }}
+                  />
+                ))}
+              </Box>
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={handleClearFilter}
+                  disabled={selectedVendors.length === 0}
+                >
+                  Clear
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleApplyFilter}
+                  disabled={selectedVendors.length === 0}
+                >
+                  Apply Filter
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
+        </Card>
       </Box>
     </Drawer>
   );
