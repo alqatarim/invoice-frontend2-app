@@ -53,7 +53,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { PurchaseSchema } from '@/views/purchases/addPurchase/PurchaseSchema';
+import { PurchaseEditSchema } from '@/views/purchases/editPurchase/PurchaseEditSchema';
 import SignaturePad from 'react-signature-canvas';
 import dayjs from 'dayjs';
 import Link from 'next/link';
@@ -83,11 +83,16 @@ function calculateItemValues(item) {
     ? (rate * discountAmount / 100)
     : discountAmount;
 
-  // Calculate tax
+  // Calculate tax based on amount after discount
   const taxableAmount = rate - discountValue;
   const taxRate = Number(item.taxInfo?.taxRate) || 0;
   const tax = (taxableAmount * taxRate) / 100;
 
+  console.log('rate:', rate);
+  console.log('discountValue:', discountValue);
+  console.log('taxableAmount:', taxableAmount);
+  console.log('taxRate:', taxRate);
+  console.log('tax:', tax);
   // Calculate final amount
   const amount = taxableAmount + tax;
 
@@ -95,7 +100,8 @@ function calculateItemValues(item) {
     rate,
     discountValue,
     tax,
-    amount
+    amount,
+    taxableAmount
   };
 }
 
@@ -104,7 +110,8 @@ function calculateTotals(items) {
     subtotal: 0,
     totalDiscount: 0,
     vat: 0,
-    total: 0
+    total: 0,
+    taxableAmount: 0
   };
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -112,27 +119,25 @@ function calculateTotals(items) {
   }
 
   return items.reduce((acc, item) => {
-    const { rate, discountValue, tax, amount } = calculateItemValues(item);
+    const { rate, discountValue, tax, amount, taxableAmount } = calculateItemValues(item);
 
     return {
-      subtotal: Number(acc.subtotal) + Number(rate),
-      totalDiscount: Number(acc.totalDiscount) + Number(discountValue),
-      vat: Number(acc.vat) + Number(tax),
-      total: Number(acc.total) + Number(amount)
+      subtotal: acc.subtotal + rate,
+      totalDiscount: acc.totalDiscount + discountValue,
+      vat: acc.vat + tax,
+      total: acc.total + amount,
+      taxableAmount: acc.taxableAmount + taxableAmount
     };
   }, initialTotals);
 }
 
-const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, purchaseNumber }) => {
-
-
-
+const EditPurchase = ({ vendors, products, taxRates, banks, signatures, purchaseData }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState('');
   const signaturePadRef = useRef(null);
-  const [signType, setSignType] = useState('eSignature');
+  const [signType, setSignType] = useState(purchaseData?.sign_type || 'eSignature');
   const [signatureDataURL, setSignatureDataURL] = useState(null);
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
   const [selectedSignature, setSelectedSignature] = useState(null);
@@ -153,24 +158,104 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
 
   const theme = useTheme();
   const { control, handleSubmit, watch, setValue, trigger, formState: { errors, isValid, isDirty } } = useForm({
-    resolver: yupResolver(PurchaseSchema),
+    resolver: yupResolver(PurchaseEditSchema),
     mode: 'onChange',
     defaultValues: {
-      purchaseDate: dayjs(),
-      dueDate: dayjs().add(30, 'days'),
-      items: [],
-      sign_type: 'eSignature',
-      vendorId: '',
-      referenceNo: '',
-      bank: '',
-      notes: '',
-      termsAndCondition: '',
-      supplierInvoiceSerialNumber: ''
+      purchaseId: purchaseData?.purchaseId || '',
+      purchaseDate: purchaseData ? dayjs(purchaseData.purchaseDate) : dayjs(),
+      dueDate: purchaseData ? dayjs(purchaseData.dueDate) : dayjs().add(30, 'days'),
+      items: purchaseData?.items || [],
+      sign_type: purchaseData?.sign_type || 'eSignature',
+      vendorId: purchaseData?.vendorId?._id || '',
+      referenceNo: purchaseData?.referenceNo || '',
+      supplierInvoiceSerialNumber: purchaseData?.supplierInvoiceSerialNumber || '',
+      bank: purchaseData?.bank || '',
+      notes: purchaseData?.notes || '',
+      termsAndCondition: purchaseData?.termsAndCondition || '',
+      signatureName: purchaseData?.signatureName || '',
+      signatureId: purchaseData?.signatureId || ''
     }
   });
 
-  const [totals, setTotals] = useState({ subtotal: 0, totalDiscount: 0, vat: 0, total: 0 });
+  const [totals, setTotals] = useState({
+    subtotal: purchaseData?.taxableAmount || 0,
+    totalDiscount: purchaseData?.totalDiscount || 0,
+    vat: purchaseData?.vat || 0,
+    total: purchaseData?.TotalAmount || 0,
+    taxableAmount: purchaseData?.taxableAmount || 0
+  });
 
+  // Initialize form with edit data if available
+  useEffect(() => {
+    if (purchaseData) {
+      // Populate form fields
+      setValue('purchaseId', purchaseData.purchaseId);
+      setValue('vendorId', purchaseData.vendorId?._id);
+      setValue('purchaseDate', dayjs(purchaseData.purchaseDate));
+      setValue('dueDate', dayjs(purchaseData.dueDate));
+      setValue('referenceNo', purchaseData.referenceNo);
+      setValue('notes', purchaseData.notes);
+      setValue('termsAndCondition', purchaseData.termsAndCondition);
+      setValue('bank', purchaseData.bank);
+      setValue('sign_type', purchaseData.sign_type);
+
+      // Handle signature data loading
+      if (purchaseData.sign_type === 'manualSignature') {
+        setSignType('manualSignature');
+        setValue('sign_type', 'manualSignature');
+
+        // If signatureId is an object with full signature details
+        if (purchaseData.signatureId && typeof purchaseData.signatureId === 'object') {
+          setValue('signatureId', purchaseData.signatureId._id);
+          setSelectedSignature(purchaseData.signatureId.signatureImage);
+        }
+        // If signatureId is just the ID
+        else if (purchaseData.signatureId) {
+          setValue('signatureId', purchaseData.signatureId);
+          const signature = signatures.find(sig => sig._id === purchaseData.signatureId);
+          if (signature) {
+            setSelectedSignature(signature.signatureImage);
+          }
+        }
+      } else {
+        setSignType('eSignature');
+        setValue('sign_type', 'eSignature');
+        setValue('signatureName', purchaseData.signatureName || '');
+        setSignatureDataURL(purchaseData.signatureImage || null);
+      }
+
+      // Initialize products with correct unit names
+      const initialItems = purchaseData.items.map(item => {
+        const product = products.find(p => p._id === item.productId);
+        return {
+          key: item.key || Date.now(),
+          name: item.name || product?.name,
+          productId: item.productId,
+          units: product?.units?.name || item.units || '',
+          unit: item.unit || product?.units?._id,
+          quantity: Number(item.quantity),
+          discountType: item.discountType,
+          discount: Number(item.discount),
+          purchasePrice: Number(item.rate),
+          rate: Number(item.rate),
+          taxInfo: typeof item.taxInfo === 'string' ? JSON.parse(item.taxInfo) : item.taxInfo,
+          tax: Number(item.tax),
+          isRateFormUpadted: item.isRateFormUpadted || false,
+          form_updated_discounttype: item.form_updated_discounttype || item.discountType,
+          form_updated_discount: Number(item.form_updated_discount || item.discount),
+          form_updated_rate: Number(item.form_updated_rate || item.rate),
+          form_updated_tax: Number(item.form_updated_tax || item.tax)
+        };
+      });
+
+      setItems(initialItems);
+      setValue('items', initialItems);
+
+      // Update available products list
+      const usedProductIds = new Set(initialItems.map(item => item.productId));
+      setProductsCloneData(products.filter(p => !usedProductIds.has(p._id)));
+    }
+  }, [purchaseData, setValue, products, signatures]);
 
   const handleRemoveItem = (index) => {
     try {
@@ -326,38 +411,41 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
   const onSubmit = async (data) => {
     try {
       const isFormValid = await trigger();
-
       if (!isFormValid) {
         handleError(errors);
         return;
       }
 
-      const purchaseData = {
-        items: items.map(item => ({
-          key: item.key,
-          name: item.name,
-          productId: item.productId,
-          quantity: item.quantity,
-          units: item.units || '',
-          unit: item.unit || '',
-          rate: item.rate,
-          discount: item.discount,
-          tax: item.tax,
-          taxInfo: item.taxInfo ? JSON.stringify(item.taxInfo) : null,
-          amount: item.amount,
-          discountType: item.discountType,
-          isRateFormUpadted: item.isRateFormUpadted,
-          form_updated_discounttype: item.form_updated_discounttype,
-          form_updated_discount: item.form_updated_discount,
-          form_updated_rate: item.form_updated_rate,
-          form_updated_tax: item.form_updated_tax,
-        })),
+      const purchasePayload = {
+        _id: purchaseData?._id,
+        items: items.map(item => {
+          const calculatedValues = calculateItemValues(item);
+          return {
+            key: item.key,
+            name: item.name,
+            productId: item.productId,
+            quantity: item.quantity,
+            units: item.units || '',
+            unit: item.unit || '',
+            rate: calculatedValues.rate,
+            discount: item.discount,
+            tax: item.taxInfo?.taxRate || 0,
+            taxInfo: item.taxInfo ? JSON.stringify(item.taxInfo) : null,
+            amount: calculatedValues.amount,
+            discountType: item.discountType,
+            isRateFormUpadted: item.isRateFormUpadted,
+            form_updated_discounttype: item.form_updated_discounttype,
+            form_updated_discount: item.form_updated_discount,
+            form_updated_rate: item.form_updated_rate,
+            form_updated_tax: item.form_updated_tax,
+          };
+        }),
         vendorId: data.vendorId || '',
         dueDate: data.dueDate.toISOString(),
         purchaseDate: data.purchaseDate.toISOString(),
         referenceNo: data.referenceNo || '',
-        purchaseId: purchaseNumber || '',
-        taxableAmount: totals.subtotal || 0,
+        purchaseId: purchaseData?.purchaseId || '',
+        taxableAmount: totals.taxableAmount || 0,
         TotalAmount: totals.total || 0,
         vat: totals.vat || 0,
         totalDiscount: totals.totalDiscount || 0,
@@ -366,29 +454,28 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
         notes: data.notes || '',
         termsAndCondition: data.termsAndCondition || '',
         sign_type: data.sign_type,
-        supplierInvoiceSerialNumber: data.supplierInvoiceSerialNumber || '',
         ...(data.sign_type === 'manualSignature'
           ? { signatureId: data.signatureId }
           : { signatureName: data.signatureName })
       };
 
       const response = await addPurchase(
-        purchaseData,
+        purchasePayload,
         data.sign_type === 'eSignature' ? signatureDataURL : null
       );
 
       if (response) {
         setSubmissionResult(
           response.success
-            ? `Purchase ${purchaseNumber} created successfully!`
-            : `Failed to create purchase ${purchaseNumber}. Please try again.`
+            ? `Purchase ${purchaseData ? 'updated' : 'created'} successfully!`
+            : `Failed to ${purchaseData ? 'update' : 'create'} purchase. Please try again.`
         );
         setShowResultDialog(true);
       }
 
     } catch (error) {
       console.error('Form submission error:', error);
-      setSubmissionResult(`Error creating purchase ${purchaseNumber}: ${error.message}`);
+      setSubmissionResult(`Error ${purchaseData ? 'updating' : 'creating'} purchase: ${error.message}`);
       setShowResultDialog(true);
     }
   };
@@ -777,7 +864,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box className="flex flex-col gap-4 p-4">
         <Typography variant="h5" color="primary">
-          Add Purchase
+          {purchaseData ? 'Edit Purchase' : 'Add Purchase'}
         </Typography>
 
         <form onSubmit={handleSubmit(onSubmit, handleError)}>
@@ -788,6 +875,33 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   <Typography variant='h5' gutterBottom>
                     Details
                   </Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  {isLoading ? (
+                    <Skeleton variant="rectangular" height={40} />
+                  ) : (
+                    <Controller
+                      name="purchaseId"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          label="Purchase ID"
+                          variant="outlined"
+                          fullWidth
+                          size="medium"
+                          disabled
+                          value={purchaseData?.purchaseId || ''}
+                          sx={{
+                            '& .MuiInputBase-input.Mui-disabled': {
+                              WebkitTextFillColor: theme => theme.palette.text.primary,
+                              cursor: 'default'
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                  )}
                 </Grid>
                 <Grid item xs={12} md={4}>
                   {isLoading ? (
@@ -899,6 +1013,31 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                     <Skeleton variant="rectangular" height={40} />
                   ) : (
                   <Controller
+                    name="supplierInvoiceSerialNumber"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label="Supplier Invoice Serial Number"
+                        variant="outlined"
+                        fullWidth
+                        size="medium"
+                        sx={{
+                          borderColor: field.value ? 'green' : 'default',
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: field.value ? 'green' : 'default',
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  )}
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  {isLoading ? (
+                    <Skeleton variant="rectangular" height={40} />
+                  ) : (
+                  <Controller
                     name="referenceNo"
                     control={control}
                     render={({ field }) => (
@@ -919,31 +1058,6 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                       />
                     )}
                   />
-                  )}
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" height={40} />
-                  ) : (
-                    <Controller
-                      name="supplierInvoiceSerialNumber"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Supplier Invoice Serial Number"
-                          variant="outlined"
-                          fullWidth
-                          size="medium"
-                          sx={{
-                            borderColor: field.value ? 'green' : 'default',
-                            '& .MuiOutlinedInput-notchedOutline': {
-                              borderColor: field.value ? 'green' : 'default',
-                            }
-                          }}
-                        />
-                      )}
-                    />
                   )}
                 </Grid>
               </Grid>
@@ -1199,7 +1313,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
               </Box>
             </CardContent>
           </Card>
-          <Grid container spacing={4} sx={{ mt: 4 }} className='justify-between'>
+          <Grid container spacing={6} sx={{ mt: 0 }} className='justify-between'>
             <Grid item xs={12} md={6} lg={6}>
               <Card >
                 <CardContent>
@@ -1303,7 +1417,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
               variant="contained"
               color="primary"
             >
-              Create Purchase
+              {purchaseData ? 'Update Purchase' : 'Create Purchase'}
             </Button>
           </Box>
         </form>
@@ -1583,4 +1697,4 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
   );
 };
 
-export default AddPurchase;
+export default EditPurchase;

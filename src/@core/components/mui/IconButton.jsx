@@ -5,22 +5,9 @@ import { styled } from '@mui/material/styles'
 // Config Imports
 import themeConfig from '@configs/themeConfig'
 
-// Styled Component with $fullColor to handle custom color variants
-const CustomIconButton = styled(MuiButton, {
-  shouldForwardProp: (prop) => prop !== '$fullColor' // Prevent $fullColor from being passed to the DOM
-})(({ $fullColor, size, theme, variant }) => {
-  // Helper function to extract color from theme based on $fullColor
-  const getColorFromTheme = () => {
-    if (!$fullColor || !$fullColor.includes('.')) return null
-    const [palette, shade] = $fullColor.split('.')
-    return theme.palette[palette]?.[shade] || null
-  }
-
-  const colorValue = getColorFromTheme()
-
+const CustomIconButton = styled(MuiButton)(({ color, size, theme, variant }) => {
   return {
     minInlineSize: 0,
-    // Size-based styling
     ...(size === 'small'
       ? {
           fontSize: '20px',
@@ -46,57 +33,42 @@ const CustomIconButton = styled(MuiButton, {
                 }
               })
         }),
-    // Color-based styling
-    ...(colorValue
-      ? {
-          color: colorValue,
-          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
-            backgroundColor: `${colorValue}14` // Adjust opacity as needed
-          }
+    ...(!color && {
+      color: 'var(--mui-palette-action-active)',
+      '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
+        backgroundColor: 'rgb(var(--mui-palette-text-primaryChannel) / 0.08)'
+      },
+      ...(themeConfig.disableRipple && {
+        '&.Mui-focusVisible:not(.Mui-disabled)': {
+          backgroundColor: 'rgb(var(--mui-palette-text-primaryChannel) / 0.08)'
         }
-      : {
-          color: 'var(--mui-palette-action-active)',
-          '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
-            backgroundColor: 'rgb(var(--mui-palette-text-primaryChannel) / 0.08)'
-          },
-          ...(themeConfig.disableRipple && {
-            '&.Mui-focusVisible:not(.Mui-disabled)': {
-              backgroundColor: 'rgb(var(--mui-palette-text-primaryChannel) / 0.08)'
+      }),
+      '&.Mui-disabled': {
+        opacity: 0.45,
+        color: 'var(--mui-palette-action-active)'
+      },
+      ...(variant === 'outlined' && {
+        border: 'none !important',
+        ...(size === 'small'
+          ? {
+              padding: theme.spacing(1.75)
             }
-          }),
-          '&.Mui-disabled': {
-            opacity: 0.45,
-            color: 'var(--mui-palette-action-active)'
-          },
-          ...(variant === 'outlined' && {
-            border: 'none !important',
-            ...(size === 'small'
-              ? {
-                  padding: theme.spacing(1.75)
-                }
-              : {
-                  ...(size === 'large'
-                    ? {
-                        padding: theme.spacing(2.25)
-                      }
-                    : {
-                        padding: theme.spacing(2)
-                      })
-                })
-          }),
-          ...(variant === 'contained' && {
-            boxShadow: 'none !important',
-            backgroundColor: 'transparent'
-          })
-        }),
+          : {
+              ...(size === 'large'
+                ? {
+                    padding: theme.spacing(2.25)
+                  }
+                : {
+                    padding: theme.spacing(2)
+                  })
+            })
+      }),
+      ...(variant === 'contained' && {
+        boxShadow: 'none !important',
+        backgroundColor: 'transparent'
+      })
+    })
   }
 })
 
-// Wrapper Component to handle color prop and separate fullColor
-const IconButtonWrapper = ({ color, ...props }) => {
-  // Extract base color (e.g., 'primary' from 'primary.light')
-  const baseColor = color && color.includes('.') ? color.split('.')[0] : color
-  return <CustomIconButton {...props} color={baseColor} $fullColor={color} />
-}
-
-export default IconButtonWrapper
+export default CustomIconButton

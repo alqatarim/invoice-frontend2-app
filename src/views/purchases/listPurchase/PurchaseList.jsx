@@ -26,7 +26,9 @@ import {
   Chip,
   Snackbar,
   Alert,
-  Skeleton
+  Skeleton,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,6 +41,8 @@ import { deletePurchase } from '@/app/(dashboard)/purchases/actions';
 import { usePermission } from '@/hooks/usePermission';
 import PurchaseFilter from './PurchaseFilter';
 import dayjs from 'dayjs';
+import { Icon } from '@iconify/react';
+import { useTheme } from '@mui/material/styles';
 
 const PurchaseList = ({
   purchaseList,
@@ -52,6 +56,8 @@ const PurchaseList = ({
   vendors,
   resetAllFilters
 }) => {
+  const theme = useTheme();
+
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -81,11 +87,15 @@ const PurchaseList = ({
   const [columns, setColumns] = useState(defaultColumns);
 
   const handleMenuOpen = (event, purchase) => {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log('Opening menu with purchase:', purchase);
     setAnchorEl(event.currentTarget);
     setSelectedPurchase(purchase);
   };
 
   const handleMenuClose = () => {
+    console.log('Closing menu. Current selectedPurchase:', selectedPurchase);
     setAnchorEl(null);
     setSelectedPurchase(null);
   };
@@ -100,6 +110,10 @@ const PurchaseList = ({
   };
 
   const handleDelete = async () => {
+    if (!selectedPurchase || !selectedPurchase._id) {
+      console.error('No selected purchase to delete.');
+      return;
+    }
     try {
       const response = await deletePurchase(selectedPurchase._id);
       if (response.success) {
@@ -108,6 +122,7 @@ const PurchaseList = ({
           message: 'Purchase deleted successfully',
           severity: 'success'
         });
+        // Optionally refresh the purchase list here
       } else {
         setSnackbar({
           open: true,
@@ -137,24 +152,39 @@ const PurchaseList = ({
         <Typography variant="h5" color="primary">
           Purchases
         </Typography>
+      </Box>
+
+      <Box className="flex justify-end items-center">
+        {(canUpdate || isAdmin) && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            component={Link}
+            href="/purchases/purchase-add"
+          >
+            Add Purchase
+          </Button>
+        )}
+      </Box>
+
+      <Box className="flex justify-end items-center">
         <Box className="flex gap-2">
           <Button
-            variant="outlined"
+            variant="text"
+            color="secondary"
+            onClick={resetAllFilters}
+            startIcon={<Icon icon='mdi:refresh' fontSize={20} />}
+            sx={{ minWidth: 100 }}
+          >
+            Clear Filter
+          </Button>
+          <Button
+            variant="text"
             startIcon={<FilterIcon />}
             onClick={() => setOpenFilter(true)}
           >
             Filter
           </Button>
-          {(canUpdate || isAdmin) && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              component={Link}
-              href="/purchases/purchase-add"
-            >
-              Add Purchase
-            </Button>
-          )}
         </Box>
       </Box>
 
@@ -171,7 +201,6 @@ const PurchaseList = ({
                         fontSize: '0.85rem',
                         fontWeight: 600,
                         whiteSpace: 'nowrap',
-
                       }}
                     >
                       {column.label}
@@ -195,38 +224,22 @@ const PurchaseList = ({
                   </TableRow>
                 ))
               ) : purchaseList.length > 0 ? (
-                purchaseList.map((purchase, index) => (
-                  <TableRow key={purchase._id} hover>
-                    {columns.map(column =>
-                      column.visible && (
-                        <TableCell key={column.key}>
-                          {column.key === 'index' && (
-                            <Typography variant="body2">
-                              {(page - 1) * pageSize + (index + 1)}
-                            </Typography>
-                          )}
-
-                          {column.key === 'purchaseId' && (
-                            <Link
-                              href={`/purchases/purchase-view/${purchase._id}`}
-                              className="text-decoration-none"
-                            >
-                              <Typography
-                                variant="h6"
-                                sx={{
-                                  color: 'primary.main',
-                                  '&:hover': { textDecoration: 'underline' }
-                                }}
-                              >
-                                {purchase.purchaseId}
+                purchaseList.map((purchase, index) => {
+                  console.log('Mapping purchase:', purchase); // Debug log
+                  return (
+                    <TableRow key={purchase._id} hover>
+                      {columns.map(column =>
+                        column.visible && (
+                          <TableCell key={column.key}>
+                            {column.key === 'index' && (
+                              <Typography variant="body2">
+                                {(page - 1) * pageSize + (index + 1)}
                               </Typography>
-                            </Link>
-                          )}
+                            )}
 
-                          {column.key === 'vendor' && (
-                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                            {column.key === 'purchaseId' && (
                               <Link
-                                href={`/vendors/vendor-view/${purchase.vendorId?._id}`}
+                                href={`/purchases/purchase-view/${purchase._id}`}
                                 className="text-decoration-none"
                               >
                                 <Typography
@@ -236,69 +249,103 @@ const PurchaseList = ({
                                     '&:hover': { textDecoration: 'underline' }
                                   }}
                                 >
-                                  {purchase.vendorId?.vendor_name}
+                                  {purchase.purchaseId}
                                 </Typography>
                               </Link>
-                              <Typography variant="caption" color="textSecondary">
-                                {purchase.vendorId?.vendor_phone}
+                            )}
+
+                            {column.key === 'vendor' && (
+                              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                <Link
+                                  href={`/vendors/vendor-view/${purchase.vendorId?._id}`}
+                                  className="text-decoration-none"
+                                >
+                                  <Typography
+                                    variant="h6"
+                                    sx={{
+                                      color: 'primary.main',
+                                      '&:hover': { textDecoration: 'underline' }
+                                    }}
+                                  >
+                                    {purchase.vendorId?.vendor_name}
+                                  </Typography>
+                                </Link>
+                                <Typography variant="caption" color="textSecondary">
+                                  {purchase.vendorId?.vendor_phone}
+                                </Typography>
+                              </Box>
+                            )}
+
+                            {column.key === 'amount' && (
+                              <Typography variant="body1">
+                                {'$'}
+                                {purchase.roundOff
+                                  ? Number(purchase.TotalAmount).toLocaleString('en-IN', {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })
+                                  : Number(purchase.taxableAmount).toLocaleString('en-IN', {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
                               </Typography>
-                            </Box>
-                          )}
+                            )}
 
-                          {column.key === 'amount' && (
-                            <Typography variant="body1">
-                              {'$'}
-                              {purchase.roundOff
-                                ? Number(purchase.TotalAmount).toLocaleString('en-IN', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })
-                                : Number(purchase.taxableAmount).toLocaleString('en-IN', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}
-                            </Typography>
-                          )}
+                            {column.key === 'paymentMode' && (
+                              <Box className='flex justify-center'>
+                                {purchase.paymentMode?.toLowerCase() === 'cash' ? (
+                                  <Icon icon="mdi:cash-multiple" width={40} color={theme.palette.secondary.light}/>
+                                ) : purchase.paymentMode?.toLowerCase() === 'bank' ? (
+                                  <Icon icon="mdi:bank-transfer" width={40} color={theme.palette.secondary.light}/>
+                                ) : purchase.paymentMode?.toLowerCase() === 'creditcard' ? (
+                                  <Icon icon="mdi:credit-card-outline" width={40} />
+                                ) : (
+                                  <Chip
+                                    variant="outlined"
+                                    color="secondary"
+                                    label={purchase.paymentMode}
+                                  />
+                                )}
+                              </Box>
+                            )}
 
-                          {column.key === 'paymentMode' && (
-                            <Chip variant="outlined" color="secondary" label={purchase.paymentMode} />
-                          )}
+                            {column.key === 'date' && (
+                              <Typography variant="body1">
+                                {dayjs(purchase.purchaseDate).format('DD MMM YYYY')}
+                              </Typography>
+                            )}
 
-                          {column.key === 'date' && (
-                            <Typography variant="body1">
-                              {dayjs(purchase.purchaseDate).format('DD MMM YYYY')}
-                            </Typography>
-                          )}
+                            {column.key === 'status' && (
+                              <Chip
+                                label={purchase.status}
+                                variant="tonal"
+                                color={
+                                  purchase.status === 'PAID'
+                                    ? 'success'
+                                    : purchase.status === 'Pending'
+                                    ? 'warning'
+                                    : 'error'
+                                }
+                              />
+                            )}
 
-                          {column.key === 'status' && (
-                            <Chip
-                              label={purchase.status}
-                              variant="tonal"
-                              color={
-                                purchase.status === 'PAID'
-                                  ? 'success'
-                                  : purchase.status === 'Pending'
-                                  ? 'warning'
-                                  : 'error'
-                              }
-
-
-                            />
-                          )}
-
-                          {column.key === 'action' && (canUpdate || isAdmin) && (
-                            <IconButton
-                              size="small"
-                              onClick={(e) => handleMenuOpen(e, purchase)}
-                            >
-                              <MoreVertIcon fontSize="small" />
-                            </IconButton>
-                          )}
-                        </TableCell>
-                      )
-                    )}
-                  </TableRow>
-                ))
+                            {column.key === 'action' && (canUpdate || isAdmin) && (
+                              <IconButton
+                                size="small"
+                                onClick={(e) => handleMenuOpen(e, purchase)}
+                                aria-controls={Boolean(anchorEl) ? 'purchase-menu' : undefined}
+                                aria-haspopup="true"
+                                aria-expanded={Boolean(anchorEl) ? 'true' : undefined}
+                              >
+                                <MoreVertIcon fontSize="small" />
+                              </IconButton>
+                            )}
+                          </TableCell>
+                        )
+                      )}
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center">
@@ -327,24 +374,41 @@ const PurchaseList = ({
 
       {/* Action Menu */}
       <Menu
+        id="purchase-menu"
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right'
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right'
+        }}
       >
-        {(canUpdate || isAdmin) && (
-          <MenuItem
-            component={Link}
-            href={`/purchases/purchase-edit/${selectedPurchase?._id}`}
-            onClick={handleMenuClose}
-          >
-            <EditIcon className="mr-2" fontSize="small" />
-            Edit
-          </MenuItem>
+        {(canUpdate || isAdmin) && selectedPurchase && (
+          <>
+            {console.log('Menu is rendering with selectedPurchase:', selectedPurchase)}
+            <MenuItem
+              component={Link}
+              href={`/purchases/purchase-edit/${selectedPurchase._id}`}
+              onClick={handleMenuClose}
+              sx={{ display: 'flex', alignItems: 'center', width: '100%' }}
+            >
+              <ListItemIcon>
+                <EditIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Edit" />
+            </MenuItem>
+          </>
         )}
-        {(canDelete || isAdmin) && (
+        {(canDelete || isAdmin) && selectedPurchase && (
           <MenuItem onClick={() => setOpenDeleteDialog(true)}>
-            <DeleteIcon className="mr-2" fontSize="small" />
-            Delete
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Delete" />
           </MenuItem>
         )}
       </Menu>

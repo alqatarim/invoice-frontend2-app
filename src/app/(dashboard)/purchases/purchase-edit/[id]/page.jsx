@@ -1,13 +1,8 @@
-import { getDropdownData, getPurchaseDetails } from '../../actions';
-import PurchaseEdit from '@/views/purchases/editPurchase';
+import EditPurchaseIndex from '@/views/purchases/editPurchase/index';
 
 async function PurchaseEditPage({ params }) {
-  const [dropdownData, purchaseData] = await Promise.all([
-    getDropdownData(),
-    getPurchaseDetails(params.id)
-  ]);
-
-  return <PurchaseEdit dropdownData={dropdownData} purchaseData={purchaseData} />;
+  return <EditPurchaseIndex id={params.id} />
 }
 
-export default PurchaseEditPage;
+export default PurchaseEditPage
+

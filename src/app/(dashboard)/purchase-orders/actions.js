@@ -91,21 +91,40 @@ export async function convertToPurchase(id, data) {
   }
 }
 
-export async function clonePurchaseOrder  (id)  {
+export async function clonePurchaseOrder(id) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.CLONE}/${id}/clone`, {
-      method: 'POST'
+      method: 'POST',
+      body: {}
     });
 
-    return {
-      success: response.code === 200,
-      data: response.data
-    };
+
+    // If we have clonedDebitNote directly, it means success
+    if (response.clonedDebitNote) {
+      return {
+        success: true,
+        data: response.clonedDebitNote,
+        message: 'Purchase order cloned successfully'
+      };
+    }
+
+    // If we have a code and it's not 200, it's an error
+    if (response.code !== 200) {
+      const errorMessage = response.data?.message?.[0] || response.message || 'Failed to clone purchase order';
+      throw new Error(errorMessage);
+    }
+
+    // Fallback error if no valid response format is found
+    throw new Error('Invalid response format from server');
+
   } catch (error) {
     console.error('Error cloning purchase order:', error);
-    return { success: false, message: error.message };
+    return {
+      success: false,
+      message: error.message || 'Failed to clone purchase order'
+    };
   }
-};
+}
 
 export async function getPurchaseOrderNumber  () {
   try {

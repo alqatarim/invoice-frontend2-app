@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Icon } from '@iconify/react';
-import CustomIconButton from '@core/components/mui/CustomIconButton';
-import CustomIconButtonTwo from '@core/components/mui/CustomIconButtonTwo';
+import CustomIconButton from '@core/components/mui/CustomIconButton'
+import CustomIconButtonTwo from '@core/components/mui/CustomIconButtonTwo'
 import {
-  FormLabel,
+FormLabel,
   Box,
   Card,
   CardContent,
@@ -44,89 +44,82 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
+
   Add as AddIcon,
   Delete as DeleteIcon,
   Edit as EditIcon
+
 } from '@mui/icons-material';
+
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-
-
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { PurchaseSchema } from '@/views/purchases/addPurchase/PurchaseSchema';
+
+import { PurchaseReturnSchema } from '@/views/debitNotes/addPurchaseReturn/PurchaseReturnSchema';
 import SignaturePad from 'react-signature-canvas';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { alpha } from '@mui/material/styles';
-import { addPurchase } from '@/app/(dashboard)/purchases/actions';
+import { addBank } from '@/app/(dashboard)/purchase-orders/actions';
+import { bgBG } from '@mui/x-date-pickers/locales';
+
+
 
 // Updated calculation functions
 function calculateItemValues(item) {
   if (!item) return { rate: 0, discountValue: 0, tax: 0, amount: 0 };
 
-  // Ensure all values are numbers
-  const quantity = Number(item.quantity) || 0;
-  const baseRate = item.isRateFormUpadted
-    ? Number(item.form_updated_rate)
-    : Number(item.purchasePrice);
-  const rate = quantity * baseRate;
+  const quantity = Number(item.quantity) || 1;
+  const purchasePrice = Number(parseFloat(item.purchasePrice || item.rate).toFixed(2)) || 0;
+  const rate = parseFloat((purchasePrice * quantity).toFixed(2));
+  let discountValue = 0;
 
-  // Calculate discount
-  const discountAmount = item.isRateFormUpadted
-    ? Number(item.form_updated_discount)
-    : Number(item.discount);
-  const discountType = item.isRateFormUpadted
-    ? Number(item.form_updated_discounttype)
-    : Number(item.discountType);
-
-  const discountValue = discountType === 2
-    ? (rate * discountAmount / 100)
-    : discountAmount;
+  // Calculate discount based on type
+  if (parseInt(item.discountType) === 2) { // percentage discount
+    discountValue = parseFloat(((Number(item.discount) / 100) * rate).toFixed(2));
+  } else { // fixed discount
+    discountValue = parseFloat(Number(item.discount || 0).toFixed(2));
+  }
 
   // Calculate tax
-  const taxableAmount = rate - discountValue;
-  const taxRate = Number(item.taxInfo?.taxRate) || 0;
-  const tax = (taxableAmount * taxRate) / 100;
+  const taxRate = Number(item.taxInfo?.taxRate || item.tax || 0);
+  const discountedAmount = parseFloat((rate - discountValue).toFixed(2));
+  const tax = parseFloat(((taxRate / 100) * discountedAmount).toFixed(2));
 
   // Calculate final amount
-  const amount = taxableAmount + tax;
+  const amount = parseFloat((discountedAmount + tax).toFixed(2));
 
   return {
     rate,
-    discountValue,
     tax,
+    discountValue,
     amount
   };
 }
 
 function calculateTotals(items) {
-  const initialTotals = {
-    subtotal: 0,
-    totalDiscount: 0,
-    vat: 0,
-    total: 0
-  };
+  let subtotal = 0;
+  let totalDiscount = 0;
+  let vat = 0;
+  let total = 0;
 
-  if (!Array.isArray(items) || items.length === 0) {
-    return initialTotals;
-  }
-
-  return items.reduce((acc, item) => {
+  items.forEach((item) => {
     const { rate, discountValue, tax, amount } = calculateItemValues(item);
+    subtotal += rate;
+    totalDiscount += discountValue;
+    vat += tax;
+    total += amount;
+  });
 
-    return {
-      subtotal: Number(acc.subtotal) + Number(rate),
-      totalDiscount: Number(acc.totalDiscount) + Number(discountValue),
-      vat: Number(acc.vat) + Number(tax),
-      total: Number(acc.total) + Number(amount)
-    };
-  }, initialTotals);
+  return {
+    subtotal: Number(subtotal),
+    totalDiscount: Number(totalDiscount),
+    vat: Number(vat),
+    total: Number(total)
+  };
 }
 
-const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, purchaseNumber }) => {
-
-
-
+const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatures, purchaseOrderNumber }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState([]);
@@ -153,44 +146,63 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
 
   const theme = useTheme();
   const { control, handleSubmit, watch, setValue, trigger, formState: { errors, isValid, isDirty } } = useForm({
-    resolver: yupResolver(PurchaseSchema),
+    resolver: yupResolver(PurchaseReturnSchema),
     mode: 'onChange',
     defaultValues: {
-      purchaseDate: dayjs(),
+      purchaseReturnDate: dayjs(),
       dueDate: dayjs().add(30, 'days'),
       items: [],
       sign_type: 'eSignature',
+      // signatureId: '',
+      // signatureName: '',
       vendorId: '',
       referenceNo: '',
       bank: '',
       notes: '',
-      termsAndCondition: '',
-      supplierInvoiceSerialNumber: ''
+      termsAndCondition: ''
     }
   });
 
   const [totals, setTotals] = useState({ subtotal: 0, totalDiscount: 0, vat: 0, total: 0 });
 
-
   const handleRemoveItem = (index) => {
     try {
+      // Log initial state for debugging
+      console.log('Current items:', items);
+      console.log('Attempting to remove item at index:', index);
+
+      // Create a copy of current items
       const currentItems = [...items];
+
+      // Get the item to be removed
       const removedItem = currentItems[index];
 
+      console.log('Item to be removed:', removedItem);
+
+      // Safety check
       if (!removedItem) {
         console.warn('No item found at index:', index);
         return;
       }
 
+      // Remove the item from the array
       currentItems.splice(index, 1);
 
+      // If the removed item had a productId, add it back to available products
       if (removedItem.productId) {
         const originalProduct = products.find(p => p._id === removedItem.productId);
         if (originalProduct) {
-          setProductsCloneData(prevProducts => [...prevProducts, originalProduct]);
+          setProductsCloneData(prevProducts => {
+            console.log('Adding product back to available products:', originalProduct);
+            return [...prevProducts, originalProduct];
+          });
         }
       }
 
+      // Update state with new arrays
+      console.log('Updated items array:', currentItems);
+
+      // Update all related state in a single batch
       setItems(currentItems);
       setTotals(calculateTotals(currentItems));
       setValue('items', currentItems);
@@ -207,15 +219,17 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
       const selectedProduct = productsCloneData.find(prod => prod._id === productId);
       if (!selectedProduct) return;
 
+      // Remove selected product from clone data
       setProductsCloneData(prev => prev.filter(p => p._id !== productId));
 
+      // Create new item with initial values
       const newItem = {
-        key: Date.now(),
+        key: Date.now(), // Use timestamp for unique key instead of array length
         name: selectedProduct.name,
         productId: selectedProduct._id,
         units: selectedProduct.units?.name,
         unit: selectedProduct.units?._id,
-      quantity: 1,
+        quantity: 1,
         discountType: selectedProduct.discountType || 3,
         discount: Number(selectedProduct.discountValue || 0),
         purchasePrice: Number(selectedProduct.purchasePrice || 0),
@@ -229,6 +243,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
         form_updated_tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0
       };
 
+      // Calculate values
       const rateValue = Number(newItem.quantity) * Number(newItem.purchasePrice);
       let discountedAmount;
 
@@ -241,8 +256,20 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
       newItem.tax = (discountedAmount * (Number(newItem.tax) / 100));
       newItem.amount = discountedAmount + newItem.tax;
 
-      setItems(prevItems => [...prevItems, newItem]);
-      setTotals(calculateTotals([...items, newItem]));
+      // Update state
+      setItems(prevItems => {
+        const newItems = [...prevItems, newItem];
+        console.log('Updated items after adding:', newItems);
+        return newItems;
+      });
+
+      // Update other state
+      setTotals(prevTotals => {
+        const newTotals = calculateTotals([...items, newItem]);
+        console.log('Updated totals:', newTotals);
+        return newTotals;
+      });
+
       setValue('items', [...items, newItem]);
       setSelectedProduct('');
 
@@ -251,8 +278,12 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     }
   };
 
+
+
+  // Add this new state for managing multiple snackbars
   const [snackbars, setSnackbars] = useState([]);
 
+  // Replace the old handleError function with this new one
   const handleError = (errors) => {
     const errorCount = Object.keys(errors).length;
 
@@ -260,10 +291,12 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
 
     let message;
     if (errorCount === 1) {
+      // For single error, be specific
       const [field, error] = Object.entries(errors)[0];
       const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1');
       message = error?.message || `Please review the ${fieldName} field`;
     } else {
+      // For multiple errors, group by type if possible
       const hasRequiredFieldErrors = Object.values(errors).some(error =>
         error?.message?.toLowerCase().includes('required')
       );
@@ -292,12 +325,14 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     setSnackbars(prev => [...prev, newSnackbar]);
   };
 
+  // Add this new handler for closing individual snackbars
   const handleSnackbarClose = (id) => (event, reason) => {
     if (reason === 'clickaway') return;
 
     setSnackbars(prev => prev.filter(snackbar => snackbar.id !== id));
   };
 
+  // Replace the old Snackbar component with this new implementation
   const renderSnackbars = () => (
     <>
       {snackbars.map((snackbar, index) => (
@@ -307,6 +342,11 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
           autoHideDuration={2000}
           onClose={handleSnackbarClose(snackbar.id)}
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          // sx={{
+          //   maxWidth: '400px',
+          //   // Reduce vertical spacing between snackbars
+          //   top: `${(index * 48) + 24}px !important` // Reduced from 80 to 48
+          // }}
         >
           <Alert
             onClose={handleSnackbarClose(snackbar.id)}
@@ -314,6 +354,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
             variant="filled"
             sx={{
               width: '100%',
+
             }}
           >
             {snackbar.message}
@@ -325,14 +366,16 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
 
   const onSubmit = async (data) => {
     try {
+      // Trigger validation for all fields and wait for it to complete
       const isFormValid = await trigger();
 
+      // Check if there are any validation errors
       if (!isFormValid) {
         handleError(errors);
         return;
       }
 
-      const purchaseData = {
+      const purchaseOrderData = {
         items: items.map(item => ({
           key: item.key,
           name: item.name,
@@ -354,9 +397,9 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
         })),
         vendorId: data.vendorId || '',
         dueDate: data.dueDate.toISOString(),
-        purchaseDate: data.purchaseDate.toISOString(),
+        purchaseOrderDate: data.purchaseOrderDate.toISOString(),
         referenceNo: data.referenceNo || '',
-        purchaseId: purchaseNumber || '',
+        purchaseOrderId: purchaseOrderNumber || '',
         taxableAmount: totals.subtotal || 0,
         TotalAmount: totals.total || 0,
         vat: totals.vat || 0,
@@ -366,29 +409,29 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
         notes: data.notes || '',
         termsAndCondition: data.termsAndCondition || '',
         sign_type: data.sign_type,
-        supplierInvoiceSerialNumber: data.supplierInvoiceSerialNumber || '',
         ...(data.sign_type === 'manualSignature'
           ? { signatureId: data.signatureId }
           : { signatureName: data.signatureName })
       };
 
-      const response = await addPurchase(
-        purchaseData,
+      // Continue with form submission
+      const response = await onSave(
+        purchaseOrderData,
         data.sign_type === 'eSignature' ? signatureDataURL : null
       );
 
       if (response) {
         setSubmissionResult(
           response.success
-            ? `Purchase ${purchaseNumber} created successfully!`
-            : `Failed to create purchase ${purchaseNumber}. Please try again.`
+            ? `Purchase order ${purchaseOrderNumber} created successfully!`
+            : `Failed to create purchase order ${purchaseOrderNumber}. Please try again.`
         );
         setShowResultDialog(true);
       }
 
     } catch (error) {
       console.error('Form submission error:', error);
-      setSubmissionResult(`Error creating purchase ${purchaseNumber}: ${error.message}`);
+      setSubmissionResult(`Error creating purchase order ${purchaseOrderNumber}: ${error.message}`);
       setShowResultDialog(true);
     }
   };
@@ -425,11 +468,12 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
       field.onChange(selectedOption._id);
       setSelectedSignature(selectedOption.signatureImage);
       trigger('signatureId');
-      } else {
+    } else {
       field.onChange('');
       setSelectedSignature(null);
     }
   };
+
 
   const handleEditModalSave = () => {
     if (!editModalData) return;
@@ -438,24 +482,40 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     const index = newItems.findIndex(item => item.key === editModalData.key);
     if (index === -1) return;
 
-    const updatedItem = {
-      ...newItems[index],
-      ...editModalData,
-      isRateFormUpadted: true,
-      form_updated_rate: Number(editModalData.rate),
-      form_updated_discount: Number(editModalData.discount),
-      form_updated_discounttype: Number(editModalData.discountType),
-      form_updated_tax: Number(editModalData.taxInfo?.taxRate) || 0
-    };
+    const item = newItems[index];
 
-    // Calculate new values
-    const calculatedValues = calculateItemValues(updatedItem);
+    // Save form updated values with 2 decimal places
+    item.form_updated_rate = parseFloat(Number(editModalData.rate).toFixed(2));
+    item.form_updated_discount = parseFloat(Number(editModalData.discount).toFixed(2));
+    item.form_updated_discounttype = editModalData.discountType;
+    item.form_updated_tax = parseFloat(Number(editModalData.taxInfo?.taxRate || 0).toFixed(2));
+    item.isRateFormUpadted = true;
 
-    // Update the item in the items array
-    newItems[index] = {
-      ...updatedItem,
-      ...calculatedValues
-    };
+    // Update tax info
+    item.taxInfo = editModalData.taxInfo;
+
+    // Calculate new values based on quantity
+    const quantity = Number(item.quantity);
+    const rateValue = parseFloat((quantity * Number(editModalData.rate)).toFixed(2));
+
+    // Calculate discount
+    let calculatedDiscount;
+    if (parseInt(editModalData.discountType) === 2) { // percentage
+      calculatedDiscount = parseFloat((rateValue * (Number(editModalData.discount) / 100)).toFixed(2));
+    } else { // fixed
+      calculatedDiscount = parseFloat(Number(editModalData.discount).toFixed(2));
+    }
+
+    // Calculate tax and final amount
+    const discountedAmount = parseFloat((rateValue - calculatedDiscount).toFixed(2));
+    const taxAmount = parseFloat((discountedAmount * (Number(editModalData.taxInfo?.taxRate || 0) / 100)).toFixed(2));
+
+    // Update item with new values
+    item.rate = rateValue;
+    item.discount =  editModalData.discount
+    item.discountType = editModalData.discountType;
+    item.tax = taxAmount;
+    item.amount = parseFloat((rateValue - calculatedDiscount + taxAmount).toFixed(2));
 
     setItems(newItems);
     setTotals(calculateTotals(newItems));
@@ -468,18 +528,34 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     const newItems = [...items];
     const item = newItems[index];
 
-    const updatedItem = {
-      ...item,
-      quantity: Number(newQuantity)
-    };
+    // Get base rate (either form updated or original purchase price)
+    const baseRate = parseFloat((item.isRateFormUpadted ? item.form_updated_rate : item.purchasePrice).toFixed(2));
+    const baseDiscount = parseFloat((item.isRateFormUpadted ? item.form_updated_discount : item.discount).toFixed(2));
+    const baseDiscountType = item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType;
+    const baseTaxRate = parseFloat((item.isRateFormUpadted ? item.form_updated_tax : (item.taxInfo?.taxRate || 0)));
 
-    // Calculate new values
-    const calculatedValues = calculateItemValues(updatedItem);
+    // Calculate new rate based on quantity * base rate
+    const newRate = parseFloat((Number(newQuantity) * Number(baseRate)).toFixed(2));
 
-    // Update the item in the items array
+    // Calculate discount
+    let calculatedDiscount;
+    if (parseInt(baseDiscountType) === 2) { // percentage
+      calculatedDiscount = parseFloat((newRate * (Number(baseDiscount) / 100)).toFixed(2));
+    } else { // fixed
+      calculatedDiscount = parseFloat(Number(baseDiscount).toFixed(2));
+    }
+
+    // Calculate tax
+    const discountedAmount = parseFloat((newRate - calculatedDiscount).toFixed(2));
+    const taxAmount = parseFloat((discountedAmount * (Number(baseTaxRate) / 100)).toFixed(2));
+
+    // Update item with new values
     newItems[index] = {
-      ...updatedItem,
-      ...calculatedValues
+      ...item,
+      quantity: Number(newQuantity),
+      rate: newRate,
+      tax: taxAmount,
+      amount: parseFloat((newRate - calculatedDiscount + taxAmount).toFixed(2))
     };
 
     setItems(newItems);
@@ -490,11 +566,18 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
   const renderSignatureSection = () => {
     return (
       <Box className=" p-0">
-        <Typography variant='h5' gutterBottom>
-          Signature
-        </Typography>
+
+                <Typography variant='h5' gutterBottom>
+                  Signature
+                </Typography>
+
+
+        {/* Signature section*/}
         <Grid container spacing={3}>
+
           <Grid item xs={12} md={12}>
+
+            {/* Signature Type */}
             <Controller
               name="sign_type"
               control={control}
@@ -509,9 +592,11 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                     setSignType(newValue);
 
                     if (newValue === 'eSignature') {
+                      // Clear manual signature fields
                       setValue('signatureId', '');
                       setSelectedSignature(null);
                     } else {
+                      // Clear eSignature fields
                       setValue('signatureName', '');
                       setSignatureDataURL(null);
                     }
@@ -531,6 +616,8 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
               )}
             />
           </Grid>
+
+          {/* Manual Signature */}
           {signType === 'manualSignature' && (
             <Grid container item xs={9} gap={2}>
               <Controller
@@ -539,11 +626,14 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                 defaultValue={''}
                 render={({ field }) => (
                   <FormControl fullWidth error={!!errors.signatureId} variant='outlined'>
+
+
+
                     <InputLabel size="medium">
                       Select Signature Name <span style={{ color: 'red' }}>*</span>
                     </InputLabel>
                     <Select
-                      label="Select Signature Name"
+                     label="Select Signature Name"
                       value={field.value || ''}
                       onChange={(event) => {
                         const selectedSignature = signatures.find(sig => sig._id === event.target.value);
@@ -555,6 +645,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                           {option.signatureName}
                         </MenuItem>
                       ))}
+
                     </Select>
                     {errors.signatureId && (
                       <FormHelperText error>{errors.signatureId.message}</FormHelperText>
@@ -562,18 +653,25 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   </FormControl>
                 )}
               />
+
               <Box
                 sx={{
-                  height: '136px',
-                  width: '136px',
-                  padding: '10px',
-                }}
+
+                    height: '136px',
+                    width: '136px',
+                    padding: '10px',
+
+
+                  }}
               >
                 {selectedSignature ? (
+
+
                   <img
                     src={selectedSignature}
                     alt="Signature"
                     style={{
+
                       maxHeight: '136px',
                       maxWidth: '340px',
                       objectFit: 'contain'
@@ -584,16 +682,31 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                     }}
                   />
                 ) : (
-                  <Icon
-                    color={alpha(theme.palette.secondary.light, 0.2)}
-                    width="120px"
-                    height='102px'
-                    icon="mdi:signature-image"
-                  />
+
+
+
+                        <Icon
+                      //  color= {alpha(theme.palette.secondary.main, 0.2)}
+                      // color= {alpha(theme.palette.primary.main, 0.2)}
+                      color= {alpha(theme.palette.secondary.light, 0.2)}
+                       width="120px"
+                       height='102px'
+
+                       icon="mdi:signature-image"
+                      //  className='p-0 m-0'
+
+
+                     />
+
+
+
+
                 )}
               </Box>
             </Grid>
           )}
+
+          {/* E-Signature */}
           {signType === 'eSignature' && (
             <Grid container item xs={9} gap={2} alignItems="flex-start">
               <Controller
@@ -601,6 +714,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                 name="signatureName"
                 control={control}
                 render={({ field }) => (
+
                   <TextField
                     variant='standard'
                     fullWidth
@@ -611,11 +725,13 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   />
                 )}
               />
+
               <Box item xs={6}
                 sx={{
-                  height: '136px',
-                  width: '136px',
-                  padding: '10px',
+                    height: '136px',
+                    width: '136px',
+                    padding: '10px',
+
                 }}
               >
                 {signatureDataURL ? (
@@ -661,12 +777,16 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   />
                 )}
               </Box>
+
+
             </Grid>
           )}
         </Grid>
       </Box>
     );
   };
+
+
 
   const handleEditClick = (item) => {
     setEditModalData({
@@ -709,86 +829,47 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     }
   };
 
-  const renderRateCell = (item) => {
-    const { rate } = calculateItemValues(item);
-    return (
-      <Typography>
-        {Number(rate || 0).toLocaleString('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        })}
-      </Typography>
-    );
-  };
-
-  const renderDiscountCell = (item) => {
-    const { discountValue } = calculateItemValues(item);
-    const displayDiscount = item.isRateFormUpadted ? item.form_updated_discount : item.discount;
-    const displayDiscountType = item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType;
-
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <Typography>
-          {Number(displayDiscountType) === 2
-            ? `${Number(displayDiscount || 0).toFixed(2)}%`
-            : Number(discountValue || 0).toLocaleString('en-IN', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-              })
-          }
-        </Typography>
-        {Number(displayDiscountType) === 2 && (
-          <Typography variant="caption" color="text.secondary">
-            ({Number(discountValue || 0).toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            })} SAR)
-          </Typography>
-        )}
-      </Box>
-    );
-  };
-
-  const renderTaxCell = (item) => {
-    const { tax } = calculateItemValues(item);
-    return (
-      <Typography>
-        {Number(tax || 0).toLocaleString('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        })}
-      </Typography>
-    );
-  };
-
-  const renderAmountCell = (item) => {
-    const { amount } = calculateItemValues(item);
-    return (
-      <Typography>
-        {Number(amount || 0).toLocaleString('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        })}
-      </Typography>
-    );
-  };
-
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box className="flex flex-col gap-4 p-4">
         <Typography variant="h5" color="primary">
-          Add Purchase
+          Create Purchase Order
         </Typography>
 
         <form onSubmit={handleSubmit(onSubmit, handleError)}>
+          {/* Header Information Card */}
           <Card>
             <CardContent>
               <Grid container spacing={5}>
-                <Grid item xs={12}>
-                  <Typography variant='h5' gutterBottom>
-                    Details
-                  </Typography>
+
+
+             <Grid item xs={12}>
+                <Typography variant='h5'  gutterBottom>
+                  Details
+                </Typography>
+              </Grid>
+
+
+                {/* Purchase Order Number, Vendor, Dates */}
+                <Grid item xs={12} md={4}>
+                  {isLoading ? (
+                    <Skeleton variant="rectangular" height={40} />
+                  ) : (
+                    <TextField
+                      label="Purchase Order Id"
+                      value={purchaseOrderNumber || ''}
+                      variant="outlined"
+                      fullWidth
+                      size="medium"
+                      disabled
+                      InputProps={{
+                        readOnly: true,
+                      }}
+                    />
+                  )}
                 </Grid>
+
+                {/* Vendor Selection */}
                 <Grid item xs={12} md={4}>
                   {isLoading ? (
                     <Skeleton variant="rectangular" height={40} />
@@ -810,12 +891,12 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                               }
                             }}
                           >
-                          {vendors.map(vendor => (
-                              <MenuItem size='medium' key={vendor._id} value={vendor._id}>
-                              {vendor.vendor_name}
-                            </MenuItem>
-                          ))}
-                        </Select>
+                            {vendors.map(vendor => (
+                              <MenuItem size='medium'  key={vendor._id} value={vendor._id}>
+                                {vendor.vendor_name}
+                              </MenuItem>
+                            ))}
+                          </Select>
                           {errors.vendorId && (
                             <FormHelperText error>{errors.vendorId.message}</FormHelperText>
                           )}
@@ -824,61 +905,57 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                     />
                   )}
                 </Grid>
+
+                {/* Purchase Order Date */}
                 <Grid item xs={12} md={4}>
                   {isLoading ? (
                     <Skeleton variant="rectangular" height={40} />
                   ) : (
-                  <Controller
-                    name="purchaseDate"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        {...field}
-                          label="Purchase Date"
+                    <Controller
+                      name="purchaseOrderDate"
+                      control={control}
+                      render={({ field }) => (
+                        <DatePicker
+                          {...field}
+                          label="Purchase Order Date"
                           format="DD/MM/YYYY"
-                        onChange={(date) => {
-                          field.onChange(date);
-                          setValue('purchaseDate', date);
-                        }}
-                        slotProps={{
-                          textField: {
+                          slotProps={{
+                            textField: {
                               size: "medium",
-                            fullWidth: true,
-                              error: !!errors.purchaseDate,
-                              helperText: errors.purchaseDate?.message,
+                              fullWidth: true,
+                              error: !!errors.purchaseOrderDate,
+                              helperText: errors.purchaseOrderDate?.message,
                               sx: {
-                                borderColor: errors.purchaseDate ? 'red' : field.value ? 'green' : 'default',
+                                borderColor: errors.purchaseOrderDate ? 'red' : field.value ? 'green' : 'default',
                                 '& .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: errors.purchaseDate ? 'red' : field.value ? 'green' : 'default',
+                                  borderColor: errors.purchaseOrderDate ? 'red' : field.value ? 'green' : 'default',
                                 }
                               }
-                          }
-                        }}
-                      />
-                    )}
-                  />
+                            }
+                          }}
+                        />
+                      )}
+                    />
                   )}
                 </Grid>
+
+                {/* Due Date */}
                 <Grid item xs={12} md={4}>
                   {isLoading ? (
                     <Skeleton variant="rectangular" height={40} />
                   ) : (
-                  <Controller
-                    name="dueDate"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        {...field}
+                    <Controller
+                      name="dueDate"
+                      control={control}
+                      render={({ field }) => (
+                        <DatePicker
+                          {...field}
                           label="Due Date"
                           format="DD/MM/YYYY"
-                        onChange={(date) => {
-                          field.onChange(date);
-                          setValue('dueDate', date);
-                        }}
-                        slotProps={{
-                          textField: {
+                          slotProps={{
+                            textField: {
                               size: "medium",
-                            fullWidth: true,
+                              fullWidth: true,
                               error: !!errors.dueDate,
                               helperText: errors.dueDate?.message,
                               sx: {
@@ -887,58 +964,35 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                                   borderColor: errors.dueDate ? 'red' : field.value ? 'green' : 'default',
                                 }
                               }
-                          }
-                        }}
-                      />
-                    )}
-                  />
-                  )}
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" height={40} />
-                  ) : (
-                  <Controller
-                    name="referenceNo"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                          label="Reference No"
-                          variant="outlined"
-                        fullWidth
-                          size="medium"
-                        error={!!errors.referenceNo}
-                        helperText={errors.referenceNo?.message}
-                          sx={{
-                            borderColor: errors.referenceNo ? 'red' : field.value ? 'green' : 'default',
-                            '& .MuiOutlinedInput-notchedOutline': {
-                              borderColor: errors.referenceNo ? 'red' : field.value ? 'green' : 'default',
                             }
                           }}
-                      />
-                    )}
-                  />
+                        />
+                      )}
+                    />
                   )}
                 </Grid>
+
+                {/* Reference Number */}
                 <Grid item xs={12} md={4}>
                   {isLoading ? (
                     <Skeleton variant="rectangular" height={40} />
                   ) : (
                     <Controller
-                      name="supplierInvoiceSerialNumber"
+                      name="referenceNo"
                       control={control}
                       render={({ field }) => (
                         <TextField
                           {...field}
-                          label="Supplier Invoice Serial Number"
+                          label="Reference No"
                           variant="outlined"
                           fullWidth
                           size="medium"
+                          error={!!errors.referenceNo}
+                          helperText={errors.referenceNo?.message}
                           sx={{
-                            borderColor: field.value ? 'green' : 'default',
+                            borderColor: errors.referenceNo ? 'red' : field.value ? 'green' : 'default',
                             '& .MuiOutlinedInput-notchedOutline': {
-                              borderColor: field.value ? 'green' : 'default',
+                              borderColor: errors.referenceNo ? 'red' : field.value ? 'green' : 'default',
                             }
                           }}
                         />
@@ -949,53 +1003,78 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
               </Grid>
             </CardContent>
           </Card>
+
+          {/* Products Card */}
           <Card sx={{ mt: 4 }}>
             <CardContent className='flex flex-col gap-3'>
+              {/* Product label */}
               <Box>
-                <Typography variant='h5' gutterBottom>
+                 <Typography variant='h5'  gutterBottom>
                   Products
                 </Typography>
-                </Box>
-              <Grid container spacing={3} className='items-center'>
-                <Grid item xs={10} md={5} lg={4}>
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" height={200} />
-                  ) : (
-                    <FormControl className="w-full" variant="outlined" >
-                      <InputLabel size="medium">Select Product</InputLabel>
-                                  <Select
-                        size="medium"
-                        value={selectedProduct}
-                        onChange={(e) => handleProductChange(e.target.value)}
-                        label="Select Product"
-                      >
-                        {productsCloneData.map((product) => (
-                                        <MenuItem key={product._id} value={product._id}>
-                                          {product.name}
-                                        </MenuItem>
-                        ))}
-                                  </Select>
-                                </FormControl>
-                              )}
-                  {errors.items && (
-                    <Typography variant="caption" color="error">
-                      {errors.items.message}
-                    </Typography>
-                  )}
-                </Grid>
-                <Grid item xs={2} md={1} lg={1} className='flex items-center'>
-                  <Link href="/products/product-add" passHref>
-                    <CustomIconButtonTwo size='large' variant='outlined' color='primary' className='min-is-fit'>
-                      <i className='ri-add-line' />
-                    </CustomIconButtonTwo>
-                  </Link>
-                </Grid>
+              </Box>
+
+              {/* Products selector and table */}
+
+                  <Grid container spacing={3} className='items-center'>
+              <Grid item xs={10} md={5} lg={4}>
+                {isLoading ? (
+                  <Skeleton variant="rectangular" height={200} />
+                ) : (
+
+                     <FormControl className="w-full" variant="outlined" >
+                        <InputLabel size="medium">Select Product</InputLabel>
+                        <Select
+                          size="medium"
+                          value={selectedProduct}
+                          onChange={(e) => handleProductChange(e.target.value)}
+                          label="Select Product"
+                        >
+                          {productsCloneData.map((product) => (
+                            <MenuItem key={product._id} value={product._id}>
+                              {product.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                )}
+                {errors.items && (
+                  <Typography variant="caption" color="error">
+                    {errors.items.message}
+                  </Typography>
+                )}
               </Grid>
+
+
+
+                    <Grid item xs={2} md={1} lg={1} className='flex items-center'>
+
+                          <Link  href="/products/product-add" passHref>
+
+                         <CustomIconButtonTwo size='large' variant='outlined' color='primary' className='min-is-fit'>
+              <i className='ri-add-line' />
+            </CustomIconButtonTwo>
+
+
+                    </Link>
+
+
+
+
+
+
+                    </Grid>
+
+                    </Grid>
+
+
+              {/* Items Table */}
               <Box className='border rounded overflow-hidden'>
                 <TableContainer
                   sx={{
                     maxWidth: '100%',
                     overflowX: 'auto',
+                    // Add smooth scrolling
                     '&::-webkit-scrollbar': {
                       height: 8
                     },
@@ -1009,14 +1088,16 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                     size='small'
                     sx={{
                       minWidth: {
-                        xs: 650,
-                        sm: 750,
-                        md: '100%'
+                        xs: 650, // Minimum width on extra-small screens
+                        sm: 750, // Minimum width on small screens
+                        md: '100%' // Full width on medium and up
                       },
                       '& .MuiTableCell-root': {
                         borderColor: theme => alpha(theme.palette.secondary.main, 0.15),
+                        // Responsive padding
                         px: { xs: 1, sm: 2, md: 3 },
                         py: { xs: 1, sm: 1.5 },
+                        // Responsive text size
                         fontSize: { xs: '0.75rem', sm: '0.875rem' }
                       }
                     }}
@@ -1027,14 +1108,14 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                       }}
                     >
                       <TableRow >
-                        <TableCell sx={{ minWidth: { xs: 120, sm: 150 } }}>Product / Service</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 60, sm: 80 } }}>Unit</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>Quantity</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>Rate</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 100, sm: 120 } }}>Discount</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>VAT</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>Amount</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>Actions</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 120, sm: 150 } }}>Product / Service</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 60, sm: 80 } }}>Unit</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>Quantity</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>Rate</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 100, sm: 120 } }}>Discount</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>VAT</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>Amount</TableCell>
+                        <TableCell  sx={{ minWidth: { xs: 80, sm: 100 } }}>Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1043,12 +1124,12 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                           <TableRow key={item.key}>
                             <TableCell sx={{ maxWidth: { xs: 120, sm: 150 } }}>
                               <Typography noWrap>{item.name}</Typography>
-                          </TableCell>
+                            </TableCell>
                             <TableCell>{item.units}</TableCell>
-                          <TableCell>
-                                <TextField
+                            <TableCell>
+                              <TextField
                                 size='small'
-                                  type="number"
+                                type="number"
                                 value={item.quantity}
                                 onChange={(e) => handleQuantityChange(index, e.target.value)}
                                 inputProps={{
@@ -1063,13 +1144,42 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                                     fontSize: { xs: '0.75rem', sm: '0.875rem' }
                                   }
                                 }}
-                            />
-                          </TableCell>
-                            <TableCell>{renderRateCell(item)}</TableCell>
-                          <TableCell>{renderDiscountCell(item)}</TableCell>
-                            <TableCell>{renderTaxCell(item)}</TableCell>
-                            <TableCell>{renderAmountCell(item)}</TableCell>
-                          <TableCell>
+                              />
+                            </TableCell>
+                            <TableCell>{Number(item.rate).toFixed(2)}</TableCell>
+                            <TableCell>
+                              <Box sx={{
+                                display: 'flex',
+                                flexDirection: { xs: 'column', sm: 'row' },
+                                gap: { xs: 0.5, sm: 1 },
+                                alignItems: { sm: 'center' }
+                              }}>
+                                {Number(item.discount) === 0 ? (
+                                  "0"
+                                ) : Number(item.discountType) === 2 ? (
+                                  <>
+                                    <span>{Number(item.discount)}%</span>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: 'text.secondary',
+                                        display: 'inline-block'
+                                      }}
+                                    >
+                                      ({((Number(item.discount) / 100) * item.rate).toFixed(2)} SAR)
+                                    </Typography>
+                                  </>
+                                ) : (
+                                  <>{Number(item.discount).toFixed(2)} SAR</>
+                                )}
+                              </Box>
+                            </TableCell>
+                            <TableCell>{item.tax.toLocaleString('en-IN', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}</TableCell>
+                            <TableCell>{Number(item.amount).toFixed(2)}</TableCell>
+                            <TableCell>
                               <Box sx={{
                                 display: 'flex',
                                 gap: { xs: 0.5, sm: 1 }
@@ -1078,6 +1188,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                                   onClick={() => handleEditClick(item)}
                                   size="small"
                                   sx={{
+                                    // Use sx for conditional sizing instead
                                     [theme.breakpoints.up('sm')]: {
                                       padding: '8px'
                                     }
@@ -1095,10 +1206,10 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                                   }}
                                 >
                                   <DeleteIcon fontSize="small" />
-                            </IconButton>
+                                </IconButton>
                               </Box>
-                          </TableCell>
-                        </TableRow>
+                            </TableCell>
+                          </TableRow>
                         ))
                       ) : (
                         <TableRow>
@@ -1146,6 +1257,8 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   </Table>
                 </TableContainer>
               </Box>
+
+              {/* Add Totals Section here */}
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
                 <Grid container spacing={2} sx={{ maxWidth: '300px' }}>
                   <Grid item xs={6}>
@@ -1153,10 +1266,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {Number(totals.subtotal || 0).toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
+                      {totals.subtotal.toFixed(2)}
                     </Typography>
                   </Grid>
                   <Grid item xs={6}>
@@ -1164,9 +1274,9 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {Number(totals.vat || 0).toLocaleString('en-IN', {
+                      {totals.vat.toLocaleString('en-IN', {
                         minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
+                        maximumFractionDigits: 2,
                       })}
                     </Typography>
                   </Grid>
@@ -1175,10 +1285,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {Number(totals.totalDiscount || 0).toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
+                      {totals.totalDiscount.toFixed(2)}
                     </Typography>
                   </Grid>
                   <Grid item xs={12}>
@@ -1189,112 +1296,137 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {Number(totals.total || 0).toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
+                      {totals.total.toFixed(2)}
                     </Typography>
                   </Grid>
                 </Grid>
               </Box>
             </CardContent>
           </Card>
+
+          {/* Bottom Section with Bank, Terms, Totals, and Signature */}
           <Grid container spacing={4} sx={{ mt: 4 }} className='justify-between'>
+            {/* Left Side - Bank and Terms */}
             <Grid item xs={12} md={6} lg={6}>
               <Card >
                 <CardContent>
                   <Grid container spacing={3}>
+
                     <Grid item xs={12} md={12}>
+
                       <Typography variant='h5'>Bank & Notes</Typography>
+
                     </Grid>
+
                     <Grid item xs={12} md={12}>
-                      <Grid container spacing={4} alignItems='center'>
-                        <Grid item xs={7} md={7} lg={7}>
-                  <Controller
-                    name="bank"
-                    control={control}
-                    render={({ field }) => (
-                              <FormControl variant='outlined' fullWidth>
-                        <InputLabel>Bank Account</InputLabel>
-                                <Select
-                                  label='Bank Account'
-                                  size="medium"
-                                  {...field}>
-                          <MenuItem value="">None</MenuItem>
-                          {banks.map(bank => (
-                            <MenuItem key={bank._id} value={bank._id}>
-                              {bank.bankName} - {bank.accountNumber}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-                        <Grid item xs={5} md={2} lg={1} >
-                          <Button
-                            variant="contained"
-                            size='large'
-                            onClick={() => setOpenBankModal(true)}
-                            startIcon={<Icon icon="mdi:bank-outline" width='25px' />}
-                            sx={{ whiteSpace: 'nowrap' }}
-                          >
-                            Add Bank
-                          </Button>
-                        </Grid>
-                      </Grid>
+
+                       <Grid container spacing={4} alignItems='center'>
+
+                          <Grid item xs={7} md={7} lg={7}>
+                            <Controller
+                          name="bank"
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl variant='outlined' fullWidth>
+                              <InputLabel>Bank Account</InputLabel>
+                              <Select
+                                 label='Bank Account'
+                                 size="medium"
+                              {...field}>
+                                <MenuItem value="">None</MenuItem>
+                                {banks.map(bank => (
+                                  <MenuItem key={bank._id} value={bank._id}>
+                                    {bank.bankName} - {bank.accountNumber}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          )}
+                        />
+                          </Grid>
+
+                          <Grid item xs={5} md={2} lg={1} >
+
+                            <Button
+
+                          variant="contained"
+                          size='large'
+                          onClick={() => setOpenBankModal(true)}
+                          startIcon={<Icon  icon="mdi:bank-outline" width='25px' />}
+                          sx={{  whiteSpace: 'nowrap' }}
+                          // className='max-sm:is-full is-auto'
+                        >
+                          Add Bank
+                        </Button>
+
+                          </Grid>
+
+
+                       </Grid>
+
+
                     </Grid>
                     <Grid item xs={11} md={10} lg={9.5}>
-                  <Controller
-                    name="notes"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                            variant={'standard'}
-                        {...field}
-                        label="Notes"
-                        multiline
+                      <Controller
+                        name="notes"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                          variant={'standard'}
+                            {...field}
+                            label="Notes"
+                            multiline
                             minRows={1}
                             maxRows={4}
-                        fullWidth
+                            fullWidth
+                          />
+                        )}
                       />
-                    )}
-                  />
-                </Grid>
+                    </Grid>
                     <Grid item xs={11} md={10} lg={9.5}>
-                  <Controller
-                    name="termsAndCondition"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
+                      <Controller
+                        name="termsAndCondition"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
                             variant={'standard'}
-                        label="Terms and Conditions"
-                        multiline
+                            label="Terms and Conditions"
+                             multiline
                             minRows={1}
                             maxRows={4}
-                        fullWidth
+                            fullWidth
+                          />
+                        )}
                       />
-                    )}
-                  />
-                </Grid>
-              </Grid>
+                    </Grid>
+                  </Grid>
                 </CardContent>
               </Card>
             </Grid>
+
+            {/* Right Side - Totals and Signature */}
             <Grid item xs={12} md={6} lg={6}>
               <Card>
                 <CardContent>
-                  {renderSignatureSection()}
+
+
+                    {/* Signature Section */}
+
+                      {renderSignatureSection()}
+
+
                 </CardContent>
               </Card>
             </Grid>
           </Grid>
+
+          {/* Form Actions */}
           <Box className="mt-6 flex justify-end gap-2">
             <Button
               variant="outlined"
               color="secondary"
-              onClick={() => router.push('/purchases/purchase-list')}
+              onClick={() => router.push('/purchase-orders/order-list')}
             >
               Cancel
             </Button>
@@ -1303,19 +1435,24 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
               variant="contained"
               color="primary"
             >
-              Create Purchase
+              Create Purchase Order
             </Button>
           </Box>
         </form>
+
+        {/* Signature Dialog */}
         <Dialog open={showSignatureDialog} onClose={handleCloseSignatureDialog}>
           <DialogTitle>Draw Your Signature</DialogTitle>
           <DialogContent>
             <SignaturePad
+
               ref={signaturePadRef}
               canvasProps={{
                 width: 500,
                 height: 200,
+                // className: 'signature-canvas',
                 className:'border  rounded-md'
+
               }}
             />
           </DialogContent>
@@ -1327,6 +1464,8 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Result Dialog */}
         <Dialog
           open={showResultDialog}
           onClose={() => setShowResultDialog(false)}
@@ -1351,14 +1490,17 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
           </DialogContent>
           <DialogActions>
             {submissionResult?.includes('success') ? (
-              <Button
-                onClick={() => router.push('/purchases/purchase-list')}
-                variant="contained"
-                color="primary"
-                startIcon={<Icon icon="mdi:format-list-bulleted" />}
-              >
-                Go to Purchase List
-              </Button>
+              <>
+                <Button
+                  onClick={() => router.push('/purchase-orders/order-list')}
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Icon icon="mdi:format-list-bulleted" />}
+                >
+                  Go to Order List
+                </Button>
+
+              </>
             ) : (
               <Button
                 onClick={() => setShowResultDialog(false)}
@@ -1370,28 +1512,48 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
             )}
           </DialogActions>
         </Dialog>
-        <Dialog open={openEditModal} onClose={handleCloseEditModal} maxWidth="sm">
+
+        {/* Edit Item Dialog */}
+        <Dialog open={openEditModal} onClose={handleCloseEditModal}
+        maxWidth="sm"
+
+        >
+
+
+
           <DialogContent>
             {editModalData && (
-                <Grid container spacing={3}>
+              <Grid container spacing={3}>
+
                 <Grid item xs={12} >
-                  <Typography variant='h5' color='primary' className=''>Edit Item</Typography>
+                <Typography variant='h5' color='primary' className=''>Edit Item</Typography>
+
                 </Grid>
-                <Grid item xs={12} md={5} lg={5} >
-                  <FormControl fullWidth>
-                    <TextField
-                      size='small'
-                      label="Rate"
-                      type="number"
-                      value={editModalData.rate}
-                      onChange={(e) => setEditModalData({
-                        ...editModalData,
-                        rate: e.target.value
-                      })}
-                    />
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6} lg={6}>
+
+
+
+                      {/* Rate */}
+                      <Grid item xs={12} md={5} lg={5} >
+                    <FormControl        fullWidth>
+
+                  <TextField
+
+                    size='small'
+                    label="Rate"
+                    type="number"
+                    value={editModalData.rate}
+                    onChange={(e) => setEditModalData({
+                      ...editModalData,
+                      rate: e.target.value
+                    })}
+                  />
+
+                 </FormControl>
+                      </Grid>
+
+
+                      {/* VAT */}
+                  <Grid item xs={12} md={6} lg={6}>
                   <FormControl size='small' fullWidth>
                     <InputLabel>VAT (%)</InputLabel>
                     <Select
@@ -1411,42 +1573,57 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                           {tax.name} ({tax.taxRate}%)
                         </MenuItem>
                       ))}
-                          </Select>
-                        </FormControl>
-                  </Grid>
+                    </Select>
+                  </FormControl>
+
+
+
+
+                   </Grid>
+
+                {/* Discount  */}
                 <Grid item xs={12} md={5} lg={5}>
-                            <TextField
-                    size='small'
-                              fullWidth
-                    label='Discount'
-                    type="number"
-                    value={editModalData.discount}
-                    onChange={(e) => setEditModalData({
-                      ...editModalData,
-                      discount: e.target.value
-                    })}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment
-                          className='text-secondary'
-                          position="end"
-                          color='secondary'
-                        >
-                          {Number(editModalData.discountType) === 2 ?
-                            <>
+
+       <TextField
+                      size='small'
+                        fullWidth
+                        label='Discount'
+                        type="number"
+                        value={editModalData.discount}
+                        onChange={(e) => setEditModalData({
+                          ...editModalData,
+                          discount: e.target.value
+                        })}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment
+                            className='text-secondary'
+                              position="end"
+                              color='secondary'
+
+                            >
+                              {Number(editModalData.discountType) === 2 ?
+                              <>
                               <Typography className='text-[16px]'>
-                                %
+                               %
                               </Typography>
+
                               <Typography className='text-[13px] ml-1'>
                                 ({((Number(editModalData.rate) || 0) * (Number(editModalData.discount) || 0) / 100).toFixed(2)} SAR)
                               </Typography>
-                            </>
-                            : 'SAR'}
-                        </InputAdornment>
-                      ),
-                    }}
-                        />
-                      </Grid>
+
+                              </>
+
+                                                            : 'SAR'}
+                            </InputAdornment>
+
+
+                          ),
+                        }}
+                      />
+                </Grid>
+
+                {/* Discount Type */}
                 <Grid item xs={12} md={6} lg={6}>
                   <FormControl component="fieldset" className="h-full flex items-center">
                     <RadioGroup
@@ -1459,36 +1636,67 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                       className="flex items-center"
                     >
                       <Box sx={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <FormControlLabel
-                          value={2}
-                          control={<Radio
-                            icon={<Icon icon="ri:discount-percent-line" width={32} />}
-                            checkedIcon={<Icon icon="ri:discount-percent-line" width={32} />}
-                            size="medium"
-                          />}
-                          label="Percentage"
-                        />
-                        <FormControlLabel
-                          value={3}
-                          control={<Radio
-                            icon={<Icon icon="mdi:cash-multiple" width={32} />}
-                            checkedIcon={<Icon icon="mdi:cash-multiple" width={32} />}
-                            size="medium"
-                          />}
-                          label="Fixed"
-                        />
+
+                          <FormControlLabel
+                            value={2}
+                            control={
+                            <Radio
+                              icon={
+                                <Icon
+                                icon="ri:discount-percent-line"
+                                width={32}
+                                />
+                                  }
+                                checkedIcon={
+                                <Icon
+                                icon="ri:discount-percent-line"
+                                width={32}
+                                />
+                                  }
+                              size="medium"
+                                  />}
+                            label="Percentage"
+                          />
+
+
+
+                          <FormControlLabel
+                            value={3}
+                            control={
+                            <Radio
+                              icon={
+                                <Icon
+                                icon="mdi:cash-multiple"
+                                width={32}
+                                />
+                                  }
+                                checkedIcon={
+                                <Icon
+                                icon="mdi:cash-multiple"
+                                width={32}
+                                />
+                                  }
+                              size="medium"
+                                  />}
+                            label="Fixed"
+                          />
+
+
                       </Box>
                     </RadioGroup>
                   </FormControl>
-                    </Grid>
                 </Grid>
+
+              </Grid>
             )}
           </DialogContent>
+
+
           <DialogActions>
             <Button onClick={handleCloseEditModal} color="secondary">
               Cancel
             </Button>
-                <Button
+            <Button
               onClick={() => {
                 handleEditModalSave();
                 handleCloseEditModal();
@@ -1500,7 +1708,11 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Add Snackbar component */}
         {renderSnackbars()}
+
+        {/* Add Bank Modal */}
         <Modal open={openBankModal} onClose={() => setOpenBankModal(false)}>
           <Box
             sx={{
@@ -1575,7 +1787,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   Save
                 </Button>
               </Box>
-        </form>
+            </form>
           </Box>
         </Modal>
       </Box>
@@ -1583,4 +1795,4 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
   );
 };
 
-export default AddPurchase;
+export default AddPurchaseOrder

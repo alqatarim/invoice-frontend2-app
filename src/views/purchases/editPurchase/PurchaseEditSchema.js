@@ -1,6 +1,6 @@
 import * as yup from 'yup';
 
-export const PurchaseSchema = yup.object().shape({
+export const PurchaseEditSchema = yup.object().shape({
   vendorId: yup
     .string()
     .required("Choose any vendor"),
@@ -82,6 +82,10 @@ export const PurchaseSchema = yup.object().shape({
     .string()
     .nullable(),
 
+  supplierInvoiceSerialNumber: yup
+    .string()
+    .nullable(),
+
   bank: yup
     .string()
     .nullable(),
@@ -92,7 +96,11 @@ export const PurchaseSchema = yup.object().shape({
 
   termsAndCondition: yup
     .string()
-    .nullable()
+    .nullable(),
+
+  purchaseId: yup
+    .string()
+    .required("Purchase ID is required")
 }, [
   ['signatureName', 'sign_type'],
   ['signatureData', 'sign_type'],

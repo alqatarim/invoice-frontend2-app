@@ -1,6 +1,6 @@
 import * as yup from 'yup';
 
-export const PurchaseSchema = yup.object().shape({
+export const EditPurchaseOrderSchema = yup.object().shape({
   vendorId: yup
     .string()
     .required("Choose any vendor"),
@@ -67,15 +67,15 @@ export const PurchaseSchema = yup.object().shape({
     )
     .min(1, "At least one item is required"),
 
-  purchaseDate: yup
+  purchaseOrderDate: yup
     .date()
-    .required("Purchase Date is required")
+    .required("Purchase Order Date is required")
     .typeError("Invalid date format"),
 
   dueDate: yup
     .date()
     .required("Due Date is required")
-    .min(yup.ref('purchaseDate'), "Due date cannot be earlier than purchase order date")
+    .min(yup.ref('purchaseOrderDate'), "Due date cannot be earlier than purchase order date")
     .typeError("Invalid date format"),
 
   referenceNo: yup

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getPurchaseOrderList, getVendors } from '@/app/(dashboard)/purchase-orders/actions';
 import PurchaseOrderList from './PurchaseOrderList';
 
@@ -13,78 +13,35 @@ const PurchaseOrderListIndex = () => {
   const [vendors, setVendors] = useState([]);
   const [filterCriteria, setFilterCriteria] = useState({});
 
-  // Add AbortController for cleanup
-  const abortControllerRef = useRef(null);
+  const fetchVendors = async () => {
+    const vendorsList = await getVendors();
+    setVendors(vendorsList);
+  };
 
-  // Memoized vendors fetch
-  const fetchVendors = useCallback(async () => {
-    try {
-      const vendorsList = await getVendors();
-      if (Array.isArray(vendorsList)) {
-        setVendors(vendorsList);
-      }
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
-    }
-  }, []);
+  useEffect(() => {
+    fetchVendors();
+    fetchOrders();
+  }, [page, pageSize, filterCriteria]);
 
-  // Memoized orders fetch with abort controller
-  const fetchOrders = useCallback(async () => {
-    // Cancel any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-
+  const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await getPurchaseOrderList(
-        page,
-        pageSize,
-        {}, // sortConfig - we'll add this back if needed
-        filterCriteria
-      );
-
-      if (response?.success) {
-        setAllOrders(response.data || []);
-        setTotalCount(response.totalRecords || 0);
-      } else {
-        setAllOrders([]);
-        setTotalCount(0);
+      const response = await getPurchaseOrderList(page, pageSize, {}, filterCriteria);
+      if (response.success) {
+        setAllOrders(response.data);
+        setTotalCount(response.totalRecords);
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        return; // Ignore abort errors
-      }
       console.error('Error fetching purchase orders:', error);
-      setAllOrders([]);
-      setTotalCount(0);
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, filterCriteria]);
+  };
 
-  // Initial data fetch
-  useEffect(() => {
-    fetchVendors();
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  // Fetch orders when dependencies change
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
-
-  const resetAllFilters = useCallback(() => {
+  const resetAllFilters = () => {
     setFilterCriteria({});
     setPage(1);
-  }, []);
+  };
 
   return (
     <PurchaseOrderList

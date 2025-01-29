@@ -1,38 +1,32 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { deletePurchase, getPurchaseDetails, getUnits } from '@/app/(dashboard)/purchases/actions';
+import { deletePurchase, getPurchaseDetails } from '@/app/(dashboard)/purchases/actions';
 import ViewPurchase from '@/views/purchases/viewPurchase/ViewPurchase';
 
 const PurchaseViewIndex = ({ id }) => {
   const [purchaseData, setPurchaseData] = useState(null);
-  const [unitsList, setUnitsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchPurchaseData = async () => {
       try {
-        const [purchaseResponse, unitsResponse] = await Promise.all([
-          getPurchaseDetails(id),
-          getUnits()
-        ]);
-
-        if (purchaseResponse.success) {
-          setPurchaseData(purchaseResponse);
-          setUnitsList(unitsResponse);
+        const response = await getPurchaseDetails(id);
+        if (response.success) {
+          setPurchaseData(response);
         } else {
           setError('Failed to fetch purchase details');
         }
       } catch (error) {
-        setError('Error fetching data');
-        console.error('Error fetching data:', error);
+        setError('Error fetching purchase details');
+        console.error('Error fetching purchase details:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchPurchaseData();
   }, [id]);
 
   const handleDelete = async (id) => {
@@ -56,7 +50,6 @@ const PurchaseViewIndex = ({ id }) => {
   return (
     <ViewPurchase
       purchaseData={purchaseData}
-      unitsList={unitsList}
       onDelete={handleDelete}
     />
   );

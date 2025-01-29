@@ -30,8 +30,7 @@ export async function fetchWithAuth(endpoint, options = {}) {
     response: null
   };
 
-  // console.log(`=== fetchWithAuth [${requestId}] ===`);
-  // console.log(JSON.stringify(logData, null, 2));
+
 
     // Use cached session if available and not expired
   if (!cachedSession || Date.now() > sessionExpiry) {
@@ -60,11 +59,17 @@ export async function fetchWithAuth(endpoint, options = {}) {
       const responseClone = response.clone();
       const responseData = await responseClone.json();
 
-   console.log(`=== Request to ${endpoint} [${requestId}] ===`);
-   console.log('Request Details:', JSON.stringify(logData.request, null, 2));
+  //  console.log(`=== Request to ${endpoint} [${requestId}] ===`);
+
+     //  ============         ===============
+     //  ============         ===============
+  //  console.log('Request Details:', JSON.stringify(logData.request, null, 2));
 
 
    console.log(`=== Response Data from ${endpoint} [${requestId}] ===`);
+
+     //  ============         ===============
+     //  ============         ===============
    console.log(JSON.stringify(responseData, null, 2));
 
       // Update log object with response
