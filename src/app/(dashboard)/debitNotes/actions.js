@@ -220,57 +220,87 @@ export async function getDebitNoteDetails(id) {
   }
 }
 
-export async function updateDebitNote(id, data, signatureURL) {
+export async function updateDebitNote(data, signatureURL) {
   try {
-    console.log('Updating debit note data:', data);
+    // Log the data safely without JSON parsing
+    console.log('UPDATING DEBIT NOTE DATA:', data);
+    if (data?.items) {
+      console.log('Nested Items:', data.items);
+    }
 
     const formData = new FormData();
 
     // Add items data with proper format
-    data.items.forEach((item, i) => {
-      Object.keys(item).forEach(key => {
-        if (item[key] !== undefined && item[key] !== null) {
-          if (key === 'taxInfo') {
-            const taxInfoStr = typeof item[key] === 'string'
-              ? item[key]
-              : JSON.stringify(item[key]);
-            formData.append(`items[${i}][${key}]`, taxInfoStr);
-          } else {
-            formData.append(`items[${i}][${key}]`, item[key]);
-          }
-        }
-      });
-    });
+    if (Array.isArray(data.items)) {
+      data.items.forEach((item, i) => {
+        Object.keys(item).forEach(key => {
 
-    // Add all other fields with proper formatting
-    Object.keys(data).forEach(key => {
-      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
-        if (key === 'dueDate' || key === 'debitNoteDate') {
-          formData.append(key, new Date(data[key]).toISOString());
-        } else if (key === 'taxableAmount' || key === 'TotalAmount' || key === 'vat' || key === 'totalDiscount') {
-          formData.append(key, Number(data[key]).toString());
-        } else {
-          formData.append(key, data[key]);
-        }
-      }
-    });
+      formData.append(`items[${i}][productId]`, item.productId);
+      formData.append(`items[${i}][quantity]`, item.quantity);
+      formData.append(`items[${i}][unit]`, item?.unit);
+      formData.append(`items[${i}][rate]`, item?.rate);
+      formData.append(`items[${i}][discount]`, item?.discount);
+      formData.append(`items[${i}][tax]`, item?.tax);
+      formData.append(`items[${i}][amount]`, item?.amount);
+      formData.append(`items[${i}][name]`, item?.name);
+
+
+
+          if (item[key] !== undefined && item[key] !== null) {
+            if (key === 'taxInfo') {
+              const taxInfoStr = typeof item[key] === 'string'
+                ? item[key]
+                : JSON.stringify(item[key]);
+              formData.append(`items[${i}][${key}]`, taxInfoStr);
+            }
+          }
+        });
+      });
+    }
+
 
     // Ensure required fields are present
+    formData.append('debitNoteDate', dayjs(data?.debitNoteDate || new Date()).toISOString());
+    formData.append('debit_note_id', data.debit_note_id);
+    formData.append("dueDate", dayjs(data?.dueDate || new Date()).toISOString());
+    formData.append("referenceNo", data.referenceNo);
+    formData.append("taxableAmount", data.taxableAmount);
+    formData.append("TotalAmount", data.TotalAmount);
+    formData.append("vat", data.vat);
+    formData.append("totalDiscount", data.totalDiscount);
+    formData.append("bank", data.bank?._id || "");
+    formData.append("notes", data.notes);
+    formData.append("termsAndCondition", data.termsAndCondition);
+    formData.append('purchaseOrderDate', data.purchaseOrderDate);
+    formData.append('vendorId', data.vendorId);
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type || 'eSignature');
+    formData.append('sign_type', data.sign_type);
 
     // Handle signature
-    if (signatureURL) {
+
+      if (data.sign_type === "eSignature") {
+      formData.append("signatureName", data.signatureName || "");
+
+      if (signatureURL) {
       try {
         const blob = await dataURLtoBlob(signatureURL);
-        formData.append('signatureImage', blob, 'signature.png');
+        formData.append("signatureImage", blob);
       } catch (error) {
         console.error('Error processing signature:', error);
         throw new Error('Failed to process signature');
       }
     }
 
-    const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.UPDATE}/${id}`, {
+
+    } else {
+
+      formData.append("signatureId", data.signatureId || "");
+    }
+
+    console.log('Submitting purchase order data:', Object.fromEntries(formData));
+
+
+    const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.UPDATE}/${data.id}`, {
       method: 'PUT',
       body: formData
     });

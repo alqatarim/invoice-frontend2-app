@@ -1,5 +1,5 @@
 import React from 'react';
-import EditDebitNoteIndex from '@/views/debitNotes/editPurchaseReturn';
+import EditPurchaseReturnIndex from '@/views/debitNotes/editPurchaseReturn/index';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
@@ -10,7 +10,7 @@ export const metadata = {
 const EditDebitNotePage = ({ params }) => {
   return (
     <ProtectedComponent>
-      <EditDebitNoteIndex debitNoteId={params.id} />
+      <EditPurchaseReturnIndex id={params.id} />
     </ProtectedComponent>
   );
 };

@@ -94,7 +94,7 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
   <MenuSection label="Purchases">
     <MenuItem href="/purchase-orders/order-list">Purchase Orders</MenuItem>
     <MenuItem href="/purchases/purchase-list">Purchases</MenuItem>
-    <MenuItem href="/debit-notes/note-list">Purchase Return</MenuItem>
+    <MenuItem href="/debitNotes/purchaseReturn-list">Purchase Return</MenuItem>
   </MenuSection>
   <MenuSection label="Finance & Accounts">
     <MenuItem href="/expenses">Expenses</MenuItem>

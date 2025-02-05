@@ -7,6 +7,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton'
 import CustomIconButtonTwo from '@core/components/mui/CustomIconButtonTwo'
+import { alpha } from '@mui/material/styles';
 import {
 FormLabel,
   Box,
@@ -38,9 +39,10 @@ FormLabel,
   Skeleton,
   Divider,
   Modal,
-  Snackbar,
+  InputAdornment,
   Alert,
-  InputAdornment
+  Snackbar,
+  Switch
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -59,40 +61,40 @@ import { PurchaseReturnSchema } from '@/views/debitNotes/addPurchaseReturn/Purch
 import SignaturePad from 'react-signature-canvas';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { alpha } from '@mui/material/styles';
 import { addBank } from '@/app/(dashboard)/purchase-orders/actions';
-import { bgBG } from '@mui/x-date-pickers/locales';
-
-
 
 // Updated calculation functions
 function calculateItemValues(item) {
   if (!item) return { rate: 0, discountValue: 0, tax: 0, amount: 0 };
 
   const quantity = Number(item.quantity) || 1;
-  const purchasePrice = Number(parseFloat(item.purchasePrice || item.rate).toFixed(2)) || 0;
-  const rate = parseFloat((purchasePrice * quantity).toFixed(2));
-  let discountValue = 0;
+  // Use form_updated_rate if rate was edited
+  const baseRate = item.isRateFormUpadted ? item.form_updated_rate : (item.purchasePrice || item.rate);
+  const rate = parseFloat((baseRate * quantity).toFixed(2));
 
-  // Calculate discount based on type
-  if (parseInt(item.discountType) === 2) { // percentage discount
-    discountValue = parseFloat(((Number(item.discount) / 100) * rate).toFixed(2));
-  } else { // fixed discount
-    discountValue = parseFloat(Number(item.discount || 0).toFixed(2));
+  // Determine discount type and value
+  const discountType = item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType;
+  const discountValue = item.isRateFormUpadted ? item.form_updated_discount : item.discount;
+
+  let calculatedDiscount;
+  if (parseInt(discountType) === 2) { // percentage
+    calculatedDiscount = parseFloat((rate * (discountValue / 100)).toFixed(2));
+  } else { // fixed
+    calculatedDiscount = parseFloat(Number(discountValue).toFixed(2));
   }
 
   // Calculate tax
-  const taxRate = Number(item.taxInfo?.taxRate || item.tax || 0);
-  const discountedAmount = parseFloat((rate - discountValue).toFixed(2));
-  const tax = parseFloat(((taxRate / 100) * discountedAmount).toFixed(2));
+  const taxRate = item.isRateFormUpadted ? item.form_updated_tax : (item.taxInfo?.taxRate || item.tax || 0);
+  const discountedAmount = parseFloat((rate - calculatedDiscount).toFixed(2));
+  const tax = parseFloat((discountedAmount * (taxRate / 100)).toFixed(2));
 
   // Calculate final amount
   const amount = parseFloat((discountedAmount + tax).toFixed(2));
 
   return {
     rate,
+    discountValue: calculatedDiscount,
     tax,
-    discountValue,
     amount
   };
 }
@@ -111,16 +113,18 @@ function calculateTotals(items) {
     total += amount;
   });
 
+  // Add React-style precision handling
   return {
-    subtotal: Number(subtotal),
-    totalDiscount: Number(totalDiscount),
-    vat: Number(vat),
-    total: Number(total)
+    subtotal: parseFloat(subtotal.toFixed(2)),
+    totalDiscount: parseFloat(totalDiscount.toFixed(2)),
+    vat: parseFloat(vat.toFixed(2)),
+    total: parseFloat(total.toFixed(2))
   };
 }
 
-const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatures, purchaseOrderNumber }) => {
+const AddPurchaseReturn = ({ onSave, vendors, products, taxRates, banks, signatures, debitNoteNumber, enqueueSnackbar,  closeSnackbar }) => {
   const router = useRouter();
+
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -153,8 +157,6 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
       dueDate: dayjs().add(30, 'days'),
       items: [],
       sign_type: 'eSignature',
-      // signatureId: '',
-      // signatureName: '',
       vendorId: '',
       referenceNo: '',
       bank: '',
@@ -163,7 +165,13 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
     }
   });
 
-  const [totals, setTotals] = useState({ subtotal: 0, totalDiscount: 0, vat: 0, total: 0 });
+  const [totals, setTotals] = useState({
+    subtotal: 0,
+    totalDiscount: 0,
+    vat: 0,
+    total: 0,
+    roundOff: 0
+  });
 
   const handleRemoveItem = (index) => {
     try {
@@ -204,7 +212,10 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
       // Update all related state in a single batch
       setItems(currentItems);
-      setTotals(calculateTotals(currentItems));
+      setTotals(prev => ({
+        ...calculateTotals(currentItems),
+        roundOff: prev.roundOff
+      }));
       setValue('items', currentItems);
 
     } catch (error) {
@@ -212,194 +223,113 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
     }
   };
 
-  const handleProductChange = (productId) => {
-    try {
-      if (!productId) return;
-
-      const selectedProduct = productsCloneData.find(prod => prod._id === productId);
-      if (!selectedProduct) return;
-
-      // Remove selected product from clone data
-      setProductsCloneData(prev => prev.filter(p => p._id !== productId));
-
-      // Create new item with initial values
-      const newItem = {
-        key: Date.now(), // Use timestamp for unique key instead of array length
-        name: selectedProduct.name,
-        productId: selectedProduct._id,
-        units: selectedProduct.units?.name,
-        unit: selectedProduct.units?._id,
-        quantity: 1,
-        discountType: selectedProduct.discountType || 3,
-        discount: Number(selectedProduct.discountValue || 0),
-        purchasePrice: Number(selectedProduct.purchasePrice || 0),
-        rate: Number(selectedProduct.purchasePrice || 0),
-        taxInfo: selectedProduct.tax || null,
-        tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0,
-        isRateFormUpadted: false,
-        form_updated_discounttype: selectedProduct.discountType || 3,
-        form_updated_discount: Number(selectedProduct.discountValue || 0),
-        form_updated_rate: Number(selectedProduct.purchasePrice || 0),
-        form_updated_tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0
-      };
-
-      // Calculate values
-      const rateValue = Number(newItem.quantity) * Number(newItem.purchasePrice);
-      let discountedAmount;
-
-      if (parseInt(newItem.discountType) === 2) {
-        discountedAmount = rateValue - (rateValue * (Number(newItem.discount) / 100));
-      } else {
-        discountedAmount = rateValue - Number(newItem.discount);
-      }
-
-      newItem.tax = (discountedAmount * (Number(newItem.tax) / 100));
-      newItem.amount = discountedAmount + newItem.tax;
-
-      // Update state
-      setItems(prevItems => {
-        const newItems = [...prevItems, newItem];
-        console.log('Updated items after adding:', newItems);
-        return newItems;
-      });
-
-      // Update other state
-      setTotals(prevTotals => {
-        const newTotals = calculateTotals([...items, newItem]);
-        console.log('Updated totals:', newTotals);
-        return newTotals;
-      });
-
-      setValue('items', [...items, newItem]);
-      setSelectedProduct('');
-
-    } catch (error) {
-      console.error('Error in handleProductChange:', error);
-    }
-  };
 
 
+const handleProductChange = (productId) => {
+  try {
+    if (!productId) return;
 
-  // Add this new state for managing multiple snackbars
-  const [snackbars, setSnackbars] = useState([]);
+    const selectedProduct = productsCloneData.find(prod => prod._id === productId);
+    if (!selectedProduct) return;
 
-  // Replace the old handleError function with this new one
-  const handleError = (errors) => {
-    const errorCount = Object.keys(errors).length;
+    // Remove selected product from clone data
+    setProductsCloneData(prev => prev.filter(p => p._id !== productId));
 
-    if (errorCount === 0) return;
-
-    let message;
-    if (errorCount === 1) {
-      // For single error, be specific
-      const [field, error] = Object.entries(errors)[0];
-      const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1');
-      message = error?.message || `Please review the ${fieldName} field`;
-    } else {
-      // For multiple errors, group by type if possible
-      const hasRequiredFieldErrors = Object.values(errors).some(error =>
-        error?.message?.toLowerCase().includes('required')
-      );
-      const hasInvalidFieldErrors = Object.values(errors).some(error =>
-        error?.message?.toLowerCase().includes('invalid')
-      );
-
-      if (hasRequiredFieldErrors && hasInvalidFieldErrors) {
-        message = `Please fill in required fields and correct invalid entries`;
-      } else if (hasRequiredFieldErrors) {
-        message = `Please fill in all required fields`;
-      } else if (hasInvalidFieldErrors) {
-        message = `Please correct invalid entries`;
-      } else {
-        message = `Please review ${errorCount} highlighted fields`;
-      }
-    }
-
-    const newSnackbar = {
-      id: Date.now(),
-      message,
-      severity: 'error',
-      open: true
+    // Create new item with initial values
+    const newItem = {
+      key: Date.now(),
+      name: selectedProduct.name,
+      productId: selectedProduct._id,
+      units: selectedProduct.units?.name,
+      unit: selectedProduct.units?._id,
+      quantity: 1,
+      discountType: selectedProduct.discountType || 3,
+      discount: Number(selectedProduct.discountValue || 0),
+      purchasePrice: Number(selectedProduct.purchasePrice || 0),
+      rate: Number(selectedProduct.purchasePrice || 0),
+      taxInfo: selectedProduct.tax || null,
+      tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0,
+      isRateFormUpadted: false,
+      form_updated_discounttype: selectedProduct.discountType || 3,
+      form_updated_discount: Number(selectedProduct.discountValue || 0),
+      form_updated_rate: Number(selectedProduct.purchasePrice || 0),
+      form_updated_tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0
     };
 
-    setSnackbars(prev => [...prev, newSnackbar]);
+    // Calculate initial values for the new item
+    const { rate, discountValue, tax, amount } = calculateItemValues(newItem);
+
+    // Update state with new item and recalculate totals
+    setItems(prevItems => {
+      const updatedItems = [...prevItems, { ...newItem, rate, discountValue, tax, amount }];
+      setTotals(calculateTotals(updatedItems));
+      setValue('items', updatedItems, { shouldValidate: true });
+      return updatedItems;
+    });
+
+    setSelectedProduct('');
+  } catch (error) {
+    console.error('Error in handleProductChange:', error);
+  }
+};
+
+
+
+  const handleError = (errors) => {
+    // First close any existing snackbars
+    closeSnackbar();
+
+    // Add a small delay before showing new snackbars
+    setTimeout(() => {
+      const errorCount = Object.keys(errors).length;
+      if (errorCount === 0) return;
+
+      Object.values(errors).forEach((error, index) => {
+        enqueueSnackbar(error.message, {
+          variant: 'error',
+          preventDuplicate: true,
+          key: `error-${index}-${Date.now()}`, // Add unique key
+          anchorOrigin: {
+            vertical: 'top',
+            horizontal: 'right'
+          }
+        });
+      });
+    }, 200); // Small delay to ensure previous snackbars are closed
   };
-
-  // Add this new handler for closing individual snackbars
-  const handleSnackbarClose = (id) => (event, reason) => {
-    if (reason === 'clickaway') return;
-
-    setSnackbars(prev => prev.filter(snackbar => snackbar.id !== id));
-  };
-
-  // Replace the old Snackbar component with this new implementation
-  const renderSnackbars = () => (
-    <>
-      {snackbars.map((snackbar, index) => (
-        <Snackbar
-          key={snackbar.id}
-          open={snackbar.open}
-          autoHideDuration={2000}
-          onClose={handleSnackbarClose(snackbar.id)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          // sx={{
-          //   maxWidth: '400px',
-          //   // Reduce vertical spacing between snackbars
-          //   top: `${(index * 48) + 24}px !important` // Reduced from 80 to 48
-          // }}
-        >
-          <Alert
-            onClose={handleSnackbarClose(snackbar.id)}
-            severity={snackbar.severity}
-            variant="filled"
-            sx={{
-              width: '100%',
-
-            }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      ))}
-    </>
-  );
 
   const onSubmit = async (data) => {
     try {
-      // Trigger validation for all fields and wait for it to complete
-      const isFormValid = await trigger();
+      // Clear any existing snackbars before validation
+      closeSnackbar();
 
-      // Check if there are any validation errors
-      if (!isFormValid) {
+      // Trigger validation for all fields including items
+      const isValid = await trigger();
+      if (!isValid) {
         handleError(errors);
         return;
       }
 
-      const purchaseOrderData = {
+      const debitNoteData = {
         items: items.map(item => ({
-          key: item.key,
-          name: item.name,
           productId: item.productId,
           quantity: item.quantity,
-          units: item.units || '',
           unit: item.unit || '',
           rate: item.rate,
           discount: item.discount,
           tax: item.tax,
-          taxInfo: item.taxInfo ? JSON.stringify(item.taxInfo) : null,
           amount: item.amount,
-          discountType: item.discountType,
-          isRateFormUpadted: item.isRateFormUpadted,
-          form_updated_discounttype: item.form_updated_discounttype,
-          form_updated_discount: item.form_updated_discount,
-          form_updated_rate: item.form_updated_rate,
-          form_updated_tax: item.form_updated_tax,
+          name: item.name,
+          discountValue: item.discount,
+          discountAmount: item.discountValue,
+          alertQuantity: item.quantity,
+          units: item.units || ''
         })),
         vendorId: data.vendorId || '',
+        debit_note_id: debitNoteNumber || '',
         dueDate: data.dueDate.toISOString(),
-        purchaseOrderDate: data.purchaseOrderDate.toISOString(),
+        purchaseOrderDate: data.purchaseReturnDate.toISOString(),
         referenceNo: data.referenceNo || '',
-        purchaseOrderId: purchaseOrderNumber || '',
         taxableAmount: totals.subtotal || 0,
         TotalAmount: totals.total || 0,
         vat: totals.vat || 0,
@@ -409,30 +339,33 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
         notes: data.notes || '',
         termsAndCondition: data.termsAndCondition || '',
         sign_type: data.sign_type,
+        discountType: 143,
+        discount: 10,
         ...(data.sign_type === 'manualSignature'
           ? { signatureId: data.signatureId }
-          : { signatureName: data.signatureName })
+          : {
+              signatureName: data.signatureName,
+              signatureImage: signatureDataURL
+            })
       };
 
       // Continue with form submission
       const response = await onSave(
-        purchaseOrderData,
+        debitNoteData,
         data.sign_type === 'eSignature' ? signatureDataURL : null
       );
 
-      if (response) {
-        setSubmissionResult(
-          response.success
-            ? `Purchase order ${purchaseOrderNumber} created successfully!`
-            : `Failed to create purchase order ${purchaseOrderNumber}. Please try again.`
-        );
+      // Only show dialog on success
+      if (response?.success) {
+        setSubmissionResult({
+          success: true,
+          message: `Debit note ${debitNoteNumber} created successfully!`
+        });
         setShowResultDialog(true);
       }
 
     } catch (error) {
       console.error('Form submission error:', error);
-      setSubmissionResult(`Error creating purchase order ${purchaseOrderNumber}: ${error.message}`);
-      setShowResultDialog(true);
     }
   };
 
@@ -471,9 +404,27 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
     } else {
       field.onChange('');
       setSelectedSignature(null);
+      trigger('signatureId');
     }
   };
 
+  const handleSignTypeChange = (e) => {
+    const newValue = e.target.value;
+    setValue('sign_type', newValue);
+    setSignType(newValue);
+
+    if (newValue === 'eSignature') {
+      setValue('signatureId', '');
+      setSelectedSignature(null);
+    } else {
+      setValue('signatureName', '');
+      setValue('signatureData', '');
+      setSignatureDataURL(null);
+    }
+
+    // Trigger validation for all signature-related fields
+    trigger(['sign_type', 'signatureName', 'signatureData', 'signatureId']);
+  };
 
   const handleEditModalSave = () => {
     if (!editModalData) return;
@@ -484,41 +435,35 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
     const item = newItems[index];
 
-    // Save form updated values with 2 decimal places
+    // Store all form updates explicitly
     item.form_updated_rate = parseFloat(Number(editModalData.rate).toFixed(2));
     item.form_updated_discount = parseFloat(Number(editModalData.discount).toFixed(2));
     item.form_updated_discounttype = editModalData.discountType;
     item.form_updated_tax = parseFloat(Number(editModalData.taxInfo?.taxRate || 0).toFixed(2));
     item.isRateFormUpadted = true;
 
-    // Update tax info
-    item.taxInfo = editModalData.taxInfo;
+    // Directly update calculated fields using calculateItemValues
+    const { rate, discountValue, tax, amount } = calculateItemValues({
+      ...item,
+      quantity: item.quantity,
+      purchasePrice: item.form_updated_rate,
+      discountType: item.form_updated_discounttype,
+      discount: item.form_updated_discount,
+      taxInfo: { taxRate: item.form_updated_tax }
+    });
 
-    // Calculate new values based on quantity
-    const quantity = Number(item.quantity);
-    const rateValue = parseFloat((quantity * Number(editModalData.rate)).toFixed(2));
-
-    // Calculate discount
-    let calculatedDiscount;
-    if (parseInt(editModalData.discountType) === 2) { // percentage
-      calculatedDiscount = parseFloat((rateValue * (Number(editModalData.discount) / 100)).toFixed(2));
-    } else { // fixed
-      calculatedDiscount = parseFloat(Number(editModalData.discount).toFixed(2));
-    }
-
-    // Calculate tax and final amount
-    const discountedAmount = parseFloat((rateValue - calculatedDiscount).toFixed(2));
-    const taxAmount = parseFloat((discountedAmount * (Number(editModalData.taxInfo?.taxRate || 0) / 100)).toFixed(2));
-
-    // Update item with new values
-    item.rate = rateValue;
-    item.discount =  editModalData.discount
-    item.discountType = editModalData.discountType;
-    item.tax = taxAmount;
-    item.amount = parseFloat((rateValue - calculatedDiscount + taxAmount).toFixed(2));
+    // Update item with calculated values
+    item.rate = rate;
+    item.discount = item.form_updated_discount;
+    item.discountType = item.form_updated_discounttype;
+    item.tax = tax;
+    item.amount = amount;
 
     setItems(newItems);
-    setTotals(calculateTotals(newItems));
+    setTotals(prev => ({
+      ...calculateTotals(newItems),
+      roundOff: prev.roundOff
+    }));
     setValue('items', newItems);
     setOpenEditModal(false);
     setEditModalData(null);
@@ -528,38 +473,26 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
     const newItems = [...items];
     const item = newItems[index];
 
-    // Get base rate (either form updated or original purchase price)
-    const baseRate = parseFloat((item.isRateFormUpadted ? item.form_updated_rate : item.purchasePrice).toFixed(2));
-    const baseDiscount = parseFloat((item.isRateFormUpadted ? item.form_updated_discount : item.discount).toFixed(2));
-    const baseDiscountType = item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType;
-    const baseTaxRate = parseFloat((item.isRateFormUpadted ? item.form_updated_tax : (item.taxInfo?.taxRate || 0)));
-
-    // Calculate new rate based on quantity * base rate
-    const newRate = parseFloat((Number(newQuantity) * Number(baseRate)).toFixed(2));
-
-    // Calculate discount
-    let calculatedDiscount;
-    if (parseInt(baseDiscountType) === 2) { // percentage
-      calculatedDiscount = parseFloat((newRate * (Number(baseDiscount) / 100)).toFixed(2));
-    } else { // fixed
-      calculatedDiscount = parseFloat(Number(baseDiscount).toFixed(2));
-    }
-
-    // Calculate tax
-    const discountedAmount = parseFloat((newRate - calculatedDiscount).toFixed(2));
-    const taxAmount = parseFloat((discountedAmount * (Number(baseTaxRate) / 100)).toFixed(2));
-
-    // Update item with new values
-    newItems[index] = {
+    // Always use calculateItemValues for recalculations
+    const updatedItem = {
       ...item,
-      quantity: Number(newQuantity),
-      rate: newRate,
-      tax: taxAmount,
-      amount: parseFloat((newRate - calculatedDiscount + taxAmount).toFixed(2))
+      quantity: Number(newQuantity)
+    };
+
+    const { rate, discountValue, tax, amount } = calculateItemValues(updatedItem);
+
+    newItems[index] = {
+      ...updatedItem,
+      rate,
+      tax,
+      amount
     };
 
     setItems(newItems);
-    setTotals(calculateTotals(newItems));
+    setTotals(prev => ({
+      ...calculateTotals(newItems),
+      roundOff: prev.roundOff
+    }));
     setValue('items', newItems);
   };
 
@@ -586,21 +519,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                 <RadioGroup
                   row
                   value={signType}
-                  onChange={(e) => {
-                    const newValue = e.target.value;
-                    onChange(newValue);
-                    setSignType(newValue);
-
-                    if (newValue === 'eSignature') {
-                      // Clear manual signature fields
-                      setValue('signatureId', '');
-                      setSelectedSignature(null);
-                    } else {
-                      // Clear eSignature fields
-                      setValue('signatureName', '');
-                      setSignatureDataURL(null);
-                    }
-                  }}
+                  onChange={handleSignTypeChange}
                 >
                   <FormControlLabel
                     value="eSignature"
@@ -710,16 +629,14 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
           {signType === 'eSignature' && (
             <Grid container item xs={9} gap={2} alignItems="flex-start">
               <Controller
-                item xs={12}
                 name="signatureName"
                 control={control}
                 render={({ field }) => (
-
                   <TextField
                     variant='standard'
                     fullWidth
                     {...field}
-                    label={<Typography variant="" >Add Signature Name <span style={{ color: 'red' }}>*</span></Typography>}
+                    label={<Typography>Add Signature Name <span style={{ color: 'red' }}>*</span></Typography>}
                     error={!!errors.signatureName}
                     helperText={errors.signatureName?.message}
                   />
@@ -823,17 +740,30 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
         trigger('bank');
         setOpenBankModal(false);
         setNewBank({ name: '', bankName: '', branch: '', accountNumber: '', IFSCCode: '' });
+
+        // Add success notification
+        enqueueSnackbar('Bank details added successfully', {
+          variant: 'success',
+          autoHideDuration: 6000
+        });
       }
     } catch (error) {
       console.error('Failed to add bank:', error);
+      // Add error notification
+      enqueueSnackbar('Failed to add bank details: ' + error.message, {
+        variant: 'error',
+        autoHideDuration: 6000
+      });
     }
   };
+
+
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box className="flex flex-col gap-4 p-4">
         <Typography variant="h5" color="primary">
-          Create Purchase Order
+          Add Purchase Return
         </Typography>
 
         <form onSubmit={handleSubmit(onSubmit, handleError)}>
@@ -856,8 +786,8 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                     <Skeleton variant="rectangular" height={40} />
                   ) : (
                     <TextField
-                      label="Purchase Order Id"
-                      value={purchaseOrderNumber || ''}
+                      label="Debit Note Id"
+                      value={debitNoteNumber || ''}
                       variant="outlined"
                       fullWidth
                       size="medium"
@@ -912,23 +842,23 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                     <Skeleton variant="rectangular" height={40} />
                   ) : (
                     <Controller
-                      name="purchaseOrderDate"
+                      name="purchaseReturnDate"
                       control={control}
                       render={({ field }) => (
                         <DatePicker
                           {...field}
-                          label="Purchase Order Date"
+                          label="Purchase Return Date"
                           format="DD/MM/YYYY"
                           slotProps={{
                             textField: {
                               size: "medium",
                               fullWidth: true,
-                              error: !!errors.purchaseOrderDate,
-                              helperText: errors.purchaseOrderDate?.message,
+                              error: !!errors.purchaseReturnDate,
+                              helperText: errors.purchaseReturnDate?.message,
                               sx: {
-                                borderColor: errors.purchaseOrderDate ? 'red' : field.value ? 'green' : 'default',
+                                borderColor: errors.purchaseReturnDate ? 'red' : field.value ? 'green' : 'default',
                                 '& .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: errors.purchaseOrderDate ? 'red' : field.value ? 'green' : 'default',
+                                  borderColor: errors.purchaseReturnDate ? 'red' : field.value ? 'green' : 'default',
                                 }
                               }
                             }
@@ -1047,11 +977,11 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
 
 
-                    <Grid item xs={2} md={1} lg={1} className='flex items-center'>
+                  <Grid item xs={2} md={1} lg={1} className='flex items-center'>
 
-                          <Link  href="/products/product-add" passHref>
+                        <Link  href="/products/product-add" passHref>
 
-                         <CustomIconButtonTwo size='large' variant='outlined' color='primary' className='min-is-fit'>
+                       <CustomIconButtonTwo size='large' variant='outlined' color='primary' className='min-is-fit'>
               <i className='ri-add-line' />
             </CustomIconButtonTwo>
 
@@ -1299,6 +1229,8 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                       {totals.total.toFixed(2)}
                     </Typography>
                   </Grid>
+
+
                 </Grid>
               </Box>
             </CardContent>
@@ -1426,7 +1358,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
             <Button
               variant="outlined"
               color="secondary"
-              onClick={() => router.push('/purchase-orders/order-list')}
+              onClick={() => router.push('/debitNotes/purchaseReturn-list')}
             >
               Cancel
             </Button>
@@ -1435,7 +1367,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
               variant="contained"
               color="primary"
             >
-              Create Purchase Order
+              Create Purchase Return
             </Button>
           </Box>
         </form>
@@ -1473,7 +1405,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
           fullWidth
         >
           <DialogTitle>
-            {submissionResult?.includes('success') ? (
+            {submissionResult?.success ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Icon icon="mdi:check-circle" color="success" width={24} />
                 Success
@@ -1486,20 +1418,19 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
             )}
           </DialogTitle>
           <DialogContent>
-            <Typography>{submissionResult}</Typography>
+            <Typography>{submissionResult?.message}</Typography>
           </DialogContent>
           <DialogActions>
-            {submissionResult?.includes('success') ? (
+            {submissionResult?.success ? (
               <>
                 <Button
-                  onClick={() => router.push('/purchase-orders/order-list')}
+                  onClick={() => router.push('/debitNotes/purchaseReturn-list')}
                   variant="contained"
                   color="primary"
                   startIcon={<Icon icon="mdi:format-list-bulleted" />}
                 >
                   Go to Order List
                 </Button>
-
               </>
             ) : (
               <Button
@@ -1534,21 +1465,18 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
                       {/* Rate */}
                       <Grid item xs={12} md={5} lg={5} >
-                    <FormControl        fullWidth>
-
-                  <TextField
-
-                    size='small'
-                    label="Rate"
-                    type="number"
-                    value={editModalData.rate}
-                    onChange={(e) => setEditModalData({
-                      ...editModalData,
-                      rate: e.target.value
-                    })}
-                  />
-
-                 </FormControl>
+                    <FormControl fullWidth>
+                      <TextField
+                        size='small'
+                        label="Rate"
+                        type="number"
+                        value={editModalData.rate}
+                        onChange={(e) => setEditModalData({
+                          ...editModalData,
+                          rate: e.target.value
+                        })}
+                      />
+                    </FormControl>
                       </Grid>
 
 
@@ -1574,9 +1502,8 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                         </MenuItem>
                       ))}
                     </Select>
-                  </FormControl>
 
-
+                    </FormControl>
 
 
                    </Grid>
@@ -1614,7 +1541,7 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
 
                               </>
 
-                                                            : 'SAR'}
+                                                                            : 'SAR'}
                             </InputAdornment>
 
 
@@ -1653,16 +1580,16 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                                 width={32}
                                 />
                                   }
-                              size="medium"
-                                  />}
+                            size="medium"
+                                />}
                             label="Percentage"
                           />
 
 
 
-                          <FormControlLabel
-                            value={3}
-                            control={
+                            <FormControlLabel
+                              value={3}
+                              control={
                             <Radio
                               icon={
                                 <Icon
@@ -1676,19 +1603,19 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
                                 width={32}
                                 />
                                   }
-                              size="medium"
-                                  />}
-                            label="Fixed"
-                          />
+                            size="medium"
+                                />}
+                              label="Fixed"
+                            />
 
 
-                      </Box>
-                    </RadioGroup>
-                  </FormControl>
+                        </Box>
+                      </RadioGroup>
+                    </FormControl>
+                  </Grid>
+
                 </Grid>
-
-              </Grid>
-            )}
+              )}
           </DialogContent>
 
 
@@ -1708,9 +1635,6 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
             </Button>
           </DialogActions>
         </Dialog>
-
-        {/* Add Snackbar component */}
-        {renderSnackbars()}
 
         {/* Add Bank Modal */}
         <Modal open={openBankModal} onClose={() => setOpenBankModal(false)}>
@@ -1795,4 +1719,4 @@ const AddPurchaseOrder = ({ onSave, vendors, products, taxRates, banks, signatur
   );
 };
 
-export default AddPurchaseOrder
+export default AddPurchaseReturn

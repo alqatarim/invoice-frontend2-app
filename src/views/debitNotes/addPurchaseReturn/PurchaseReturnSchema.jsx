@@ -1,19 +1,30 @@
 import * as yup from 'yup';
+import dayjs from 'dayjs';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 
-export const PurchaseOrderSchema = yup.object().shape({
+// Extend dayjs with required plugins
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+
+export const PurchaseReturnSchema = yup.object().shape({
   vendorId: yup
     .string()
     .required("Choose any vendor"),
 
   sign_type: yup
     .string()
-    .required("Choose signature type"),
+    .required("Choose signature type")
+    .oneOf(['eSignature', 'manualSignature'], 'Invalid signature type'),
 
   signatureName: yup
     .string()
     .when('sign_type', {
       is: 'eSignature',
-      then: yup.string().required('Enter signature name'),
+      then: yup.string()
+        .required('Enter signature name')
+        .min(2, 'Signature name must be at least 2 characters')
+        .trim(),
       otherwise: yup.string().nullable()
     }),
 
@@ -21,7 +32,11 @@ export const PurchaseOrderSchema = yup.object().shape({
     .string()
     .when('sign_type', {
       is: 'eSignature',
-      then: yup.string().required('Draw your signature'),
+      then: yup.string()
+        .required('Draw your signature')
+        .test('is-valid-signature', 'Please draw your signature', value => {
+          return value && value.startsWith('data:image/');
+        }),
       otherwise: yup.string().nullable()
     }),
 
@@ -29,15 +44,37 @@ export const PurchaseOrderSchema = yup.object().shape({
     .string()
     .when('sign_type', {
       is: 'manualSignature',
-      then: yup.string().required('Select a signature'),
+      then: yup.string()
+        .required('Select a signature'),
       otherwise: yup.string().nullable()
     }),
 
   items: yup
     .array()
+    .required('Items array is required')
+    .min(1, 'At least one return item is required')
+    .test(
+      'has-valid-items',
+      'At least one return item is required',
+      function(value) {
+        // Add more detailed validation
+        if (!value || !Array.isArray(value)) return false;
+
+        // Check if there's at least one valid item
+        const hasValidItems = value.some(item =>
+          item &&
+          item.productId &&
+          item.quantity > 0 &&
+          item.rate >= 0
+        );
+
+        return hasValidItems;
+      }
+    )
     .of(
       yup.object().shape({
         productId: yup.string().required("Product is required"),
+        name: yup.string().required("Product name is required"),
         quantity: yup
           .number()
           .required("Quantity is required")
@@ -52,6 +89,14 @@ export const PurchaseOrderSchema = yup.object().shape({
           .number()
           .min(0, "Discount must be positive")
           .typeError("Discount must be a number"),
+        discountType: yup
+          .number()
+          .oneOf([2, 3], "Invalid discount type")
+          .required("Discount type is required"),
+        discountValue: yup
+          .number()
+          .min(0, "Discount value must be positive")
+          .typeError("Discount value must be a number"),
         tax: yup
           .number()
           .min(0, "Tax must be positive")
@@ -61,26 +106,48 @@ export const PurchaseOrderSchema = yup.object().shape({
           .min(0, "Amount must be positive")
           .typeError("Amount must be a number"),
         units: yup.string().nullable(),
-        unit_id: yup.string().nullable(),
+        unit: yup.string().nullable(),
         taxInfo: yup.object().nullable()
       })
-    )
-    .min(1, "At least one item is required"),
+    ),
 
-  purchaseOrderDate: yup
+  purchaseReturnDate: yup
     .date()
-    .required("Purchase Order Date is required")
-    .typeError("Invalid date format"),
+    .required("Purchase return date is required")
+    .typeError("Invalid date format")
+    .test(
+      'not-future',
+      'Date cannot be in the future',
+      function(value) {
+        if (!value) return true;
+        const today = dayjs().startOf('day');
+        const selectedDate = dayjs(value).startOf('day');
+        return selectedDate.isSameOrBefore(today);
+      }
+    ),
 
   dueDate: yup
     .date()
-    .required("Due Date is required")
-    .min(yup.ref('purchaseOrderDate'), "Due date cannot be earlier than purchase order date")
-    .typeError("Invalid date format"),
+    .required("Due date is required")
+    .typeError("Invalid date format")
+    .test(
+      'is-after-purchase-return',
+      'Due date must be on or after purchase return date',
+      function(value) {
+        const purchaseReturnDate = this.parent.purchaseReturnDate;
+        if (!purchaseReturnDate || !value) return true;
+
+        const returnDate = dayjs(purchaseReturnDate).startOf('day');
+        const due = dayjs(value).startOf('day');
+
+        return due.isSameOrAfter(returnDate);
+      }
+    ),
 
   referenceNo: yup
     .string()
-    .nullable(),
+    .nullable()
+    .trim(),
 
   bank: yup
     .string()
@@ -88,11 +155,14 @@ export const PurchaseOrderSchema = yup.object().shape({
 
   notes: yup
     .string()
-    .nullable(),
+    .nullable()
+    .trim(),
 
   termsAndCondition: yup
     .string()
     .nullable()
+    .trim()
+
 }, [
   ['signatureName', 'sign_type'],
   ['signatureData', 'sign_type'],
