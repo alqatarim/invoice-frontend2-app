@@ -138,7 +138,7 @@ export async function getSignatures() {
 
 export async function addDebitNote(data, signatureURL) {
   try {
-    console.log('Submitting debit note data:', data);
+
 
     const formData = new FormData();
 
@@ -220,13 +220,9 @@ export async function getDebitNoteDetails(id) {
   }
 }
 
-export async function updateDebitNote(data, signatureURL) {
+export async function updateDebitNote(data) {
   try {
-    // Log the data safely without JSON parsing
-    console.log('UPDATING DEBIT NOTE DATA:', data);
-    if (data?.items) {
-      console.log('Nested Items:', data.items);
-    }
+
 
     const formData = new FormData();
 
@@ -234,17 +230,14 @@ export async function updateDebitNote(data, signatureURL) {
     if (Array.isArray(data.items)) {
       data.items.forEach((item, i) => {
         Object.keys(item).forEach(key => {
-
-      formData.append(`items[${i}][productId]`, item.productId);
-      formData.append(`items[${i}][quantity]`, item.quantity);
-      formData.append(`items[${i}][unit]`, item?.unit);
-      formData.append(`items[${i}][rate]`, item?.rate);
-      formData.append(`items[${i}][discount]`, item?.discount);
-      formData.append(`items[${i}][tax]`, item?.tax);
-      formData.append(`items[${i}][amount]`, item?.amount);
-      formData.append(`items[${i}][name]`, item?.name);
-
-
+          formData.append(`items[${i}][productId]`, item.productId);
+          formData.append(`items[${i}][quantity]`, item.quantity);
+          formData.append(`items[${i}][unit]`, item?.unit);
+          formData.append(`items[${i}][rate]`, item?.rate);
+          formData.append(`items[${i}][discount]`, item?.discount);
+          formData.append(`items[${i}][tax]`, item?.tax);
+          formData.append(`items[${i}][amount]`, item?.amount);
+          formData.append(`items[${i}][name]`, item?.name);
 
           if (item[key] !== undefined && item[key] !== null) {
             if (key === 'taxInfo') {
@@ -257,7 +250,6 @@ export async function updateDebitNote(data, signatureURL) {
         });
       });
     }
-
 
     // Ensure required fields are present
     formData.append('debitNoteDate', dayjs(data?.debitNoteDate || new Date()).toISOString());
@@ -276,29 +268,38 @@ export async function updateDebitNote(data, signatureURL) {
     formData.append('roundOff', data.roundOff || false);
     formData.append('sign_type', data.sign_type);
 
-    // Handle signature
-
-      if (data.sign_type === "eSignature") {
+    // Handle signature based on type
+    if (data.sign_type === "eSignature") {
       formData.append("signatureName", data.signatureName || "");
 
-      if (signatureURL) {
-      try {
-        const blob = await dataURLtoBlob(signatureURL);
-        formData.append("signatureImage", blob);
-      } catch (error) {
-        console.error('Error processing signature:', error);
-        throw new Error('Failed to process signature');
+      if (data.signatureImage) {
+        try {
+          if (typeof data.signatureImage === 'string' && data.signatureImage.startsWith('data:image')) {
+            // Handle base64 image
+            const blob = await dataURLtoBlob(data.signatureImage);
+            const file = new File([blob], 'signature.png', { type: 'image/png' });
+            formData.append("signatureImage", file);
+          } else if (typeof data.signatureImage === 'string' && data.signatureImage.startsWith('http')) {
+            // Handle image URL
+            const response = await fetch(data.signatureImage);
+            const blob = await response.blob();
+            const file = new File([blob], 'signature.png', { type: 'image/png' });
+            formData.append("signatureImage", file);
+          } else if (data.signatureImage instanceof Blob) {
+            // Handle if it's already a Blob
+            const file = new File([data.signatureImage], 'signature.png', { type: 'image/png' });
+            formData.append("signatureImage", file);
+          }
+        } catch (error) {
+          console.error('Error processing signature:', error);
+          throw new Error('Failed to process signature: ' + error.message);
+        }
       }
-    }
-
-
     } else {
-
       formData.append("signatureId", data.signatureId || "");
     }
 
     console.log('Submitting purchase order data:', Object.fromEntries(formData));
-
 
     const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.UPDATE}/${data.id}`, {
       method: 'PUT',

@@ -273,8 +273,8 @@ const ViewPurchaseContent = ({ purchaseData, unitsList, onDelete }) => {
                     {purchase.items?.map((item, index) => (
                       <TableRow key={index}>
                         <TableCell>{index + 1}</TableCell>
-                        <TableCell>{item.productName}</TableCell>
-                        <TableCell>{getUnitName(item.unit)}</TableCell>
+                        <TableCell>{item.name}</TableCell>
+                        <TableCell>{item.units}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell>{formatCurrency(item.rate)}</TableCell>
                         <TableCell>{formatCurrency(item.discountValue)}</TableCell>

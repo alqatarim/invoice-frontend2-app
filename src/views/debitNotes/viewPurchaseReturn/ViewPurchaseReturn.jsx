@@ -1,12 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import Link from 'next/link';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material/styles';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
+import Image from 'next/image';
+import dayjs from 'dayjs';
+import { formatCurrency } from '@/utils/formatCurrency';
 
 // MUI Components
 import {
@@ -26,277 +29,274 @@ import {
   Paper
 } from '@mui/material';
 
-// Other Dependencies
-import dayjs from 'dayjs';
-
 const ViewPurchaseReturn = ({ debitNoteData }) => {
   const router = useRouter();
   const theme = useTheme();
-
-  // Calculate totals
-  const totals = {
-    subtotal: debitNoteData.items.reduce((sum, item) => sum + Number(item.rate || 0), 0),
-    totalDiscount: debitNoteData.items.reduce((sum, item) => sum + Number(item.discount || 0), 0),
-    vat: debitNoteData.items.reduce((sum, item) => sum + Number(item.tax || 0), 0),
-    total: debitNoteData.totalAmount || 0
-  };
+  const contentRef = useRef(null);
 
   return (
-    <Box className="p-4">
-      {/* Header */}
-      <Box className="flex justify-between items-center mb-4">
-        <Typography variant="h5" color="primary">
-          View Purchase Return
-        </Typography>
-        <Box className="flex gap-2">
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={() => router.push('/debitNotes/purchaseReturn-list')}
-            startIcon={<Icon icon="mdi:arrow-left" />}
+    <div ref={contentRef}>
+      <Card
+        className="previewCard purchase-return-page"
+        sx={{
+          width: '210mm',
+          minHeight: '297mm',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <CardContent sx={{
+          display: 'box',
+          margin: '30px',
+          padding: '0px',
+          border: (theme) => `1px solid ${alpha(theme.palette.secondary.main, 0.075)}`,
+          borderRadius: 1,
+          height: 'calc(100% - 70px)',
+          flex: 1,
+        }}>
+          <Grid
+            container
+            sx={{
+              alignItems: 'start',
+              display: 'flex',
+              flexDirection: 'column',
+              '& > *': { width: '100%' }
+            }}
           >
-            Back to List
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            component={Link}
-            href={`/debitNotes/purchaseReturn-edit/${debitNoteData._id}`}
-            startIcon={<Icon icon="mdi:pencil" />}
-          >
-            Edit
-          </Button>
-        </Box>
-      </Box>
+            {/* Header Section */}
+            <Grid item sx={{
+              borderRadius: '4px 4px 0 0',
+              backgroundColor: (theme) => alpha(theme.palette.secondary.main, 0.075),
+            }}>
+              <Grid container className='flex justify-between p-4' mb={2}>
+                <Grid item xs={2}>
+                  <Grid container className='flex ' spacing={1}>
+                    <Grid item xs={12} className='flex justify-center' >
+                      <Image
+                        src='/images/illustrations/objects/store-2.png'
+                        alt="Company Logo"
+                        width='80'
+                        height='80'
+                        priority
+                      />
+                    </Grid>
+                    <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <Typography variant='h6' color='text.secondary'>
+                        Store details
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Grid>
 
-      {/* Details Card */}
-      <Card className="mb-4">
-        <CardContent>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Details
-              </Typography>
+                <Grid item xs={5}>
+                  <Grid className='flex flex-row justify-center' container spacing={5}>
+                    <Grid item xs={'auto'} sx={{ textAlign: 'right' }}>
+                      <Typography variant='h6' color='text.secondary'>
+                        Debit Note No
+                      </Typography>
+                      <Typography variant='h6' color='text.secondary'>
+                        Return date
+                      </Typography>
+                      <Typography variant='h6' color='text.secondary'>
+                        Due date
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={'auto'} sx={{ textAlign: 'left' }}>
+                      <Typography variant='h6' fontWeight={700}>
+                        {debitNoteData.debit_note_id}
+                      </Typography>
+                      <Typography variant='h6' fontWeight={500}>
+                        {dayjs(debitNoteData.debitNoteDate).format('DD MMM YYYY')}
+                      </Typography>
+                      <Typography variant='h6' fontWeight={500}>
+                        {dayjs(debitNoteData.dueDate).format('DD MMM YYYY')}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Grid>
+              </Grid>
             </Grid>
 
-            <Grid item xs={12} md={6} lg={4}>
-              <Box className="flex flex-col gap-1">
-                <Typography variant="subtitle2" color="text.secondary">
-                  Debit Note ID
-                </Typography>
-                <Typography>{debitNoteData.debit_note_id}</Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6} lg={4}>
-              <Box className="flex flex-col gap-1">
-                <Typography variant="subtitle2" color="text.secondary">
-                  Vendor
-                </Typography>
-                <Typography>{debitNoteData.vendorInfo?.vendor_name}</Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6} lg={4}>
-              <Box className="flex flex-col gap-1">
-                <Typography variant="subtitle2" color="text.secondary">
-                  Return Date
-                </Typography>
-                <Typography>
-                  {dayjs(debitNoteData.debitNoteDate).format('DD MMM YYYY')}
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6} lg={4}>
-              <Box className="flex flex-col gap-1">
-                <Typography variant="subtitle2" color="text.secondary">
-                  Due Date
-                </Typography>
-                <Typography>
-                  {dayjs(debitNoteData.dueDate).format('DD MMM YYYY')}
-                </Typography>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6} lg={4}>
-              <Box className="flex flex-col gap-1">
-                <Typography variant="subtitle2" color="text.secondary">
-                  Reference No
-                </Typography>
-                <Typography>{debitNoteData.referenceNo || '-'}</Typography>
-              </Box>
-            </Grid>
-
-            {debitNoteData.bank && (
-              <Grid item xs={12} md={6} lg={4}>
-                <Box className="flex flex-col gap-1">
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Bank Account
+            {/* Vendor Details Section */}
+            <Grid item>
+              <Grid container
+                borderBottom={(theme) => `1px solid ${alpha(theme.palette.secondary.main, 0.075)}`}
+                padding={4} mb={4} className='flex justify-between'>
+                <Grid item xs={'auto'} sx={{ textAlign: 'left' }}>
+                  <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
+                    Debit Note To:
                   </Typography>
-                  <Typography>
-                    {debitNoteData.bank.bankName} - {debitNoteData.bank.accountNumber}
+                  <Typography className='text-[14px]'>{debitNoteData.vendorId?.vendor_name}</Typography>
+                  <Typography className='text-[14px]'>{debitNoteData.vendorId?.vendor_email}</Typography>
+                  <Typography className='text-[14px]'>{debitNoteData.vendorId?.vendor_phone}</Typography>
+                </Grid>
+
+                {debitNoteData.bank && (
+                  <Grid item xs={'auto'} sx={{ textAlign: 'left' }}>
+                    <Grid container className='flex'>
+                      <Grid item xs={'auto'} sx={{ textAlign: 'left' }}>
+                        <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
+                          Bank Details:
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Grid container className='flex flex-row justify-center gap-3'>
+                          <Grid item xs={5} sx={{ textAlign: 'right' }} className='flex flex-col gap-0.5'>
+                            <Typography variant='body2'>Bank Name:</Typography>
+                            <Typography variant='body2'>Account No:</Typography>
+                            <Typography variant='body2'>Branch:</Typography>
+                          </Grid>
+                          <Grid item xs='auto' sx={{ textAlign: 'left' }} className='flex flex-col gap-0.5'>
+                            <Typography className='text-[14px]' fontWeight={500}>{debitNoteData.bank?.bankName}</Typography>
+                            <Typography className='text-[14px]' fontWeight={500}>{debitNoteData.bank?.accountNumber}</Typography>
+                            <Typography className='text-[14px]' fontWeight={500}>{debitNoteData.bank?.branch || '-'}</Typography>
+                          </Grid>
+                        </Grid>
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                )}
+              </Grid>
+            </Grid>
+
+            {/* Items Table */}
+            <Grid item padding={5}>
+              <Box
+                borderColor={(theme) => alpha(theme.palette.secondary.main, 0.15)}
+                className='overflow-x-auto border rounded'
+              >
+                <Table
+                  size='small'
+                  sx={{
+                    '& .MuiTableCell-root': {
+                      borderColor: (theme) => alpha(theme.palette.secondary.main, 0.15),
+                    }
+                  }}
+                >
+                  <TableHead>
+                    <TableRow>
+                      <TableCell className='!bg-transparent'>#</TableCell>
+                      <TableCell className='!bg-transparent'>Product/Service</TableCell>
+                      <TableCell className='!bg-transparent'>Qty</TableCell>
+                      <TableCell className='!bg-transparent' align="right">Rate</TableCell>
+                      <TableCell className='!bg-transparent' align="right">Discount</TableCell>
+                      <TableCell className='!bg-transparent' align="right">Tax</TableCell>
+                      <TableCell className='!bg-transparent' align="right">Amount</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {debitNoteData.items.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{item.name}</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell align="right">{formatCurrency(item.rate)}</TableCell>
+                        <TableCell align="right">
+                          {item.discountType === 2
+                            ? `${item.discount}% (${formatCurrency((item.rate * item.discount) / 100)})`
+                            : formatCurrency(item.discount)}
+                        </TableCell>
+                        <TableCell align="right">{formatCurrency(item.tax)}</TableCell>
+                        <TableCell align="right">{formatCurrency(item.amount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            </Grid>
+
+            {/* Totals Section */}
+            <Grid item padding={5}>
+              <Grid container spacing={4} className='justify-between'>
+                <Grid item xs={7}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Terms & Conditions:
                   </Typography>
+                  <Typography variant="body2">{debitNoteData.termsAndCondition || '-'}</Typography>
+                  <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                    Notes:
+                  </Typography>
+                  <Typography variant="body2">{debitNoteData.notes || '-'}</Typography>
+                </Grid>
+
+                <Grid item xs={3.25}>
+                  <Grid container spacing={1} alignItems="center">
+                    <Grid item xs={12} className='flex flex-col gap-0'>
+                      <Grid container spacing={1} alignItems="center" justifyContent='space-between'>
+                        <Grid item xs={6} className='flex flex-col gap-1' sx={{ textAlign: 'right' }}>
+                          <Typography className='text-[14px]' color="text.secondary">Subtotal:</Typography>
+                          <Typography className='text-[14px]' color="text.secondary">Discount:</Typography>
+                          <Typography className='text-[14px]' color="text.secondary">Tax:</Typography>
+                        </Grid>
+                        <Grid item xs={'auto'} className='flex flex-col gap-1' sx={{ textAlign: 'right' }}>
+                          <Typography className='text-[14px]'>{formatCurrency(debitNoteData.taxableAmount)}</Typography>
+                          <Typography className='text-[14px]'>{`(${formatCurrency(debitNoteData.totalDiscount)})`}</Typography>
+                          <Typography className='text-[14px]'>{formatCurrency(debitNoteData.vat)}</Typography>
+                        </Grid>
+                      </Grid>
+                    </Grid>
+
+                    <Grid item xs={12} className='flex flex-col' sx={{ textAlign: 'center' }}>
+                      <Divider sx={{ my: 1, borderColor: 'primary.info' }} />
+                    </Grid>
+
+                    <Grid item xs={12} className='flex flex-col gap-1.5' sx={{ textAlign: 'right' }}>
+                      <Grid container spacing={1} justifyContent='space-between'>
+                        <Grid item xs={6} className='flex flex-col gap-1.5' sx={{ textAlign: 'Right' }}>
+                          <Typography className='text-[16px]' fontWeight={600} color="text.secondary">Total:</Typography>
+                        </Grid>
+                        <Grid item xs={'auto'} className='flex flex-col gap-1.5' sx={{ textAlign: 'right' }}>
+                          <Typography className='text-[16px]' fontWeight={600}>{formatCurrency(debitNoteData.TotalAmount)}</Typography>
+                        </Grid>
+                      </Grid>
+                    </Grid>
+                  </Grid>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* Signature Section */}
+            {(debitNoteData.signatureData || debitNoteData.signatureId?.signatureImage) && (
+              <Grid item padding={5}
+                borderTop={(theme) => `1px solid ${alpha(theme.palette.secondary.main, 0.075)}`}
+                sx={{ mt: 'auto' }}
+              >
+                <Box className="flex justify-end">
+                  <Box className="flex flex-col items-end gap-2">
+                    {debitNoteData.sign_type === 'eSignature' ? (
+                      <>
+                        {debitNoteData.signatureData && (
+                          <img
+                            src={debitNoteData.signatureData}
+                            alt="E-Signature"
+                            style={{ maxWidth: '150px' }}
+                          />
+                        )}
+                        {debitNoteData.signatureName && (
+                          <Typography variant="caption" color="textSecondary">
+                            {debitNoteData.signatureName}
+                          </Typography>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {debitNoteData.signatureId?.signatureImage && (
+                          <img
+                            src={debitNoteData.signatureId.signatureImage}
+                            alt="Manual Signature"
+                            style={{ maxWidth: '150px' }}
+                          />
+                        )}
+                      </>
+                    )}
+                  </Box>
                 </Box>
               </Grid>
             )}
           </Grid>
         </CardContent>
       </Card>
-
-      {/* Items Card */}
-      <Card className="mb-4">
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Items
-          </Typography>
-
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
-              <TableHead
-                sx={{
-                  backgroundColor: theme => alpha(theme.palette.primary.main, 0.1),
-                }}
-              >
-                <TableRow>
-                  <TableCell>Product/Service</TableCell>
-                  <TableCell>Quantity</TableCell>
-                  <TableCell>Unit</TableCell>
-                  <TableCell align="right">Rate</TableCell>
-                  <TableCell align="right">Discount</TableCell>
-                  <TableCell align="right">Tax</TableCell>
-                  <TableCell align="right">Amount</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {debitNoteData.items.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
-                    <TableCell>{item.units?.symbol}</TableCell>
-                    <TableCell align="right">${Number(item.rate).toFixed(2)}</TableCell>
-                    <TableCell align="right">
-                      {item.discountType === 2
-                        ? `${item.discount}% (${((item.rate * item.discount) / 100).toFixed(2)})`
-                        : `$${Number(item.discount).toFixed(2)}`}
-                    </TableCell>
-                    <TableCell align="right">${Number(item.tax).toFixed(2)}</TableCell>
-                    <TableCell align="right">${Number(item.amount).toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {/* Totals */}
-          <Box className="flex justify-end mt-4">
-            <Grid container spacing={2} sx={{ maxWidth: '300px' }}>
-              <Grid item xs={6}>
-                <Typography>Subtotal:</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="h6" align="right">
-                  ${totals.subtotal.toFixed(2)}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={6}>
-                <Typography>Discount:</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="h6" align="right">
-                  ${totals.totalDiscount.toFixed(2)}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={6}>
-                <Typography>VAT:</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="h6" align="right">
-                  ${totals.vat.toFixed(2)}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Divider />
-              </Grid>
-
-              <Grid item xs={6}>
-                <Typography variant="h6">Total:</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="h6" align="right">
-                  ${totals.total.toFixed(2)}
-                </Typography>
-              </Grid>
-            </Grid>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Notes & Terms Card */}
-      <Card className="mb-4">
-        <CardContent>
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" gutterBottom>
-                Notes
-              </Typography>
-              <Typography>{debitNoteData.notes || '-'}</Typography>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" gutterBottom>
-                Terms and Conditions
-              </Typography>
-              <Typography>{debitNoteData.termsAndCondition || '-'}</Typography>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* Signature Card */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Signature
-          </Typography>
-
-          {debitNoteData.sign_type === 'eSignature' ? (
-            <Box className="flex flex-col items-center gap-2">
-              <Typography variant="subtitle2" color="text.secondary">
-                E-Signature
-              </Typography>
-              {debitNoteData.signatureData ? (
-                <img
-                  src={debitNoteData.signatureData}
-                  alt="E-Signature"
-                  style={{ maxWidth: '300px', maxHeight: '100px' }}
-                />
-              ) : (
-                <Typography color="text.secondary">No signature available</Typography>
-              )}
-            </Box>
-          ) : (
-            <Box className="flex flex-col items-center gap-2">
-              <Typography variant="subtitle2" color="text.secondary">
-                Manual Signature
-              </Typography>
-              {debitNoteData.signatureId?.signatureImage ? (
-                <img
-                  src={debitNoteData.signatureId.signatureImage}
-                  alt="Manual Signature"
-                  style={{ maxWidth: '300px', maxHeight: '100px' }}
-                />
-              ) : (
-                <Typography color="text.secondary">No signature available</Typography>
-              )}
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-    </Box>
+    </div>
   );
 };
 

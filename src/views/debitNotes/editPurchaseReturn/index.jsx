@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { SnackbarProvider, useSnackbar } from 'notistack';
+import { SnackbarProvider, useSnackbar, closeSnackbar } from 'notistack';
 import EditPurchaseReturn from '@/views/debitNotes/editPurchaseReturn/EditPurchaseReturn';
 import {
   getVendors,
@@ -69,7 +69,7 @@ const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) =>
   },
 }));
 
-const EditPurchaseReturnIndex = ({ id }) => {
+const EditPurchaseReturnContent = ({ id }) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const [debitNoteData, setDebitNoteData] = useState(null);
   const [formData, setFormData] = useState({
@@ -102,7 +102,6 @@ const EditPurchaseReturnIndex = ({ id }) => {
           getDebitNoteDetails(id)
         ]);
 
-
         setFormData({
           vendors: vendorsData,
           products: productsData,
@@ -126,27 +125,40 @@ const EditPurchaseReturnIndex = ({ id }) => {
     };
 
     fetchAllData();
-  }, [id]);
+  }, [id, enqueueSnackbar]);
 
   const handleUpdate = async (finalDebitNoteData, signatureURL) => {
-
     const data = finalDebitNoteData;
     try {
       const loadingKey = enqueueSnackbar('Updating purchase return...', {
-        variant: 'info',
-        persist: true,
+       variant: 'info',
+        persist: true, // Keep it visible until we get response
+        preventDuplicate: true,
+        SnackbarProps: {
+          onExited: () => console.log('Loading snackbar closed'),
+        }
       });
 
       const response = await updateDebitNote(data, signatureURL);
       closeSnackbar(loadingKey);
 
       if (!response.success) {
+
         const errorMessage = response.error?.message || response.message || 'Failed to update purchase return';
-        enqueueSnackbar(errorMessage, { variant: 'error' });
+        enqueueSnackbar(errorMessage,
+          { variant: 'error',
+            autoHideDuration: 5000,
+            preventDuplicate: true,
+            SnackbarProps: {
+              onExited: () => console.log('Error snackbar closed'),
+            }
+          });
         return { success: false, message: errorMessage };
+
+
       }
 
-      enqueueSnackbar('Purchase return updated successfully!', { variant: 'success' });
+      // enqueueSnackbar('Purchase return updated successfully!', { variant: 'success' });
       return response;
     } catch (error) {
       closeSnackbar();
@@ -155,6 +167,42 @@ const EditPurchaseReturnIndex = ({ id }) => {
       return { success: false, message: errorMessage };
     }
   };
+
+  // Show loading state while data is being fetched
+  if (formData.isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <Typography variant="h6">Loading...</Typography>
+      </Box>
+    );
+  }
+
+  // Show error state if data fetching fails
+  if (formData.error) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <Typography variant="h6" color="error">{formData.error}</Typography>
+      </Box>
+    );
+  }
+
+  // Only render EditPurchaseReturn when data is available
+  return (
+    <EditPurchaseReturn
+      debitNoteData={debitNoteData}
+      onSave={handleUpdate}
+      vendors={formData.vendors}
+      products={formData.products}
+      taxRates={formData.taxRates}
+      banks={formData.banks}
+      signatures={formData.signatures}
+      enqueueSnackbar={enqueueSnackbar}
+      closeSnackbar={closeSnackbar}
+    />
+  );
+};
+
+const EditPurchaseReturnIndex = ({ id }) => {
 
   const snackbarAction = (snackbarId) => (
     <IconButton
@@ -167,63 +215,6 @@ const EditPurchaseReturnIndex = ({ id }) => {
     </IconButton>
   );
 
-  // Show loading state while data is being fetched
-  if (formData.isLoading) {
-    return (
-      <SnackbarProvider
-        maxSnack={7}
-        autoHideDuration={50000}
-        preventDuplicate
-        action={snackbarAction}
-        hideIconVariant
-        Components={{
-          default: StyledMaterialDesignContent,
-          error: StyledMaterialDesignContent,
-          success: StyledMaterialDesignContent,
-          warning: StyledMaterialDesignContent,
-          info: StyledMaterialDesignContent
-        }}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right'
-        }}
-      >
-        <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-          <Typography variant="h6">Loading...</Typography>
-        </Box>
-      </SnackbarProvider>
-    );
-  }
-
-  // Show error state if data fetching fails
-  if (formData.error) {
-    return (
-      <SnackbarProvider
-        maxSnack={7}
-        autoHideDuration={50000}
-        preventDuplicate
-        action={snackbarAction}
-        hideIconVariant
-        Components={{
-          default: StyledMaterialDesignContent,
-          error: StyledMaterialDesignContent,
-          success: StyledMaterialDesignContent,
-          warning: StyledMaterialDesignContent,
-          info: StyledMaterialDesignContent
-        }}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right'
-        }}
-      >
-        <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-          <Typography variant="h6" color="error">{formData.error}</Typography>
-        </Box>
-      </SnackbarProvider>
-    );
-  }
-
-  // Only render EditPurchaseReturn when data is available
   return (
     <SnackbarProvider
       maxSnack={7}
@@ -243,17 +234,7 @@ const EditPurchaseReturnIndex = ({ id }) => {
         horizontal: 'right'
       }}
     >
-      <EditPurchaseReturn
-        debitNoteData={debitNoteData}
-        onSave={handleUpdate}
-        vendors={formData.vendors}
-        products={formData.products}
-        taxRates={formData.taxRates}
-        banks={formData.banks}
-        signatures={formData.signatures}
-        enqueueSnackbar={enqueueSnackbar}
-        closeSnackbar={closeSnackbar}
-      />
+      <EditPurchaseReturnContent id={id} />
     </SnackbarProvider>
   );
 };

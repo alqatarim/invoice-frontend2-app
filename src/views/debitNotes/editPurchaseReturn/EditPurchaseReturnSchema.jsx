@@ -28,15 +28,11 @@ export const PurchaseReturnSchema = yup.object().shape({
       otherwise: yup.string().nullable()
     }),
 
-  signatureData: yup
+  signatureImage: yup
     .string()
     .when('sign_type', {
       is: 'eSignature',
-      then: yup.string()
-        .required('Draw your signature')
-        .test('is-valid-signature', 'Please draw your signature', value => {
-          return value && value.startsWith('data:image/');
-        }),
+      then: yup.string().required('Draw your signature'),
       otherwise: yup.string().nullable()
     }),
 

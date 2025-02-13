@@ -83,6 +83,9 @@ const AddPurchaseReturnContent = ({ vendors, products, taxRates, banks, signatur
       closeSnackbar(loadingKey);
 
       if (!response.success) {
+
+
+
         const errorMessage = response.error?.message || response.message || 'Failed to create purchase return';
         enqueueSnackbar(errorMessage, {
           variant: 'error',
@@ -215,10 +218,7 @@ function AddPurchaseReturnIndex() {
     fetchData();
   }, []);
 
-  const handleIconClick = (variant) => {
-    console.log(`Icon clicked for ${variant} notification`);
-    // Add any additional logic you want to execute on icon click
-  };
+
 
   // Add action to close snackbar
   const action = (snackbarId) => (

@@ -40,9 +40,6 @@ FormLabel,
   Divider,
   Modal,
   InputAdornment,
-  Alert,
-  Snackbar,
-  Switch
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -57,7 +54,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
-import { PurchaseReturnSchema } from '@/views/debitNotes/addPurchaseReturn/PurchaseReturnSchema';
+import { PurchaseReturnSchema } from '@/views/debitNotes/editPurchaseReturn/EditPurchaseReturnSchema';
 import SignaturePad from 'react-signature-canvas';
 import dayjs from 'dayjs';
 import Link from 'next/link';
@@ -188,14 +185,18 @@ const EditPurchaseReturn = ({ debitNoteData, onSave, vendors, products, taxRates
       setValue('termsAndCondition', debitNoteData.termsAndCondition);
       setValue('sign_type', debitNoteData.sign_type);
 
+      // Load signature selection and respective data without clearing existing data
+      setSignType(debitNoteData.sign_type);
       if (debitNoteData.sign_type === 'manualSignature') {
         setValue('signatureId', debitNoteData.signatureId._id);
         setSelectedSignature(debitNoteData.signatureId.signatureImage);
-      } else if (debitNoteData.signatureImage) {
+      } else if (debitNoteData.sign_type === 'eSignature') {
+        setValue('signatureName', debitNoteData.signatureName);
+        setValue('signatureImage', debitNoteData.signatureImage);
         setSignatureDataURL(debitNoteData.signatureImage);
       }
 
-      // Set items
+      // Set items with formatted values
       const formattedItems = debitNoteData.items.map(item => ({
         key: Date.now() + Math.random(),
         productId: item.productId,
@@ -211,7 +212,6 @@ const EditPurchaseReturn = ({ debitNoteData, onSave, vendors, products, taxRates
         amount: Number(item.amount),
         isRateFormUpadted: false
       }));
-
       setItems(formattedItems);
       setValue('items', formattedItems);
 
@@ -228,42 +228,22 @@ const EditPurchaseReturn = ({ debitNoteData, onSave, vendors, products, taxRates
 
   const handleRemoveItem = (index) => {
     try {
-      // Log initial state for debugging
-      console.log('Current items:', items);
-      console.log('Attempting to remove item at index:', index);
-
-      // Create a copy of current items
       const currentItems = [...items];
-
-      // Get the item to be removed
       const removedItem = currentItems[index];
 
-      console.log('Item to be removed:', removedItem);
-
-      // Safety check
       if (!removedItem) {
-        console.warn('No item found at index:', index);
         return;
       }
 
-      // Remove the item from the array
       currentItems.splice(index, 1);
 
-      // If the removed item had a productId, add it back to available products
       if (removedItem.productId) {
         const originalProduct = products.find(p => p._id === removedItem.productId);
         if (originalProduct) {
-          setProductsCloneData(prevProducts => {
-            console.log('Adding product back to available products:', originalProduct);
-            return [...prevProducts, originalProduct];
-          });
+          setProductsCloneData(prevProducts => [...prevProducts, originalProduct]);
         }
       }
 
-      // Update state with new arrays
-      console.log('Updated items array:', currentItems);
-
-      // Update all related state in a single batch
       setItems(currentItems);
       setTotals(prev => ({
         ...calculateTotals(currentItems),
@@ -272,7 +252,7 @@ const EditPurchaseReturn = ({ debitNoteData, onSave, vendors, products, taxRates
       setValue('items', currentItems);
 
     } catch (error) {
-      console.error('Error in handleRemoveItem:', error);
+      // Handle error silently or with user notification if needed
     }
   };
 
@@ -329,6 +309,9 @@ const handleProductChange = (productId) => {
 
 
   const handleError = (errors) => {
+    // Get all form values
+    const formValues = watch();
+
     // First close any existing snackbars
     closeSnackbar();
 
@@ -338,33 +321,42 @@ const handleProductChange = (productId) => {
       if (errorCount === 0) return;
 
       Object.values(errors).forEach((error, index) => {
+
         enqueueSnackbar(error.message, {
           variant: 'error',
           preventDuplicate: true,
-          key: `error-${index}-${Date.now()}`, // Add unique key
+          key: `error-${index}-${Date.now()}`,
           anchorOrigin: {
             vertical: 'top',
             horizontal: 'right'
           }
         });
       });
-    }, 200); // Small delay to ensure previous snackbars are closed
+    }, 200);
   };
 
   const onSubmit = async (data) => {
     try {
-      // Clear any existing snackbars before validation
       closeSnackbar();
 
-      // Trigger validation for all fields including items
       const isValid = await trigger();
       if (!isValid) {
         handleError(errors);
         return;
       }
 
+
+      let loadingKey = enqueueSnackbar('Updating purchase return...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: false,
+        SnackbarProps: {
+          onExited: () => {}
+        }
+      });
+
       const finalDebitNoteData = {
-        id: debitNoteData._id, // Include the ID for update
+        id: debitNoteData._id,
         items: items.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -374,7 +366,6 @@ const handleProductChange = (productId) => {
           tax: item.tax,
           amount: item.amount,
           name: item.name,
-          discount: item.discount,
           discountValue: item.discount,
           discountAmount: item.discountValue,
           alertQuantity: item.quantity,
@@ -398,23 +389,75 @@ const handleProductChange = (productId) => {
           ? { signatureId: data.signatureId }
           : {
               signatureName: data.signatureName,
-              signatureImage: signatureDataURL
+              signatureImage: data.signatureImage
             })
       };
 
-       console.log('FINAL DEBIT NOTE DATA !!!!!!!!!!!!!!!!!!!', finalDebitNoteData)
-      const response = await onSave( finalDebitNoteData, data.sign_type === 'eSignature' ? signatureDataURL : null);
+      const response = await onSave(finalDebitNoteData);
 
-      if (response?.success) {
-        setSubmissionResult({
-          success: true,
-          message: 'Purchase return updated successfully!'
+      // Close loading notification
+      closeSnackbar(loadingKey);
+
+      if (!response?.success) {
+        const errorMessage = response?.error?.message || response?.message || 'Failed to update purchase return';
+        enqueueSnackbar(errorMessage, {
+          variant: 'error',
+          autoHideDuration: 5000,
+          preventDuplicate: false,
+          SnackbarProps: {
+            onExited: () => console.log('Error snackbar closed'),
+            onClose: (event, reason) => {
+              if (reason === 'clickaway') return;
+              closeSnackbar();
+            }
+          }
         });
-        setShowResultDialog(true);
+        return;
       }
 
+      // Show success notification
+
+      // enqueueSnackbar('Purchase return updated successfully!', {
+      //   variant: 'success',
+      //   autoHideDuration: 10000,
+      //   preventDuplicate: false,
+      //   SnackbarProps: {
+      //     onExited: () => console.log('Success snackbar closed'),
+      //     onClose: (event, reason) => {
+      //       if (reason === 'clickaway') return;
+      //       closeSnackbar();
+      //     }
+      //   }
+      // });
+
+      setSubmissionResult({
+        success: true,
+        message: 'Purchase return updated successfully!'
+      });
+      setShowResultDialog(true);
+
     } catch (error) {
+      // Close loading notification if it exists
+      closeSnackbar();
+
+      const errorMessage = error.response?.data?.message ||
+                          error.message ||
+                          'An unexpected error occurred while updating the purchase return';
+
       console.error('Form submission error:', error);
+
+      enqueueSnackbar(errorMessage, {
+        variant: 'error',
+        autoHideDuration: 10000,
+        preventDuplicate: false,
+        SnackbarProps: {
+          onExited: () => console.log('Error snackbar closed'),
+          onClose: (event, reason) => {
+            if (reason === 'clickaway') return;
+            closeSnackbar();
+          }
+        }
+      });
     }
   };
 
@@ -430,8 +473,8 @@ const handleProductChange = (productId) => {
     if (signaturePadRef.current) {
       const signatureData = signaturePadRef.current.toDataURL();
       setSignatureDataURL(signatureData);
-      setValue('signatureData', signatureData);
-      trigger('signatureData');
+      setValue('signatureImage', signatureData);
+      trigger('signatureImage');
       handleCloseSignatureDialog();
     }
   };
@@ -441,8 +484,8 @@ const handleProductChange = (productId) => {
       signaturePadRef.current.clear();
     }
     setSignatureDataURL(null);
-    setValue('signatureData', '');
-    trigger('signatureData');
+    setValue('signatureImage', '');
+    trigger('signatureImage');
   };
 
   const handleSignatureSelection = (selectedOption, field) => {
@@ -461,18 +504,8 @@ const handleProductChange = (productId) => {
     const newValue = e.target.value;
     setValue('sign_type', newValue);
     setSignType(newValue);
-
-    if (newValue === 'eSignature') {
-      setValue('signatureId', '');
-      setSelectedSignature(null);
-    } else {
-      setValue('signatureName', '');
-      setValue('signatureData', '');
-      setSignatureDataURL(null);
-    }
-
-    // Trigger validation for all signature-related fields
-    trigger(['sign_type', 'signatureName', 'signatureData', 'signatureId']);
+    // Do not clear any field values when switching
+    trigger('sign_type');
   };
 
   const handleEditModalSave = () => {
@@ -547,19 +580,12 @@ const handleProductChange = (productId) => {
 
   const renderSignatureSection = () => {
     return (
-      <Box className=" p-0">
-
-                <Typography variant='h5' gutterBottom>
-                  Signature
-                </Typography>
-
-
-        {/* Signature section*/}
+      <Box className="p-0">
+        <Typography variant="h5" gutterBottom>
+          Signature
+        </Typography>
         <Grid container spacing={3}>
-
           <Grid item xs={12} md={12}>
-
-            {/* Signature Type */}
             <Controller
               name="sign_type"
               control={control}
@@ -568,7 +594,13 @@ const handleProductChange = (productId) => {
                 <RadioGroup
                   row
                   value={signType}
-                  onChange={handleSignTypeChange}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    onChange(newValue);
+                    setSignType(newValue);
+                    // Do not clear field values when switching
+                    trigger('sign_type');
+                  }}
                 >
                   <FormControlLabel
                     value="eSignature"
@@ -585,168 +617,155 @@ const handleProductChange = (productId) => {
             />
           </Grid>
 
-          {/* Manual Signature */}
-          {signType === 'manualSignature' && (
-            <Grid container item xs={9} gap={2}>
-              <Controller
-                name="signatureId"
-                control={control}
-                defaultValue={''}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.signatureId} variant='outlined'>
-
-
-
-                    <InputLabel size="medium">
-                      Select Signature Name <span style={{ color: 'red' }}>*</span>
-                    </InputLabel>
-                    <Select
-                     label="Select Signature Name"
-                      value={field.value || ''}
-                      onChange={(event) => {
-                        const selectedSignature = signatures.find(sig => sig._id === event.target.value);
-                        handleSignatureSelection(selectedSignature, field);
-                      }}
-                    >
-                      {signatures.map((option) => (
-                        <MenuItem key={option._id} value={option._id}>
-                          {option.signatureName}
-                        </MenuItem>
-                      ))}
-
-                    </Select>
-                    {errors.signatureId && (
-                      <FormHelperText error>{errors.signatureId.message}</FormHelperText>
-                    )}
-                  </FormControl>
-                )}
-              />
-
-              <Box
-                sx={{
-
-                    height: '136px',
-                    width: '136px',
-                    padding: '10px',
-
-
-                  }}
-              >
-                {selectedSignature ? (
-
-
+          {/* Keep both sections in DOM but conditionally show/hide */}
+          <Grid
+            container
+            item
+            xs={9}
+            gap={2}
+            alignItems="flex-start"
+            sx={{ display: signType === 'eSignature' ? 'flex' : 'none' }}
+          >
+            <Controller
+              name="signatureName"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  variant="standard"
+                  fullWidth
+                  {...field}
+                  label={
+                    <Typography>
+                      Add Signature Name <span style={{ color: 'red' }}>*</span>
+                    </Typography>
+                  }
+                  error={!!errors.signatureName}
+                  helperText={errors.signatureName?.message}
+                />
+              )}
+            />
+            <Box
+              sx={{
+                height: '136px',
+                width: '136px',
+                padding: '10px',
+              }}
+            >
+              {signatureDataURL ? (
+                <CustomIconButton
+                  aria-label="Signature"
+                  onClick={handleOpenSignatureDialog}
+                  variant="outlined"
+                  height="136px"
+                  skin="light"
+                >
                   <img
-                    src={selectedSignature}
-                    alt="Signature"
+                    src={signatureDataURL}
+                    alt="E-Signature"
                     style={{
-
-                      maxHeight: '136px',
-                      maxWidth: '340px',
-                      objectFit: 'contain'
+                      maxHeight: '120px',
+                      maxWidth: '400px',
+                      width: 'auto',
+                      height: 'auto',
+                      objectFit: 'contain',
                     }}
-                    onError={(e) => {
-                      console.error('Error loading signature image');
-                      e.target.style.display = 'none';
+                    onLoad={() => {
+                      setValue('signatureImage', signatureDataURL);
+                      trigger('signatureImage');
                     }}
                   />
-                ) : (
+                </CustomIconButton>
+              ) : (
+                <Controller
+                  name="signatureImage"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <CustomIconButton
+                      aria-label="Signature"
+                      onClick={handleOpenSignatureDialog}
+                      size="130px"
+                      skin="light"
+                      color={errors.signatureImage && signType === 'eSignature' ? 'error' : 'primary'}
+                    >
+                      <Icon
+                        width="120"
+                        height="120"
+                        icon="material-symbols-light:signature-outline-rounded"
+                      />
+                    </CustomIconButton>
+                  )}
+                />
+              )}
+            </Box>
+          </Grid>
 
-
-
-                        <Icon
-                      //  color= {alpha(theme.palette.secondary.main, 0.2)}
-                      // color= {alpha(theme.palette.primary.main, 0.2)}
-                      color= {alpha(theme.palette.secondary.light, 0.2)}
-                       width="120px"
-                       height='102px'
-
-                       icon="mdi:signature-image"
-                      //  className='p-0 m-0'
-
-
-                     />
-
-
-
-
-                )}
-              </Box>
-            </Grid>
-          )}
-
-          {/* E-Signature */}
-          {signType === 'eSignature' && (
-            <Grid container item xs={9} gap={2} alignItems="flex-start">
-              <Controller
-                name="signatureName"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    variant='standard'
-                    fullWidth
-                    {...field}
-                    label={<Typography>Add Signature Name <span style={{ color: 'red' }}>*</span></Typography>}
-                    error={!!errors.signatureName}
-                    helperText={errors.signatureName?.message}
-                  />
-                )}
-              />
-
-              <Box item xs={6}
-                sx={{
-                    height: '136px',
-                    width: '136px',
-                    padding: '10px',
-
-                }}
-              >
-                {signatureDataURL ? (
-                  <CustomIconButton
-                    aria-label='Signature'
-                    onClick={handleOpenSignatureDialog}
-                    variant='outlined'
-                    height='136px'
-                    skin='light'
+          <Grid
+            container
+            item
+            xs={9}
+            gap={2}
+            sx={{ display: signType === 'manualSignature' ? 'flex' : 'none' }}
+          >
+            <Controller
+              name="signatureId"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.signatureId} variant="outlined">
+                  <InputLabel size="medium">
+                    Select Signature Name <span style={{ color: 'red' }}>*</span>
+                  </InputLabel>
+                  <Select
+                    label="Select Signature Name"
+                    value={field.value || ''}
+                    onChange={(event) => {
+                      const selected = signatures.find(sig => sig._id === event.target.value);
+                      handleSignatureSelection(selected, field);
+                    }}
                   >
-                    <img
-                      src={signatureDataURL}
-                      alt="E-Signature"
-                      style={{
-                        maxHeight: '120px',
-                        maxWidth: '400px',
-                        width: 'auto',
-                        height: 'auto',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  </CustomIconButton>
-                ) : (
-                  <Controller
-                    name="signatureData"
-                    control={control}
-                    defaultValue=""
-                    render={({ field }) => (
-                      <CustomIconButton
-                        aria-label='Signature'
-                        onClick={handleOpenSignatureDialog}
-                        size='130px'
-                        skin='light'
-                        color={errors.signatureData && signType === 'eSignature' ? 'error' : 'primary'}
-                      >
-                        <Icon
-                          width="120"
-                          height='120'
-                          icon="material-symbols-light:signature-outline-rounded"
-                        />
-                      </CustomIconButton>
-                    )}
-                  />
-                )}
-              </Box>
-
-
-            </Grid>
-          )}
+                    {signatures.map((option) => (
+                      <MenuItem key={option._id} value={option._id}>
+                        {option.signatureName}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {errors.signatureId && (
+                    <FormHelperText error>{errors.signatureId.message}</FormHelperText>
+                  )}
+                </FormControl>
+              )}
+            />
+            <Box
+              sx={{
+                height: '136px',
+                width: '136px',
+                padding: '10px',
+              }}
+            >
+              {selectedSignature ? (
+                <img
+                  src={selectedSignature}
+                  alt="Signature"
+                  style={{
+                    maxHeight: '136px',
+                    maxWidth: '340px',
+                    objectFit: 'contain',
+                  }}
+                  onError={(e) => {
+                    console.error('Error loading signature image');
+                    e.target.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <Icon
+                  color={alpha(theme.palette.secondary.light, 0.2)}
+                  width="120px"
+                  height="102px"
+                  icon="mdi:signature-image"
+                />
+              )}
+            </Box>
+          </Grid>
         </Grid>
       </Box>
     );
@@ -774,7 +793,21 @@ const handleProductChange = (productId) => {
   const handleAddBank = async (e) => {
     e.preventDefault();
     try {
+      // Show loading notification
+      let loadingKey = enqueueSnackbar('Adding bank details...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: false,
+        SnackbarProps: {
+          onExited: () => console.log('Loading snackbar closed'),
+        }
+      });
+
       const response = await addBank(newBank);
+
+      // Close loading notification
+      closeSnackbar(loadingKey);
+
       if (response) {
         const newBankWithDetails = {
           _id: response._id,
@@ -793,15 +826,34 @@ const handleProductChange = (productId) => {
         // Add success notification
         enqueueSnackbar('Bank details added successfully', {
           variant: 'success',
-          autoHideDuration: 6000
+          autoHideDuration: 6000,
+          preventDuplicate: false,
+          SnackbarProps: {
+            onExited: () => console.log('Success snackbar closed'),
+            onClose: (event, reason) => {
+              if (reason === 'clickaway') return;
+              closeSnackbar();
+            }
+          }
         });
       }
     } catch (error) {
+      // Close loading notification if it exists
+      closeSnackbar();
+
       console.error('Failed to add bank:', error);
       // Add error notification
       enqueueSnackbar('Failed to add bank details: ' + error.message, {
         variant: 'error',
-        autoHideDuration: 6000
+        autoHideDuration: 6000,
+        preventDuplicate: false,
+        SnackbarProps: {
+          onExited: () => console.log('Error snackbar closed'),
+          onClose: (event, reason) => {
+            if (reason === 'clickaway') return;
+            closeSnackbar();
+          }
+        }
       });
     }
   };
