@@ -307,7 +307,7 @@ const ViewPurchaseContent = ({ purchaseData, unitsList, onDelete }) => {
                           <Typography className='text-[14px]' color="text.secondary">Tax:</Typography>
                         </Grid>
                         <Grid item xs={'auto'} className='flex flex-col gap-1' sx={{ textAlign: 'right' }}>
-                          <Typography className='text-[14px]'>{formatCurrency(purchase.taxableAmount)}</Typography>
+                          <Typography className='text-[14px]'>{formatCurrency(purchase.subTotal)}</Typography>
                           <Typography className='text-[14px]'>{`(${formatCurrency(purchase.totalDiscount)})`}</Typography>
                           <Typography className='text-[14px]'>{formatCurrency(purchase.vat)}</Typography>
                         </Grid>

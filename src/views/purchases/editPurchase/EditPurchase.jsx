@@ -58,7 +58,7 @@ import SignaturePad from 'react-signature-canvas';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { alpha } from '@mui/material/styles';
-import { addPurchase } from '@/app/(dashboard)/purchases/actions';
+import { updatePurchase } from '@/app/(dashboard)/purchases/actions';
 
 // Updated calculation functions
 function calculateItemValues(item) {
@@ -88,11 +88,7 @@ function calculateItemValues(item) {
   const taxRate = Number(item.taxInfo?.taxRate) || 0;
   const tax = (taxableAmount * taxRate) / 100;
 
-  console.log('rate:', rate);
-  console.log('discountValue:', discountValue);
-  console.log('taxableAmount:', taxableAmount);
-  console.log('taxRate:', taxRate);
-  console.log('tax:', tax);
+
   // Calculate final amount
   const amount = taxableAmount + tax;
 
@@ -107,7 +103,7 @@ function calculateItemValues(item) {
 
 function calculateTotals(items) {
   const initialTotals = {
-    subtotal: 0,
+    subTotal: 0,
     totalDiscount: 0,
     vat: 0,
     total: 0,
@@ -122,7 +118,7 @@ function calculateTotals(items) {
     const { rate, discountValue, tax, amount, taxableAmount } = calculateItemValues(item);
 
     return {
-      subtotal: acc.subtotal + rate,
+      subTotal: acc.subTotal + rate,
       totalDiscount: acc.totalDiscount + discountValue,
       vat: acc.vat + tax,
       total: acc.total + amount,
@@ -165,6 +161,10 @@ const EditPurchase = ({ vendors, products, taxRates, banks, signatures, purchase
       purchaseDate: purchaseData ? dayjs(purchaseData.purchaseDate) : dayjs(),
       dueDate: purchaseData ? dayjs(purchaseData.dueDate) : dayjs().add(30, 'days'),
       items: purchaseData?.items || [],
+      subTotal: purchaseData?.subTotal || 0,
+      totalDiscount: purchaseData?.totalDiscount || 0,
+      vat: purchaseData?.vat || 0,
+      total: purchaseData?.TotalAmount || 0,
       sign_type: purchaseData?.sign_type || 'eSignature',
       vendorId: purchaseData?.vendorId?._id || '',
       referenceNo: purchaseData?.referenceNo || '',
@@ -178,7 +178,7 @@ const EditPurchase = ({ vendors, products, taxRates, banks, signatures, purchase
   });
 
   const [totals, setTotals] = useState({
-    subtotal: purchaseData?.taxableAmount || 0,
+    subTotal: purchaseData?.subTotal || 0,
     totalDiscount: purchaseData?.totalDiscount || 0,
     vat: purchaseData?.vat || 0,
     total: purchaseData?.TotalAmount || 0,
@@ -445,6 +445,7 @@ const EditPurchase = ({ vendors, products, taxRates, banks, signatures, purchase
         purchaseDate: data.purchaseDate.toISOString(),
         referenceNo: data.referenceNo || '',
         purchaseId: purchaseData?.purchaseId || '',
+         subTotal: totals.subTotal || 0,
         taxableAmount: totals.taxableAmount || 0,
         TotalAmount: totals.total || 0,
         vat: totals.vat || 0,
@@ -459,7 +460,8 @@ const EditPurchase = ({ vendors, products, taxRates, banks, signatures, purchase
           : { signatureName: data.signatureName })
       };
 
-      const response = await addPurchase(
+      const response = await updatePurchase(
+        purchaseData?._id,
         purchasePayload,
         data.sign_type === 'eSignature' ? signatureDataURL : null
       );
@@ -1267,7 +1269,7 @@ const EditPurchase = ({ vendors, products, taxRates, banks, signatures, purchase
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {Number(totals.subtotal || 0).toLocaleString('en-IN', {
+                      {Number(totals.subTotal || 0).toLocaleString('en-IN', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
                       })}

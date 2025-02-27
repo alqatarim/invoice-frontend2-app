@@ -101,7 +101,7 @@ function calculateItemValues(item) {
 
 function calculateTotals(items) {
   const initialTotals = {
-    subtotal: 0,
+    subTotal: 0,
     totalDiscount: 0,
     vat: 0,
     total: 0
@@ -115,7 +115,7 @@ function calculateTotals(items) {
     const { rate, discountValue, tax, amount } = calculateItemValues(item);
 
     return {
-      subtotal: Number(acc.subtotal) + Number(rate),
+      subTotal: Number(acc.subTotal) + Number(rate),
       totalDiscount: Number(acc.totalDiscount) + Number(discountValue),
       vat: Number(acc.vat) + Number(tax),
       total: Number(acc.total) + Number(amount)
@@ -169,7 +169,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     }
   });
 
-  const [totals, setTotals] = useState({ subtotal: 0, totalDiscount: 0, vat: 0, total: 0 });
+  const [totals, setTotals] = useState({ subTotal: 0, totalDiscount: 0, vat: 0, total: 0 });
 
 
   const handleRemoveItem = (index) => {
@@ -357,7 +357,8 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
         purchaseDate: data.purchaseDate.toISOString(),
         referenceNo: data.referenceNo || '',
         purchaseId: purchaseNumber || '',
-        taxableAmount: totals.subtotal || 0,
+        taxableAmount: totals.taxableAmount || 0,
+        subTotal: totals.subTotal || 0,
         TotalAmount: totals.total || 0,
         vat: totals.vat || 0,
         totalDiscount: totals.totalDiscount || 0,
@@ -371,6 +372,8 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
           ? { signatureId: data.signatureId }
           : { signatureName: data.signatureName })
       };
+
+
 
       const response = await addPurchase(
         purchaseData,
@@ -1153,7 +1156,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {Number(totals.subtotal || 0).toLocaleString('en-IN', {
+                      {Number(totals.subTotal || 0).toLocaleString('en-IN', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
                       })}

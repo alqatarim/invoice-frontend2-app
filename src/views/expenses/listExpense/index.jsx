@@ -60,7 +60,7 @@ const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) =>
 }));
 
 const ExpenseListContent = () => {
-  const theme = useTheme();
+
   const router = useRouter();
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const [showFilter, setShowFilter] = useState(false);

@@ -55,14 +55,67 @@ export const calculateTotals = (items, roundOff) => {
   return { taxableAmount, totalDiscount, totalTax, totalAmount, roundOffValue };
 };
 
-export const formatDateForInput = (date) => {
-  // Format date as YYYY-MM-DD for input[type="date"]
-  const d = new Date(date);
-  const month = `${d.getMonth() + 1}`.padStart(2, '0');
-  const day = `${d.getDate()}`.padStart(2, '0');
-  const year = d.getFullYear();
-  return [year, month, day].join('-');
+export function formatDiscount(item) {
+  if (!item) return { displayValue: '0.00', actualValue: '0.00' };
+
+  const discountType = item.isRateFormUpadted
+    ? item.form_updated_discounttype
+    : item.discountType;
+
+  const discountValue = item.isRateFormUpadted
+    ? Number(item.form_updated_discount)
+    : Number(item.discount);
+
+  const rate = item.isRateFormUpadted
+    ? Number(item.form_updated_rate)
+    : Number(item.rate);
+
+  const quantity = Number(item.quantity) || 0;
+  const totalRate = rate * quantity;
+
+  if (Number(discountType) === 2) { // Percentage discount
+    const actualDiscountValue = (totalRate * discountValue) / 100;
+    return {
+      displayValue: `${discountValue.toFixed(2)}%`,
+      actualValue: actualDiscountValue.toFixed(2)
+    };
+  } else { // Fixed discount
+    return {
+      displayValue: discountValue.toFixed(2),
+      actualValue: discountValue.toFixed(2)
+    };
+  }
 };
+
+
+
+// export function formatDate(date) {
+//   // Format date as YYYY-MM-DD for input[type="date"]
+//   const d = new Date(date);
+//   const month = `${d.getMonth() + 1}`.padStart(2, '0');
+//   const day = `${d.getDate()}`.padStart(2, '0');
+//   const year = d.getFullYear();
+//   return [year, month, day].join('-');
+// };
+
+export function formatDate(date) {
+  // Format date as DD MMM YYYY
+  const d = new Date(date);
+  const day = `${d.getDate()}`.padStart(2, '0');
+  const month = d.toLocaleString('default', { month: 'short' });
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
+};
+
+
+
+export function formatNumber(number) {
+  return number.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'SAR',
+    minimumFractionDigits: 2
+  });
+}
 
 export const fileToBase64Object = async (file) => {
   if (!file) return null;

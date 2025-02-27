@@ -74,10 +74,10 @@ const PurchaseList = ({
 
   // Define default columns
   const defaultColumns = [
-    { key: 'index', label: '#', visible: true },
+
     { key: 'purchaseId', label: 'Purchase ID', visible: true },
     { key: 'vendor', label: 'Vendor', visible: true },
-    { key: 'amount', label: 'Amount', visible: true },
+    { key: 'amount', label: 'Total Amount', visible: true },
     { key: 'paymentMode', label: 'Payment Mode', visible: true },
     { key: 'date', label: 'Date', visible: true },
     { key: 'status', label: 'Status', visible: true },
@@ -89,13 +89,13 @@ const PurchaseList = ({
   const handleMenuOpen = (event, purchase) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log('Opening menu with purchase:', purchase);
+
     setAnchorEl(event.currentTarget);
     setSelectedPurchase(purchase);
   };
 
   const handleMenuClose = () => {
-    console.log('Closing menu. Current selectedPurchase:', selectedPurchase);
+
     setAnchorEl(null);
     setSelectedPurchase(null);
   };
@@ -225,17 +225,13 @@ const PurchaseList = ({
                 ))
               ) : purchaseList.length > 0 ? (
                 purchaseList.map((purchase, index) => {
-                  console.log('Mapping purchase:', purchase); // Debug log
+
                   return (
                     <TableRow key={purchase._id} hover>
                       {columns.map(column =>
                         column.visible && (
                           <TableCell key={column.key}>
-                            {column.key === 'index' && (
-                              <Typography variant="body2">
-                                {(page - 1) * pageSize + (index + 1)}
-                              </Typography>
-                            )}
+
 
                             {column.key === 'purchaseId' && (
                               <Link
@@ -278,35 +274,22 @@ const PurchaseList = ({
 
                             {column.key === 'amount' && (
                               <Typography variant="body1">
-                                {'$'}
-                                {purchase.roundOff
-                                  ? Number(purchase.TotalAmount).toLocaleString('en-IN', {
+
+                                { Number(purchase.TotalAmount).toLocaleString('en-IN', {
                                       minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
-                                    })
-                                  : Number(purchase.taxableAmount).toLocaleString('en-IN', {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })}
+                                    })} SAR
                               </Typography>
                             )}
 
                             {column.key === 'paymentMode' && (
-                              <Box className='flex justify-center'>
-                                {purchase.paymentMode?.toLowerCase() === 'cash' ? (
-                                  <Icon icon="mdi:cash-multiple" width={40} color={theme.palette.secondary.light}/>
-                                ) : purchase.paymentMode?.toLowerCase() === 'bank' ? (
-                                  <Icon icon="mdi:bank-transfer" width={40} color={theme.palette.secondary.light}/>
-                                ) : purchase.paymentMode?.toLowerCase() === 'creditcard' ? (
-                                  <Icon icon="mdi:credit-card-outline" width={40} />
-                                ) : (
-                                  <Chip
-                                    variant="outlined"
-                                    color="secondary"
-                                    label={purchase.paymentMode}
-                                  />
-                                )}
-                              </Box>
+                              <Chip
+                                size='medium'
+                                variant="outlined"
+                                color="secondary"
+                                label={purchase.paymentMode}
+                              />
+
                             )}
 
                             {column.key === 'date' && (
@@ -389,7 +372,7 @@ const PurchaseList = ({
       >
         {(canUpdate || isAdmin) && selectedPurchase && (
           <>
-            {console.log('Menu is rendering with selectedPurchase:', selectedPurchase)}
+
             <MenuItem
               component={Link}
               href={`/purchases/purchase-edit/${selectedPurchase._id}`}

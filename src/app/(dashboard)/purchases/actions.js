@@ -73,34 +73,71 @@ export async function addPurchase(data, signatureURL) {
     // Convert data to FormData
     const formData = new FormData();
 
-    // Add items data with proper format
+    // Add items data with explicit field names instead of dynamic iteration
     data.items.forEach((item, i) => {
-      Object.keys(item).forEach(key => {
-        if (item[key] !== undefined && item[key] !== null) {
-          if (key === 'taxInfo') {
-            const taxInfoStr = typeof item[key] === 'string'
-              ? item[key]
-              : JSON.stringify(item[key]);
-            formData.append(`items[${i}][${key}]`, taxInfoStr);
-          } else {
-            formData.append(`items[${i}][${key}]`, item[key]);
-          }
-        }
-      });
-    });
+      // Product information
+      formData.append(`items[${i}][key]`, item.key || '');
+      formData.append(`items[${i}][name]`, item.name || '');
+      formData.append(`items[${i}][productId]`, item.productId || '');
+      formData.append(`items[${i}][units]`, item.units || '');
+      formData.append(`items[${i}][unit]`, item.unit || '');
 
-    // Add all other fields with proper formatting
-    Object.keys(data).forEach(key => {
-      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
-        if (key === 'dueDate' || key === 'purchaseDate') {
-          formData.append(key, new Date(data[key]).toISOString());
-        } else if (key === 'taxableAmount' || key === 'TotalAmount' || key === 'vat' || key === 'totalDiscount') {
-          formData.append(key, Number(data[key]).toString());
-        } else {
-          formData.append(key, data[key]);
-        }
+      // Quantity and price
+      formData.append(`items[${i}][quantity]`, Number(item.quantity || 0).toString());
+      formData.append(`items[${i}][purchasePrice]`, Number(item.purchasePrice || 0).toString());
+      formData.append(`items[${i}][rate]`, Number(item.rate || 0).toString());
+
+      // Discount details
+      formData.append(`items[${i}][discountType]`, item.discountType || '3');
+      formData.append(`items[${i}][discount]`, Number(item.discount || 0).toString());
+
+      // Tax information
+      if (item.taxInfo) {
+        const taxInfoStr = typeof item.taxInfo === 'string' ? item.taxInfo : JSON.stringify(item.taxInfo);
+        formData.append(`items[${i}][taxInfo]`, taxInfoStr);
+      }
+      formData.append(`items[${i}][tax]`, Number(item.tax || 0).toString());
+
+      // Form updated values
+      formData.append(`items[${i}][isRateFormUpadted]`, item.isRateFormUpadted || false);
+      formData.append(`items[${i}][form_updated_discounttype]`, item.form_updated_discounttype || item.discountType || '3');
+      formData.append(`items[${i}][form_updated_discount]`, Number(item.form_updated_discount || item.discount || 0).toString());
+      formData.append(`items[${i}][form_updated_rate]`, Number(item.form_updated_rate || item.rate || 0).toString());
+      formData.append(`items[${i}][form_updated_tax]`, Number(item.form_updated_tax || item.tax || 0).toString());
+
+      // Amount
+      if (item.amount) {
+        formData.append(`items[${i}][amount]`, Number(item.amount).toString());
       }
     });
+
+    // Add basic fields with explicit handling
+    if (data.vendorId) formData.append('vendorId', data.vendorId);
+    if (data.purchaseDate) formData.append('purchaseDate', new Date(data.purchaseDate).toISOString());
+    if (data.dueDate) formData.append('dueDate', new Date(data.dueDate).toISOString());
+    if (data.referenceNo) formData.append('referenceNo', data.referenceNo);
+    if (data.supplierInvoiceSerialNumber) formData.append('supplierInvoiceSerialNumber', data.supplierInvoiceSerialNumber);
+    if (data.notes) formData.append('notes', data.notes);
+    if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
+    if (data.bank) formData.append('bank', data.bank);
+    if (data.sign_type) formData.append('sign_type', data.sign_type);
+
+    // Handle signature based on type
+    if (data.sign_type === 'manualSignature' && data.signatureId) {
+      formData.append('signatureId', data.signatureId);
+    } else if (data.sign_type === 'eSignature') {
+      if (data.signatureName) formData.append('signatureName', data.signatureName);
+      if (data.signatureData) formData.append('signatureData', data.signatureData);
+    }
+
+    // Add total values with number conversion
+    if (data.taxableAmount) formData.append('taxableAmount', Number(data.taxableAmount).toString());
+    if (data.TotalAmount) formData.append('TotalAmount', Number(data.TotalAmount).toString());
+    if (data.vat) formData.append('vat', Number(data.vat).toString());
+    if (data.totalDiscount) formData.append('totalDiscount', Number(data.totalDiscount).toString());
+
+    // Add the subTotal field
+    if (data.subTotal) formData.append('subTotal', Number(data.subTotal).toString());
 
     // Handle signature if provided
     if (signatureURL) {
@@ -134,34 +171,71 @@ export async function updatePurchase(id, data, signatureURL) {
     // Convert data to FormData
     const formData = new FormData();
 
-    // Add items data with proper format
+    // Add items data with explicit field names instead of dynamic iteration
     data.items.forEach((item, i) => {
-      Object.keys(item).forEach(key => {
-        if (item[key] !== undefined && item[key] !== null) {
-          if (key === 'taxInfo') {
-            const taxInfoStr = typeof item[key] === 'string'
-              ? item[key]
-              : JSON.stringify(item[key]);
-            formData.append(`items[${i}][${key}]`, taxInfoStr);
-          } else {
-            formData.append(`items[${i}][${key}]`, item[key]);
-          }
-        }
-      });
-    });
+      // Product information
+      formData.append(`items[${i}][key]`, item.key || '');
+      formData.append(`items[${i}][name]`, item.name || '');
+      formData.append(`items[${i}][productId]`, item.productId || '');
+      formData.append(`items[${i}][units]`, item.units || '');
+      formData.append(`items[${i}][unit]`, item.unit || '');
 
-    // Add all other fields with proper formatting
-    Object.keys(data).forEach(key => {
-      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
-        if (key === 'dueDate' || key === 'purchaseDate') {
-          formData.append(key, new Date(data[key]).toISOString());
-        } else if (key === 'taxableAmount' || key === 'TotalAmount' || key === 'vat' || key === 'totalDiscount') {
-          formData.append(key, Number(data[key]).toString());
-        } else {
-          formData.append(key, data[key]);
-        }
+      // Quantity and price
+      formData.append(`items[${i}][quantity]`, Number(item.quantity || 0).toString());
+      formData.append(`items[${i}][purchasePrice]`, Number(item.purchasePrice || 0).toString());
+      formData.append(`items[${i}][rate]`, Number(item.rate || 0).toString());
+
+      // Discount details
+      formData.append(`items[${i}][discountType]`, item.discountType || '3');
+      formData.append(`items[${i}][discount]`, Number(item.discount || 0).toString());
+
+      // Tax information
+      if (item.taxInfo) {
+        const taxInfoStr = typeof item.taxInfo === 'string' ? item.taxInfo : JSON.stringify(item.taxInfo);
+        formData.append(`items[${i}][taxInfo]`, taxInfoStr);
+      }
+      formData.append(`items[${i}][tax]`, Number(item.tax || 0).toString());
+
+      // Form updated values
+      formData.append(`items[${i}][isRateFormUpadted]`, item.isRateFormUpadted || false);
+      formData.append(`items[${i}][form_updated_discounttype]`, item.form_updated_discounttype || item.discountType || '3');
+      formData.append(`items[${i}][form_updated_discount]`, Number(item.form_updated_discount || item.discount || 0).toString());
+      formData.append(`items[${i}][form_updated_rate]`, Number(item.form_updated_rate || item.rate || 0).toString());
+      formData.append(`items[${i}][form_updated_tax]`, Number(item.form_updated_tax || item.tax || 0).toString());
+
+      // Amount
+      if (item.amount) {
+        formData.append(`items[${i}][amount]`, Number(item.amount).toString());
       }
     });
+
+    // Add basic fields with explicit handling
+    if (data.vendorId) formData.append('vendorId', data.vendorId);
+    if (data.purchaseDate) formData.append('purchaseDate', new Date(data.purchaseDate).toISOString());
+    if (data.dueDate) formData.append('dueDate', new Date(data.dueDate).toISOString());
+    if (data.referenceNo) formData.append('referenceNo', data.referenceNo);
+    if (data.supplierInvoiceSerialNumber) formData.append('supplierInvoiceSerialNumber', data.supplierInvoiceSerialNumber);
+    if (data.notes) formData.append('notes', data.notes);
+    if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
+    if (data.bank) formData.append('bank', data.bank);
+    if (data.sign_type) formData.append('sign_type', data.sign_type);
+
+    // Handle signature based on type
+    if (data.sign_type === 'manualSignature' && data.signatureId) {
+      formData.append('signatureId', data.signatureId);
+    } else if (data.sign_type === 'eSignature') {
+      if (data.signatureName) formData.append('signatureName', data.signatureName);
+      if (data.signatureData) formData.append('signatureData', data.signatureData);
+    }
+
+    // Add total values with number conversion
+    if (data.taxableAmount) formData.append('taxableAmount', Number(data.taxableAmount).toString());
+    if (data.TotalAmount) formData.append('TotalAmount', Number(data.TotalAmount).toString());
+    if (data.vat) formData.append('vat', Number(data.vat).toString());
+    if (data.totalDiscount) formData.append('totalDiscount', Number(data.totalDiscount).toString());
+
+    // Add the subTotal field
+    if (data.subTotal) formData.append('subTotal', Number(data.subTotal).toString());
 
     // Handle signature if provided
     if (signatureURL) {
