@@ -387,7 +387,7 @@ const AddPayment = ({ customers, enqueueSnackbar, closeSnackbar, onSubmit, payme
                             }}
                             InputProps={{
                               startAdornment: (
-                                <Box sx={{ mr: 1.5, color: 'secondary.main' }}>
+                                <Box sx={{ mr: 1.5, mt: 2, color: 'secondary.main' }}>
                                   <Icon icon="tabler:hash" fontSize={20} />
                                 </Box>
                               )
@@ -421,13 +421,7 @@ const AddPayment = ({ customers, enqueueSnackbar, closeSnackbar, onSubmit, payme
                                 fullWidth: true,
                                 error: !!errors.date,
                                 helperText: errors.date?.message,
-                                InputProps: {
-                                  startAdornment: (
-                                    <Box sx={{ mr: 1.5, color: 'secondary.main' }}>
-                                      <Icon icon="tabler:calendar" fontSize={20} />
-                                    </Box>
-                                  )
-                                },
+                             
                                 sx: {
                                   '& .MuiOutlinedInput-root': {
                                     borderRadius: '12px',
@@ -466,11 +460,11 @@ const AddPayment = ({ customers, enqueueSnackbar, closeSnackbar, onSubmit, payme
                               {...field}
                               label='Payment Mode'
                               sx={{ borderRadius: '12px' }}
-                              startAdornment={
-                                <Box sx={{ ml: 1, mr: 1, color: 'secondary.main' }}>
-                                  <Icon icon={getPaymentModeIcon(field.value)} fontSize={20} />
-                                </Box>
-                              }
+                              // startAdornment={
+                              //   <Box sx={{ ml: 1, mr: 1, color: 'secondary.main' }}>
+                              //     <Icon icon={getPaymentModeIcon(field.value)} fontSize={20} />
+                              //   </Box>
+                              // }
                             >
                               {paymentModes.map((mode) => (
                                 <MenuItem key={mode.value} value={mode.value}>
@@ -502,8 +496,8 @@ const AddPayment = ({ customers, enqueueSnackbar, closeSnackbar, onSubmit, payme
                             helperText={errors.amount?.message}
                             InputProps={{
                               startAdornment: (
-                                <Box sx={{ mr: 1.5, color: 'secondary.main' }}>
-                                  <Icon icon="tabler:currency-riyal" fontSize={20} />
+                                <Box sx={{ mr: 1.5, mt: 2, color: 'secondary.main' }}>
+                                  <Icon icon="tabler:currency-riyal" fontSize={25} />
                                 </Box>
                               )
                             }}

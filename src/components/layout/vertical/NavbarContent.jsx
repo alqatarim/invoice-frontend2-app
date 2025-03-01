@@ -100,7 +100,7 @@ const shortcuts = [
     subtitle: 'Manage Payments'
   },
   {
-    url: '/quotations',
+    url: '/quotation-list',
     icon: 'ri-clipboard-line',
     title: 'Quotations',
     subtitle: 'Manage Quotations'
