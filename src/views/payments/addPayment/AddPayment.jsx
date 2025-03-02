@@ -346,9 +346,9 @@ const AddPayment = ({ customers, enqueueSnackbar, closeSnackbar, onSubmit, payme
             transition: 'all 0.25s ease'
           }}
         >
-          <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+          <CardContent>
             <form onSubmit={handleSubmit(handleFormSubmit, handleError)}>
-              <Grid container spacing={15}>
+              <Grid container padding={3} spacing={15}>
                 {/* Payment Details Section with Header */}
                 <Grid item xs={12}>
                   <Grid container spacing={5}>
