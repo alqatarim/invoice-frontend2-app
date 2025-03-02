@@ -83,6 +83,30 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
 
   const isExpired = quotationData.expiryDate && dayjs(quotationData.expiryDate).isBefore(dayjs(), 'day');
 
+  // Map the data structure to expected format if needed
+  const normalizedData = {
+    _id: quotationData._id,
+    quotationNumber: quotationData.quotation_id || '',
+    subject: quotationData.reference_no !== 'undefined' ? quotationData.reference_no : '',
+    status: quotationData.status || 'DRAFTED',
+    customerName: quotationData.customerId?.name || '',
+    customerEmail: quotationData.customerId?.email || '',
+    customerAddress: quotationData.customerId?.billingAddress ? 
+      `${quotationData.customerId.billingAddress.addressLine1 || ''} ${quotationData.customerId.billingAddress.addressLine2 || ''}, 
+      ${quotationData.customerId.billingAddress.city || ''}, ${quotationData.customerId.billingAddress.state || ''}, 
+      ${quotationData.customerId.billingAddress.country || ''} - ${quotationData.customerId.billingAddress.pincode || ''}` : '',
+    date: quotationData.quotation_date,
+    expiryDate: quotationData.due_date,
+    items: quotationData.items || [],
+    subTotal: quotationData.taxableAmount || '0.00',
+    totalDiscount: quotationData.totalDiscount || '0.00',
+    totalTax: quotationData.vat || '0.00',
+    totalAmount: quotationData.TotalAmount || '0.00',
+    notes: quotationData.notes || '',
+    termsAndConditions: quotationData.termsAndCondition || '',
+    signature: quotationData.signatureId?.signatureImage || quotationData.signatureImage || null
+  };
+
   const handleStatusMenuOpen = (event) => {
     setStatusMenuAnchorEl(event.currentTarget);
   };
@@ -172,53 +196,58 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
 
   return (
     <>
-      {/* Header Section */}
+      {/* Header Section - Slightly enhanced with better spacing and visual hierarchy */}
       <Box
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          mb: 5,
+          mb: 6, // Increased bottom margin for better spacing
           flexDirection: { xs: 'column', sm: 'row' },
-          gap: { xs: 2, sm: 0 }
+          gap: { xs: 3, sm: 0 } // Increased gap on mobile
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}> {/* Increased gap */}
           <Avatar
             sx={{
-              width: 48,
-              height: 48,
-              backgroundColor: alpha(theme.palette.primary.main, 0.12),
-              color: 'primary.main'
+              width: 52, // Slightly larger
+              height: 52, // Slightly larger
+              backgroundColor: alpha(theme.palette.primary.main, 0.15), // Slightly more vibrant
+              color: 'primary.main',
+              boxShadow: theme => `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}` // Added subtle shadow
             }}
           >
-            <Icon icon="tabler:file-analytics" fontSize={26} />
+            <Icon icon="tabler:file-analytics" fontSize={28} /> {/* Slightly larger icon */}
           </Avatar>
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Quotation #{quotationData.quotationNumber}
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}> {/* Increased font weight */}
+              Quotation #{normalizedData.quotationNumber}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {quotationData.subject || 'No Subject'}
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}> {/* Added margin top */}
+              {normalizedData.subject || 'No Subject'}
             </Typography>
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          {/* Status Chip with dropdown */}
+        <Box sx={{ display: 'flex', gap: 2.5 }}> {/* Increased gap */}
+          {/* Status Chip with dropdown - Enhanced with better visual feedback */}
           <Box sx={{ position: 'relative' }}>
             <Chip
-              label={quotationData.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-              color={getStatusColor(quotationData.status)}
+              label={normalizedData.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+              color={getStatusColor(normalizedData.status)}
               size="medium"
               variant="tonal"
               onClick={handleStatusMenuOpen}
               sx={{ 
-                fontWeight: 500, 
+                fontWeight: 600, // Increased font weight
                 cursor: 'pointer', 
                 borderRadius: '10px',
-                py: 2,
-                px: 1
+                py: 2.2, // Slightly taller
+                px: 1.5, // Slightly wider
+                transition: 'all 0.2s ease', // Added transition
+                '&:hover': {
+                  boxShadow: theme => `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}` // Hover effect
+                }
               }}
               icon={
                 <Icon 
@@ -232,16 +261,21 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
             />
           </Box>
 
-          {/* Actions Button */}
+          {/* Actions Button - Enhanced with better visual feedback */}
           <Button
             variant="contained"
             onClick={handleActionsMenuOpen}
             endIcon={<Icon icon="tabler:chevron-down" />}
             sx={{
               borderRadius: '10px',
-              py: 1,
-              px: 3,
-              boxShadow: theme => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`
+              py: 1.2, // Slightly taller
+              px: 3.5, // Slightly wider
+              boxShadow: theme => `0 4px 12px ${alpha(theme.palette.primary.main, 0.25)}`, // Enhanced shadow
+              transition: 'all 0.2s ease', // Added transition
+              '&:hover': {
+                transform: 'translateY(-2px)', // Subtle lift effect on hover
+                boxShadow: theme => `0 6px 15px ${alpha(theme.palette.primary.main, 0.3)}` // Enhanced hover shadow
+              }
             }}
           >
             Actions
@@ -249,14 +283,18 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
         </Box>
       </Box>
 
-      {/* Main Card */}
+      {/* Main Card - Enhanced with subtle improvements */}
       <Card
         elevation={0}
         sx={{
-          borderRadius: '16px',
+          borderRadius: '18px', // Slightly more rounded
           border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-          boxShadow: theme => `0 4px 12px ${alpha(theme.palette.common.black, 0.04)}`,
-          mb: 5
+          boxShadow: theme => `0 6px 16px ${alpha(theme.palette.common.black, 0.05)}`, // Enhanced shadow
+          mb: 5,
+          transition: 'all 0.3s ease', // Added transition
+          '&:hover': {
+            boxShadow: theme => `0 8px 20px ${alpha(theme.palette.common.black, 0.08)}` // Enhanced hover shadow
+          }
         }}
       >
         <CardContent sx={{ p: { xs: 3, md: 5 } }}>
@@ -273,35 +311,36 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
               >
                 <Avatar
                   sx={{
-                    width: 64,
-                    height: 64,
-                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                    width: 68, // Slightly larger
+                    height: 68, // Slightly larger
+                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
                     color: 'primary.main',
-                    fontSize: '1.5rem',
-                    fontWeight: 500
+                    fontSize: '1.6rem', // Slightly larger
+                    fontWeight: 600, // Increased font weight
+                    boxShadow: theme => `0 3px 10px ${alpha(theme.palette.primary.main, 0.15)}` // Added subtle shadow
                   }}
                 >
-                  {quotationData.customerName && quotationData.customerName.charAt(0).toUpperCase()}
+                  {normalizedData.customerName && normalizedData.customerName.charAt(0).toUpperCase()}
                 </Avatar>
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {quotationData.customerName}
+                    {normalizedData.customerName}
                   </Typography>
-                  {quotationData.customerEmail && (
+                  {normalizedData.customerEmail && (
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {quotationData.customerEmail}
+                      {normalizedData.customerEmail}
                     </Typography>
                   )}
                 </Box>
               </Box>
 
-              {quotationData.customerAddress && (
+              {normalizedData.customerAddress && (
                 <Box sx={{ mb: 4 }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     Customer Address
                   </Typography>
                   <Typography variant="body2">
-                    {quotationData.customerAddress}
+                    {normalizedData.customerAddress}
                   </Typography>
                 </Box>
               )}
@@ -322,7 +361,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                       Quotation Number
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      #{quotationData.quotationNumber}
+                      #{normalizedData.quotationNumber}
                     </Typography>
                   </Box>
                 </Grid>
@@ -339,7 +378,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                       Date
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {formatDate(quotationData.date)}
+                      {formatDate(normalizedData.date)}
                     </Typography>
                   </Box>
                 </Grid>
@@ -356,7 +395,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                       Expiry Date
                     </Typography>
                     <Chip 
-                      label={formatDate(quotationData.expiryDate)} 
+                      label={formatDate(normalizedData.expiryDate)} 
                       size="small"
                       variant="tonal"
                       color={isExpired ? 'error' : 'info'}
@@ -377,7 +416,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                       Total Amount
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                      {formatNumber(quotationData.totalAmount)} SAR
+                      {formatNumber(normalizedData.totalAmount)} SAR
                     </Typography>
                   </Box>
                 </Grid>
@@ -385,34 +424,39 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
             </Grid>
           </Grid>
 
-          {/* Items Table */}
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
+          {/* Items Table - Enhanced with subtle hover effects */}
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 3 }}> {/* Increased font weight */}
             Quotation Items
           </Typography>
           <TableContainer
             component={Paper}
             elevation={0}
             sx={{
-              borderRadius: '12px',
+              borderRadius: '14px', // Slightly more rounded
               border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-              mb: 5
+              mb: 5,
+              overflow: 'hidden', // Ensures the border-radius is applied to the table
+              transition: 'all 0.2s ease', // Added transition
+              '&:hover': {
+                boxShadow: theme => `0 4px 12px ${alpha(theme.palette.common.black, 0.06)}` // Hover effect
+              }
             }}
           >
             <Table sx={{ minWidth: 650 }} size={isSmallScreen ? 'small' : 'medium'}>
               <TableHead>
-                <TableRow sx={{ backgroundColor: alpha(theme.palette.background.default, 0.6) }}>
-                  <TableCell sx={{ fontWeight: 600, py: 2 }}>Item</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 2 }}>Units</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, py: 2 }}>Qty</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, py: 2 }}>Rate</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, py: 2 }}>Discount</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, py: 2 }}>VAT</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, py: 2 }}>Amount</TableCell>
+                <TableRow sx={{ backgroundColor: alpha(theme.palette.background.default, 0.7) }}> {/* Slightly darker */}
+                  <TableCell sx={{ fontWeight: 700, py: 2.2 }}>Item</TableCell> {/* Increased font weight and padding */}
+                  <TableCell sx={{ fontWeight: 700, py: 2.2 }}>Units</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, py: 2.2 }}>Qty</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, py: 2.2 }}>Rate</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, py: 2.2 }}>Discount</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, py: 2.2 }}>VAT</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, py: 2.2 }}>Amount</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {quotationData.items && quotationData.items.length > 0 ? (
-                  quotationData.items.map((item, index) => (
+                {normalizedData.items && normalizedData.items.length > 0 ? (
+                  normalizedData.items.map((item, index) => (
                     <TableRow 
                       key={index}
                       sx={{
@@ -421,11 +465,11 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                       }}
                     >
                       <TableCell component="th" scope="row">{item.name}</TableCell>
-                      <TableCell>{item.units || '-'}</TableCell>
+                      <TableCell>{item.unit || '-'}</TableCell>
                       <TableCell align="right">{item.quantity}</TableCell>
                       <TableCell align="right">{formatNumber(item.rate)}</TableCell>
                       <TableCell align="right">
-                        {item.discountType === '2'
+                        {quotationData.discountType === '2'
                           ? `${item.discount}% (${formatNumber((item.discount / 100) * item.rate * item.quantity)} SAR)`
                           : `${formatNumber(item.discount)} SAR`}
                       </TableCell>
@@ -483,12 +527,12 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                   </Grid>
                   <Grid item xs={6} sx={{ textAlign: 'right' }}>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {formatNumber(quotationData.subTotal)} SAR
+                      {formatNumber(normalizedData.subTotal)} SAR
                     </Typography>
                   </Grid>
                 </Grid>
 
-                {quotationData.totalDiscount > 0 && (
+                {parseFloat(normalizedData.totalDiscount) > 0 && (
                   <Grid container sx={{ mb: 2 }}>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
@@ -497,13 +541,13 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                     </Grid>
                     <Grid item xs={6} sx={{ textAlign: 'right' }}>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        ({formatNumber(quotationData.totalDiscount)}) SAR
+                        ({formatNumber(normalizedData.totalDiscount)}) SAR
                       </Typography>
                     </Grid>
                   </Grid>
                 )}
 
-                {quotationData.totalTax > 0 && (
+                {parseFloat(normalizedData.totalTax) > 0 && (
                   <Grid container sx={{ mb: 2 }}>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
@@ -512,7 +556,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                     </Grid>
                     <Grid item xs={6} sx={{ textAlign: 'right' }}>
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {formatNumber(quotationData.totalTax)} SAR
+                        {formatNumber(normalizedData.totalTax)} SAR
                       </Typography>
                     </Grid>
                   </Grid>
@@ -528,7 +572,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                   </Grid>
                   <Grid item xs={6} sx={{ textAlign: 'right' }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      {formatNumber(quotationData.totalAmount)} SAR
+                      {formatNumber(normalizedData.totalAmount)} SAR
                     </Typography>
                   </Grid>
                 </Grid>
@@ -537,7 +581,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
           </Box>
 
           {/* Notes Section */}
-          {quotationData.notes && (
+          {normalizedData.notes && (
             <Box sx={{ mb: 4 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
                 Notes
@@ -552,14 +596,14 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                 }}
               >
                 <Typography variant="body2">
-                  {quotationData.notes}
+                  {normalizedData.notes}
                 </Typography>
               </Paper>
             </Box>
           )}
 
           {/* Terms and Conditions */}
-          {quotationData.termsAndConditions && (
+          {normalizedData.termsAndConditions && (
             <Box sx={{ mb: 4 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
                 Terms and Conditions
@@ -574,14 +618,14 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
                 }}
               >
                 <Typography variant="body2">
-                  {quotationData.termsAndConditions}
+                  {normalizedData.termsAndConditions}
                 </Typography>
               </Paper>
             </Box>
           )}
 
           {/* Signature Section */}
-          {quotationData.signature && (
+          {normalizedData.signature && (
             <Box sx={{ mb: 4 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
                 Signature
@@ -597,7 +641,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
               >
                 <Box
                   component="img"
-                  src={quotationData.signature}
+                  src={normalizedData.signature}
                   alt="Signature"
                   sx={{
                     maxWidth: 250,
@@ -609,8 +653,8 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
             </Box>
           )}
 
-          {/* Action Buttons */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+          {/* Action Buttons - Enhanced with better visual feedback */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 5 }}> {/* Increased top margin */}
             <Button
               variant="outlined"
               component={Link}
@@ -618,44 +662,53 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
               startIcon={<Icon icon="tabler:arrow-left" />}
               sx={{
                 borderRadius: '10px',
-                py: 1.2,
+                py: 1.3, // Slightly taller
                 px: 4,
                 borderWidth: '2px',
+                transition: 'all 0.2s ease', // Added transition
                 '&:hover': {
-                  borderWidth: '2px'
+                  borderWidth: '2px',
+                  transform: 'translateX(-3px)' // Subtle movement on hover
                 }
               }}
             >
               Back to List
             </Button>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2.5 }}> {/* Increased gap */}
               <Button
                 variant="outlined"
                 component={Link}
-                href={`/quotations/quotation-edit/${quotationData._id}`}
+                href={`/quotations/quotation-edit/${normalizedData._id}`}
                 startIcon={<Icon icon="tabler:edit" />}
                 sx={{
                   borderRadius: '10px',
-                  py: 1.2,
+                  py: 1.3, // Slightly taller
                   px: 4,
                   borderWidth: '2px',
+                  transition: 'all 0.2s ease', // Added transition
                   '&:hover': {
-                    borderWidth: '2px'
+                    borderWidth: '2px',
+                    backgroundColor: alpha(theme.palette.primary.main, 0.04) // Subtle background on hover
                   }
                 }}
               >
                 Edit
               </Button>
-              {quotationData.status !== 'CONVERTED' && (
+              {normalizedData.status !== 'CONVERTED' && (
                 <Button
                   variant="contained"
                   onClick={handleConvertClick}
                   startIcon={<Icon icon="tabler:arrow-right" />}
                   sx={{
                     borderRadius: '10px',
-                    py: 1.2,
+                    py: 1.3, // Slightly taller
                     px: 4,
-                    boxShadow: theme => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`
+                    boxShadow: theme => `0 4px 12px ${alpha(theme.palette.primary.main, 0.25)}`, // Enhanced shadow
+                    transition: 'all 0.2s ease', // Added transition
+                    '&:hover': {
+                      transform: 'translateX(3px)', // Subtle movement on hover
+                      boxShadow: theme => `0 6px 15px ${alpha(theme.palette.primary.main, 0.3)}` // Enhanced hover shadow
+                    }
                   }}
                 >
                   Convert to Invoice
@@ -694,7 +747,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
           <MenuItem
             key={option.value}
             onClick={() => handleStatusChange(option.value)}
-            disabled={quotationData.status === 'CONVERTED' || isLoading}
+            disabled={normalizedData.status === 'CONVERTED' || isLoading}
             sx={{ 
               py: 1.5, 
               pl: 2.5, 
@@ -702,7 +755,7 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
               borderRadius: '8px', 
               mx: 1, 
               my: 0.5,
-              color: quotationData.status === 'CONVERTED' ? 'text.disabled' : 'text.primary'
+              color: normalizedData.status === 'CONVERTED' ? 'text.disabled' : 'text.primary'
             }}
           >
             <Chip 
@@ -742,14 +795,14 @@ const ViewQuotation = ({ quotationData, enqueueSnackbar, closeSnackbar }) => {
       >
         <MenuItem
           component={Link}
-          href={`/quotations/quotation-edit/${quotationData._id}`}
+          href={`/quotations/quotation-edit/${normalizedData._id}`}
           onClick={handleActionsMenuClose}
           sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}
         >
           <Icon icon="tabler:edit" fontSize={20} style={{ marginRight: '12px' }} />
           Edit
         </MenuItem>
-        {quotationData.status !== 'CONVERTED' && (
+        {normalizedData.status !== 'CONVERTED' && (
           <MenuItem
             onClick={handleConvertClick}
             sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}

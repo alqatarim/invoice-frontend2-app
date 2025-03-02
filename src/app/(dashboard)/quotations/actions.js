@@ -94,7 +94,7 @@ export async function getQuotationDetails(id) {
     }
 
     // Transform the data to include all necessary fields
-    const quotationDetails = response.data?.quotation_details;
+    const quotationDetails = response.data;
 
     if (!quotationDetails) {
       throw new Error('Quotation details not found');
@@ -113,33 +113,33 @@ export async function getQuotationDetails(id) {
   }
 }
 
-export async function getQuotationById(id) {
-  try {
-    const response = await fetchWithAuth(`${ENDPOINTS.QUOTATION.VIEW}/${id}`);
+// export async function getQuotationById(id) {
+//   try {
+//     const response = await fetchWithAuth(`${ENDPOINTS.QUOTATION.VIEW}/${id}`);
 
-    if (response.code !== 200) {
-      throw new Error(response?.message || 'Failed to fetch quotation details');
-    }
+//     if (response.code !== 200) {
+//       throw new Error(response?.message || 'Failed to fetch quotation details');
+//     }
 
-    // Transform the data to include all necessary fields
-    const quotationDetails = response.data?.quotation_details;
+//     // Transform the data to include all necessary fields
+//     const quotationDetails = response.data?.quotation_details;
 
-    if (!quotationDetails) {
-      throw new Error('Quotation details not found');
-    }
+//     if (!quotationDetails) {
+//       throw new Error('Quotation details not found');
+//     }
 
-    return {
-      success: true,
-      data: quotationDetails
-    };
-  } catch (error) {
-    console.error('Error fetching quotation details:', error);
-    return {
-      success: false,
-      message: error.message || 'Failed to fetch quotation details'
-    };
-  }
-}
+//     return {
+//       success: true,
+//       data: quotationDetails
+//     };
+//   } catch (error) {
+//     console.error('Error fetching quotation details:', error);
+//     return {
+//       success: false,
+//       message: error.message || 'Failed to fetch quotation details'
+//     };
+//   }
+// }
 
 export async function addQuotation(data) {
   try {

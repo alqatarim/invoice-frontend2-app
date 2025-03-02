@@ -1,3 +1,5 @@
+'use client'
+
 // ** React Imports
 import { useState } from 'react'
 
@@ -5,11 +7,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 // ** MUI Imports
-import Spinner from 'src/@core/components/spinner'
+import Spinner from '@/components/Spinner'
 import { useSnackbar } from 'notistack'
 
 // ** Component Imports
-import AddQuotation from './addQuotation'
+import AddQuotation from '@/views/quotations/addQuotation/addQuotation'
 
 // ** API Import
 import { createQuotation, getAllCustomers } from 'src/app/(dashboard)/quotations/actions'
