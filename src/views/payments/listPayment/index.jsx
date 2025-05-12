@@ -146,6 +146,22 @@ const PaymentListContent = ({ initialData }) => {
     }
   };
 
+  const handleClearFilter = async () => {
+    setSelectedCustomers([]);
+    setIsFiltered(false);
+
+    try {
+      const response = await getPaymentsList(page, pageSize);
+      if (response && response.success) {
+        setPayments(response.data);
+        setTotalRecords(response.totalRecords);
+      }
+    } catch (error) {
+      console.error('Error clearing filter:', error);
+      enqueueSnackbar('Error clearing filter', { variant: 'error' });
+    }
+  };
+
   useEffect(() => {
     if (isFiltered) {
       handleGetPayments(page, pageSize, { customer: selectedCustomers });
@@ -163,6 +179,7 @@ const PaymentListContent = ({ initialData }) => {
         pageSize={pageSize}
         setPageSize={setPageSize}
         onFilterClick={handleFilterToggle}
+        onClearFilter={handleClearFilter}
         onStatusUpdate={handleStatusUpdate}
         isFiltered={isFiltered}
         getPaymentsList={handleGetPayments}

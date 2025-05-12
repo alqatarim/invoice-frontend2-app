@@ -40,6 +40,24 @@ const CustomIconButton = styled(MuiButton)(({ skin, color, size, theme }) => {
         }
       }),
 
+        ...(color &&
+      skin === 'lighter' && {
+        backgroundColor: `var(--mui-palette-${color}-lighterOpacity)`,
+        color: `var(--mui-palette-${color}-main)`,
+        '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
+          backgroundColor: `var(--mui-palette-${color}-lighterOpacity)`,
+        }
+      }),
+
+              ...(color &&
+      skin === 'lightest' && {
+         backgroundColor: `var(--mui-palette-${color}-lightestOpacity)`,
+        color: `var(--mui-palette-${color}-main)`,
+        '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
+          backgroundColor: `var(--mui-palette-${color}-lightestOpacity)`,
+        }
+      }),
+
     ...(color &&
       skin === 'light-static' && {
         backgroundColor: lighten(theme.palette[color].main, 0.84),

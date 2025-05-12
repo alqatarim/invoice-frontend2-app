@@ -1,15 +1,20 @@
 const dialog = skin => ({
   MuiDialog: {
     styleOverrides: {
-      paper: {
+      paper: ({ theme }) => ({
         ...(skin !== 'bordered'
           ? {
               boxShadow: 'var(--mui-customShadows-xl)'
             }
           : {
               boxShadow: 'none'
-            })
-      }
+            }),
+        [theme.breakpoints.down('sm')]: {
+          '&:not(.MuiDialog-paperFullScreen)': {
+            margin: theme.spacing(6)
+          }
+        }
+      })
     }
   },
   MuiDialogTitle: {
@@ -39,6 +44,9 @@ const dialog = skin => ({
     styleOverrides: {
       root: ({ theme }) => ({
         padding: theme.spacing(5),
+        '& .MuiButtonBase-root:not(:first-of-type)': {
+          marginInlineStart: theme.spacing(4)
+        },
         '&:where(.dialog-actions-dense)': {
           padding: theme.spacing(2.5),
           '& .MuiButton-text': {

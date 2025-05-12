@@ -88,7 +88,7 @@ const QuotationFilter = ({ onFilterChange, customers }) => {
       startDate: null,
       endDate: null
     });
-    
+
     // Apply empty filters to reset the list
     onFilterChange({
       customer: [],
@@ -182,10 +182,10 @@ const QuotationFilter = ({ onFilterChange, customers }) => {
                         {selected.map((value) => {
                           const customer = customers.find(c => c._id === value);
                           return (
-                            <Chip 
-                              key={value} 
-                              label={customer?.name || value} 
-                              size="small" 
+                            <Chip
+                              key={value}
+                              label={customer?.name || value}
+                              size="small"
                               variant="tonal"
                               color="primary"
                               sx={{ borderRadius: '6px' }}
@@ -233,10 +233,10 @@ const QuotationFilter = ({ onFilterChange, customers }) => {
                         {selected.map((value) => {
                           const statusOption = statusOptions.find(s => s.value === value);
                           return (
-                            <Chip 
-                              key={value} 
-                              label={statusOption?.label || value} 
-                              size="small" 
+                            <Chip
+                              key={value}
+                              label={statusOption?.label || value}
+                              size="small"
                               variant="tonal"
                               color="primary"
                               sx={{ borderRadius: '6px' }}
@@ -319,31 +319,18 @@ const QuotationFilter = ({ onFilterChange, customers }) => {
             <Button
               variant="outlined"
               onClick={resetFilters}
-              startIcon={<Icon icon="tabler:refresh" />}
+
               size="small"
-              sx={{
-                borderRadius: '10px',
-                px: 3,
-                py: 1,
-                borderWidth: '2px',
-                '&:hover': {
-                  borderWidth: '2px'
-                }
-              }}
+
             >
               Reset
             </Button>
             <Button
               variant="contained"
               onClick={applyFilters}
-              startIcon={<Icon icon="tabler:filter" />}
+
               size="small"
-              sx={{
-                borderRadius: '10px',
-                px: 3,
-                py: 1,
-                boxShadow: theme => `0 4px 8px ${alpha(theme.palette.primary.main, 0.2)}`
-              }}
+
             >
               Apply Filters
             </Button>

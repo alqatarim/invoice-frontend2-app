@@ -33,7 +33,7 @@ export async function getDebitNotesList(page = 1, pageSize = 10) {
   try {
     const skipSize = page === 1 ? 0 : (page - 1) * pageSize;
 
-    console.log('purchase return list URL:', `${ENDPOINTS.DEBIT_NOTE.LIST}?limit=${pageSize}&skip=${skipSize}`);
+
     const response = await fetchWithAuth(
       `${ENDPOINTS.DEBIT_NOTE.LIST}?limit=${pageSize}&skip=${skipSize}`
     );
@@ -279,16 +279,19 @@ export async function updateDebitNote(data) {
             const blob = await dataURLtoBlob(data.signatureImage);
             const file = new File([blob], 'signature.png', { type: 'image/png' });
             formData.append("signatureImage", file);
+
           } else if (typeof data.signatureImage === 'string' && data.signatureImage.startsWith('http')) {
             // Handle image URL
             const response = await fetch(data.signatureImage);
             const blob = await response.blob();
             const file = new File([blob], 'signature.png', { type: 'image/png' });
             formData.append("signatureImage", file);
+
           } else if (data.signatureImage instanceof Blob) {
             // Handle if it's already a Blob
             const file = new File([data.signatureImage], 'signature.png', { type: 'image/png' });
             formData.append("signatureImage", file);
+
           }
         } catch (error) {
           console.error('Error processing signature:', error);

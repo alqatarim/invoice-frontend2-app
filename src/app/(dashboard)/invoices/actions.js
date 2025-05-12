@@ -1,13 +1,39 @@
 'use server';
 
-
 import moment from 'moment';
- import { fetchWithAuth } from '@/utils/fetchWithAuth';
-
-const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-import { dataURLtoBlob } from '@/utils/helpers';
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { dataURLtoBlob, processSignatureImage } from '@/utils/helpers';
 
 
+
+const ENDPOINTS = {
+  INVOICE: {
+    LIST: '/invoice',
+    VIEW: '/invoice',
+    UPDATE: '/invoice/updateInvoice',
+    CLONE: '/invoice',
+    CARD_COUNTS: '/invoice/invoiceCard',
+    PDF_CREATE: '/invoice/pdfCreate',
+    PDF_DOWNLOAD: '/invoice/pdfDownload',
+    CONVERT_SALES_RETURN: '/invoice'
+  },
+  PAYMENT: {
+    ADD: '/payment/addPayment'
+  },
+  DROPDOWN: {
+    CUSTOMER: '/drop_down/customer',
+    PRODUCT: '/drop_down/product',
+    TAX: '/drop_down/tax',
+    SIGNATURE: '/drop_down/signature'
+  },
+  BANK: {
+    LIST: '/bankSettings/listBanks',
+    ADD: '/bankSettings/addBank'
+  },
+  UNAUTHORIZED: {
+    PAYMENT_LINKS: '/unauthorized/sentPaymentLinks'
+  }
+};
 
 /*
  * Get invoice details by ID.
@@ -22,7 +48,11 @@ export async function getInvoiceById(id) {
   }
 
   try {
-    const response = await fetchWithAuth(`/invoice/${id}`);
+    // Add cache: 'no-store' option to disable caching and always fetch fresh data
+    const response = await fetchWithAuth(`${ENDPOINTS.INVOICE.VIEW}/${id}`, {
+      cache: 'no-store',
+      next: { revalidate: 0 } // This ensures data is not cached
+    });
 
     // Assuming a successful response contains a 'data' property
     return response.data?.invoice_details || {};
@@ -31,8 +61,6 @@ export async function getInvoiceById(id) {
     throw error; // Propagate the error to be handled by the caller
   }
 }
-
-
 
 /**
  * Add a payment to an invoice.
@@ -72,7 +100,7 @@ export async function addPayment(paymentData) {
   };
 
   try {
-    const response = await fetchWithAuth('/payment/addPayment', {
+    const response = await fetchWithAuth(ENDPOINTS.PAYMENT.ADD, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -98,8 +126,8 @@ export async function addPayment(paymentData) {
 export async function getInitialInvoiceData() {
   try {
     const [invoiceResponse, cardCountsResponse] = await Promise.all([
-      fetchWithAuth('/invoice?limit=10&skip=0&sortBy=&sortDirection=asc'),
-      fetchWithAuth('/invoice/invoiceCard')
+      fetchWithAuth(`${ENDPOINTS.INVOICE.LIST}?limit=10&skip=0&sortBy=&sortDirection=asc`),
+      fetchWithAuth(ENDPOINTS.INVOICE.CARD_COUNTS)
     ]);
 
     if (invoiceResponse.code === 200 && cardCountsResponse.code === 200) {
@@ -136,7 +164,7 @@ export async function getInitialInvoiceData() {
  */
 export async function getFilteredInvoices(tab, page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc') {
   const skip = (page - 1) * pageSize;
-  let url = `/invoice?limit=${pageSize}&skip=${skip}`;
+  let url = ENDPOINTS.INVOICE.LIST + `?limit=${pageSize}&skip=${skip}`;
 
   // Only apply status filter if tab is not 'ALL'
   if (tab !== 'ALL') {
@@ -199,7 +227,7 @@ export async function cloneInvoice(id) {
   }
 
   try {
-      const response = await fetchWithAuth(`/invoice/${id}/clone`, { method: 'POST' });
+      const response = await fetchWithAuth(`${ENDPOINTS.INVOICE.CLONE}/${id}/clone`, { method: 'POST' });
       if (response.code === 200) {
           return response.invoice || response.data; // Adjust based on backend response
       } else {
@@ -226,7 +254,7 @@ export async function sendInvoice(id) {
   }
 
   try {
-    const response = await fetchWithAuth(`/invoice/pdfCreate?invoiceId=${encodeURIComponent(id)}`);
+    const response = await fetchWithAuth(`${ENDPOINTS.INVOICE.PDF_CREATE}?invoiceId=${encodeURIComponent(id)}`);
     if (response.code === 200) {
       return response;
     } else if (response.message) {
@@ -257,7 +285,7 @@ export async function convertTosalesReturn(id, type) {
   }
 
   try {
-    const response = await fetchWithAuth(`/invoice/${id}/convertsalesreturn`, { method: 'POST' });
+    const response = await fetchWithAuth(`${ENDPOINTS.INVOICE.CONVERT_SALES_RETURN}/${id}/convertsalesreturn`, { method: 'POST' });
     if (response.code === 200) {
       return response;
     } else if (response.message) {
@@ -286,7 +314,7 @@ export async function searchCustomers(searchTerm) {
     throw new Error('Invalid search term');
   }
 
-  const url = `/customer?search_customer=${encodeURIComponent(searchTerm)}`;
+  const url = ENDPOINTS.DROPDOWN.CUSTOMER + `?search_customer=${encodeURIComponent(searchTerm)}`;
   try {
     const response = await fetchWithAuth(url);
     if (response.code === 200) {
@@ -317,7 +345,7 @@ export async function searchInvoices(searchTerm) {
     throw new Error('Invalid search term');
   }
 
-  const url = `/invoice?search_invoiceNumber=${encodeURIComponent(searchTerm)}`;
+  const url = ENDPOINTS.INVOICE.LIST + `?search_invoiceNumber=${encodeURIComponent(searchTerm)}`;
   try {
     const response = await fetchWithAuth(url);
     if (response.code === 200) {
@@ -349,7 +377,7 @@ export async function sendPaymentLink(id) {
   }
 
   try {
-    const response = await fetchWithAuth(`/unauthorized/sentPaymentLinks?invoiceId=${encodeURIComponent(id)}`);
+    const response = await fetchWithAuth(`${ENDPOINTS.UNAUTHORIZED.PAYMENT_LINKS}?invoiceId=${encodeURIComponent(id)}`);
 
     if (response.code === 200) {
       return response;
@@ -385,7 +413,7 @@ export async function printDownloadInvoice(id) {
   }
 
   try {
-    const response = await fetchWithAuth(`/invoice/pdfDownload?invoiceId=${encodeURIComponent(id)}`, { method: 'GET' });
+    const response = await fetchWithAuth(`${ENDPOINTS.INVOICE.PDF_DOWNLOAD}?invoiceId=${encodeURIComponent(id)}`, { method: 'GET' });
     if (response.code === 200) {
       return response.pdfUrl;
     } else if (response.message) {
@@ -401,12 +429,7 @@ export async function printDownloadInvoice(id) {
   }
 }
 
-
-
-export async function updateInvoice(id, updatedFormData, signatureURL) {
-
-
-
+export async function updateInvoice(id, updatedFormData) {
   if (!id || typeof id !== 'string') {
     throw new Error('Invalid invoice ID');
   }
@@ -452,57 +475,52 @@ export async function updateInvoice(id, updatedFormData, signatureURL) {
   formData.append("notes", updatedFormData.notes);
   formData.append("termsAndCondition", updatedFormData.termsAndCondition);
   formData.append("sign_type", updatedFormData.sign_type);
-  formData.append("signatureName", updatedFormData?.signatureName);
 
-  // Add signatureId if it exists
-  if (updatedFormData.signatureId) {
-    formData.append("signatureId", updatedFormData.signatureId);
-  }
+  // Handle signature based on sign_type
+  if (updatedFormData.sign_type === "eSignature") {
+    formData.append("signatureName", updatedFormData.signatureName || "");
 
-  if (signatureURL) {
-    try {
-       const blob =  dataURLtoBlob(signatureURL);
-
-
-        formData.append("signatureImage", blob); // Add filename
-
-
-
-    } catch (error) {
-      console.error('Error processing signature:', error);
-      throw new Error('Failed to process signature');
+    // Use the new helper function to process the signature image
+    if (updatedFormData.signatureImage) {
+      try {
+        const signatureFile = await processSignatureImage(updatedFormData.signatureImage);
+        if (signatureFile) {
+          formData.append("signatureImage", signatureFile);
+        }
+      } catch (error) {
+        console.error('Error processing signature:', error);
+        throw new Error('Failed to process signature: ' + error.message);
+      }
+    }
+  } else if (updatedFormData.sign_type === "manualSignature") {
+    // Add signatureId if it exists
+    if (updatedFormData.signatureId) {
+      formData.append("signatureId", updatedFormData.signatureId);
     }
   }
 
-
-
-
-
-console.log('final form data', formData)
+  console.log('final form data', formData);
 
   try {
-    const response = await fetchWithAuth(`/invoice/updateInvoice/${id}`, {
+    const response = await fetchWithAuth(ENDPOINTS.INVOICE.UPDATE + `/${id}`, {
       method: 'PUT', // Ensure the method is correctly specified
       body: formData,
     });
 
-      return { success: true, data: response.data };
+    if (response.code !== 200) {
+      throw new Error(response.message || 'Failed to update invoice');
+    }
 
+    return { success: true, data: response.data };
   } catch (error) {
     console.error('Error updating invoice:', error);
     return { success: false, message: error.message || 'Failed to update invoice' };
   }
 }
 
-
-
-
-
-
-
 export async function getCustomers() {
   try {
-    const response = await fetchWithAuth('/drop_down/customer');
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -517,7 +535,7 @@ export async function getCustomers() {
 
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth('/drop_down/product');
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -532,9 +550,8 @@ export async function getProducts() {
 
 export async function getTaxRates() {
   try {
-    const response = await fetchWithAuth('/drop_down/tax');
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX);
     if (response.code === 200) {
-
       return response.data || [];
     } else {
       console.error('Failed to fetch tax rates');
@@ -548,7 +565,7 @@ export async function getTaxRates() {
 
 export async function getBanks() {
   try {
-    const response = await fetchWithAuth('/bankSettings/listBanks');
+    const response = await fetchWithAuth(ENDPOINTS.BANK.LIST);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -563,7 +580,7 @@ export async function getBanks() {
 
 export async function addBank(bankData) {
   try {
-    const response = await fetchWithAuth('/bankSettings/addBank', {
+    const response = await fetchWithAuth(ENDPOINTS.BANK.ADD, {
       method: 'POST',
       body: JSON.stringify(bankData),
     });
@@ -583,7 +600,7 @@ export async function addBank(bankData) {
 // Add a new function to fetch manual signatures
 export async function getManualSignatures() {
   try {
-    const response = await fetchWithAuth('/drop_down/signature');
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE);
     if (response.code === 200) {
       return response.data || [];
     } else {

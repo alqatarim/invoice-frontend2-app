@@ -50,7 +50,7 @@ const autocomplete = skin => ({
       },
       listbox: ({ theme }) => ({
         '& .MuiAutocomplete-option': {
-          paddingBlock: theme.spacing(2),
+          padding: theme.spacing(2, 5),
           '&[aria-selected="true"]': {
             backgroundColor: 'var(--mui-palette-primary-lightOpacity)',
             color: 'var(--mui-palette-primary-main)',

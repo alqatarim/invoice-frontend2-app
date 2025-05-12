@@ -15,11 +15,11 @@ const ENDPOINTS = {
     UPDATE_STATUS: '/quotation/update_status',
     CONVERT_TO_INVOICE: '/quotation/convertToInvoice'
   },
-  DROPDOWN: {
-    CUSTOMER_LIST: '/drop_down/customer',
-    PRODUCT_LIST: '/drop_down/product',
-    TAX_LIST: '/drop_down/tax',
-    UNIT_LIST: '/drop_down/unit'
+  LIST: {
+    CUSTOMER_LIST: '/customers/listCustomers',
+    PRODUCT_LIST: '/products/listProduct',
+    TAX_LIST: '/tax/listTaxes',
+    UNIT_LIST: '/units/unitList'
   }
 };
 
@@ -113,33 +113,7 @@ export async function getQuotationDetails(id) {
   }
 }
 
-// export async function getQuotationById(id) {
-//   try {
-//     const response = await fetchWithAuth(`${ENDPOINTS.QUOTATION.VIEW}/${id}`);
 
-//     if (response.code !== 200) {
-//       throw new Error(response?.message || 'Failed to fetch quotation details');
-//     }
-
-//     // Transform the data to include all necessary fields
-//     const quotationDetails = response.data?.quotation_details;
-
-//     if (!quotationDetails) {
-//       throw new Error('Quotation details not found');
-//     }
-
-//     return {
-//       success: true,
-//       data: quotationDetails
-//     };
-//   } catch (error) {
-//     console.error('Error fetching quotation details:', error);
-//     return {
-//       success: false,
-//       message: error.message || 'Failed to fetch quotation details'
-//     };
-//   }
-// }
 
 export async function addQuotation(data) {
   try {
@@ -238,7 +212,7 @@ export async function updateQuotation(id, data) {
     revalidatePath('/quotations');
     revalidatePath(`/quotations/quotation-view/${id}`);
     revalidatePath(`/quotations/quotation-edit/${id}`);
-    
+
     return {
       success: true,
       data: response.data,
@@ -319,7 +293,7 @@ export async function convertToInvoice(id) {
 
 export async function getCustomers() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER_LIST);
+    const response = await fetchWithAuth(ENDPOINTS.LIST.CUSTOMER_LIST);
     if (response.code === 200) {
       return response.data || [];
     }
@@ -330,29 +304,11 @@ export async function getCustomers() {
   }
 }
 
-export async function getAllCustomers() {
-  try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER_LIST);
-    if (response.code === 200) {
-      return {
-        success: true,
-        data: response.data || []
-      };
-    }
-    throw new Error(response.message || 'Failed to fetch customers');
-  } catch (error) {
-    console.error('Error fetching customers:', error);
-    return { 
-      success: false, 
-      message: error.message,
-      data: []
-    };
-  }
-}
+
 
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT_LIST);
+    const response = await fetchWithAuth(ENDPOINTS.LIST.PRODUCT_LIST);
     if (response.code === 200) {
       return response.data || [];
     }
@@ -365,7 +321,7 @@ export async function getProducts() {
 
 export async function getTaxes() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX_LIST);
+    const response = await fetchWithAuth(ENDPOINTS.LIST.TAX_LIST);
     if (response.code === 200) {
       return response.data || [];
     }
@@ -378,7 +334,7 @@ export async function getTaxes() {
 
 export async function getUnits() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.UNIT_LIST);
+    const response = await fetchWithAuth(ENDPOINTS.LIST.UNIT_LIST);
     if (response.code === 200) {
       return response.data || [];
     }
@@ -391,7 +347,7 @@ export async function getUnits() {
 
 export async function searchCustomers(searchText) {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.DROPDOWN.CUSTOMER_LIST}?name=${searchText}`);
+    const response = await fetchWithAuth(`${ENDPOINTS.LIST.CUSTOMER_LIST}?name=${searchText}`);
 
     if (response.code === 200) {
       return {

@@ -26,8 +26,27 @@ import {
   MenuItem
 } from '@mui/material';
 import { Icon } from '@iconify/react';
-import { getPaymentsList, deletePayment } from '@/app/(dashboard)/payments/actions';
+import { deletePayment } from '@/app/(dashboard)/payments/actions';
 import { formatDate } from '@/utils/helpers';
+import { formatCurrency } from '@/utils/formatCurrency';
+
+
+const getPaymentModeIcon = (mode) => {
+  switch (mode) {
+    case 'Cash':
+      return 'mdi:cash-multiple';
+    case 'Cheque':
+      return 'mdi:checkbook';
+    case 'Bank':
+      return 'mdi:bank';
+    case 'Online':
+      return 'mdi:web';
+    default:
+      return 'bi:credit-card';
+  }
+};
+
+
 
 const PaymentList = ({
   payments,
@@ -38,6 +57,7 @@ const PaymentList = ({
   pageSize,
   setPageSize,
   onFilterClick,
+  onClearFilter,
   onStatusUpdate,
   getPaymentsList,
   isFiltered,
@@ -135,14 +155,22 @@ const PaymentList = ({
         </Typography>
       </Box>
 
+
       <Box className='flex justify-end items-center gap-2'>
-        <Button
-          variant="text"
-          startIcon={<Icon icon="mdi:filter-variant" />}
-          onClick={onFilterClick}
+
+        <IconButton
+          color='primary'
+                    variant='outlined'
+          size='medium'
+          onClick={isFiltered ? onClearFilter : onFilterClick}
         >
-          Filter
-        </Button>
+          <Icon
+            height='25px'
+            icon={isFiltered ? "line-md:filter-remove-twotone" : "line-md:filter-twotone"}
+          />
+        </IconButton>
+
+
         <Button
           variant="contained"
           startIcon={<Icon icon="mdi:plus" />}
@@ -215,15 +243,21 @@ const PaymentList = ({
                 </TableCell>
 
                 <TableCell>
-                  <Typography variant='body1'>{payment.amount}</Typography>
+                  <Typography variant='body1'>{formatCurrency(payment.amount)}</Typography>
                 </TableCell>
                 <TableCell>
                   <Typography variant='body1'>{formatDate(payment.createdAt)}</Typography>
                 </TableCell>
                 <TableCell>
-                  <Chip color='secondary' variant='outlined' size='medium' label={payment.payment_method} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                    <Icon icon={getPaymentModeIcon(payment.payment_method)} fontSize={23} color={theme.palette.secondary.main} />
+
+                                    <Typography variant='body1'>{payment.payment_method}</Typography>
+                                  </Box>
                 </TableCell>
                 <TableCell>
+
+
                   <Chip
                     color={
                       payment.status === 'Success'

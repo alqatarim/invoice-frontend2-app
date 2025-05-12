@@ -310,7 +310,7 @@ const handleProductChange = (productId) => {
 
   const handleError = (errors) => {
     // Get all form values
-    const formValues = watch();
+
 
     // First close any existing snackbars
     closeSnackbar();
@@ -415,20 +415,6 @@ const handleProductChange = (productId) => {
         return;
       }
 
-      // Show success notification
-
-      // enqueueSnackbar('Purchase return updated successfully!', {
-      //   variant: 'success',
-      //   autoHideDuration: 10000,
-      //   preventDuplicate: false,
-      //   SnackbarProps: {
-      //     onExited: () => console.log('Success snackbar closed'),
-      //     onClose: (event, reason) => {
-      //       if (reason === 'clickaway') return;
-      //       closeSnackbar();
-      //     }
-      //   }
-      // });
 
       setSubmissionResult({
         success: true,
@@ -471,7 +457,13 @@ const handleProductChange = (productId) => {
 
   const handleSaveSignature = () => {
     if (signaturePadRef.current) {
+
+
       const signatureData = signaturePadRef.current.toDataURL();
+
+       console.log('Signature URL!!!!!!!!!!')
+      console.log(signatureData)
+
       setSignatureDataURL(signatureData);
       setValue('signatureImage', signatureData);
       trigger('signatureImage');
@@ -1160,11 +1152,11 @@ const handleProductChange = (productId) => {
                             <TableCell>
                               <TextField
                                 size='small'
-                                type="number"
+                                // type="number"
                                 value={item.quantity}
                                 onChange={(e) => handleQuantityChange(index, e.target.value)}
                                 inputProps={{
-                                  min: 1,
+                                  // min: 1,
                                   style: {
                                     padding: { xs: '4px 8px', sm: '8px 12px' }
                                   }

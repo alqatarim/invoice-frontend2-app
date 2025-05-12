@@ -55,19 +55,21 @@ const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) =>
   },
 }));
 
-const QuotationViewContent = ({ quotationData }) => {
+const QuotationViewContent = ({ quotationData, unitsList, productsList }) => {
   const { enqueueSnackbar } = useSnackbar();
 
   return (
     <ViewQuotation
       quotationData={quotationData}
+      unitsList={unitsList}
+      productsList={productsList}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}
     />
   );
 };
 
-const QuotationViewContainer = ({ quotationData }) => {
+const QuotationViewContainer = ({ quotationData, unitsList, productsList }) => {
   // Add action to close snackbar
   const action = (snackbarId) => (
     <IconButton
@@ -99,7 +101,11 @@ const QuotationViewContainer = ({ quotationData }) => {
         horizontal: 'right'
       }}
     >
-      <QuotationViewContent quotationData={quotationData} />
+      <QuotationViewContent
+        quotationData={quotationData}
+        unitsList={unitsList}
+        productsList={productsList}
+      />
     </SnackbarProvider>
   );
 };

@@ -6,66 +6,79 @@ const colorSchemes = skin => {
           main: '#8C57FF',
           light: '#A379FF',
           dark: '#7E4EE6',
-          lighterOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.08)',
+          lighterOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.16)',
+          lightestOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.06)',
           mainOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.24)',
           darkOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.32)',
-          darkerOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.38)'
+          darkerOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.38)',
+          darkestOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.42)'
         },
         secondary: {
           main: '#8A8D93',
           light: '#A1A4A9',
           dark: '#7C7F84',
           contrastText: '#fff',
-          lighterOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.08)',
+          lighterOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.16)',
+          lightestOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.06)',
           mainOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.24)',
           darkOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.32)',
-          darkerOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.38)'
+          darkerOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.38)',
+          darkestOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.42)'
         },
         error: {
           main: '#FF4C51',
           light: '#FF7074',
           dark: '#E64449',
           contrastText: '#fff',
-          lighterOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.08)',
+          lighterOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.16)',
+          lightestOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.06)',
           mainOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.24)',
           darkOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.32)',
-          darkerOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.38)'
+          darkerOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.38)',
+          darkestOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.42)'
         },
         warning: {
           main: '#FFB400',
           light: '#FFC333',
           dark: '#E6A200',
           contrastText: '#fff',
-          lighterOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.08)',
+          lighterOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.16)',
+          lightestOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.06)',
           mainOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.24)',
           darkOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.32)',
-          darkerOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.38)'
+          darkerOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.38)',
+          darkestOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.42)',
+
         },
         info: {
           main: '#16B1FF',
           light: '#45C1FF',
           dark: '#149FE6',
           contrastText: '#fff',
-          lighterOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.08)',
+          lighterOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.16)',
+          lightestOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.06)',
           mainOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.24)',
           darkOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.32)',
-          darkerOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.38)'
+          darkerOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.38)',
+          darkestOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.42)'
         },
         success: {
           main: '#56CA00',
           light: '#78D533',
           dark: '#4DB600',
           contrastText: '#fff',
-          lighterOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.08)',
+          lighterOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.16)',
+          lightestOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.06)',
           mainOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.24)',
           darkOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.32)',
-          darkerOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.38)'
+          darkerOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.38)',
+          darkestOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.42)'
         },
         text: {
           primary: `rgb(var(--mui-mainColorChannels-light) / 0.9)`,

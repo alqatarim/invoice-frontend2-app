@@ -59,69 +59,7 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { alpha } from '@mui/material/styles';
 import { addPurchase } from '@/app/(dashboard)/purchases/actions';
-
-// Updated calculation functions
-function calculateItemValues(item) {
-  if (!item) return { rate: 0, discountValue: 0, tax: 0, amount: 0 };
-
-  // Ensure all values are numbers
-  const quantity = Number(item.quantity) || 0;
-  const baseRate = item.isRateFormUpadted
-    ? Number(item.form_updated_rate)
-    : Number(item.purchasePrice);
-  const rate = quantity * baseRate;
-
-  // Calculate discount
-  const discountAmount = item.isRateFormUpadted
-    ? Number(item.form_updated_discount)
-    : Number(item.discount);
-  const discountType = item.isRateFormUpadted
-    ? Number(item.form_updated_discounttype)
-    : Number(item.discountType);
-
-  const discountValue = discountType === 2
-    ? (rate * discountAmount / 100)
-    : discountAmount;
-
-  // Calculate tax
-  const taxableAmount = rate - discountValue;
-  const taxRate = Number(item.taxInfo?.taxRate) || 0;
-  const tax = (taxableAmount * taxRate) / 100;
-
-  // Calculate final amount
-  const amount = taxableAmount + tax;
-
-  return {
-    rate,
-    discountValue,
-    tax,
-    amount
-  };
-}
-
-function calculateTotals(items) {
-  const initialTotals = {
-    subTotal: 0,
-    totalDiscount: 0,
-    vat: 0,
-    total: 0
-  };
-
-  if (!Array.isArray(items) || items.length === 0) {
-    return initialTotals;
-  }
-
-  return items.reduce((acc, item) => {
-    const { rate, discountValue, tax, amount } = calculateItemValues(item);
-
-    return {
-      subTotal: Number(acc.subTotal) + Number(rate),
-      totalDiscount: Number(acc.totalDiscount) + Number(discountValue),
-      vat: Number(acc.vat) + Number(tax),
-      total: Number(acc.total) + Number(amount)
-    };
-  }, initialTotals);
-}
+import { purchaseCalculations } from '@/utils/helpers';
 
 const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, purchaseNumber }) => {
 
@@ -192,7 +130,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
       }
 
       setItems(currentItems);
-      setTotals(calculateTotals(currentItems));
+      setTotals(purchaseCalculations.calculateTotals(currentItems));
       setValue('items', currentItems);
 
     } catch (error) {
@@ -209,25 +147,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
 
       setProductsCloneData(prev => prev.filter(p => p._id !== productId));
 
-      const newItem = {
-        key: Date.now(),
-        name: selectedProduct.name,
-        productId: selectedProduct._id,
-        units: selectedProduct.units?.name,
-        unit: selectedProduct.units?._id,
-      quantity: 1,
-        discountType: selectedProduct.discountType || 3,
-        discount: Number(selectedProduct.discountValue || 0),
-        purchasePrice: Number(selectedProduct.purchasePrice || 0),
-        rate: Number(selectedProduct.purchasePrice || 0),
-        taxInfo: selectedProduct.tax || null,
-        tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0,
-        isRateFormUpadted: false,
-        form_updated_discounttype: selectedProduct.discountType || 3,
-        form_updated_discount: Number(selectedProduct.discountValue || 0),
-        form_updated_rate: Number(selectedProduct.purchasePrice || 0),
-        form_updated_tax: selectedProduct.tax ? Number(selectedProduct.tax.taxRate || 0) : 0
-      };
+      const newItem = purchaseCalculations.formatPurchaseItem(selectedProduct);
 
       const rateValue = Number(newItem.quantity) * Number(newItem.purchasePrice);
       let discountedAmount;
@@ -242,7 +162,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
       newItem.amount = discountedAmount + newItem.tax;
 
       setItems(prevItems => [...prevItems, newItem]);
-      setTotals(calculateTotals([...items, newItem]));
+      setTotals(purchaseCalculations.calculateTotals([...items, newItem]));
       setValue('items', [...items, newItem]);
       setSelectedProduct('');
 
@@ -452,7 +372,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     };
 
     // Calculate new values
-    const calculatedValues = calculateItemValues(updatedItem);
+    const calculatedValues = purchaseCalculations.calculateItemValues(updatedItem);
 
     // Update the item in the items array
     newItems[index] = {
@@ -461,7 +381,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     };
 
     setItems(newItems);
-    setTotals(calculateTotals(newItems));
+    setTotals(purchaseCalculations.calculateTotals(newItems));
     setValue('items', newItems);
     setOpenEditModal(false);
     setEditModalData(null);
@@ -477,7 +397,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     };
 
     // Calculate new values
-    const calculatedValues = calculateItemValues(updatedItem);
+    const calculatedValues = purchaseCalculations.calculateItemValues(updatedItem);
 
     // Update the item in the items array
     newItems[index] = {
@@ -486,7 +406,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
     };
 
     setItems(newItems);
-    setTotals(calculateTotals(newItems));
+    setTotals(purchaseCalculations.calculateTotals(newItems));
     setValue('items', newItems);
   };
 
@@ -713,7 +633,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
   };
 
   const renderRateCell = (item) => {
-    const { rate } = calculateItemValues(item);
+    const { rate } = purchaseCalculations.calculateItemValues(item);
     return (
       <Typography>
         {Number(rate || 0).toLocaleString('en-IN', {
@@ -725,7 +645,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
   };
 
   const renderDiscountCell = (item) => {
-    const { discountValue } = calculateItemValues(item);
+    const { discountValue } = purchaseCalculations.calculateItemValues(item);
     const displayDiscount = item.isRateFormUpadted ? item.form_updated_discount : item.discount;
     const displayDiscountType = item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType;
 
@@ -753,7 +673,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
   };
 
   const renderTaxCell = (item) => {
-    const { tax } = calculateItemValues(item);
+    const { tax } = purchaseCalculations.calculateItemValues(item);
     return (
       <Typography>
         {Number(tax || 0).toLocaleString('en-IN', {
@@ -765,7 +685,7 @@ const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, p
   };
 
   const renderAmountCell = (item) => {
-    const { amount } = calculateItemValues(item);
+    const { amount } = purchaseCalculations.calculateItemValues(item);
     return (
       <Typography>
         {Number(amount || 0).toLocaleString('en-IN', {

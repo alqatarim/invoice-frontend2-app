@@ -1,13 +1,13 @@
 const progress = {
   MuiLinearProgress: {
     styleOverrides: {
-      root: ({ theme }) => ({
+      root: {
         height: 6,
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: 'var(--mui-shape-borderRadius)',
         '& .MuiLinearProgress-bar': {
-          borderRadius: theme.shape.borderRadius
+          borderRadius: 'var(--mui-shape-borderRadius)'
         }
-      })
+      }
     }
   }
 }

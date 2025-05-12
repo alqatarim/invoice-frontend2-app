@@ -1,4 +1,14 @@
 const input = {
+  MuiFormControl: {
+    styleOverrides: {
+      root: {
+        '&:has(.MuiRadio-root) .MuiFormHelperText-root, &:has(.MuiCheckbox-root) .MuiFormHelperText-root, &:has(.MuiSwitch-root) .MuiFormHelperText-root':
+          {
+            marginInline: 0
+          }
+      }
+    }
+  },
   MuiInputBase: {
     styleOverrides: {
       root: {

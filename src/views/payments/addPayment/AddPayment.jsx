@@ -421,7 +421,7 @@ const AddPayment = ({ customers, enqueueSnackbar, closeSnackbar, onSubmit, payme
                                 fullWidth: true,
                                 error: !!errors.date,
                                 helperText: errors.date?.message,
-                             
+
                                 sx: {
                                   '& .MuiOutlinedInput-root': {
                                     borderRadius: '12px',
@@ -1036,12 +1036,12 @@ const AddPayment = ({ customers, enqueueSnackbar, closeSnackbar, onSubmit, payme
                                     >
                                       <Grid container alignItems="center">
                                         <Grid item xs={6}>
-                                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                                             Total
                                           </Typography>
                                         </Grid>
                                         <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                                             {formatNumber(selectedInvoice.totalAmount)} SAR
                                           </Typography>
                                         </Grid>

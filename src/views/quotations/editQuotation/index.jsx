@@ -12,7 +12,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Box from '@mui/material/Box'
 
 // ** Custom Components Imports
-import EditQuotation from './editQuotation'
+import EditQuotation from '@/views/quotations/editQuotation/editQuotation'
 import CustomHelmet from '@/components/CustomHelment'
 
 // ** Third Party Imports
@@ -20,23 +20,23 @@ import { useSnackbar } from 'notistack'
 import { formatISO } from 'date-fns'
 
 // ** Actions Import
-import { 
-  updateQuotation, 
-  getQuotationById, 
-  getAllCustomers 
+import {
+  updateQuotation,
+  getQuotationById,
+  getAllCustomers
 } from 'src/app/(dashboard)/quotations/actions'
 
 const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
   // ** Hooks
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
-  
+
   // ** States
   const [quotation, setQuotation] = useState(null)
   const [customersList, setCustomersList] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(!quotationData)
-  
+
   // Process initial data if available
   useEffect(() => {
     if (quotationData) {
@@ -44,7 +44,7 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
       setIsLoading(false)
     }
   }, [quotationData])
-  
+
   // Process customers list if available
   useEffect(() => {
     if (customers?.length) {
@@ -54,7 +54,7 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
       fetchCustomers()
     }
   }, [customers])
-  
+
   // Fetch customers if not provided as prop
   const fetchCustomers = async () => {
     try {
@@ -97,7 +97,7 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
       setIsLoading(false)
     }
   }
-  
+
   // Handle form submission
   const handleSubmit = async (formData) => {
     if (!quotation?._id) {
@@ -113,10 +113,10 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
         date: formData.date ? formatISO(new Date(formData.date)) : formatISO(new Date()),
         expiryDate: formData.expiryDate ? formatISO(new Date(formData.expiryDate)) : formatISO(new Date())
       }
-      
+
       // Update quotation
       const response = await updateQuotation(quotation._id, formattedData)
-      
+
       if (response?.success) {
         enqueueSnackbar('Quotation updated successfully', { variant: 'success' })
         router.push(`/quotations/quotation-view/${quotation._id}`)
@@ -130,14 +130,14 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
       setIsSubmitting(false)
     }
   }
-  
+
   // Handle reset form data
   const handleResetData = () => {
     if (quotation?._id) {
       fetchQuotationData(quotation._id)
     }
   }
-  
+
   // Show loading state
   if (isLoading) {
     return (
@@ -146,7 +146,7 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
       </Box>
     )
   }
-  
+
   // Show error state if quotation not found
   if (!quotation) {
     return (
@@ -155,12 +155,12 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
       </Box>
     )
   }
-  
+
   return (
     <>
       <CustomHelmet title="Edit Quotation" />
-      
-      <EditQuotation 
+
+      <EditQuotation
         quotation={quotation}
         customers={customersList}
         isSubmitting={isSubmitting}

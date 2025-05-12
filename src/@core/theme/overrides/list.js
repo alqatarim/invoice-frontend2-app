@@ -41,6 +41,9 @@ const list = {
         paddingInlineStart: theme.spacing(5),
         '&.Mui-selected': {
           backgroundColor: 'var(--mui-palette-primary-lightOpacity)',
+          '&:hover, &.Mui-focused, &.Mui-focusVisible': {
+            backgroundColor: 'var(--mui-palette-primary-mainOpacity)'
+          },
           '& .MuiTypography-root': {
             color: 'var(--mui-palette-primary-main)'
           },
@@ -64,7 +67,7 @@ const list = {
   MuiListSubheader: {
     styleOverrides: {
       root: ({ theme }) => ({
-        lineHeight: 1.4286,
+        ...theme.typography.subtitle2,
         paddingBlock: 10,
         paddingInline: theme.spacing(5)
       })

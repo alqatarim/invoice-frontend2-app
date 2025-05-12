@@ -14,7 +14,7 @@ import chip from './chip'
 import dialog from './dialog'
 import drawer from './drawer'
 import fab from './fab'
-import formControl from './form-control'
+import formControlLabel from './form-control-label'
 import iconButton from './icon-button'
 import input from './input'
 import list from './list'
@@ -24,7 +24,7 @@ import paper from './paper'
 import popover from './popover'
 import progress from './progress'
 import Radio from './radio'
-import rating from './rating'
+import Rating from './rating'
 import Select from './select'
 import slider from './slider'
 import snackbar from './snackbar'
@@ -54,7 +54,7 @@ const overrides = skin => {
     dialog(skin),
     drawer(skin),
     fab,
-    formControl,
+    formControlLabel,
     iconButton,
     input,
     list,
@@ -64,7 +64,7 @@ const overrides = skin => {
     popover(skin),
     progress,
     Radio,
-    rating,
+    Rating,
     Select,
     slider,
     snackbar(skin),

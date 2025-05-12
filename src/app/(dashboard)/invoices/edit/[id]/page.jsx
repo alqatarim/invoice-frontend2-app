@@ -1,7 +1,7 @@
 // app/(dashboard)/invoices/[id]/page.jsx
 
 import { notFound } from 'next/navigation';
-import EditInvoice from '@/views/invoices/editInvoice/EditInvoice';
+import EditInvoiceIndex from '@/views/invoices/editInvoice/index';
 import { getInvoiceById, getCustomers, getProducts, getTaxRates, getBanks, getManualSignatures } from '@/app/(dashboard)/invoices/actions';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
@@ -13,7 +13,7 @@ const EditInvoicePage = async ({ params }) => {
   const { id } = params;
 
   try {
-    const [invoiceData, customers, products, taxRates, banks, signatures] = await Promise.all([
+    const [invoiceData, customersData, productData, taxRates, initialBanks, signatures] = await Promise.all([
       getInvoiceById(id),
       getCustomers(),
       getProducts(),
@@ -28,12 +28,13 @@ const EditInvoicePage = async ({ params }) => {
 
     return (
       <ProtectedComponent>
-        <EditInvoice
+        <EditInvoiceIndex
+          id={id}
           invoiceData={invoiceData}
-          customersData={customers}
-          productData={products}
+          customersData={customersData}
+          productData={productData}
           taxRates={taxRates}
-          initialBanks={banks}
+          initialBanks={initialBanks}
           signatures={signatures}
         />
       </ProtectedComponent>

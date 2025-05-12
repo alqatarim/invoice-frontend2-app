@@ -35,6 +35,7 @@ import {
 import { Icon } from '@iconify/react';
 import { formatDate } from '@/utils/helpers';
 import dayjs from 'dayjs';
+import { formatCurrency } from '@/utils/formatCurrency';
 import QuotationFilter from './QuotationFilter';
 import { deleteQuotation, convertToInvoice, updateQuotationStatus } from '@/app/(dashboard)/quotations/actions';
 
@@ -50,7 +51,10 @@ const statusOptions = [
 
 // Helper function to get status color
 const getStatusColor = (status) => {
-  switch (status) {
+  // Convert status to uppercase for case-insensitive comparison
+  const upperStatus = status?.toUpperCase();
+
+  switch (upperStatus) {
     case 'ACCEPTED':
       return 'success';
     case 'REJECTED':
@@ -63,6 +67,8 @@ const getStatusColor = (status) => {
       return 'secondary';
     case 'CONVERTED':
       return 'primary';
+    case 'OPEN':
+      return 'secondary';
     default:
       return 'default';
   }
@@ -85,7 +91,7 @@ const mapStatusToDisplay = (apiStatus) => {
     'Draft': 'DRAFTED',
     'Converted': 'CONVERTED'
   };
-  
+
   return statusMap[apiStatus] || 'SENT'; // Default to SENT if unknown
 };
 
@@ -95,28 +101,26 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
   const searchParams = useSearchParams();
   const successParam = searchParams.get('success');
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   const [quotations, setQuotations] = useState(initialData?.data || []);
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 10,
     totalPages: Math.ceil((initialData?.totalRecords || 0) / 10)
   });
-  
+
   const [filters, setFilters] = useState({
     customer: [],
     status: [],
     fromDate: '',
     toDate: ''
   });
-  
+
   const [selectedQuotation, setSelectedQuotation] = useState(null);
   const [actionAnchorEl, setActionAnchorEl] = useState(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openConvertDialog, setOpenConvertDialog] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
-  const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
-  const [selectedIdForStatus, setSelectedIdForStatus] = useState(null);
 
   // Show success message if redirected from add/edit page
   useEffect(() => {
@@ -149,9 +153,9 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
       }${
         newFilters.toDate ? `&toDate=${newFilters.toDate}` : ''
       }`);
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setQuotations(data.data);
         setPagination({
@@ -199,7 +203,7 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
     try {
       setLoadingAction(true);
       const response = await deleteQuotation(selectedQuotation._id);
-      
+
       if (response.success) {
         setOpenDeleteDialog(false);
         enqueueSnackbar('Quotation deleted successfully!', { variant: 'success' });
@@ -225,7 +229,7 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
     try {
       setLoadingAction(true);
       const response = await convertToInvoice(selectedQuotation._id);
-      
+
       if (response.success) {
         setOpenConvertDialog(false);
         enqueueSnackbar('Quotation converted to invoice successfully!', { variant: 'success' });
@@ -239,36 +243,6 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
     } finally {
       setLoadingAction(false);
       setSelectedQuotation(null);
-    }
-  };
-
-  const handleStatusMenuOpen = (event, id) => {
-    setStatusMenuAnchorEl(event.currentTarget);
-    setSelectedIdForStatus(id);
-  };
-
-  const handleStatusMenuClose = () => {
-    setStatusMenuAnchorEl(null);
-    setSelectedIdForStatus(null);
-  };
-
-  const handleStatusChange = async (status) => {
-    try {
-      setLoadingAction(true);
-      const response = await updateQuotationStatus(selectedIdForStatus, status);
-      
-      if (response.success) {
-        enqueueSnackbar('Quotation status updated successfully!', { variant: 'success' });
-        fetchQuotations();
-      } else {
-        throw new Error(response.message || 'Failed to update quotation status');
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      enqueueSnackbar('Failed to update status: ' + error.message, { variant: 'error' });
-    } finally {
-      setLoadingAction(false);
-      handleStatusMenuClose();
     }
   };
 
@@ -303,9 +277,7 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
             <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
               Quotations
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Manage your customer quotations
-            </Typography>
+
           </Box>
         </Box>
         <Button
@@ -325,7 +297,7 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
       </Box>
 
       <QuotationFilter onFilterChange={handleFilterChange} customers={customers} />
-      
+
       <Card
         elevation={0}
         sx={{
@@ -361,114 +333,61 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
             <Table sx={{ minWidth: 750 }} size={isSmallScreen ? 'small' : 'medium'}>
               <TableHead>
                 <TableRow sx={{ backgroundColor: alpha(theme.palette.background.default, 0.6) }}>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 600, 
-                      py: 2, 
-                      position: 'sticky',
-                      top: 0,
-                      backgroundColor: alpha(theme.palette.background.default, 0.9),
-                      backdropFilter: 'blur(8px)',
-                      zIndex: 1
-                    }}
+                  <TableCell
+                     align="center"
                   >
-                    Quotation Number
+                    <Typography variant="h6" >
+                      Quotation #
+                    </Typography>
                   </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 600, 
-                      py: 2, 
-                      position: 'sticky',
-                      top: 0,
-                      backgroundColor: alpha(theme.palette.background.default, 0.9),
-                      backdropFilter: 'blur(8px)',
-                      zIndex: 1
-                    }}
-                  >
-                    Customer
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 600, 
-                      py: 2,
-                      position: 'sticky',
-                      top: 0,
-                      backgroundColor: alpha(theme.palette.background.default, 0.9),
-                      backdropFilter: 'blur(8px)',
-                      zIndex: 1
-                    }}
-                  >
-                    Subject
-                  </TableCell>
-                  <TableCell 
+                  <TableCell
                     align="center"
-                    sx={{ 
-                      fontWeight: 600, 
-                      py: 2,
-                      position: 'sticky',
-                      top: 0,
-                      backgroundColor: alpha(theme.palette.background.default, 0.9),
-                      backdropFilter: 'blur(8px)',
-                      zIndex: 1
-                    }}
                   >
-                    Amount
+                    <Typography variant="h6" >
+                      Customer
+                    </Typography>
                   </TableCell>
-                  <TableCell 
+                                <TableCell
                     align="center"
-                    sx={{ 
-                      fontWeight: 600, 
-                      py: 2,
-                      position: 'sticky',
-                      top: 0,
-                      backgroundColor: alpha(theme.palette.background.default, 0.9),
-                      backdropFilter: 'blur(8px)',
-                      zIndex: 1
-                    }}
                   >
-                    Date
+                    <Typography variant="h6" >
+                      Phone No
+                    </Typography>
                   </TableCell>
-                  <TableCell 
+
+
+                  <TableCell
                     align="center"
-                    sx={{ 
-                      fontWeight: 600, 
-                      py: 2,
-                      position: 'sticky',
-                      top: 0,
-                      backgroundColor: alpha(theme.palette.background.default, 0.9),
-                      backdropFilter: 'blur(8px)',
-                      zIndex: 1
-                    }}
                   >
-                    Expiry Date
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      Amount
+                    </Typography>
                   </TableCell>
-                  <TableCell 
+
+                  <TableCell
                     align="center"
-                    sx={{ 
-                      fontWeight: 600, 
-                      py: 2,
-                      position: 'sticky',
-                      top: 0,
-                      backgroundColor: alpha(theme.palette.background.default, 0.9),
-                      backdropFilter: 'blur(8px)',
-                      zIndex: 1
-                    }}
+
+
                   >
-                    Status
+                    <Typography variant="h6" >
+                      Expiry Date
+                    </Typography>
                   </TableCell>
-                  <TableCell 
-                    align="right"
-                    sx={{ 
-                      fontWeight: 600, 
-                      py: 2,
-                      position: 'sticky',
-                      top: 0,
-                      backgroundColor: alpha(theme.palette.background.default, 0.9),
-                      backdropFilter: 'blur(8px)',
-                      zIndex: 1
-                    }}
+                  <TableCell
+                    align="center"
+
                   >
-                    Actions
+                    <Typography variant="h6" >
+                      Status
+                    </Typography>
+                  </TableCell>
+                  <TableCell
+                    align="center"
+
+                  >
+                    <Typography variant="h6" >
+                      Actions
+                    </Typography>
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -479,90 +398,68 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
                       key={quotation._id}
                       sx={{
                         '&:last-child td, &:last-child th': { border: 0 },
-                        '&:hover': { 
+                        '&:hover': {
                           backgroundColor: alpha(theme.palette.primary.main, 0.04),
                           cursor: 'pointer'
                         },
                         transition: 'background-color 0.2s'
                       }}
                     >
-                      <TableCell 
-                        component="th" 
+                      <TableCell
+                        align="center"
+                        component="th"
                         scope="row"
                         onClick={() => router.push(`/quotations/quotation-view/${quotation._id}`)}
                       >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar
-                            sx={{
-                              width: 36,
-                              height: 36,
-                              backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                              color: 'primary.main',
-                              fontSize: '0.875rem'
-                            }}
-                          >
-                            <Icon icon="tabler:file-invoice" fontSize={18} />
-                          </Avatar>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {quotation.quotation_id || quotation.quotationNumber}
+
+                         <Typography variant="body1" fontWeight={500} fontSize='14px'>
+                            {quotation.quotation_id}
                           </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell onClick={() => router.push(`/quotations/quotation-view/${quotation._id}`)}>
-                        <Typography variant="body2">
-                          {quotation.customerId?.name || quotation.customerName}
-                        </Typography>
-                      </TableCell>
-                      <TableCell onClick={() => router.push(`/quotations/quotation-view/${quotation._id}`)}>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            maxWidth: 150, 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis', 
-                            whiteSpace: 'nowrap' 
-                          }}
-                        >
-                          {quotation.reference_no || quotation.subject || 'No Subject'}
-                        </Typography>
+
                       </TableCell>
                       <TableCell align="center" onClick={() => router.push(`/quotations/quotation-view/${quotation._id}`)}>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {formatNumber(quotation.TotalAmount || quotation.totalAmount)} SAR
+                        <Typography variant="body1" fontWeight={500} fontSize='14px'>
+                          {quotation.customerId?.name}
                         </Typography>
                       </TableCell>
+
+                          <TableCell align="center" onClick={() => router.push(`/quotations/quotation-view/${quotation._id}`)}>
+
+                      <Typography variant="body1" fontWeight={500} fontSize='14px'>
+                          {quotation.customerId?.phone}
+                        </Typography>
+
+
+
+                      </TableCell>
+
+
+
                       <TableCell align="center" onClick={() => router.push(`/quotations/quotation-view/${quotation._id}`)}>
-                        <Chip 
-                          label={formatDate(quotation.quotation_date || quotation.date)} 
-                          size="small"
-                          variant="tonal"
-                          color="secondary"
-                          sx={{ fontWeight: 500 }}
+                       <Typography variant="body1" fontWeight={500} fontSize='14px'>
+                          {formatCurrency(quotation.TotalAmount)}
+                        </Typography>
+                      </TableCell>
+
+                      <TableCell align="center" onClick={() => router.push(`/quotations/quotation-view/${quotation._id}`)}>
+                        <Chip
+                          label={formatDate(quotation.due_date)}
+                          size="medium"
+                          variant="outlined"
+                          color={isExpired(quotation.due_date) ? 'error' : 'default'}
+                          sx={{ borderRadius: '8px' }}
                         />
                       </TableCell>
-                      <TableCell align="center" onClick={() => router.push(`/quotations/quotation-view/${quotation._id}`)}>
-                        <Chip 
-                          label={formatDate(quotation.due_date || quotation.expiryDate)} 
-                          size="small"
+                      <TableCell align="center">
+                        <Chip
+                          label={quotation.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                          size="medium"
+                          color={getStatusColor(mapStatusToDisplay(quotation.status))}
                           variant="tonal"
-                          color={isExpired(quotation.due_date || quotation.expiryDate) ? 'error' : 'info'}
                           sx={{ fontWeight: 500 }}
                         />
                       </TableCell>
                       <TableCell align="center">
-                        <Chip 
-                          label={quotation.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-                          size="small"
-                          color={getStatusColor(mapStatusToDisplay(quotation.status))}
-                          variant="tonal"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStatusMenuOpen(e, quotation._id);
-                          }}
-                          sx={{ fontWeight: 500, cursor: 'pointer' }}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
                         <IconButton
                           size="small"
                           onClick={(e) => {
@@ -685,12 +582,12 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
         <MenuItem
           onClick={handleConvertClick}
           disabled={selectedQuotation?.status === 'CONVERTED'}
-          sx={{ 
-            py: 1.5, 
-            pl: 2.5, 
-            pr: 3, 
-            borderRadius: '8px', 
-            mx: 1, 
+          sx={{
+            py: 1.5,
+            pl: 2.5,
+            pr: 3,
+            borderRadius: '8px',
+            mx: 1,
             my: 0.5,
             color: selectedQuotation?.status === 'CONVERTED' ? 'text.disabled' : 'text.primary'
           }}
@@ -701,13 +598,13 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
         <Divider sx={{ my: 1.5 }} />
         <MenuItem
           onClick={handleDeleteClick}
-          sx={{ 
-            py: 1.5, 
-            pl: 2.5, 
-            pr: 3, 
-            borderRadius: '8px', 
-            mx: 1, 
-            my: 0.5, 
+          sx={{
+            py: 1.5,
+            pl: 2.5,
+            pr: 3,
+            borderRadius: '8px',
+            mx: 1,
+            my: 0.5,
             color: 'error.main',
             '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.08) }
           }}
@@ -715,39 +612,6 @@ const ListQuotation = ({ initialData, customers, enqueueSnackbar, closeSnackbar 
           <Icon icon="tabler:trash" fontSize={20} style={{ marginRight: '12px' }} />
           Delete
         </MenuItem>
-      </Menu>
-
-      {/* Status Menu */}
-      <Menu
-        anchorEl={statusMenuAnchorEl}
-        open={Boolean(statusMenuAnchorEl)}
-        onClose={handleStatusMenuClose}
-        slotProps={{
-          paper: {
-            sx: {
-              width: 180,
-              borderRadius: '12px',
-              boxShadow: theme => `0 4px 14px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-              mt: 1
-            }
-          }
-        }}
-      >
-        {statusOptions.map((option) => (
-          <MenuItem
-            key={option.value}
-            onClick={() => handleStatusChange(option.value)}
-            sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}
-          >
-            <Chip 
-              label={option.label}
-              size="small"
-              color={getStatusColor(option.value)}
-              variant="tonal"
-              sx={{ fontWeight: 500, minWidth: 80 }}
-            />
-          </MenuItem>
-        ))}
       </Menu>
 
       {/* Delete Confirmation Dialog */}
