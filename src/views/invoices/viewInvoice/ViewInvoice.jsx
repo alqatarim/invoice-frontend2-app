@@ -19,7 +19,7 @@ import { Print, Download } from '@mui/icons-material';
 import Image from 'next/image';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { formatCurrency } from '@/utils/formatCurrency'; // Assuming you have this utility function
+import { formatCurrency } from '@/utils/currencyUtils'; // Assuming you have this utility function
 import { alpha } from '@mui/material/styles';
 import tableStyles from '@core/styles/table.module.css'
 

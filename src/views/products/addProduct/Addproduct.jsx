@@ -32,7 +32,7 @@ import { styled, useTheme } from '@mui/material/styles';
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import { generateSKU } from '@/app/(dashboard)/products/actions';
-import useAuthRedirect from '@/hooks/useAuthRedirect';
+import useAuthRedirect from '@/Auth/useAuthRedirect';
 import AddProductSchema from '@/views/products/addProduct/AddProductSchema';
 
 // Styled components

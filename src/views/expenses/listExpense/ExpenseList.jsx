@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import { getExpensesList, deleteExpense } from '@/app/(dashboard)/expenses/actions';
 import { useSession } from 'next-auth/react';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import Link from 'next/link';
 import { alpha } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';

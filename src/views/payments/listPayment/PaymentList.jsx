@@ -27,8 +27,8 @@ import {
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { deletePayment } from '@/app/(dashboard)/payments/actions';
-import { formatDate } from '@/utils/helpers';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { formatDate } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 
 const getPaymentModeIcon = (mode) => {

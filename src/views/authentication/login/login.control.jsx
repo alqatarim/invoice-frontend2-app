@@ -10,7 +10,7 @@ import {
   setLoginToken,
   setCurrentLoginUser,
   setcommonData,
-} from "../../../constans/globals";
+} from "../../../constants/globals";
 import jwt from "jwt-decode";
 import { setUserDetails } from "../../../reduxStore/appSlice";
 import { useDispatch } from "react-redux";

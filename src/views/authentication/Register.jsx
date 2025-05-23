@@ -5,7 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { postData } from "../../services/apiservice";
-import { signupApi } from "../../constans/apiname";
+import { signupApi } from "../../constants/apiname";
 import {
   fullnameRequired,
   emailRequired,
@@ -14,7 +14,7 @@ import {
   emailRgx,
   passwordRegex,
   passwordValidMessage,
-} from "../../constans";
+} from "../../constants";
 
 const schema = yup
   .object({

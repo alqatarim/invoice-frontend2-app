@@ -1,7 +1,7 @@
 'use server';
 
 
- import { fetchWithAuth } from '@/utils/fetchWithAuth';
+ import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 

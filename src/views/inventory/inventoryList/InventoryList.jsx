@@ -42,11 +42,11 @@ import {
   MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import { addStock, removeStock } from '@/app/(dashboard)/inventory/actions';
 import InventoryHead from '@/views/inventory/inventoryList/inventoryHead';
 import InventoryFilter from '@/views/inventory/inventoryList/inventoryFilter';
-import { amountFormat } from '@/common/helper';
+import { amountFormat } from '@/utils/currencyUtils';
 
 const InventoryList = ({
   inventory,

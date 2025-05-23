@@ -1,6 +1,6 @@
 'use server';
 
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 import { revalidatePath } from 'next/cache';
 import dayjs from 'dayjs';
 

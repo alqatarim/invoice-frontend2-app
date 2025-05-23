@@ -40,7 +40,7 @@ import {
 } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { deletePurchaseOrder, convertToPurchase, clonePurchaseOrder } from '@/app/(dashboard)/purchase-orders/actions';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import PurchaseOrderFilter from './PurchaseOrderFilter';
 import dayjs from 'dayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers';

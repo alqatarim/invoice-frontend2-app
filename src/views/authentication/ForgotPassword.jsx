@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AlterFavIcon, Logo } from "../../common/imagepath";
 import { useForm } from "react-hook-form";
-import { emailvalidMessage } from "../../constans";
+import { emailvalidMessage } from "../../constants";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../xapprouter";
 import { Helmet } from "react-helmet";

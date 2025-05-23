@@ -1,43 +1,14 @@
-'use client';
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 import InvoiceHead from '@/views/invoices/invoiceList/invoiceHead';
-import InvoiceFilter from '@/views/invoices/invoiceList/InvoiceFilter';
+import InvoiceFilter from '@/views/invoices/invoiceList/invoiceFilter';
 import Link from 'next/link';
-
-
+import { Icon } from '@iconify/react';
 import {
-  cloneInvoice,
-  sendInvoice,
-  getFilteredInvoices,
-  getInitialInvoiceData,
-  searchCustomers,
-  searchInvoices,
-  convertTosalesReturn,
-  sendPaymentLink,
-  printDownloadInvoice,
-} from '@/app/(dashboard)/invoices/actions';
-import {
-
     Box,
-    Table,
-    TableHead,
-    TableRow,
-    TableCell,
-    TableBody,
     Typography,
-    Avatar,
-    IconButton,
-    Menu,
-    MenuItem,
-    ListItemIcon,
-    ListItemText,
     Card,
-    TableSortLabel,
-    TablePagination,
-    Chip,
     Button,
     Grid,
     Snackbar,
@@ -52,6 +23,8 @@ import {
     Checkbox,
     FormGroup,
     Skeleton,
+    Chip,
+    LinearProgress,
 } from '@mui/material';
 import {
     Send as SendIcon,
@@ -67,12 +40,19 @@ import {
 } from '@mui/icons-material';
 
 import moment from 'moment';
-import { amountFormat, convertFirstLetterToCapital } from '@/common/helper';
-
+import { useTheme } from '@mui/material/styles'
 // ** Import the usePermission hook **
 import { useSession } from 'next-auth/react';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import { useSearchParams } from 'next/navigation';
+import CustomListTable from '@/components/custom-components/CustomListTable';
+import { useInvoiceListHandlers } from '@/handlers/invoices/useInvoiceListHandlers';
+import { invoiceTabs } from '@/data/dataSets';
+import menuHandler from '@/handlers/invoices/list/menuHandler';
+import { actionsHandler } from '@/handlers/invoices/list/actionsHandler';
+import { formatCurrency } from '@/utils/currencyUtils';
+import { statusOptions } from '@/data/dataSets';
+import OptionMenu from '@core/components/option-menu';
 
 /**
  * InvoiceList Component
@@ -80,9 +60,20 @@ import { useSearchParams } from 'next/navigation';
  *
  * @returns JSX.Element
  */
-const InvoiceList = () => {
+const InvoiceList = ({
+    initialInvoices = [],
+  pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
+  cardCounts: initialCardCounts = {},
+  tab: initialTab = 'ALL',
+  filters: initialFilters = {},
+  isLoading: initialIsLoading = false,
+  sortBy: initialSortBy = '',
+  sortDirection: initialSortDirection = 'asc',
+  fetchData: externalFetchData,
+  ...rest
+}) => {
 
-
+  const theme = useTheme();
 
     // ** Replace session-based permissions with usePermission hook **
     const { data: session, status } = useSession();
@@ -93,19 +84,18 @@ const InvoiceList = () => {
     const canDelete = usePermission('invoice', 'delete');
 
 
+    const [pagination, setPagination] = useState(initialPagination);
+    const [filters, setFilters] = useState(initialFilters);
+    const [loading, setLoading] = useState(initialIsLoading);
+    const [sortBy, setSortBy] = useState(initialSortBy);
+    const [sortDirection, setSortDirection] = useState(initialSortDirection);
 
-    const [invoices, setInvoices] = useState([]);
-    const [cardCounts, setCardCounts] = useState({});
-    const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-    const [tab, setTab] = useState('ALL');
-    const [filters, setFilters] = useState({});
-    const [filterOpen, setFilterOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [anchorEl, setAnchorEl] = useState(null);
-    const [selectedInvoice, setSelectedInvoice] = useState(null);
-    const [sortBy, setSortBy] = useState('');
-    const [sortDirection, setSortDirection] = useState('asc');
-    const [columns, setColumns] = useState([]);
+
+
+
+
+        const [filterOpen, setFilterOpen] = useState(false);
+    const [filterValues, setFilterValues] = useState(initialFilters);
 
     const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
     const [availableColumns, setAvailableColumns] = useState([]);
@@ -117,282 +107,27 @@ const InvoiceList = () => {
     });
 
 
-    const defaultColumns = [
-        { key: 'index', label: '#', visible: true },
-        { key: 'invoiceNumber', label: 'Invoice Number', visible: true },
-        { key: 'createdOn', label: 'Created On', visible: true },
-        { key: 'invoiceTo', label: 'Invoice To', visible: true },
-        { key: 'totalAmount', label: 'Total Amount', visible: true },
-        { key: 'paidAmount', label: 'Paid Amount', visible: true },
-        { key: 'paymentMode', label: 'Payment Mode', visible: true },
-        { key: 'balance', label: 'Balance', visible: true },
-        { key: 'dueDate', label: 'Due Date', visible: true },
-        { key: 'status', label: 'Status', visible: true },
-        { key: 'action', label: 'Action', visible: true },
-    ];
 
-    const [convertDialogOpen, setConvertDialogOpen] = useState(false);
-    const [invoiceToConvert, setInvoiceToConvert] = useState(null);
+
 
     const searchParams = useSearchParams();
 
-    useEffect(() => {
-        const success = searchParams.get('success');
-        if (success) {
-            setSnackbar({
-                open: true,
-                message: success,
-                severity: 'success',
-            });
-        }
-    }, [searchParams]);
+    // useEffect(() => {
+    //     const success = searchParams.get('success');
+    //     if (success) {
+    //         setSnackbar({
+    //             open: true,
+    //             message: success,
+    //             severity: 'success',
+    //         });
+    //     }
+    // }, [searchParams]);
 
     const handleSnackbarClose = (event, reason) => {
         if (reason === 'clickaway') {
             return;
         }
         setSnackbar({ ...snackbar, open: false });
-    };
-
-    /**
-     * Open the Convert to Sales Return dialog.
-     *
-     * @param {object} invoice - The invoice to convert.
-     */
-    const openConvertDialog = (invoice) => {
-        setInvoiceToConvert(invoice);
-        setConvertDialogOpen(true);
-    };
-
-    /**
-     * Close the Convert to Sales Return dialog.
-     */
-    const closeConvertDialog = () => {
-        setInvoiceToConvert(null);
-        setConvertDialogOpen(false);
-    };
-
-    /**
-     * Confirm conversion to sales return.
-     */
-    const confirmConvertToSalesReturn = async () => {
-        try {
-            await handleConvertToSalesReturn(invoiceToConvert.id || invoiceToConvert._id);
-            closeConvertDialog();
-        } catch (error) {
-            setSnackbar({
-                open: true,
-                message: error.message || 'Failed to convert invoice to sales return.',
-                severity: 'error',
-            });
-            // Handle error if needed
-        }
-    };
-
-    /**
-     * Initialize state from localStorage with fallback to defaults
-     */
-    useEffect(() => {
-        try {
-            const storedColumns = localStorage.getItem('invoiceVisibleColumns');
-            if (storedColumns) {
-                const parsedColumns = JSON.parse(storedColumns);
-                setColumns(parsedColumns);
-            } else {
-                setColumns(defaultColumns);
-            }
-
-            const storedFilters = localStorage.getItem('invoiceFilters');
-            if (storedFilters) {
-                const parsedFilters = JSON.parse(storedFilters);
-                setFilters(parsedFilters);
-            }
-
-            const storedSortBy = localStorage.getItem('invoiceSortBy');
-            if (storedSortBy) {
-                setSortBy(storedSortBy);
-            }
-
-            const storedSortDirection = localStorage.getItem('invoiceSortDirection');
-            if (storedSortDirection) {
-                setSortDirection(storedSortDirection);
-            }
-        } catch (error) {
-            console.error('Error loading cache:', error);
-            // Reset to defaults if any error occurs
-            setColumns(defaultColumns);
-            setFilters({});
-            setSortBy('');
-            setSortDirection('asc');
-            localStorage.removeItem('invoiceVisibleColumns');
-            localStorage.removeItem('invoiceFilters');
-            localStorage.removeItem('invoiceSortBy');
-            localStorage.removeItem('invoiceSortDirection');
-        }
-    }, []);
-
-    // ** Cache column visibility preferences **
-    useEffect(() => {
-        if (columns.length > 0) {
-            localStorage.setItem('invoiceVisibleColumns', JSON.stringify(columns));
-        }
-    }, [columns]);
-
-    // ** Cache filter preferences **
-    useEffect(() => {
-        if (Object.keys(filters).length > 0) {
-            localStorage.setItem('invoiceFilters', JSON.stringify(filters));
-        } else {
-            localStorage.removeItem('invoiceFilters');
-        }
-    }, [filters]);
-
-    // ** Cache sorting preferences **
-    useEffect(() => {
-        if (sortBy) {
-            localStorage.setItem('invoiceSortBy', sortBy);
-            localStorage.setItem('invoiceSortDirection', sortDirection);
-        } else {
-            localStorage.removeItem('invoiceSortBy');
-            localStorage.removeItem('invoiceSortDirection');
-        }
-    }, [sortBy, sortDirection]);
-
-    // ** Fetch initial data on component mount **
-    useEffect(() => {
-
-        const fetchAllData = async () => {
-            setLoading(true);
-            try {
-                const initialData = await getInitialInvoiceData();
-
-                setInvoices(initialData.invoices || []);
-                setPagination(initialData.pagination || { current: 1, pageSize: 10, total: 0 });
-                setCardCounts(initialData.cardCounts || {});
-
-                // Only fetch filtered data if tab or filters have changed
-                if (tab !== 'ALL' || Object.keys(filters).length > 0) {
-                    const filteredData = await getFilteredInvoices(tab, 1, pagination.pageSize, filters);
-                    setInvoices(filteredData.invoices || []);
-                    setPagination(filteredData.pagination || { current: 1, pageSize: 10, total: 0 });
-                }
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                setSnackbar({
-                    open: true,
-                    message: error.message || 'Failed to fetch data.',
-                    severity: 'error',
-                });
-            }
-            setLoading(false);
-        };
-
-        fetchAllData();
-    }, [tab, filters]); // Include all dependencies that should trigger a refetch
-
-    /**
-     * Handle cloning of an invoice.
-     *
-     * @param {string} id - ID of the invoice to clone.
-     */
-    const handleClone = async (id) => {
-        try {
-            const newInvoice = await cloneInvoice(id);
-            console.log('Cloned Invoice:', newInvoice); // Debugging
-            setInvoices((prev) => [newInvoice, ...prev]);
-            setSnackbar({
-                open: true,
-                message: 'Invoice cloned successfully!',
-                severity: 'success',
-            });
-        } catch (error) {
-            console.error('Error cloning invoice:', error);
-            setSnackbar({
-                open: true,
-                message: error.message || 'Failed to clone invoice.',
-                severity: 'error',
-            });
-        }
-    };
-
-    /**
-     * Handle sending of an invoice.
-     *
-     * @param {string} id - ID of the invoice to send.
-     */
-    const handleSend = async (id) => {
-        try {
-            await sendInvoice(id);
-            setSnackbar({
-                open: true,
-                message: 'Invoice sent successfully!',
-                severity: 'success',
-            });
-        } catch (error) {
-            console.error('Error sending invoice:', error);
-            setSnackbar({
-                open: true,
-                message: error.message || 'Failed to send invoice.',
-                severity: 'error',
-            });
-        }
-    };
-
-    /**
-     * Handle converting an invoice to sales return.
-     *
-     * @param {string} id - ID of the invoice to convert.
-     */
-    const handleConvertToSalesReturn = async (id) => {
-        try {
-            await convertTosalesReturn(id, tab);
-            setSnackbar({
-                open: true,
-                message: 'Invoice converted to sales return successfully!',
-                severity: 'success',
-            });
-            fetchData(tab, pagination.current, pagination.pageSize, filters);
-        } catch (error) {
-            console.error(`Error converting invoice ${id} to sales return:`, error);
-            setSnackbar({
-                open: true,
-                message: error.message || 'Failed to convert invoice to sales return.',
-                severity: 'error',
-            });
-        }
-    };
-
-    /**
-     * Handle tab change.
-     *
-     * @param {object} event - The event object.
-     * @param {string} newTab - The new tab value.
-     */
-    const handleTabChange = (event, newTab) => {
-        setTab(newTab);
-    };
-
-    /**
-     * Handle page change in pagination.
-     *
-     * @param {object} event - The event object.
-     * @param {number} newPage - The new page number.
-     */
-    const handlePageChange = (event, newPage) => {
-        const updatedPage = newPage + 1;
-        setPagination((prev) => ({ ...prev, current: updatedPage }));
-        fetchData(tab, updatedPage, pagination.pageSize, filters);
-    };
-
-    /**
-     * Handle page size change in pagination.
-     *
-     * @param {object} event - The event object.
-     */
-    const handlePageSizeChange = (event) => {
-        const newPageSize = parseInt(event.target.value, 10);
-        setPagination((prev) => ({ ...prev, pageSize: newPageSize, current: 1 }));
-        fetchData(tab, 1, newPageSize, filters);
     };
 
     /**
@@ -411,93 +146,261 @@ const InvoiceList = () => {
         setFilterOpen(!filterOpen);
     };
 
-    /**
-     * Handle sort request when a column header is clicked.
-     *
-     * @param {string} columnKey - The key of the column to sort by.
-     */
-    const handleSortRequest = (columnKey) => {
-        let newDirection = 'asc';
-        if (sortBy === columnKey) {
-            // Toggle sort direction
-            newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-            setSortDirection(newDirection);
-        } else {
-            setSortBy(columnKey);
-            setSortDirection('asc');
-            newDirection = 'asc';
-        }
-        fetchData(tab, 1, pagination.pageSize, filters, columnKey, newDirection);
-    };
+
+
 
     /**
-     * Handle opening of the action menu.
+     * Determine if any filter is applied.
      *
-     * @param {object} event - The event object.
-     * @param {object} invoice - The selected invoice object.
+     * @returns {boolean} - Whether any filter is applied.
      */
-    const handleMenuOpen = (event, invoice) => {
-        setAnchorEl(event.currentTarget);
-        setSelectedInvoice(invoice);
-    };
-
-    /**
-     * Handle closing of the action menu.
-     */
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-        setSelectedInvoice(null);
-    };
-
-    /**
-     * Generate a status badge based on the invoice status.
-     *
-     * @param {string} status - The status of the invoice.
-     * @returns {JSX.Element} - The badge component.
-     */
-    const getStatusBadge = (status) => {
-        let color;
-        switch (status) {
-            case 'REFUND':
-            case 'SENT':
-                color = 'info';
-                break;
-            case 'UNPAID':
-                color = 'default';
-                break;
-            case 'PARTIALLY_PAID':
-                color = 'primary';
-                break;
-            case 'CANCELLED':
-            case 'OVERDUE':
-                color = 'error';
-                break;
-            case 'PAID':
-                color = 'success';
-                break;
-            case 'DRAFTED':
-                color = 'warning';
-                break;
-            default:
-                color = 'default';
-        }
+    const isFilterApplied = useMemo(() => {
         return (
-            <Chip
-                label={convertFirstLetterToCapital(status.replace('_', ' '))}
-                color={color || 'default'}
-                size="small"
-                variant="tonal"
-            />
+            (filters.customer && filters.customer.length > 0) ||
+            (filters.invoiceNumber && filters.invoiceNumber.length > 0) ||
+            (filters.fromDate) ||
+            (filters.toDate) ||
+            (filters.status && filters.status.length > 0)
         );
-    };
+    }, [filters]);
 
-    const currencyData = '$'; // Or retrieve from context or props
+
+    // Handlers
+    const onError = (msg) => setSnackbar({ open: true, message: msg, severity: 'error' });
+    const onSuccess = (msg) => setSnackbar({ open: true, message: msg, severity: 'success' });
+
+    const {
+        invoices: invoicesFromHandlers,
+        pagination: paginationFromHandlers,
+        tab,
+        handleTabChange,
+        filters: filtersFromHandlers,
+        setFilters: setFiltersFromHandlers,
+        // loading: loadingFromHandlers,
+        sortBy: sortByFromHandlers,
+        sortDirection: sortDirectionFromHandlers,
+        fetchData: fetchDataFromHandlers,
+        handleClone: handleCloneFromHandlers,
+        handleSend: handleSendFromHandlers,
+        handleConvertToSalesReturn: handleConvertToSalesReturnFromHandlers,
+        handlePrintDownload: handlePrintDownloadFromHandlers,
+        handleSendPaymentLink: handleSendPaymentLinkFromHandlers,
+        handlePageChange,
+        handlePageSizeChange,
+        handleSortRequest,
+        customerOptions,
+        invoiceOptions,
+        // handleCustomerSearch,
+        // handleInvoiceSearch,
+        // setCustomerOptions,
+        // setInvoiceOptions,
+        convertDialogOpen,
+        // invoiceToConvert,
+        openConvertDialog,
+        closeConvertDialog,
+        confirmConvertToSalesReturn,
+    } = useInvoiceListHandlers({
+        initialInvoices,
+        initialPagination,
+        initialTab,
+        initialFilters,
+        initialSortBy,
+        initialSortDirection,
+        onError,
+        onSuccess,
+    });
+
+    const invoiceListActions = actionsHandler({
+        onSuccess,
+        onError,
+        fetchData: fetchDataFromHandlers,
+        pagination: paginationFromHandlers,
+        filters: filtersFromHandlers,
+        tab,
+    });
+
+
+    // Declarative columns array with renderCell logic
+    const columns = [
+      {
+        key: 'invoiceNumber',
+        visible: true,
+        label: 'Invoice No',
+        sortable: true,
+        renderCell: (row, rowIdx) => (
+          <Link href={`/invoices/invoice-view/${row._id}`} passHref>
+            <Typography sx={{ cursor: 'pointer', color: 'primary.main', '&:hover': { textDecoration: 'underline' } }} align='center'>
+              {row.invoiceNumber || 'N/A'}
+            </Typography>
+          </Link>
+        ),
+      },
+      {
+        key: 'createdOn',
+        visible: true,
+        label: 'Created',
+        sortable: true,
+        renderCell: (row) => (
+            <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
+            {row.invoiceDate ? moment(row.invoiceDate).format('DD MMM YY') : 'N/A'}
+            </Typography>
+        ),
+      },
+      {
+        key: 'invoiceTo',
+        visible: true,
+        label: 'Invoice To',
+        renderCell: (row) => (
+
+
+            <Link href={`/invoices/invoice-list/invoice-view/${row.customerId?._id}`} passHref>
+              <Typography sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }} variant="body1" color='primary.main' className='text-[0.9rem] text-start' >{row.customerId?.name || 'Deleted Customer'}</Typography>
+            </Link>
+
+        ),
+      },
+      {
+        key: 'amounts',
+        label: 'Amount',
+        visible: true,
+        align: 'center',
+        renderCell: (row) => {
+          const total = Number(row.TotalAmount) || 0;
+          const paid = Number(row.paidAmount) || 0;
+          const percentPaid = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+          return (
+            <Box className="flex flex-col min-w-[130px] w-full">
+              {/* Top row: paid left, total right */}
+              <Box className="flex flex-row justify-between items-center mb-0.5 w-full">
+
+                  <Typography color="text.primary" className='text-[0.9rem]'>{paid}</Typography>
+
+                <Box className="flex items-center gap-1 min-w-[48px] justify-end">
+                  <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
+                  <Typography color="text.primary" className='text-[0.9rem] font-medium'>{total}</Typography>
+                </Box>
+              </Box>
+              {/* Progress bar below */}
+              <Box className="flex-1 w-full">
+                <LinearProgress variant="determinate" color='info' value={percentPaid} />
+              </Box>
+            </Box>
+          );
+        },
+      },
+      {
+        key: 'dueDate',
+        label: 'Due Date',
+        visible: true,
+        align: 'center',
+        renderCell: (row) => (
+            <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
+            {row.dueDate ? moment(row.dueDate).format('DD MMM YY') : 'N/A'}
+            </Typography>
+        ),
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        visible: true,
+        align: 'center',
+        renderCell: (row) => <Chip className='mx-0' size='small' variant='tonal' label={statusOptions.find(opt => opt.value === row.status)?.label || ''} color={statusOptions.find(opt => opt.value === row.status)?.color || 'default'} />,
+      },
+      {
+        key: 'action',
+        label: '',
+        visible: true,
+        align: 'right',
+        renderCell: (row) => {
+          // Build options array based on permissions and handlers
+          const options = [];
+          if (canView) {
+            options.push({
+              text: 'View',
+              icon: <Icon icon="mdi:eye-outline" />,
+              href: `/invoices/invoice-view/${row._id}`,
+             linkProps: {
+                    className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
+                  }
+            });
+          }
+          if (canUpdate) {
+            options.push({
+              text: 'Edit',
+              icon:  <Icon icon="mdi:edit-outline" />,
+              href: `/invoices/edit/${row._id}`,
+            linkProps: {
+                    className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
+                  }
+            });
+          }
+          if (canCreate) {
+            options.push({
+              text: 'Clone',
+              icon: <Icon icon="mdi:content-duplicate" />,
+              menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handleCloneFromHandlers(row.id || row._id)
+              }
+            });
+
+
+            options.push({
+              text: 'Send',
+              icon: <Icon icon="mdi:invoice-send-outline" />,
+              menuItemProps: {
+                 className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handleSendFromHandlers(row.id || row._id)
+              }
+            });
+          }
+          if (canUpdate) {
+            options.push({
+              text: 'Convert to Sales Return',
+              icon: <Icon icon="mdi:invoice-export-outline" style={{ transform: 'scaleX(-1)' }} />,
+              menuItemProps: {
+                 className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => openConvertDialog(row)
+              }
+            });
+            options.push({
+              text: 'Print & Download',
+              icon: <Icon icon="mdi:printer-outline" />,
+              menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handlePrintDownloadFromHandlers(row._id)
+              }
+            });
+          }
+          if (canCreate) {
+            options.push({
+              text: 'Send Payment Link',
+              icon: <Icon icon="mdi:link-variant" />,
+              menuItemProps: {
+               className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handleSendPaymentLinkFromHandlers(row._id)
+              }
+            });
+          }
+          return (
+            <OptionMenu
+              icon={<MoreVertIcon />}
+              iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
+              options={options}
+            />
+          );
+        },
+      },
+    ];
+
+    const [columnsState, setColumns] = useState(columns);
+
 
     /**
      * Handle resetting filters and sorting.
      */
     const handleReset = () => {
-        setColumns(defaultColumns);
+        setColumns(columns);
         setFilters({});
         setSortBy('');
         setSortDirection('asc');
@@ -515,180 +418,31 @@ const InvoiceList = () => {
 
 
 
-    /**
-     * Handle opening the manage columns dialog.
-     */
-    const handleManageColumnsOpen = () => {
-        setAvailableColumns(columns);
-        setManageColumnsOpen(true);
-    };
-
-    /**
-     * Handle closing the manage columns dialog.
-     */
-    const handleManageColumnsClose = () => {
-        setManageColumnsOpen(false);
-    };
-
-    /**
-     * Toggle visibility of a specific column.
-     *
-     * @param {string} columnKey - The key of the column to toggle.
-     */
-    const handleColumnToggle = (columnKey) => {
-        setAvailableColumns((prevColumns) =>
-            prevColumns.map((col) =>
-                col.key === columnKey ? { ...col, visible: !col.visible } : col
-            )
+    // Fetch data when tab, filters, pagination, sortBy, or sortDirection change
+    useEffect(() => {
+        fetchDataFromHandlers(
+            tab,
+            paginationFromHandlers.current,
+            paginationFromHandlers.pageSize,
+            filtersFromHandlers,
+            sortByFromHandlers,
+            sortDirectionFromHandlers
         );
-    };
-
-    /**
-     * Save the updated column visibility settings.
-     */
-    const handleManageColumnsSave = () => {
-        setColumns(availableColumns);
-        setManageColumnsOpen(false);
-    };
-
-    /**
-     * Determine if any filter is applied.
-     *
-     * @returns {boolean} - Whether any filter is applied.
-     */
-    const isFilterApplied = useMemo(() => {
-        return (
-            (filters.customer && filters.customer.length > 0) ||
-            (filters.invoiceNumber && filters.invoiceNumber.length > 0) ||
-            (filters.fromDate) ||
-            (filters.toDate) ||
-            (filters.status && filters.status.length > 0)
-        );
-    }, [filters]);
-
-    /**
-     * Handle printing or downloading the invoice.
-     *
-     * @param {string} id - Invoice ID.
-     */
-    const handlePrintDownload = async (id) => {
-        try {
-            const pdfUrl = await printDownloadInvoice(id);
-            window.open(pdfUrl, '_blank'); // Opens the PDF in a new tab
-            setSnackbar({
-                open: true,
-                message: 'Invoice is being prepared for download.',
-                severity: 'success',
-            });
-        } catch (error) {
-            setSnackbar({
-                open: true,
-                message: error.message || 'Failed to download invoice.',
-                severity: 'error',
-            });
-        }
-    };
-
-    /**
-     * Handle sending a payment link.
-     *
-     * @param {string} id - Invoice ID.
-     */
-    const handleSendPaymentLink = async (id) => {
-        try {
-            await sendPaymentLink(id);
-            setSnackbar({
-                open: true,
-                message: 'Payment link sent successfully!',
-                severity: 'success',
-            });
-        } catch (error) {
-            setSnackbar({
-                open: true,
-                message: error.message || 'Failed to send payment link.',
-                severity: 'error',
-            });
-        }
-    };
-
-    // Modify your fetchData function to handle auth errors
-    const fetchData = async (tabValue, page, pageSize, filterValues) => {
-        setLoading(true);
-        try {
-            // ... existing fetch logic
-        } catch (error) {
-            if (!handleClientAuthError(error, router)) {
-                console.error('Error fetching invoice data:', error);
-                setSnackbar({
-                    open: true,
-                    message: 'Failed to fetch invoice data',
-                    severity: 'error',
-                });
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Add this component at the top level of your file
-    const TableRowSkeleton = ({ columns }) => (
-        <TableRow>
-            {columns.filter(col => col.visible).map((column) => (
-                <TableCell key={column.key}>
-                    {column.key === 'invoiceTo' ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Skeleton variant="circular" width={40} height={40} />
-                            <Box>
-                                <Skeleton width={120} />
-                                <Skeleton width={180} />
-                            </Box>
-                        </Box>
-                    ) : column.key === 'status' ? (
-                        <Skeleton variant="rounded" width={80} height={24} />
-                    ) : column.key === 'action' ? (
-                        <Skeleton variant="circular" width={32} height={32} />
-                    ) : column.key === 'invoiceNumber' ? (
-                        <Skeleton width={120} />
-                    ) : (
-                        <Skeleton width={80} />
-                    )}
-                </TableCell>
-            ))}
-        </TableRow>
-    );
-
-    // Add this component near your TableRowSkeleton
-    const TableHeaderSkeleton = () => (
-        <TableRow>
-            <TableCell colSpan={100} sx={{ padding: 0 }}>
-                <Skeleton
-                    variant="rectangular"
-                    width="100%"
-                    height={52} // Standard MUI table header height
-                    sx={{
-                        backgroundColor: (theme) => theme.palette.mode === 'light'
-                            ? 'rgba(0, 0, 0, 0.04)'
-                            : 'rgba(255, 255, 255, 0.08)',
-                        transform: 'none' // Prevents the wave animation from changing the height
-                    }}
-                />
-            </TableCell>
-        </TableRow>
-    );
+    }, [tab, filtersFromHandlers, paginationFromHandlers.current, paginationFromHandlers.pageSize, sortByFromHandlers, sortDirectionFromHandlers]);
 
     return (
         <div>
             {/* 1st Segment: Stat Cards */}
             <InvoiceHead
-                invoiceListData={loading ? {} : cardCounts}
-                currencyData={currencyData}
+                invoiceListData={initialCardCounts}
+                currencyData={formatCurrency(0).replace(/\d|\.|,/g, '').trim()}
                 isLoading={loading}
             />
 
             {/* 2nd Segment: Action Buttons */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, mt: 6 }}>
                 {(canCreate) && (
-                    <Button variant="contained" color="primary" href="/add-invoice">
+                    <Button variant="contained" color="primary" href="/invoices/add">
                         New Invoice
                     </Button>
                 )}
@@ -696,27 +450,13 @@ const InvoiceList = () => {
 
             {/* 3rd Segment: Status Tabs */}
             <Box sx={{ mb: 2 }}>
-                <Grid container spacing={2}
-                    sx={{
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                    }}
-                >
+                <Grid container spacing={2} className="items-center justify-between">
                     <Grid item xs="auto">
                         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                            <Tabs
-                                value={tab}
-                                onChange={handleTabChange}
-                                aria-label="Invoice Tabs"
-                                variant="scrollable"
-                                scrollButtons="auto"
-                            >
-                                <Tab label="All" value="ALL" />
-                                <Tab label="Paid" value="PAID" />
-                                <Tab label="Overdue" value="OVERDUE" />
-                                <Tab label="Partially Paid" value="PARTIALLY_PAID" />
-                                <Tab label="Draft" value="DRAFTED" />
-                                <Tab label="Cancelled" value="CANCELLED" />
+                            <Tabs value={tab} onChange={handleTabChange} aria-label="Invoice Tabs" variant="scrollable" scrollButtons="auto">
+                                {invoiceTabs.map(tabObj => (
+                                    <Tab key={tabObj.value} label={tabObj.label} value={tabObj.value} />
+                                ))}
                             </Tabs>
                         </Box>
                     </Grid>
@@ -738,7 +478,7 @@ const InvoiceList = () => {
                         <Button
                             variant="text"
                             startIcon={<ViewColumnIcon />}
-                            onClick={handleManageColumnsOpen}
+                            onClick={() => handleManageColumnsOpen(setAvailableColumns, setManageColumnsOpen, columns)}
                         >
                             Columns
                         </Button>
@@ -748,170 +488,35 @@ const InvoiceList = () => {
 
             {/* 4th Segment: Invoice Table */}
             <Card>
-                <Table>
-                    <TableHead>
-                        {loading ? (
-                            <TableHeaderSkeleton />
-                        ) : (
-                            <TableRow>
-                                {columns.map(
-                                    (column) =>
-                                        column.visible && (
-                                            <TableCell
-                                                key={column.key}
-                                                sortDirection={sortBy === column.key ? sortDirection : false}
-                                            >
-                                                {column.key !== 'action' ? (
-                                                    <TableSortLabel
-                                                        active={sortBy === column.key}
-                                                        direction={sortBy === column.key ? sortDirection : 'asc'}
-                                                        onClick={() => handleSortRequest(column.key)}
-                                                    >
-                                                        {column.label}
-                                                    </TableSortLabel>
-                                                ) : (
-                                                    column.label
-                                                )}
-                                            </TableCell>
-                                        )
-                                )}
-                            </TableRow>
-                        )}
-                    </TableHead>
-                    <TableBody>
-                        {loading ? (
-                            // Show 5 skeleton rows while loading
-                            Array.from(new Array(5)).map((_, index) => (
-                                <TableRowSkeleton key={index} columns={columns} />
-                            ))
-                        ) : invoices.length > 0 ? (
-                            invoices.map((invoice, index) => (
-                                <TableRow key={invoice.id || invoice._id}>
-                                    {columns.map(
-                                        (column) =>
-                                            column.visible && (
-                                                <TableCell key={column.key}>
-                                                    {column.key === 'index' && index + 1}
-
-                                                    {column.key === 'invoiceNumber' && (
-                                                        <Link
-                                                            href={`/invoices/invoice-view/${invoice._id}`}
-                                                            style={{ textDecoration: 'none' }}
-                                                        >
-                                                            <Typography
-                                                                component="span"
-                                                                sx={{
-                                                                    cursor: 'pointer',
-                                                                    color: 'primary.main',
-                                                                    '&:hover': { textDecoration: 'underline' }
-                                                                }}
-                                                            >
-                                                                {invoice.invoiceNumber || 'N/A'}
-                                                            </Typography>
-                                                        </Link>
-                                                    )}
-
-                                                    {column.key === 'createdOn' && (
-                                                        <Typography>
-                                                            {invoice.invoiceDate
-                                                                ? moment(invoice.invoiceDate).format('DD MMM YYYY')
-                                                                : 'N/A'}
-                                                        </Typography>
-                                                    )}
-
-                                                    {column.key === 'invoiceTo' && (
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                            <Avatar
-                                                                src={invoice.customerId?.image || '/images/default-avatar.png'}
-                                                                alt={invoice.customerId?.name || 'Deleted Customer'}
-                                                            />
-                                                            <Link href={`/invoices/invoice-list/invoice-view/${invoice.customerId?._id}`} passHref>
-                                                                <Typography
-                                                                    sx={{ cursor: 'pointer', color: 'primary.main' }}
-                                                                >
-                                                                    {invoice.customerId?.name || 'Deleted Customer'}
-                                                                </Typography>
-                                                            </Link>
-                                                        </Box>
-                                                    )}
-
-                                                    {column.key === 'totalAmount' && (
-                                                        <Typography>
-                                                            {currencyData} {amountFormat(invoice.TotalAmount || 0)}
-                                                        </Typography>
-                                                    )}
-
-                                                    {column.key === 'paidAmount' && (
-                                                        <Typography>
-                                                            {currencyData} {amountFormat(invoice.paidAmt || 0)}
-                                                        </Typography>
-                                                    )}
-
-                                                    {column.key === 'paymentMode' && (
-                                                        <Typography>{invoice.payment_method || 'N/A'}</Typography>
-                                                    )}
-
-                                                    {column.key === 'balance' && (
-                                                        <Typography>
-                                                            {currencyData} {amountFormat(invoice.balance || 0)}
-                                                        </Typography>
-                                                    )}
-
-                                                    {column.key === 'dueDate' && (
-                                                        <Typography>
-                                                            {invoice.dueDate
-                                                                ? moment(invoice.dueDate).format('DD MMM YYYY')
-                                                                : 'N/A'}
-                                                        </Typography>
-                                                    )}
-
-                                                    {column.key === 'status' && getStatusBadge(invoice.status)}
-
-                                                    {column.key === 'action' && (
-                                                        <IconButton
-                                                            aria-label="more"
-                                                            aria-controls="long-menu"
-                                                            aria-haspopup="true"
-                                                            onClick={(event) => handleMenuOpen(event, invoice)}
-                                                        >
-                                                            <MoreVertIcon />
-                                                        </IconButton>
-                                                    )}
-                                                </TableCell>
-                                            )
-                                    )}
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={columns.length} align="center">
-                                    No invoices found.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-                <TablePagination
-                    component="div"
-                    count={pagination.total}
-                    page={pagination.current - 1}
+                <CustomListTable
+                    columns={columns}
+                    rows={invoicesFromHandlers}
+                    loading={loading}
+                    pagination={{ page: paginationFromHandlers.current - 1, pageSize: paginationFromHandlers.pageSize, total: paginationFromHandlers.total }}
                     onPageChange={handlePageChange}
-                    rowsPerPage={pagination.pageSize}
                     onRowsPerPageChange={handlePageSizeChange}
-                    rowsPerPageOptions={[5, 10, 25, 50]}
+                    onSort={handleSortRequest}
+                    sortBy={sortByFromHandlers}
+                    sortDirection={sortDirectionFromHandlers}
+                    noDataText="No invoices found."
+                    rowKey={(row, idx) => row._id || row.id || idx}
                 />
             </Card>
 
             {/* Filter Drawer */}
             <InvoiceFilter
                 open={filterOpen}
-                onClose={handleFilterToggle}
-                onFilterChange={handleFilterChange}
-                filters={filters}
+                onClose={() => setFilterOpen(false)}
+                values={filterValues}
+                onChange={handleFilterChange}
+                onApply={invoiceListActions.handleFilterApply}
+                onReset={invoiceListActions.handleFilterReset}
+                customerOptions={customerOptions}
+                invoiceOptions={invoiceOptions}
             />
 
             {/* Manage Columns Dialog */}
-            <Dialog open={manageColumnsOpen} onClose={handleManageColumnsClose}>
+            <Dialog open={manageColumnsOpen} onClose={() => handleManageColumnsClose(setManageColumnsOpen)}>
                 <DialogTitle>Select Columns</DialogTitle>
                 <DialogContent>
                     <FormGroup>
@@ -921,7 +526,7 @@ const InvoiceList = () => {
                                 control={
                                     <Checkbox
                                         checked={column.visible}
-                                        onChange={() => handleColumnToggle(column.key)}
+                                        onChange={() => handleManageColumnsSave(setColumns, setManageColumnsOpen, availableColumns)}
                                     />
                                 }
                                 label={column.label}
@@ -930,91 +535,12 @@ const InvoiceList = () => {
                     </FormGroup>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleManageColumnsClose}>Cancel</Button>
-                    <Button onClick={handleManageColumnsSave} color="primary">
+                    <Button onClick={() => handleManageColumnsClose(setManageColumnsOpen)}>Cancel</Button>
+                    <Button onClick={() => handleManageColumnsSave(setColumns, setManageColumnsOpen, availableColumns)} color="primary">
                         Save
                     </Button>
                 </DialogActions>
             </Dialog>
-
-            {/* Action Menu */}
-            <Menu
-                anchorEl={anchorEl}
-                keepMounted
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-            >
-                {(canView) && selectedInvoice && (
-                    <MenuItem
-                        component={Link}
-                        href={`/invoices/invoice-view/${selectedInvoice._id}`}
-                        onClick={handleMenuClose}
-                        sx={{ display: 'flex', alignItems: 'center', width: '100%' }}
-                    >
-                        <ListItemIcon>
-                            <VisibilityIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText primary="View" />
-                    </MenuItem>
-                )}
-                {canUpdate && selectedInvoice && (
-                      <MenuItem
-                        component={Link}
-                        href={`/invoices/edit/${selectedInvoice._id}`}
-                        onClick={handleMenuClose}
-                        sx={{ display: 'flex', alignItems: 'center', width: '100%' }}
-                    >
-
-                                <ListItemIcon>
-                                    <ReplayIcon fontSize="small" />
-                                </ListItemIcon>
-                                <ListItemText primary="Edit" />
-
-                    </MenuItem>
-                )}
-                {canCreate && selectedInvoice && (
-                    <MenuItem onClick={() => handleClone(selectedInvoice.id || selectedInvoice._id)}>
-                        <ListItemIcon>
-                            <CopyIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText primary="Clone" />
-                    </MenuItem>
-                )}
-                {canCreate && selectedInvoice && (
-                    <MenuItem onClick={() => handleSend(selectedInvoice.id || selectedInvoice._id)}>
-                        <ListItemIcon>
-                            <SendIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText primary="Send" />
-                    </MenuItem>
-                )}
-                {canUpdate && selectedInvoice && (
-                    <MenuItem onClick={() => openConvertDialog(selectedInvoice)}>
-                        <ListItemIcon>
-                            <ReplayIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText primary="Convert to Sales Return" />
-                    </MenuItem>
-                )}
-                {/* New Menu Items */}
-                {canUpdate && selectedInvoice && (
-                    <MenuItem onClick={() => handlePrintDownload(selectedInvoice._id)}>
-                        <ListItemIcon>
-                            <PrintIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText primary="Print & Download" />
-                    </MenuItem>
-                )}
-                {canCreate && selectedInvoice && (
-                    <MenuItem onClick={() => handleSendPaymentLink(selectedInvoice._id)}>
-                        <ListItemIcon>
-                            <LinkIcon fontSize="small" />
-                        </ListItemIcon>
-                        <ListItemText primary="Send Payment Link" />
-                    </MenuItem>
-                )}
-                {/* Add more MenuItems as needed */}
-            </Menu>
 
             {/* Snackbar */}
             <Snackbar

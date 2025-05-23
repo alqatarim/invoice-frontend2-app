@@ -13,7 +13,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 
 import Link from 'next/link';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import {
   MoreVert as MoreVertIcon,
   Edit as EditIcon,

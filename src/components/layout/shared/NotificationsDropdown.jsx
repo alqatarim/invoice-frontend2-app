@@ -32,7 +32,7 @@ import themeConfig from '@configs/themeConfig'
 import { useSettings } from '@core/hooks/useSettings'
 
 // Util Imports
-import { getInitials } from '@/utils/getInitials'
+import { getInitials } from '@/utils/string'
 
 const ScrollWrapper = ({ children, hidden }) => {
   if (hidden) {

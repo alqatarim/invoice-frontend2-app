@@ -1,6 +1,6 @@
 'use server';
 
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 
 // Update the endpoints to match the old implementation
 const ENDPOINTS = {

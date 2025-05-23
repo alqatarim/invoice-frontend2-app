@@ -40,82 +40,26 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { Icon } from '@iconify/react';
 import { addPayment } from '@/app/(dashboard)/payments/actions';
 import { paymentSchema } from './PaymentSchema';
-import { formatDate, formatDiscount } from '@/utils/helpers';
+import { formatDate } from '@/utils/dateUtils';
 import dayjs from 'dayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { getInvoicesByCustomer, getCustomers } from '@/app/(dashboard)/payments/actions';
 import { debounce } from 'lodash';
+import { paymentMethods, statusOptions } from '@/data/dataSets';
+import { iconReferences } from '@/assets/iconify-icons/iconReferences';
+import { convertFirstLetterToCapital } from '@/utils/string';
 
-const paymentModes = [
-  { value: 'Cash', label: 'Cash' },
-  { value: 'Cheque', label: 'Cheque' },
-  { value: 'Bank', label: 'Bank' },
-  { value: 'Online', label: 'Online' }
-];
 
-const getPaymentModeIcon = (mode) => {
-  switch (mode) {
-    case 'Cash':
-      return 'mdi:cash-multiple';
-    case 'Cheque':
-      return 'mdi:checkbook';
-    case 'Bank':
-      return 'mdi:bank';
-    case 'Online':
-      return 'mdi:web';
-    default:
-      return 'bi:credit-card';
-  }
-};
-
-const convertFirstLetterToCapital = (string) => {
-  return string
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-};
-
-const getStatusBadge = (status,size='small') => {
+const getStatusBadge = (status, size = 'small') => {
   if (!status) return null;
-
-  let color;
-  switch (status) {
-    case 'REFUND':
-      color = 'info';
-      break;
-
-    case 'SENT':
-      color = 'info';
-      break;
-    case 'UNPAID':
-      color = 'default';
-      break;
-    case 'PARTIALLY_PAID':
-      color = 'primary';
-      break;
-    case 'CANCELLED':
-    case 'OVERDUE':
-      color = 'error';
-      break;
-    case 'PAID':
-      color = 'success';
-      break;
-    case 'DRAFTED':
-      color = 'warning';
-      break;
-    default:
-      color = 'default';
-  }
-
-  const formattedLabel = status.includes('_')
-    ? convertFirstLetterToCapital(status.replace('_', ' '))
-    : convertFirstLetterToCapital(status);
-
+  const config = statusOptions.find(s => s.value === status);
+  const label = config?.label || convertFirstLetterToCapital(status.replace('_', ' '));
+  const color = config?.color || 'default';
   return (
     <Chip
-      label={formattedLabel}
-      color={color || 'default'}
+      label={label}
+      color={color}
       size={size}
       variant="tonal"
     />
@@ -466,10 +410,10 @@ const AddPayment = ({ customers, enqueueSnackbar, closeSnackbar, onSubmit, payme
                               //   </Box>
                               // }
                             >
-                              {paymentModes.map((mode) => (
+                              {paymentMethods.map((mode) => (
                                 <MenuItem key={mode.value} value={mode.value}>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    <Icon icon={getPaymentModeIcon(mode.value)} fontSize={20} color={theme.palette.secondary.main} />
+                                    <Icon icon={iconReferences.paymentMethods[mode.value] || iconReferences.paymentMethods.Default} fontSize={20} color={theme.palette.secondary.main} />
                                     {mode.label}
                                   </Box>
                                 </MenuItem>

@@ -1,8 +1,8 @@
 'use server';
 
 import moment from 'moment';
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
-import { dataURLtoBlob, processSignatureImage } from '@/utils/helpers';
+import { fetchWithAuth } from '@/Auth/fetchWithAuth';
+import { processSignatureImage } from '@/utils/fileUtils';
 
 
 
@@ -10,6 +10,8 @@ const ENDPOINTS = {
   INVOICE: {
     LIST: '/invoice',
     VIEW: '/invoice',
+    ADD: '/invoice',
+    GET_INVOICE_NUMBER: '/invoice/getInvoiceNumber',
     UPDATE: '/invoice/updateInvoice',
     CLONE: '/invoice',
     CARD_COUNTS: '/invoice/invoiceCard',
@@ -609,6 +611,116 @@ export async function getManualSignatures() {
     }
   } catch (error) {
     console.error('Error in getManualSignatures:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add a new invoice.
+ *
+ * @param {Object} invoiceData - The invoice details.
+ * @returns {Promise<Object>} - The response from the backend.
+ * @throws {Error} - Throws an error with a detailed message if the operation fails.
+ */
+export async function addInvoice(invoiceData) {
+  const formData = new FormData();
+  const dataSource = invoiceData.items || [];
+
+  for (let i = 0; i < dataSource.length; i++) {
+    formData.append(`items[${i}][name]`, dataSource[i]?.name);
+    formData.append(`items[${i}][key]`, i);
+    formData.append(`items[${i}][productId]`, dataSource[i]?.productId);
+    formData.append(`items[${i}][quantity]`, dataSource[i]?.quantity);
+    formData.append(`items[${i}][units]`, dataSource[i]?.units);
+    formData.append(`items[${i}][unit]`, dataSource[i]?.unit);
+    formData.append(`items[${i}][rate]`, dataSource[i]?.rate);
+    formData.append(`items[${i}][discount]`, dataSource[i]?.discount);
+    formData.append(`items[${i}][tax]`, dataSource[i]?.tax);
+    let taxIfoFormdata = dataSource[i].taxInfo;
+    if (typeof dataSource[i].taxInfo !== "string")
+      taxIfoFormdata = JSON.stringify(dataSource[i].taxInfo);
+    formData.append(`items[${i}][taxInfo]`, taxIfoFormdata);
+    formData.append(`items[${i}][amount]`, dataSource[i]?.amount);
+    formData.append(`items[${i}][discountType]`, dataSource[i]?.discountType);
+    formData.append(`items[${i}][isRateFormUpadted]`, dataSource[i]?.isRateFormUpadted);
+    formData.append(`items[${i}][form_updated_discounttype]`, dataSource[i]?.form_updated_discounttype);
+    formData.append(`items[${i}][form_updated_discount]`, dataSource[i]?.form_updated_discount);
+    formData.append(`items[${i}][form_updated_rate]`, dataSource[i]?.form_updated_rate);
+    formData.append(`items[${i}][form_updated_tax]`, dataSource[i]?.form_updated_tax);
+  }
+
+  formData.append("invoiceNumber", invoiceData.invoiceNumber);
+  formData.append("customerId", invoiceData.customerId);
+  formData.append("payment_method", invoiceData.payment_method);
+  formData.append("dueDate", invoiceData?.dueDate);
+  formData.append("invoiceDate", invoiceData?.invoiceDate);
+  formData.append("referenceNo", invoiceData.referenceNo);
+  formData.append("taxableAmount", invoiceData.taxableAmount);
+  formData.append("TotalAmount", invoiceData.TotalAmount);
+  formData.append("vat", invoiceData.vat);
+  formData.append("totalDiscount", invoiceData.totalDiscount);
+  formData.append("roundOff", invoiceData.roundOff);
+  formData.append("bank", invoiceData.bank);
+  formData.append("notes", invoiceData.notes);
+  formData.append("termsAndCondition", invoiceData.termsAndCondition);
+  formData.append("sign_type", invoiceData.sign_type);
+
+  // isRecurring = false
+  formData.append("isRecurring", false);
+  formData.append("recurringCycle", "0");
+
+  // Handle signature based on sign_type
+  if (invoiceData.sign_type === "eSignature") {
+    formData.append("signatureName", invoiceData.signatureName || "");
+    if (invoiceData.signatureImage) {
+      try {
+        const signatureFile = await processSignatureImage(invoiceData.signatureImage);
+        if (signatureFile) {
+          formData.append("signatureImage", signatureFile);
+        }
+      } catch (error) {
+        console.error('Error processing signature:', error);
+        throw new Error('Failed to process signature: ' + error.message);
+      }
+    }
+  } else if (invoiceData.sign_type === "manualSignature") {
+    if (invoiceData.signatureId) {
+      formData.append("signatureId", invoiceData.signatureId);
+    }
+  }
+
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.INVOICE.ADD, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (response.code !== 200) {
+      throw new Error(response.message || 'Failed to add invoice');
+    }
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error adding invoice:', error);
+    return { success: false, message: error.message || 'Failed to add invoice' };
+  }
+}
+
+/**
+ * Fetch the next available invoice number from the backend.
+ * @returns {Promise<string>} - The next invoice number.
+ * @throws {Error} - Throws an error if the fetch fails.
+ */
+export async function getNextInvoiceNumber() {
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.INVOICE.GET_INVOICE_NUMBER);
+    if (response && response.code === 200) {
+      return response.data;
+    } else {
+      throw new Error(response?.message || 'Failed to fetch next invoice number');
+    }
+  } catch (error) {
+    console.error('Error fetching next invoice number:', error);
     throw error;
   }
 }

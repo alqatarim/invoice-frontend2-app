@@ -1,6 +1,6 @@
 'use server';
 
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 import { dataURLtoBlob } from '@/utils/helpers';
 
 const ENDPOINTS = {

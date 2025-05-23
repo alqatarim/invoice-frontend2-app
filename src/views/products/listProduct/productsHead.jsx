@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Table, TableHead, TableRow, TableCell, TableBody, TableSortLabel, TablePagination, Typography, IconButton, Card } from "@mui/material";
 import { Link } from "next/link";
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from "moment"; // Import moment for date formatting
 

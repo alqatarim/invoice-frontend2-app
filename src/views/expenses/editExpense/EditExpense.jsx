@@ -27,7 +27,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { expenseSchema } from './ExpenseSchema';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useSession } from 'next-auth/react';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { Icon } from '@iconify/react';

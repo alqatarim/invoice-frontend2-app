@@ -6,7 +6,7 @@ import config from "config";
 import { AuthContext } from "../../xapprouter";
 import { fielderrorToast, errorToast } from "../core-index";
 import { SpinnerContext } from "../spinner/spinner";
-import { getLoginToken, setCurrentLoginUser } from "../../constans/globals";
+import { getLoginToken, setCurrentLoginUser } from "../../constants/globals";
 
 export const AxiosContext = createContext();
 

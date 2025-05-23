@@ -27,17 +27,15 @@ import {
   ListItemText,
 } from '@mui/material';
 
-import SendIcon from '@mui/icons-material/Send';
-import FileCopyIcon from '@mui/icons-material/FileCopy';
-import RefundIcon from '@mui/icons-material/MonetizationOn';
-import ViewIcon from '@mui/icons-material/ViewCarouselOutlined';
+import SendIcon from '@mui/icons-material/Send'
+import FileCopyIcon from '@mui/icons-material/FileCopy'
+import RefundIcon from '@mui/icons-material/MonetizationOn'
+import ViewIcon from '@mui/icons-material/ViewCarouselOutlined'
 
-import {
-  amountFormat,
-  convertFirstLetterToCapital,
-} from '@/common/helper';
-import { successToast } from '@/core/Toast/toast';
-import moment from 'moment';
+import { amountFormat } from '@/utils/numberUtils'
+import { convertFirstLetterToCapital } from '@/utils/string'
+import { successToast } from '@/core/Toast/toast'
+import moment from 'moment'
 import {
   getDashboardData,
   getFilteredDashboardData,
@@ -51,7 +49,6 @@ import CardStatWithImage from '@components/card-statistics/Character';
 
 
 const Dashboard = () => {
-
 
 
   const [dashboardData, setDashboardData] = useState({});
@@ -71,7 +68,8 @@ const Dashboard = () => {
   const fetchDashboardData = async (filter = '') => {
     setLoading(true);
     try {
-      // Choose appropriate API based on whether filter is provided
+
+
       const response = filter
         ? await getFilteredDashboardData(filter)
         : await getDashboardData('/dashboard');
@@ -97,6 +95,11 @@ const Dashboard = () => {
         type: 'error',
       });
     } finally {
+
+      console.log('dasboard data:');
+      console.log(dashboardData)
+
+
       setLoading(false);
     }
   };

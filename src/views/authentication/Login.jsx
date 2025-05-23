@@ -29,7 +29,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 
-import { passwordRegex, passwordValidMessage, emailRgx } from "../../constans"
+import { passwordRegex, passwordValidMessage, emailRgx } from "../../constants"
 
 // Component Imports
 import Logo from '@core/svg/Logo'

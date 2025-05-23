@@ -7,11 +7,8 @@ import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 
-export const EditInvoiceSchema = yup.object().shape({
-  invoiceNumber: yup
-    .string()
-    .required("Invoice number is required")
-    .trim(),
+export const InvoiceSchema = yup.object().shape({
+
 
   customerId: yup
     .string()

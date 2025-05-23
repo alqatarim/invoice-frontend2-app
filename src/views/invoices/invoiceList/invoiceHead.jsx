@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Box, Grid } from '@mui/material';
-import { amountFormat } from '@/common/helper';
+import { amountFormat } from '@/utils/numberUtils';
 import { getInitialInvoiceData } from '@/app/(dashboard)/invoices/actions';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder'
 /**

@@ -38,7 +38,7 @@ import {
   FilterList as FilterIcon
 } from '@mui/icons-material';
 import { deletePurchase } from '@/app/(dashboard)/purchases/actions';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import PurchaseFilter from './PurchaseFilter';
 import dayjs from 'dayjs';
 import { Icon } from '@iconify/react';

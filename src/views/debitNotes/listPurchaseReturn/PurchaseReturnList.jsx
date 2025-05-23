@@ -40,7 +40,7 @@ import {
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
 import { deleteDebitNote, cloneDebitNote } from '@/app/(dashboard)/debitNotes/actions';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import PurchaseReturnFilter from './PurchaseReturnFilter';
 import dayjs from 'dayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers';

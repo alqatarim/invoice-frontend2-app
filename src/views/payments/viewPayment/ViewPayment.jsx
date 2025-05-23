@@ -20,10 +20,10 @@ import {
   Paper
 } from '@mui/material';
 import { Icon } from '@iconify/react';
-import { formatDate } from '@/utils/helpers';
+import { formatDate } from '@/utils/dateUtils';
 import { alpha } from '@mui/material/styles';
 import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 
 const getStatusColor = (status) => {
   switch (status?.toLowerCase()) {

@@ -17,7 +17,7 @@ import { useSnackbar } from 'notistack';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/Auth/usePermission';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { Icon } from '@iconify/react';
