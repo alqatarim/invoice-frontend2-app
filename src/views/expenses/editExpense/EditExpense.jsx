@@ -32,7 +32,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { Icon } from '@iconify/react';
 import { useTheme } from '@mui/material/styles';
-import { isImageFile, getFileName } from '@/utils/helpers';
+import { isImageFile, getFileName } from '@/utils/fileUtils';
 import { alpha } from '@mui/material/styles';
 
 const paymentModes = [

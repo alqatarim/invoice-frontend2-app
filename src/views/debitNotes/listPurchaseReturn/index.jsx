@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getDebitNotesList, getVendors } from '@/app/(dashboard)/debitNotes/actions';
-import PurchaseReturnList from '@/views/debitNotes/listPurchaseReturn/PurchaseReturnList';
+import PurchaseReturnListNew from '@/views/debitNotes/listPurchaseReturn/PurchaseReturnListNew';
 
 const PurchaseReturnListIndex = () => {
   const [allDebitNotes, setAllDebitNotes] = useState([]);
@@ -92,7 +92,7 @@ const PurchaseReturnListIndex = () => {
   }, []);
 
   return (
-    <PurchaseReturnList
+    <PurchaseReturnListNew
       debitNoteList={allDebitNotes}
       totalCount={totalCount}
       page={page}

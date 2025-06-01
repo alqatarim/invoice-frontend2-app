@@ -59,9 +59,9 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { alpha } from '@mui/material/styles';
 import { updatePurchase } from '@/app/(dashboard)/purchases/actions';
-import { purchaseCalculations } from '@/utils/helpers';
+import { purchaseCalculations } from '@/utils/purchaseCalculations';
 
-const EditPurchase = ({ vendors, products, taxRates, banks, signatures, purchaseData }) => {
+const EditPurchase = ({ vendors, products, taxRates, banks, signatures, units, purchaseData }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState([]);

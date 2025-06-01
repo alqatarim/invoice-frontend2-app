@@ -1,267 +1,343 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTheme, alpha } from '@mui/material/styles';
 import {
-  Drawer,
-  Box,
-  Card,
   Button,
-  Checkbox,
-  Typography,
-  FormControlLabel,
-  TextField,
-  IconButton,
-  InputAdornment,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
+  Card,
+  Chip,
+  Collapse,
   Divider,
-  useMediaQuery,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  OutlinedInput,
+  Select,
+  Typography,
 } from '@mui/material';
-import CustomIconButton from '@core/components/mui/IconButton'
-import debounce from 'lodash/debounce';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import { Icon } from '@iconify/react';
-import { useTheme } from '@mui/material/styles';
-import { alpha } from '@mui/material/styles';
 
-const PurchaseFilter = ({ open, onClose, setFilterCriteria, vendors = [], resetAllFilters }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [selectedVendors, setSelectedVendors] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredVendors, setFilteredVendors] = useState(vendors);
-
-  // Debounced search function
-  const debouncedSearch = debounce((searchValue) => {
-    const filtered = vendors.filter(vendor =>
-      vendor.vendor_name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      vendor.vendor_phone?.toLowerCase().includes(searchValue.toLowerCase())
-    );
-    setFilteredVendors(filtered);
-  }, 300);
-
-  const handleVendorSearch = (event) => {
-    const value = event.target.value;
-    setSearchTerm(value);
-    debouncedSearch(value);
-  };
-
-  const handleVendorToggle = (vendorId) => {
-    const currentIndex = selectedVendors.indexOf(vendorId);
-    const newSelectedVendors = [...selectedVendors];
-
-    if (currentIndex === -1) {
-      newSelectedVendors.push(vendorId);
-    } else {
-      newSelectedVendors.splice(currentIndex, 1);
+/**
+ * Reusable multi-select dropdown component
+ */
+const MultiSelectDropdown = ({
+  label,
+  value = [],
+  onChange,
+  options = [],
+  id
+}) => {
+  // Memoize MenuProps to prevent re-creation
+  const menuProps = useMemo(() => ({
+    PaperProps: {
+      style: { maxHeight: 224, width: 280 }
     }
+  }), []);
 
-    setSelectedVendors(newSelectedVendors);
-  };
-
-  const handleApplyFilter = () => {
-    setFilterCriteria(prev => ({
-      ...prev,
-      vendors: selectedVendors
-    }));
-    onClose();
-  };
-
-  const handleClearFilter = () => {
-    setSelectedVendors([]);
-    resetAllFilters();
-    onClose();
-  };
+  // Memoize sx prop to prevent re-creation
+  const sxProps = useMemo(() => ({
+    '& .MuiOutlinedInput-root': {
+      borderRadius: '12px',
+    }
+  }), []);
 
   return (
-    <Drawer
-      anchor='right'
-      open={open}
-      onClose={onClose}
-      PaperProps={{
-        sx: {
-          width: { xs: '100%', sm: 300 },
-          // backgroundColor: theme.palette.background.paper,
-          // borderLeft: `1px solid ${theme.palette.divider}`
-        }
-      }}
-    >
-      <Box
-        className='p-5'
-        gap={3}
-      sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-            <Icon icon='mdi:filter-variant' fontSize={20} />
-            <Typography variant='h6' sx={{ ml: 2, fontSize: '1.125rem', fontWeight: 600 }}>
-              Filters
-            </Typography>
-          </Box>
-
-          <CustomIconButton
-
-            onClick={onClose}
-
-          >
-            <Icon icon='mdi:close' fontSize={20} />
-
-
-          </CustomIconButton>
-        </Box>
-
-        {/* Search Field */}
-        <Box sx={{ pt:1 }}>
-          <TextField
-            fullWidth
-            size='small'
-            value={searchTerm}
-            placeholder='Search vendors'
-            onChange={handleVendorSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position='start'>
-                  <Icon icon='mdi:magnify' fontSize={20} />
-                </InputAdornment>
-              ),
-              endAdornment: searchTerm && (
-                <InputAdornment position='end'>
-                  <CustomIconButton
-                    onClick={() => {
-                      setSearchTerm('');
-                      setFilteredVendors(vendors);
-                    }}
-
-
-                    size='small'
-                    color='error'
-
-                  >
-                    <Icon icon='mdi:clear-bold' fontSize={20} />
-
-
-                  </CustomIconButton>
-                </InputAdornment>
-              ),
-              sx: {
-                height: 40,
-                '&.MuiInputBase-root': {
-                  borderRadius: 1
-                }
-              }
-            }}
-          />
-        </Box>
-
-        {/* Vendor List */}
-        <Box sx={{ flexGrow: 1}}>
-          <List>
-            {filteredVendors.length > 0 ? (
-              filteredVendors.map((vendor) => (
-                <Box key={vendor._id}>
-                  <ListItem
-                    onClick={() => handleVendorToggle(vendor._id)}
-                    disablePadding
-                    sx={{
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s ease',
-                      '&:hover': {
-                        backgroundColor: theme.palette.action.hover
-                      }
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 40 }}>
-                      <Checkbox
-
-                        checked={selectedVendors.includes(vendor._id)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleVendorToggle(vendor._id);
-                        }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography variant='body2' sx={{ fontWeight: 600 }}>
-                          {vendor.vendor_name}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography variant='caption' color='textSecondary'>
-                          {vendor.vendor_phone}
-                        </Typography>
-                      }
-                    />
-                  </ListItem>
-                  <Divider sx={{ my: 1 }} />
-                </Box>
-              ))
-            ) : (
-              <Box sx={{
-                py: 10,
-                display: 'flex',
-                alignItems: 'center',
-                flexDirection: 'column'
-              }}>
-                <Icon icon='line-md:person-search' fontSize={90}
-                color={alpha(theme.palette.secondary.light, 0.2)}
-
-
+    <FormControl fullWidth size="small">
+      <InputLabel id={`${id}-label`}>{label}</InputLabel>
+      <Select
+        labelId={`${id}-label`}
+        id={id}
+        multiple
+        value={value}
+        onChange={onChange}
+        input={<OutlinedInput label={label} />}
+        renderValue={(selected) => (
+          <div className="flex flex-row flex-wrap gap-1">
+            {selected.map((val) => {
+              const option = options.find(opt => opt.value === val);
+              return (
+                <Chip
+                  key={val}
+                  label={option?.label || val}
+                  size="small"
+                  variant="tonal"
+                  color="primary"
+                  className="rounded-md"
                 />
-                <Typography
-                  variant='body1'
-                  sx={{ mt: 2, color: alpha(theme.palette.secondary.main, 0.8) }}
-                >
-                  No vendors found
-                </Typography>
-              </Box>
-            )}
-          </List>
+              );
+            })}
+          </div>
+        )}
+        MenuProps={menuProps}
+        sx={sxProps}
+      >
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+};
 
+/**
+ * Date range picker component
+ */
+const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange }) => {
+  // Memoize sx props to prevent re-creation
+  const textFieldSx = useMemo(() => ({
+    '& .MuiOutlinedInput-root': {
+      borderRadius: '12px',
+    }
+  }), []);
 
+  const startDateSlotProps = useMemo(() => ({
+    textField: {
+      size: 'small',
+      fullWidth: true,
+      label: 'From Date',
+      sx: textFieldSx
+    }
+  }), [textFieldSx]);
 
-        </Box>
+  const endDateSlotProps = useMemo(() => ({
+    textField: {
+      size: 'small',
+      fullWidth: true,
+      label: 'To Date',
+      sx: textFieldSx
+    }
+  }), [textFieldSx]);
 
-        {/* Footer Actions */}
-        <Box
-          sx={{
-            px: 4,
-            py: 3,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+  return (
+    <Grid container spacing={2}>
+      <Grid item xs={6}>
+        <DatePicker
+          slotProps={startDateSlotProps}
+          value={startDate}
+          onChange={onStartChange}
+          format="DD/MM/YYYY"
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <DatePicker
+          slotProps={endDateSlotProps}
+          value={endDate}
+          onChange={onEndChange}
+          format="DD/MM/YYYY"
+          minDate={startDate || undefined}
+        />
+      </Grid>
+    </Grid>
+  );
+};
 
-          }}
+const PurchaseFilter = ({
+  setFilterCriteria,
+  vendors = [],
+  resetAllFilters,
+  values = {},
+  onManageColumns
+}) => {
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  const [localFilters, setLocalFilters] = useState({
+    vendor: [],
+    startDate: null,
+    endDate: null,
+  });
+
+  // Convert vendors to options format - memoized
+  const vendorOptions = useMemo(() =>
+    vendors.map(vendor => ({
+      value: vendor._id,
+      label: vendor.vendor_name
+    })),
+    [vendors]
+  );
+
+  // Memoize the values to prevent unnecessary re-renders
+  const memoizedValues = useMemo(() => ({
+    vendor: values.vendor || [],
+    fromDate: values.fromDate,
+    toDate: values.toDate
+  }), [values.vendor, values.fromDate, values.toDate]);
+
+  // Sync local state with external values - use memoized values
+  useEffect(() => {
+    setLocalFilters({
+      vendor: memoizedValues.vendor,
+      startDate: memoizedValues.fromDate ? dayjs(memoizedValues.fromDate) : null,
+      endDate: memoizedValues.toDate ? dayjs(memoizedValues.toDate) : null,
+    });
+  }, [memoizedValues.vendor, memoizedValues.fromDate, memoizedValues.toDate]);
+
+  // Memoize handlers to prevent re-creation
+  const handleLocalFilterChange = useCallback((field, value) => {
+    setLocalFilters(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleSelectChange = useCallback((field) => (event) => {
+    const value = typeof event.target.value === 'string'
+      ? event.target.value.split(',')
+      : event.target.value;
+    handleLocalFilterChange(field, value);
+  }, [handleLocalFilterChange]);
+
+  const applyFilters = useCallback(() => {
+    const currentFilterValues = {
+      vendors: localFilters.vendor,
+      fromDate: localFilters.startDate ? dayjs(localFilters.startDate).format('YYYY-MM-DD') : '',
+      toDate: localFilters.endDate ? dayjs(localFilters.endDate).format('YYYY-MM-DD') : '',
+    };
+    setFilterCriteria(currentFilterValues);
+  }, [localFilters, setFilterCriteria]);
+
+  const resetFilters = useCallback(() => {
+    setLocalFilters({
+      vendor: [],
+      startDate: null,
+      endDate: null,
+    });
+    resetAllFilters();
+  }, [resetAllFilters]);
+
+  const toggleOpen = useCallback(() => {
+    setOpen(prev => !prev);
+  }, []);
+
+  // Calculate active filter count - memoized
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (localFilters.vendor.length > 0) count++;
+    if (localFilters.startDate) count++;
+    if (localFilters.endDate) count++;
+    return count;
+  }, [localFilters]);
+
+  // Memoize style objects to prevent re-creation
+  const cardSx = useMemo(() => ({
+    border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+    boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.04)}`,
+    borderRadius: '16px'
+  }), [theme]);
+
+  const iconContainerStyle = useMemo(() => ({
+    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+    color: theme.palette.primary.main
+  }), [theme]);
+
+  const iconButtonStyle = useMemo(() => ({
+    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+    color: theme.palette.primary.main,
+    transform: open ? 'rotate(180deg)' : 'rotate(0deg)'
+  }), [theme, open]);
+
+  return (
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Card elevation={0} sx={cardSx}>
+        {/* Filter Header */}
+        <div
+          className="flex justify-between items-center p-3 cursor-pointer"
+          onClick={toggleOpen}
         >
-          <Button
-            color='secondary'
-            variant='outlined'
-            onClick={handleClearFilter}
-            disabled={selectedVendors.length === 0}
-            startIcon={<Icon icon='mdi:refresh' fontSize={20} />}
-            sx={{ minWidth: 100 }}
+          <div className="flex items-center gap-2">
+            <div
+              className="p-2 rounded-lg flex items-center justify-center"
+              style={iconContainerStyle}
+            >
+              <Icon icon="tabler:filter" fontSize={20} />
+            </div>
+            <Typography variant="h6" className="font-semibold">
+              Purchase Filters
+            </Typography>
+            {activeFilterCount > 0 && (
+              <Chip
+                size="small"
+                label={`${activeFilterCount} active`}
+                color="primary"
+                variant="tonal"
+                className="ml-1 font-medium"
+              />
+            )}
+          </div>
+
+          <IconButton
+            size="small"
+            className="p-2 rounded-lg transition-transform duration-300 ease-in-out"
+            style={iconButtonStyle}
           >
-            Clear
-          </Button>
-          <Button
-            variant='contained'
-            onClick={handleApplyFilter}
-            disabled={selectedVendors.length === 0}
-            startIcon={<Icon icon='mdi:filter-check' fontSize={20} />}
-            sx={{ minWidth: 100 }}
-          >
-            Apply
-          </Button>
-        </Box>
-      </Box>
-    </Drawer>
+            <Icon icon="tabler:chevron-down" fontSize={18} />
+          </IconButton>
+        </div>
+
+        <Collapse in={open}>
+          <Divider />
+          <div className="p-6">
+            <Grid container spacing={4}>
+              {/* Vendor Filter */}
+              <Grid item xs={12} sm={6} md={4}>
+                <MultiSelectDropdown
+                  id="vendor-select"
+                  label="Vendors"
+                  value={localFilters.vendor}
+                  onChange={handleSelectChange('vendor')}
+                  options={vendorOptions}
+                />
+              </Grid>
+
+              {/* Date Range Filter */}
+              <Grid item xs={12} sm={6} md={4}>
+                <DateRangePicker
+                  startDate={localFilters.startDate}
+                  endDate={localFilters.endDate}
+                  onStartChange={(newValue) => handleLocalFilterChange('startDate', newValue)}
+                  onEndChange={(newValue) => handleLocalFilterChange('endDate', newValue)}
+                />
+              </Grid>
+            </Grid>
+
+            <div className='flex justify-end gap-3 mt-6'>
+              <Button
+                variant="outlined"
+                onClick={resetFilters}
+                size="medium"
+                startIcon={<Icon icon="tabler:refresh" />}
+              >
+                Reset Filters
+              </Button>
+
+              {onManageColumns && (
+                <Button
+                  variant="outlined"
+                  onClick={onManageColumns}
+                  size="medium"
+                  startIcon={<Icon icon="tabler:columns" />}
+                >
+                  Columns
+                </Button>
+              )}
+
+              <Button
+                variant="contained"
+                onClick={applyFilters}
+                size="medium"
+                startIcon={<Icon icon="tabler:check" />}
+              >
+                Apply Filters
+              </Button>
+            </div>
+          </div>
+        </Collapse>
+      </Card>
+    </LocalizationProvider>
   );
 };
 

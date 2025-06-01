@@ -1,7 +1,7 @@
 'use server';
 
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
-import { dataURLtoBlob } from '@/utils/helpers';
+import { dataURLtoBlob } from '@/utils/fileUtils';
 
 const ENDPOINTS = {
   PURCHASE: {
@@ -22,8 +22,8 @@ export async function getPurchaseList(page = 1, pageSize = 10, searchTerm = '', 
       url += `&search=${searchTerm}`;
     }
 
-    if (filters.vendor) {
-      url += `&vendor=${filters.vendor}`;
+    if (filters.vendors && filters.vendors.length > 0) {
+      url += `&vendor=${filters.vendors.join(',')}`;
     }
 
     const response = await fetchWithAuth(url);

@@ -3,7 +3,7 @@
 import React from "react";
 import InvoiceList from "@/views/invoices/invoiceList/InvoiceList";
 
-const InvoiceListIndex = ({ initialData }) => {
+const InvoiceListIndex = ({ initialData, initialCustomers }) => {
   // Only extract and pass initial data as props
   const initialInvoices = initialData?.invoices || [];
   const pagination = initialData?.pagination || {
@@ -18,6 +18,7 @@ const InvoiceListIndex = ({ initialData }) => {
       initialInvoices={initialInvoices}
       pagination={pagination}
       cardCounts={cardCounts}
+      initialCustomers={initialCustomers || []}
       // Pass other initial data if needed
     />
   );

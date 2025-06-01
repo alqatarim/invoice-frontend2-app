@@ -24,7 +24,8 @@ import {
   Divider
 } from '@mui/material';
 import { Icon } from '@iconify/react';
-import { formatDate, formatNumber } from '@/utils/helpers';
+import { formatDate } from '@/utils/dateUtils';
+import { formatNumber } from '@/utils/numberUtils';
 import dayjs from 'dayjs';
 import {updateQuotationStatus } from '@/app/(dashboard)/quotations/actions';
 

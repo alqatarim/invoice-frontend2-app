@@ -25,6 +25,15 @@ export const invoiceTabs = [
   { value: 'CANCELLED', label: 'Cancelled' },
 ]
 
+export const purchaseOrderTabs = [
+  { value: 'ALL', label: 'All' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'DRAFTED', label: 'Draft' },
+  { value: 'CONVERTED', label: 'Converted' },
+]
+
 export const paymentMethodIcons = [
   { value: 'Cash', label: 'mdi:cash-multiple' },
   { value: 'Cheque', label: 'mdi:checkbook' },

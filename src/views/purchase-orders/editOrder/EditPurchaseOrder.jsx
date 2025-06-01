@@ -1,1710 +1,892 @@
-'use client';
-
-import React, { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { Icon } from '@iconify/react';
-import Link from 'next/link';
-import { useTheme } from '@mui/material/styles';
-import { alpha } from '@mui/material/styles';
-import CustomIconButton from '@core/components/mui/CustomIconButton';
-import CustomIconButtonTwo from '@core/components/mui/CustomIconButtonTwo';
-
-// MUI Components
+import React, { useState, useEffect } from 'react';
+import { Controller } from 'react-hook-form';
 import {
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  Typography,
+  IconButton,
   Box,
   Card,
   CardContent,
-  Typography,
   Grid,
-  TextField,
-  Button,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  FormHelperText,
-  Skeleton,
-  Divider,
-  Modal,
   Snackbar,
   Alert,
-  InputAdornment
+  Dialog,
+  DialogContent,
+  FormHelperText,
+  InputAdornment,
+  Menu,
+  Divider,
 } from '@mui/material';
+import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
+import { Clear } from '@mui/icons-material';
+import { alpha, useTheme } from '@mui/material/styles';
+import { Icon } from '@iconify/react';
+import CustomIconButton from '@core/components/mui/CustomIconButton';
+import VendorAutocomplete from '@/components/custom-components/VendorAutocomplete';
+import useEditPurchaseOrderHandlers from '@/handlers/purchaseOrders/editPurchaseOrder/useEditPurchaseOrderHandlers';
+import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
+import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
+import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
+import { calculateInvoiceTotals } from '@/utils/invoiceTotals';
 
-// MUI Icons
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon
-} from '@mui/icons-material';
-
-// MUI Date Pickers
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-
-// Other Dependencies
-import SignaturePad from 'react-signature-canvas';
-import dayjs from 'dayjs';
-
-// Local Imports
-import { EditPurchaseOrderSchema } from '@/views/purchase-orders/editOrder/EditPurchaseOrderSchema';
-import { addBank } from '@/app/(dashboard)/purchase-orders/actions';
-
-// Calculation Functions
-function calculateItemValues(item) {
-  if (!item) return { rate: 0, discountValue: 0, tax: 0, amount: 0 };
-
-  const quantity = Number(item.quantity) || 1;
-  const purchasePrice = Number(parseFloat(item.purchasePrice || item.rate).toFixed(2)) || 0;
-  const rate = parseFloat((purchasePrice * quantity).toFixed(2));
-  let discountValue = 0;
-
-  // Calculate discount based on type
-  if (parseInt(item.discountType) === 2) { // percentage discount
-    discountValue = parseFloat(((Number(item.discount) / 100) * rate).toFixed(2));
-  } else { // fixed discount
-    discountValue = parseFloat(Number(item.discount || 0).toFixed(2));
-  }
-
-  // Calculate tax
-  const taxRate = Number(item.taxInfo?.taxRate || item.tax || 0);
-  const discountedAmount = parseFloat((rate - discountValue).toFixed(2));
-  const tax = parseFloat(((taxRate / 100) * discountedAmount).toFixed(2));
-
-  // Calculate final amount
-  const amount = parseFloat((discountedAmount + tax).toFixed(2));
-
-  return {
-    rate,
-    tax,
-    discountValue,
-    amount
-  };
-}
-
-function calculateTotals(items) {
-  let subtotal = 0;
-  let totalDiscount = 0;
-  let vat = 0;
-  let total = 0;
-
-  items.forEach((item) => {
-    // Use the actual values from the item instead of recalculating
-    subtotal += Number(item.rate) || 0;
-    totalDiscount += Number(item.discount) || 0;
-    vat += Number(item.tax) || 0;  // Use the actual tax value stored in the item
-    total += Number(item.amount) || 0;
-  });
-
-  return {
-    subtotal: Number(subtotal.toFixed(2)),
-    totalDiscount: Number(totalDiscount.toFixed(2)),
-    vat: Number(vat.toFixed(2)),
-    total: Number(total.toFixed(2))
-  };
-}
-
-const EditPurchaseOrder = ({
-  orderData,
-  products,
-  vendors,
-  taxRates,
-  banks,
-  signatures,
-  onSave
-}) => {
-  const router = useRouter();
+const EditPurchaseOrder = ({ vendorsData, productData, taxRates, initialBanks, signatures, onSave, enqueueSnackbar, closeSnackbar, purchaseOrderData }) => {
   const theme = useTheme();
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState('');
-  const [items, setItems] = useState(orderData?.items || []);
-  const signaturePadRef = useRef(null);
-  const [signType, setSignType] = useState(orderData?.sign_type || 'eSignature');
-  const [signatureDataURL, setSignatureDataURL] = useState(null);
-  const [showSignatureDialog, setShowSignatureDialog] = useState(false);
-  const [selectedSignature, setSelectedSignature] = useState(
-    orderData?.sign_type === 'manualSignature' ? orderData?.signatureId?.signatureImage : null
-  );
-  const [openEditModal, setOpenEditModal] = useState(false);
-  const [editModalData, setEditModalData] = useState(null);
-  const [snackbars, setSnackbars] = useState([]);
   const [openBankModal, setOpenBankModal] = useState(false);
-  const [newBank, setNewBank] = useState({ name: '', bankName: '', branch: '', accountNumber: '', IFSCCode: '' });
-  const [showResultDialog, setShowResultDialog] = useState(false);
-  const [submissionResult, setSubmissionResult] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // Initialize productsCloneData excluding products already in the order
-  const [productsCloneData, setProductsCloneData] = useState(() => {
-    try {
-      if (!Array.isArray(products)) return [];
-      if (!Array.isArray(orderData?.items)) return [...products];
-
-      const existingProductIds = new Set(orderData.items.map(item => item.productId));
-      return products.filter(product => !existingProductIds.has(product._id));
-    } catch (error) {
-      console.error('Error initializing productsCloneData:', error);
-      return [];
-    }
+  const handlers = useEditPurchaseOrderHandlers({
+    purchaseOrderData,
+    productData,
+    initialBanks,
+    signatures,
+    onSave,
+    enqueueSnackbar,
+    closeSnackbar,
+    addBank: null,
   });
 
-  // Initialize form with existing order data
-  const { control, handleSubmit, watch, setValue, trigger, formState: { errors }, register } = useForm({
-    resolver: yupResolver(EditPurchaseOrderSchema),
-    mode: 'onChange',
-    defaultValues: {
-      purchaseOrderId: orderData?.purchaseOrderId || '',
-      vendorId: orderData?.vendorId?._id || '',
-      purchaseOrderDate: dayjs(orderData?.purchaseOrderDate),
-      dueDate: dayjs(orderData?.dueDate),
-      referenceNo: orderData?.referenceNo || '',
-      bank: orderData?.bank?._id || '',
-      notes: orderData?.notes || '',
-      termsAndCondition: orderData?.termsAndCondition || '',
-      sign_type: orderData?.sign_type || '',
-      signatureId: orderData?.signatureId?._id || '',
-      items: orderData?.items || []
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    errors,
+    fields,
+    watchItems,
+    watchRoundOff,
+    productsCloneData,
+    banks,
+    newBank,
+    setNewBank,
+    signOptions,
+    paymentMethods,
+    notesExpanded,
+    termsDialogOpen,
+    tempTerms,
+    setTempTerms,
+    discountMenu,
+    setDiscountMenu,
+    taxMenu,
+    setTaxMenu,
+    updateCalculatedFields,
+    handleUpdateItemProduct,
+    handleDeleteItem,
+    handleAddEmptyRow,
+    handleAddBank,
+    handleSignatureSelection,
+    handleFormSubmit: originalHandleFormSubmit,
+    handleError,
+    handleMenuItemClick,
+    handleTaxClick,
+    handleTaxClose,
+    handleTaxMenuItemClick,
+    handleToggleNotes,
+    handleOpenTermsDialog,
+    handleCloseTermsDialog,
+    handleSaveTerms,
+  } = handlers;
+
+  // Wrap handleFormSubmit to ensure purchaseOrderId is included
+  const handleFormSubmit = (data) => {
+    if (!data.id) {
+      data.id = purchaseOrderData._id;
     }
-  });
-
-  // Initialize totals from existing order data
-  const [totals, setTotals] = useState(() => {
-    if (!orderData?.items) return { subtotal: 0, totalDiscount: 0, vat: 0, total: 0 };
-    return calculateTotals(orderData.items);
-  });
-
-  // Handle adding new product to order
-  const handleProductChange = (productId) => {
-    try {
-      if (!productId) return;
-
-      const selectedProduct = products.find(product => product._id === productId);
-      if (!selectedProduct) return;
-
-      const newItem = {
-        key: Date.now(),
-        productId: selectedProduct._id,
-        name: selectedProduct.name,
-        quantity: 1,
-        rate: selectedProduct.sellingPrice,
-        purchasePrice: selectedProduct.sellingPrice,
-        discount: 0,
-        discountType: 2,
-        tax: selectedProduct.tax?.taxRate || 0,
-        taxInfo: selectedProduct.tax,
-        amount: selectedProduct.sellingPrice,
-        units: selectedProduct.units,
-        unit: selectedProduct.unit
-      };
-
-      setItems(prev => [...prev, newItem]);
-      setSelectedProduct('');
-      setProductsCloneData(prev => prev.filter(p => p._id !== productId));
-      setTotals(calculateTotals([...items, newItem]));
-
-    } catch (error) {
-      console.error('Error handling product change:', error);
-      setSnackbars(prev => [...prev, {
-        id: Date.now(),
-        message: 'Error adding product. Please try again.',
-        severity: 'error'
-      }]);
-    }
+    return originalHandleFormSubmit(data);
   };
 
-  // Handle form submission
-  const onSubmit = async (data) => {
-    try {
-      // Trigger validation for all fields and wait for it to complete
-      const isFormValid = await trigger();
-
-      // Check if there are any validation errors
-      if (!isFormValid) {
-        handleError(errors);
-        return;
-      }
-
-      setIsLoading(true);
-
-      // Prepare the final data with original order ID
-      const finalData = {
-        _id: orderData._id, // Include original order ID
-        purchaseOrderId: data.purchaseOrderId,
-        vendorId: data.vendorId,
-        items: items.map(item => ({
-          productId: item.productId,
-          name: item.name,
-          quantity: Number(item.quantity),
-          units: item.units || '',
-          unit: item.unit || '',
-          rate: Number(item.rate),
-          discount: Number(item.discount),
-          tax: Number(item.tax),
-          taxInfo: typeof item.taxInfo === 'string' ? item.taxInfo : JSON.stringify(item.taxInfo),
-          amount: Number(item.amount),
-          discountType: Number(item.discountType),
-          isRateFormUpadted: item.isRateFormUpadted,
-          form_updated_discounttype: item.form_updated_discounttype,
-          form_updated_discount: Number(item.form_updated_discount),
-          form_updated_rate: Number(item.form_updated_rate),
-          form_updated_tax: Number(item.form_updated_tax),
-        })),
-        dueDate: data.dueDate.toISOString(),
-        purchaseOrderDate: data.purchaseOrderDate.toISOString(),
-        referenceNo: data.referenceNo || '',
-        taxableAmount: totals.subtotal || 0,
-        TotalAmount: totals.total || 0,
-        vat: totals.vat || 0,
-        totalDiscount: totals.totalDiscount || 0,
-        roundOff: false,
-        bank: data.bank || '',
-        notes: data.notes || '',
-        termsAndCondition: data.termsAndCondition || '',
-        sign_type: signType,
-        ...(signType === 'manualSignature'
-          ? { signatureId: data.signatureId }
-          : { signatureName: data.signatureName })
-      };
-
-      // Pass signature data directly like in AddPurchaseOrder
-      const response = await onSave(
-        finalData,
-        data.sign_type === 'eSignature' ? signatureDataURL : null
+  useEffect(() => {
+    if (watchItems) {
+      const { taxableAmount, totalDiscount, vat, TotalAmount, roundOffValue } = calculateInvoiceTotals(
+        watchItems,
+        watchRoundOff
       );
+      setValue('taxableAmount', taxableAmount);
+      setValue('totalDiscount', totalDiscount);
+      setValue('vat', vat);
+      setValue('TotalAmount', TotalAmount);
+      setValue('roundOffValue', roundOffValue);
+    }
+  }, [watchItems, watchRoundOff]);
 
-      if (response) {
-        setSubmissionResult(
-          response.success
-            ? `Purchase order ${orderData.purchaseOrderId} updated successfully!`
-            : `Failed to update purchase order ${orderData.purchaseOrderId}. Please try again.`
+  // Define columns for InvoiceItemsTable
+  const columns = [
+    {
+      key: 'product',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Product/Service</Typography>,
+      width: '24%',
+      align: 'center',
+      renderCell: (item, index) => (
+        <Controller
+          name={`items.${index}.productId`}
+          control={control}
+          render={({ field }) => (
+            <FormControl fullWidth size="small" error={!!errors.items?.[index]?.productId}>
+              <Select
+                className={`py-0.5 min-h-[0] [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&.MuiOutlinedInput-input]:py-0.3 px-2.5`}
+                size='small'
+                sx={{ '& .MuiOutlinedInput-input': { py: 0.3, pl: 2.5 } }}
+                {...field}
+                displayEmpty
+                value={field.value || ''}
+                onChange={(e) => {
+                  const productId = e.target.value;
+                  const previousProductId = field.value;
+                  handleUpdateItemProduct(index, productId, previousProductId);
+                }}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return (
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        Select Product
+                      </Typography>
+                    );
+                  }
+                  return (
+                    <Box className='flex flex-col gap-0' sx={{ overflow: 'hidden' }}>
+                      <Typography variant="body1" color="text.primary" className='whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px]'>
+                        {watchItems[index]?.name}
+                      </Typography>
+                      <Typography variant="caption" fontSize={12} color='text.secondary'>
+                        Unit: {watchItems[index]?.units}
+                      </Typography>
+                    </Box>
+                  );
+                }}
+              >
+                <MenuItem value="" disabled>
+                  Select Product
+                </MenuItem>
+                {productsCloneData.map((product) => (
+                  <MenuItem key={product._id} value={product._id}>
+                    {product.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        />
+      )
+    },
+    {
+      key: 'quantity',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Quantity</Typography>,
+      width: '12%',
+      align: 'center',
+      renderCell: (item, index) => (
+        <Controller
+          name={`items.${index}.quantity`}
+          control={control}
+          render={({ field }) => (
+            <FormControl error={!!errors.items?.[index]?.quantity} fullWidth>
+              <TextField
+                {...field}
+                type="number"
+                variant="outlined"
+                size="small"
+                placeholder="Quantity"
+                className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                inputProps={{
+                  min: 1,
+                  step: 1,
+                  onKeyDown: (e) => { if (e.key === '.') e.preventDefault(); }
+                }}
+                onChange={e => {
+                  const raw = e.target.value;
+                  const quantity = Math.max(0, Math.floor(Number(raw)));
+                  setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
+                  const item = getValues(`items.${index}`);
+                  updateCalculatedFields(index, { ...item, quantity }, setValue);
+                }}
+                error={!!errors.items?.[index]?.quantity}
+              />
+            </FormControl>
+          )}
+        />
+      )
+    },
+    {
+      key: 'rate',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Rate</Typography>,
+      width: '19%',
+      align: 'center',
+      renderCell: (item, index) => (
+        <Controller
+          name={`items.${index}.rate`}
+          control={control}
+          render={({ field }) => (
+            <FormControl error={!!errors.items?.[index]?.rate} size="small" fullWidth>
+              <TextField
+                {...field}
+                type="number"
+                variant="outlined"
+                placeholder="Rate"
+                size="small"
+                className="min-w-[90px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                InputProps={{
+                  sx: { paddingLeft: '8px' },
+                  startAdornment: (
+                    <Icon icon="lucide:saudi-riyal" width={22} color={theme.palette.secondary.main}/>
+                  ),
+                }}
+                inputProps={{
+                  sx: { paddingLeft: '4px' },
+                  min: 0,
+                  step: 1,
+                  onKeyDown: (e) => { if (e.key === '.') e.preventDefault(); }
+                }}
+                onChange={e => {
+                  const rate = Number(e.target.value);
+                  setValue(`items.${index}.rate`, rate);
+                  setValue(`items.${index}.form_updated_rate`, (Number(rate) / Number(watchItems[index]?.quantity)).toFixed(4))
+                  setValue(`items.${index}.form_updated_discount`, Number(watchItems[index]?.discount))
+                  setValue(`items.${index}.form_updated_discounttype`, Number(watchItems[index]?.discountType))
+                  setValue(`items.${index}.isRateFormUpadted`, 'true')
+                  const item = getValues(`items.${index}`);
+                  updateCalculatedFields(index, item, setValue);
+                }}
+                error={!!errors.items?.[index]?.rate}
+              />
+            </FormControl>
+          )}
+        />
+      )
+    },
+    {
+      key: 'discount',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Discount</Typography>,
+      width: '19%',
+      align: 'center',
+      renderCell: (item, index) => {
+        const watched = watchItems[index] || {};
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CustomIconButton
+              variant="tonal"
+              onClick={e => setDiscountMenu({ anchorEl: e.currentTarget, rowIndex: index })}
+              color="primary"
+              skin="lightest"
+              size="small"
+              className="min-w-[32px] min-h-[36px] px-2 py-0"
+            >
+              {Number(watched.discountType) === 2 ? (
+                <Icon icon="lucide:percent" color={theme.palette.primary.light} width={19} />
+              ) : Number(watched.discountType) === 3 ? (
+                <Icon icon="lucide:saudi-riyal" color={theme.palette.primary.light} width={30} />
+              ) : ''}
+            </CustomIconButton>
+
+            {Number(watched.discountType) === 2 ? (
+              <Controller
+                name={`items.${index}.form_updated_discount`}
+                control={control}
+                render={({ field }) => {
+                  const handleChange = (e) => {
+                    let value = Number(e.target.value);
+                    value = Math.min(100, value);
+                    field.onChange(value);
+                    setValue(`items.${index}.isRateFormUpadted`, true);
+                    const item = getValues(`items.${index}`);
+                    updateCalculatedFields(index, item, setValue)
+                  };
+                  return (
+                    <TextField
+                      {...field}
+                      value={field.value}
+                      type="number"
+                      variant="outlined"
+                      size="small"
+                      placeholder="Discount (%)"
+                      aria-label="Discount Percentage"
+                      tabIndex={0}
+                      className="min-w-[110px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                      inputProps={{
+                        min: 0,
+                        max: 100,
+                        step: 1,
+                        sx: { paddingLeft: '8px' },
+                      }}
+                      InputProps={{
+                        sx: { paddingRight: '8px' },
+                        endAdornment: Number(watched.discount) > 0 ? (
+                          <Box className='flex flex-row items-center gap-0'>
+                            <Icon icon="lucide:saudi-riyal" width={14} color={theme.palette.secondary.main} />
+                            <Typography variant="subtitle2" color="secondary.main">
+                              {Number(watched.discount).toFixed(2)}
+                            </Typography>
+                          </Box>
+                        ) : null
+                      }}
+                      onChange={handleChange}
+                      error={!!errors.items?.[index]?.form_updated_discount}
+                    />
+                  );
+                }}
+              />
+            ) : (
+              <Controller
+                name={`items.${index}.discount`}
+                control={control}
+                render={({ field }) => {
+                  const handleChange = (e) => {
+                    let value = Number(e.target.value);
+                    field.onChange(value);
+                    setValue(`items.${index}.form_updated_discount`, value);
+                    setValue(`items.${index}.isRateFormUpadted`, true);
+                    setValue(`items.${index}.discount`, value);
+                    const item = getValues(`items.${index}`);
+                    updateCalculatedFields(index, item, setValue);
+                  };
+                  return (
+                    <TextField
+                      {...field}
+                      value={field.value}
+                      type="number"
+                      variant="outlined"
+                      size="small"
+                      placeholder="Discount"
+                      aria-label="Discount Fixed Amount"
+                      tabIndex={0}
+                      className="min-w-[110px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                      inputProps={{
+                        min: 0,
+                        step: 1,
+                        sx: { paddingLeft: '8px' },
+                      }}
+                      onChange={handleChange}
+                      error={!!errors.items?.[index]?.discount}
+                    />
+                  );
+                }}
+              />
+            )}
+
+            <Menu
+              anchorEl={discountMenu.anchorEl}
+              open={discountMenu.rowIndex === index && Boolean(discountMenu.anchorEl)}
+              onClose={() => setDiscountMenu({ anchorEl: null, rowIndex: null })}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              PaperProps={{ sx: { borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } }}
+              className='[&_.MuiMenuItem-root]:py-1'
+            >
+              <MenuItem
+                onClick={() => {
+                  handleMenuItemClick(index, 2);
+                  setDiscountMenu({ anchorEl: null, rowIndex: null });
+                }}
+                className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
+              >
+                <Typography variant="overline">Percentage</Typography>
+                <Box className='flex flex-row items-center gap-1'>
+                  <Icon icon="material-symbols:percent-rounded" width="20" color={theme.palette.primary.main} />
+                </Box>
+              </MenuItem>
+              <MenuItem
+                className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
+                onClick={() => {
+                  handleMenuItemClick(index, 3);
+                  setDiscountMenu({ anchorEl: null, rowIndex: null });
+                }}
+              >
+                <Typography variant="overline">Fixed Amount</Typography>
+                <Box className='flex flex-row items-center gap-1'>
+                  <Icon icon="lucide:saudi-riyal" width="20" color={theme.palette.primary.main} />
+                </Box>
+              </MenuItem>
+            </Menu>
+          </Box>
         );
-        setShowResultDialog(true);
       }
-
-    } catch (error) {
-      console.error('Form submission error:', error);
-      setSubmissionResult(`Error updating purchase order ${orderData.purchaseOrderId}: ${error.message}`);
-      setShowResultDialog(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleClearSignature = () => {
-    if (signaturePadRef.current) {
-      signaturePadRef.current.clear();
-    }
-  };
-
-  const handleCloseSignatureDialog = () => {
-    setShowSignatureDialog(false);
-  };
-
-  const handleSaveSignature = () => {
-    if (signaturePadRef.current) {
-      const dataURL = signaturePadRef.current.toDataURL();
-      setSignatureDataURL(dataURL);
-      setShowSignatureDialog(false);
-    }
-  };
-
-  const handleSignTypeChange = (event) => {
-    setSignType(event.target.value);
-    setSignatureDataURL(null);
-    setSelectedSignature(null);
-  };
-
-  // Add handleSignatureSelection function
-  const handleSignatureSelection = (selectedOption, field) => {
-    if (selectedOption) {
-      field.onChange(selectedOption._id);
-      setSelectedSignature(selectedOption.signatureImage);
-      trigger('signatureId');
-    } else {
-      field.onChange('');
-      setSelectedSignature(null);
-    }
-  };
-
-  // Update handleQuantityChange function
-  const handleQuantityChange = (index, newQuantity) => {
-    const newItems = [...items];
-    const item = newItems[index];
-
-    // Get base values and ensure they are numbers before using toFixed
-    const baseRateValue = item.isRateFormUpadted
-      ? Number(item.form_updated_rate)
-      : Number(item.purchasePrice);
-    const baseRate = parseFloat(baseRateValue.toFixed(2));
-
-    const baseDiscountValue = item.isRateFormUpadted
-      ? Number(item.form_updated_discount)
-      : Number(item.discount);
-    const baseDiscount = parseFloat(baseDiscountValue.toFixed(2));
-
-    const baseDiscountType = item.isRateFormUpadted
-      ? item.form_updated_discounttype
-      : item.discountType;
-
-    const baseTaxRateValue = item.isRateFormUpadted
-      ? Number(item.form_updated_tax)
-      : Number(item.taxInfo?.taxRate || 0);
-    const baseTaxRate = parseFloat(baseTaxRateValue.toFixed(2));
-
-    // Calculate new rate based on quantity * base rate
-    const newRate = parseFloat((Number(newQuantity) * baseRate).toFixed(2));
-
-    // Calculate discount
-    let calculatedDiscount;
-    if (parseInt(baseDiscountType) === 2) { // percentage
-      calculatedDiscount = parseFloat((newRate * (baseDiscount / 100)).toFixed(2));
-    } else { // fixed
-      calculatedDiscount = baseDiscount;
-    }
-
-    // Calculate tax
-    const discountedAmount = parseFloat((newRate - calculatedDiscount).toFixed(2));
-    const taxAmount = parseFloat((discountedAmount * (baseTaxRate / 100)).toFixed(2));
-
-    // Update item with new values
-    newItems[index] = {
-      ...item,
-      quantity: Number(newQuantity),
-      rate: newRate,
-      tax: taxAmount,
-      amount: parseFloat((newRate - calculatedDiscount + taxAmount).toFixed(2))
-    };
-
-    setItems(newItems);
-    setTotals(calculateTotals(newItems));
-    setValue('items', newItems);
-  };
-
-  // Update handleRemoveItem function
-  const handleRemoveItem = (index) => {
-    try {
-      // Log initial state for debugging
-      console.log('Current items:', items);
-      console.log('Attempting to remove item at index:', index);
-
-      // Create a copy of current items
-      const currentItems = [...items];
-
-      // Get the item to be removed
-      const removedItem = currentItems[index];
-
-      console.log('Item to be removed:', removedItem);
-
-      // Safety check
-      if (!removedItem) {
-        console.warn('No item found at index:', index);
-        return;
+    },
+    {
+      key: 'vat',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">VAT</Typography>,
+      width: '16%',
+      align: 'center',
+      renderCell: (item, index) => {
+        const watched = watchItems[index] || {};
+        return (
+          <Box className='flex flex-row items-center gap-2 h-[36px]'>
+            <CustomIconButton
+              variant="tonal"
+              onClick={(e) => handleTaxClick(e, index)}
+              color="primary"
+              skin="lightest"
+              size="small"
+              className='flex flex-row items-center gap-0.5 px-1'
+            >
+              <Typography variant="button" fontSize={13} color="primary.light">
+                {watched.taxInfo && typeof watched.taxInfo === 'object' ? (watched.taxInfo.taxRate || 0) : 0}%
+              </Typography>
+              <Icon icon="garden:chevron-down-fill-12" color={theme.palette.primary.light} width={11} />
+            </CustomIconButton>
+            <Box className='flex flex-row items-center gap-0.5'>
+              <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={18} />
+              <Typography variant='body1'>
+                {isNaN(Number(watched.tax)) ? '0.00' : Number(watched.tax).toFixed(2)}
+              </Typography>
+            </Box>
+            <Menu
+              anchorEl={taxMenu.anchorEl}
+              open={taxMenu.rowIndex === index && Boolean(taxMenu.anchorEl)}
+              onClose={handleTaxClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              {taxRates.map((tax) => (
+                <MenuItem
+                  key={tax._id}
+                  onClick={() => handleTaxMenuItemClick(index, tax)}
+                  sx={{
+                    py: 1,
+                    '&:hover': {
+                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08)
+                    }
+                  }}
+                >
+                  <Box className='flex flex-row items-center justify-between w-[8em]'>
+                    <Typography variant="body2">{tax.name}</Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: 'primary.main',
+                        backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: '4px'
+                      }}
+                    >
+                      {tax.taxRate}%
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
+        );
       }
-
-      // Remove the item from the array
-      currentItems.splice(index, 1);
-
-      // If the removed item had a productId, add it back to available products
-      if (removedItem.productId) {
-        const originalProduct = products.find(p => p._id === removedItem.productId);
-        if (originalProduct) {
-          setProductsCloneData(prevProducts => {
-            console.log('Adding product back to available products:', originalProduct);
-            return [...prevProducts, originalProduct];
-          });
-        }
+    },
+    {
+      key: 'amount',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Amount</Typography>,
+      width: '13%',
+      align: 'center',
+      renderCell: (item, index) => {
+        const watched = watchItems[index] || {};
+        return (
+          <Box className='flex flex-row items-center gap-0.5'>
+            <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={18} />
+            <Typography variant="body1" className='font-medium whitespace-nowrap'>
+              {isNaN(Number(watched.amount)) ? '0.00' : Number(watched.amount).toFixed(2)}
+            </Typography>
+          </Box>
+        );
       }
+    },
+    {
+      key: 'actions',
+      label: '',
+      width: '4%',
+      align: 'center',
+      renderCell: (item, index) => (
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => handleDeleteItem(index)}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab' && !e.shiftKey && index === fields.length - 1) {
+              e.preventDefault();
+              handleAddEmptyRow();
+            }
+          }}
+          tabIndex={0}
+        >
+          <Icon icon="ic:twotone-delete" width={20} color={theme.palette.error.main} />
+        </IconButton>
+      )
+    },
+  ];
 
-      // Update state with new arrays
-      console.log('Updated items array:', currentItems);
+  const addRowButton = (
+    <CustomIconButton
+      className='flex flex-row items-center justify-center gap-3 w-[13rem]'
+      variant="tonal"
+      skin='lighter'
+      color="primary"
+      size="medium"
+      onClick={handleAddEmptyRow}
+    >
+      <Icon icon="mingcute:add-fill" color={theme.palette.primary.main} width={16} />
+      <Typography variant="button" color="primary.main" fontSize={14}>
+        Add Row
+      </Typography>
+    </CustomIconButton>
+  );
 
-      // Update all related state in a single batch
-      setItems(currentItems);
-      setTotals(calculateTotals(currentItems));
-      setValue('items', currentItems);
+  const emptyContent = (
+    <Box className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+      <Icon icon="mdi:cart-outline" width={36} color={theme.palette.primary.main} />
+      <Typography variant="h6" color="text.primary">
+        No Items Added Yet
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: '300px' }}>
+        Click the 'Add Item' button to add items to your purchase order
+      </Typography>
+      <Button
+        variant="outlined"
+        color="primary"
+        startIcon={<Icon icon="mingcute:add-fill" width={16} />}
+        size="small"
+        sx={{ mt: 1 }}
+        onClick={handleAddEmptyRow}
+      >
+        Add Item
+      </Button>
+    </Box>
+  );
 
-    } catch (error) {
-      console.error('Error in handleRemoveItem:', error);
-    }
-  };
-
-  // Add handleEditClick function
-  const handleEditClick = (item) => {
-    setEditModalData({
-      ...item,
-      key: item.key,
-      rate: item.isRateFormUpadted ? item.form_updated_rate : item.purchasePrice,
-      discount: item.isRateFormUpadted ? item.form_updated_discount : item.discount,
-      discountType: item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType,
-      taxInfo: item.taxInfo
-    });
-    setOpenEditModal(true);
-  };
-
-  // Add handleEditModalSave function
-  const handleEditModalSave = () => {
-    if (!editModalData) return;
-
-    const newItems = [...items];
-    const index = newItems.findIndex(item => item.key === editModalData.key);
-    if (index === -1) return;
-
-    const item = newItems[index];
-
-    // Save form updated values with 2 decimal places
-    item.form_updated_rate = parseFloat(Number(editModalData.rate).toFixed(2));
-    item.form_updated_discount = parseFloat(Number(editModalData.discount).toFixed(2));
-    item.form_updated_discounttype = editModalData.discountType;
-    item.form_updated_tax = parseFloat(Number(editModalData.taxInfo?.taxRate || 0).toFixed(2));
-    item.isRateFormUpadted = true;
-
-    // Update tax info
-    item.taxInfo = editModalData.taxInfo;
-
-    // Calculate new values based on quantity
-    const quantity = Number(item.quantity);
-    const rateValue = parseFloat((quantity * Number(editModalData.rate)).toFixed(2));
-
-    // Calculate discount
-    let calculatedDiscount;
-    if (parseInt(editModalData.discountType) === 2) { // percentage
-      calculatedDiscount = parseFloat((rateValue * (Number(editModalData.discount) / 100)).toFixed(2));
-    } else { // fixed
-      calculatedDiscount = parseFloat(Number(editModalData.discount).toFixed(2));
-    }
-
-    // Calculate tax and final amount
-    const discountedAmount = parseFloat((rateValue - calculatedDiscount).toFixed(2));
-    const taxAmount = parseFloat((discountedAmount * (Number(editModalData.taxInfo?.taxRate || 0) / 100)).toFixed(2));
-
-    // Update item with new values
-    item.rate = rateValue;
-    item.discount = editModalData.discount;
-    item.discountType = editModalData.discountType;
-    item.tax = taxAmount;
-    item.amount = parseFloat((rateValue - calculatedDiscount + taxAmount).toFixed(2));
-
-    setItems(newItems);
-    setTotals(calculateTotals(newItems));
-    setValue('items', newItems);
-    setOpenEditModal(false);
-    setEditModalData(null);
-  };
-
-  // Add handleCloseEditModal function
-  const handleCloseEditModal = () => {
-    setEditModalData(null);
-    setOpenEditModal(false);
-  };
-
-  // Add handleAddBank function
-  const handleAddBank = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await addBank(newBank);
-      if (response) {
-        const newBankWithDetails = {
-          _id: response._id,
-          name: newBank.name,
-          bankName: newBank.bankName,
-          branch: newBank.branch,
-          accountNumber: newBank.accountNumber,
-          IFSCCode: newBank.IFSCCode,
-        };
-        setBanks((prevBanks) => [...prevBanks, newBankWithDetails]);
-        setValue('bank', newBankWithDetails._id);
-        trigger('bank');
-        setOpenBankModal(false);
-        setNewBank({ name: '', bankName: '', branch: '', accountNumber: '', IFSCCode: '' });
-      }
-    } catch (error) {
-      console.error('Failed to add bank:', error);
-    }
-  };
-
-  // Add handleOpenSignatureDialog function
-  const handleOpenSignatureDialog = () => {
-    setShowSignatureDialog(true);
-  };
-
-  // Add handleError function
-  const handleError = (errors) => {
-    const errorCount = Object.keys(errors).length;
-
-    if (errorCount === 0) return;
-
-    let message;
-    if (errorCount === 1) {
-      // For single error, be specific
-      const [field, error] = Object.entries(errors)[0];
-      const fieldName = field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1');
-      message = error?.message || `Please review the ${fieldName} field`;
-    } else {
-      // For multiple errors, group by type if possible
-      const hasRequiredFieldErrors = Object.values(errors).some(error =>
-        error?.message?.toLowerCase().includes('required')
-      );
-      const hasInvalidFieldErrors = Object.values(errors).some(error =>
-        error?.message?.toLowerCase().includes('invalid')
-      );
-
-      if (hasRequiredFieldErrors && hasInvalidFieldErrors) {
-        message = `Please fill in required fields and correct invalid entries`;
-      } else if (hasRequiredFieldErrors) {
-        message = `Please fill in all required fields`;
-      } else if (hasInvalidFieldErrors) {
-        message = `Please correct invalid entries`;
-      } else {
-        message = `Please review ${errorCount} highlighted fields`;
-      }
-    }
-
-    // Add error message to snackbars
-    setSnackbars(prev => [...prev, {
-      id: Date.now(),
-      message,
-      severity: 'error'
-    }]);
-  };
-
-  const renderSnackbars = () => {
-    return snackbars.map(snackbar => (
+  return (
+    <Grid container rowSpacing={4} columnSpacing={3}>
+      <Grid item xs={12} md={12}>
+        <Typography variant="h5" sx={{ fontWeight: 500 }}>
+          Edit Purchase Order
+        </Typography>
+      </Grid>
+      {/* Top Section - Purchase Order Details */}
+      <Grid item xs={12} md={12}>
+        <Card>
+          <CardContent className='py-3.5'>
+            <Grid container columnSpacing={3} rowSpacing={4} >
+              {/* Purchase Order Details Header */}
+              <Grid item xs={12} className='flex flex-col gap-2'>
+                <Box className='flex flex-row gap-1.5 items-center'>
+                  <Box className='w-2 h-8 bg-secondaryLight rounded-md' />
+                  <Typography variant="caption" fontWeight={500} fontSize='1rem'>
+                    Purchase Order Details
+                  </Typography>
+                </Box>
+                <Divider light textAlign='left' width='400px' />
+              </Grid>
+              {/* Purchase Order Number (read-only) */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Box className="flex flex-row items-center px-3 justify-between bg-tableHeader rounded-md w-full h-full">
+                  <Typography variant="caption" className='text-[0.9rem]' color="text.secondary">
+                    Purchase Order Number
+                  </Typography>
+                  <Typography variant="h6" className='text-[1.1rem] font-medium'>
+                    {purchaseOrderData?.purchaseOrderId || ''}
+                  </Typography>
+                </Box>
+              </Grid>
+              {/* Purchase Order Date */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Controller
+                  name="purchaseOrderDate"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Purchase Order Date"
+                      type="date"
+                      variant="outlined"
+                      fullWidth
+                      size="small"
+                      error={!!errors.purchaseOrderDate}
+                      inputProps={{
+                        max: new Date().toISOString().split('T')[0],
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+              {/* Due Date */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Controller
+                  name="dueDate"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Due Date"
+                      type="date"
+                      variant="outlined"
+                      fullWidth
+                      size="small"
+                      error={!!errors.dueDate}
+                      inputProps={{
+                        min: getValues('purchaseOrderDate'),
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+              {/* Payment Method */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Controller
+                  name="payment_method"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth variant="outlined" error={!!errors.payment_method}>
+                      <InputLabel>Payment Method</InputLabel>
+                      <Select {...field} label="Payment Method" size="small">
+                        {paymentMethods.map((method) => (
+                          <MenuItem key={method.value} value={method.value}>
+                            {method.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.payment_method && (
+                        <FormHelperText error>{errors.payment_method.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+              {/* Bank Selection */}
+              <Grid item xs={12} sm={6} md={4} lg={3} className="flex flex-row gap-1 justify-between">
+                <Controller
+                  name="bank"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl size='small' fullWidth variant="outlined" error={!!errors.bank}>
+                      <InputLabel size="small">Select Bank</InputLabel>
+                      <Select
+                        {...field}
+                        label="Select Bank"
+                        size="small"
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e.target.value);
+                        }}
+                      >
+                        {banks.map((bank) => (
+                          <MenuItem key={bank._id} value={bank._id}>
+                            {bank.bankName}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.bank && (
+                        <FormHelperText error>{errors.bank.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
+                <CustomIconButton
+                  color="primary"
+                  size='small'
+                  variant='tonal'
+                  skin='lighter'
+                  onClick={() => setOpenBankModal(true)}
+                >
+                  <Icon  icon="mdi:bank-plus" width={26}/>
+                </CustomIconButton>
+              </Grid>
+              {/* Reference No */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Controller
+                  name="referenceNo"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Reference No"
+                      variant="outlined"
+                      fullWidth
+                      size="small"
+                      error={!!errors.referenceNo}
+                      helperText={errors.referenceNo?.message}
+                    />
+                  )}
+                />
+              </Grid>
+              {/* Signature Section */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Controller
+                    name="signatureId"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.signatureId} variant="outlined" size="small">
+                        <InputLabel>Select Signature Name</InputLabel>
+                        <Select
+                          className='h-[39px]'
+                          label="Select Signature Name"
+                          value={field.value || ''}
+                          onChange={(event) => {
+                            const selected = signOptions.find(sig => sig._id === event.target.value);
+                            handleSignatureSelection(selected, field);
+                          }}
+                        >
+                          {signOptions.map((option) => (
+                            <MenuItem key={option._id} value={option._id}>
+                              {option.signatureName}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.signatureId && (
+                          <FormHelperText error>{errors.signatureId.message}</FormHelperText>
+                        )}
+                      </FormControl>
+                    )}
+                  />
+                </Box>
+              </Grid>
+              {/* Notes TextField */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Controller
+                  name="notes"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      className='overflow-auto scrollbar-thin scrollbar-thumb-primary scrollbar-thumb-opacity-20 scrollbar-thumb-rounded'
+                      {...field}
+                      multiline
+                      rows={notesExpanded ? 4 : 1}
+                      variant="outlined"
+                      size="small"
+                      placeholder="Add notes..."
+                      fullWidth
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <CustomOriginalIconButton
+                              onClick={handleToggleNotes}
+                              color='primary'
+                              skin='light'
+                            >
+                              {notesExpanded ? <Icon icon="mdi:keyboard-arrow-up" width={24} color={theme.palette.primary.main} /> : <Icon icon="mdi:keyboard-arrow-down" width={24} color={theme.palette.primary.main} />}
+                            </CustomOriginalIconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+              {/* Vendor */}
+              <Grid item xs={12} sm={6} md={8} lg={6}>
+                <VendorAutocomplete control={control} errors={errors} vendorsData={vendorsData} />
+              </Grid>
+              {/* Terms & Conditions */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Button
+                  fullWidth className="flex flex-row items-center gap-0 justify-center" variant="text" color="primary" size="small"
+                  startIcon={<Icon icon="mdi:file-document-outline" width={24} color={theme.palette.primary.main} />}
+                  onClick={handleOpenTermsDialog}
+                >
+                  Terms & Conditions
+                </Button>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+      {/* Middle Section - Products Table */}
+      <Grid item xs={12} md={9.5}>
+        <form onSubmit={handleSubmit(handleFormSubmit, handleError)}>
+          <Card>
+            <CardContent spacing={12} className='flex flex-col gap-2 px-0 pt-0'>
+              <Box>
+                <InvoiceItemsTable
+                  columns={columns}
+                  rows={fields}
+                  rowKey={(row, idx) => row.id || idx}
+                  addRowButton={addRowButton}
+                  emptyContent={emptyContent}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+        </form>
+      </Grid>
+      {/* Left side totals card */}
+      <Grid item xs={12} md={2.5}>
+        <InvoiceTotals
+          control={control}
+          handleSubmit={handleSubmit}
+          handleFormSubmit={handleFormSubmit}
+          handleError={handleError}
+          buttonText="Update Purchase Order"
+        />
+      </Grid>
+      {/* Add Bank Modal */}
+      <BankDetailsDialog
+        open={openBankModal}
+        onClose={() => setOpenBankModal(false)}
+        newBank={newBank}
+        setNewBank={setNewBank}
+        handleAddBank={handleAddBank}
+      />
+      {/* Snackbar */}
       <Snackbar
-        key={snackbar.id}
-        open={true}
-        autoHideDuration={6000}
-        onClose={() => {
-          setSnackbars(prev => prev.filter(item => item.id !== snackbar.id));
-        }}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
       >
         <Alert
-          onClose={() => {
-            setSnackbars(prev => prev.filter(item => item.id !== snackbar.id));
-          }}
-          severity={snackbar.severity}
           variant="filled"
-          sx={{ width: '100%' }}
+          size="small"
+          severity={snackbar.severity}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          className="is-full shadow-xs p-2 text-md"
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
-    ));
-  };
-
-  const renderSignatureSection = () => {
-    return (
-      <Box className="p-0">
-        <Typography variant='h5' gutterBottom>
-          Signature
-        </Typography>
-
-        {/* Signature section*/}
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={12}>
-            {/* Signature Type */}
-            <Controller
-              name="sign_type"
-              control={control}
-              defaultValue={'eSignature'}
-              render={({ field: { onChange, value } }) => (
-                <RadioGroup
-                  row
-                  value={signType}
-                  onChange={(e) => {
-                    const newValue = e.target.value;
-                    onChange(newValue);
-                    setSignType(newValue);
-
-                    if (newValue === 'eSignature') {
-                      // Clear manual signature fields
-                      setValue('signatureId', '');
-                      setSelectedSignature(null);
-                    } else {
-                      // Clear eSignature fields
-                      setValue('signatureName', '');
-                      setSignatureDataURL(null);
-                    }
-                  }}
-                >
-                  <FormControlLabel
-                    value="eSignature"
-                    control={<Radio />}
-                    label="E-Signature"
-                  />
-                  <FormControlLabel
-                    value="manualSignature"
-                    control={<Radio />}
-                    label="Manual Signature"
-                  />
-                </RadioGroup>
-              )}
-            />
-          </Grid>
-
-          {/* Manual Signature */}
-          {signType === 'manualSignature' && (
-            <Grid container item xs={9} gap={2}>
-              <Controller
-                name="signatureId"
-                control={control}
-                defaultValue={''}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.signatureId} variant='outlined'>
-                    <InputLabel size="medium">
-                      Select Signature Name <span style={{ color: 'red' }}>*</span>
-                    </InputLabel>
-                    <Select
-                      label="Select Signature Name"
-                      value={field.value || ''}
-                      onChange={(event) => {
-                        const selectedSignature = signatures.find(sig => sig._id === event.target.value);
-                        handleSignatureSelection(selectedSignature, field);
-                      }}
-                    >
-                      {signatures.map((option) => (
-                        <MenuItem key={option._id} value={option._id}>
-                          {option.signatureName}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.signatureId && (
-                      <FormHelperText error>{errors.signatureId.message}</FormHelperText>
-                    )}
-                  </FormControl>
-                )}
-              />
-
-              <Box sx={{
-                height: '136px',
-                width: '136px',
-                padding: '10px',
-              }}>
-                {selectedSignature ? (
-                  <img
-                    src={selectedSignature}
-                    alt="Signature"
-                    style={{
-                      maxHeight: '136px',
-                      maxWidth: '340px',
-                      objectFit: 'contain'
-                    }}
-                    onError={(e) => {
-                      console.error('Error loading signature image');
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <Icon
-                    color={alpha(theme.palette.secondary.light, 0.2)}
-                    width="120px"
-                    height='102px'
-                    icon="mdi:signature-image"
-                  />
-                )}
-              </Box>
-            </Grid>
-          )}
-
-          {/* E-Signature */}
-          {signType === 'eSignature' && (
-            <Grid container item xs={9} gap={2} alignItems="flex-start">
-              <Controller
-                name="signatureName"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    variant='standard'
-                    fullWidth
-                    {...field}
-                    label={<Typography variant="">Add Signature Name <span style={{ color: 'red' }}>*</span></Typography>}
-                    error={!!errors.signatureName}
-                    helperText={errors.signatureName?.message}
-                  />
-                )}
-              />
-
-              <Box sx={{
-                height: '136px',
-                width: '136px',
-                padding: '10px',
-              }}>
-                {signatureDataURL ? (
-                  <CustomIconButton
-                    aria-label='Signature'
-                    onClick={handleOpenSignatureDialog}
-                    variant='outlined'
-                    height='136px'
-                    skin='light'
+      {/* Notes Dialog */}
+      <Dialog
+        open={termsDialogOpen}
+        onClose={handleCloseTermsDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <Box sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04), py: 3, px: 5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            Terms and Conditions
+          </Typography>
+        </Box>
+        <DialogContent sx={{ py: 5, px: 5 }}>
+          <TextField
+            value={tempTerms}
+            onChange={(e) => setTempTerms(e.target.value)}
+            fullWidth
+            multiline
+            rows={5}
+            variant="filled"
+            placeholder="Enter your standard terms and conditions (payment terms, delivery terms, warranty information, etc.)"
+            InputProps={{
+              endAdornment: tempTerms.trim() !== '' && (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={handleCloseTermsDialog}
+                    edge="end"
+                    className="transition-transform duration-200 ease-in-out hover:scale-110 active:scale-95"
+                    title="Clear terms and conditions"
+                    size="small"
                   >
-                    <img
-                      src={signatureDataURL}
-                      alt="E-Signature"
-                      style={{
-                        maxHeight: '120px',
-                        maxWidth: '400px',
-                        width: 'auto',
-                        height: 'auto',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  </CustomIconButton>
-                ) : (
-                  <Controller
-                    name="signatureData"
-                    control={control}
-                    defaultValue=""
-                    render={({ field }) => (
-                      <CustomIconButton
-                        aria-label='Signature'
-                        onClick={handleOpenSignatureDialog}
-                        size='130px'
-                        skin='light'
-                        color={errors.signatureData && signType === 'eSignature' ? 'error' : 'primary'}
-                      >
-                        <Icon
-                          width="120"
-                          height='120'
-                          icon="material-symbols-light:signature-outline-rounded"
-                        />
-                      </CustomIconButton>
-                    )}
-                  />
-                )}
-              </Box>
-            </Grid>
-          )}
-        </Grid>
-      </Box>
-    );
-  };
-
-  const handleEditItem = (index) => {
-    const item = items[index];
-    if (!item) return;
-
-    setEditModalData({
-      ...item,
-      key: item.key,
-      rate: item.isRateFormUpadted ? item.form_updated_rate : item.purchasePrice,
-      discount: item.isRateFormUpadted ? item.form_updated_discount : item.discount,
-      discountType: item.isRateFormUpadted ? item.form_updated_discounttype : item.discountType,
-      taxInfo: item.taxInfo
-    });
-    setOpenEditModal(true);
-  };
-
-  const handleEditModalChange = (field, value) => {
-    setEditModalData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box className="flex flex-col gap-4 p-4">
-        <Typography variant="h5" color="primary">
-          Edit Purchase Order
-        </Typography>
-
-        <form onSubmit={handleSubmit(onSubmit, handleError)}>
-          {/* Header Information Card */}
-          <Card>
-            <CardContent>
-              <Grid container spacing={5}>
-                <Grid item xs={12}>
-                  <Typography variant='h5' gutterBottom>
-                    Details
-                  </Typography>
-                </Grid>
-
-                {/* Purchase Order Number */}
-                <Grid item xs={12} md={4}>
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" height={40} />
-                  ) : (
-                    <TextField
-                      label="Purchase Order Id"
-                      value={orderData?.purchaseOrderId || ''}
-                      variant="outlined"
-                      fullWidth
-                      size="medium"
-                      disabled
-                      InputProps={{
-                        readOnly: true,
-                      }}
-                    />
-                  )}
-                </Grid>
-
-                {/* Vendor Selection */}
-                <Grid item xs={12} md={4}>
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" height={40} />
-                  ) : (
-                    <Controller
-                      name="vendorId"
-                      control={control}
-                      render={({ field }) => (
-                        <FormControl fullWidth variant="outlined" error={!!errors.vendorId}>
-                          <InputLabel size='medium'>Vendor</InputLabel>
-                          <Select
-                            {...field}
-                            label="Vendor"
-                            size="medium"
-                            sx={{
-                              borderColor: errors.vendorId ? 'red' : field.value ? 'green' : 'default',
-                              '& .MuiOutlinedInput-notchedOutline': {
-                                borderColor: errors.vendorId ? 'red' : field.value ? 'green' : 'default',
-                              }
-                            }}
-                          >
-                            {vendors.map(vendor => (
-                              <MenuItem size='medium' key={vendor._id} value={vendor._id}>
-                                {vendor.vendor_name}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                          {errors.vendorId && (
-                            <FormHelperText error>{errors.vendorId.message}</FormHelperText>
-                          )}
-                        </FormControl>
-                      )}
-                    />
-                  )}
-                </Grid>
-
-                {/* Purchase Order Date */}
-                <Grid item xs={12} md={4}>
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" height={40} />
-                  ) : (
-                    <Controller
-                      name="purchaseOrderDate"
-                      control={control}
-                      render={({ field }) => (
-                        <DatePicker
-                          {...field}
-                          label="Purchase Order Date"
-                          format="DD/MM/YYYY"
-                          slotProps={{
-                            textField: {
-                              size: "medium",
-                              fullWidth: true,
-                              error: !!errors.purchaseOrderDate,
-                              helperText: errors.purchaseOrderDate?.message,
-                              sx: {
-                                borderColor: errors.purchaseOrderDate ? 'red' : field.value ? 'green' : 'default',
-                                '& .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: errors.purchaseOrderDate ? 'red' : field.value ? 'green' : 'default',
-                                }
-                              }
-                            }
-                          }}
-                        />
-                      )}
-                    />
-                  )}
-                </Grid>
-
-                {/* Due Date */}
-                <Grid item xs={12} md={4}>
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" height={40} />
-                  ) : (
-                    <Controller
-                      name="dueDate"
-                      control={control}
-                      render={({ field }) => (
-                        <DatePicker
-                          {...field}
-                          label="Due Date"
-                          format="DD/MM/YYYY"
-                          slotProps={{
-                            textField: {
-                              size: "medium",
-                              fullWidth: true,
-                              error: !!errors.dueDate,
-                              helperText: errors.dueDate?.message,
-                              sx: {
-                                borderColor: errors.dueDate ? 'red' : field.value ? 'green' : 'default',
-                                '& .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: errors.dueDate ? 'red' : field.value ? 'green' : 'default',
-                                }
-                              }
-                            }
-                          }}
-                        />
-                      )}
-                    />
-                  )}
-                </Grid>
-
-                {/* Reference Number */}
-                <Grid item xs={12} md={4}>
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" height={40} />
-                  ) : (
-                    <Controller
-                      name="referenceNo"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Reference No"
-                          variant="outlined"
-                          fullWidth
-                          size="medium"
-                          error={!!errors.referenceNo}
-                          helperText={errors.referenceNo?.message}
-                          sx={{
-                            borderColor: errors.referenceNo ? 'red' : field.value ? 'green' : 'default',
-                            '& .MuiOutlinedInput-notchedOutline': {
-                              borderColor: errors.referenceNo ? 'red' : field.value ? 'green' : 'default',
-                            }
-                          }}
-                        />
-                      )}
-                    />
-                  )}
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-
-          {/* Products Card */}
-          <Card sx={{ mt: 4 }}>
-            <CardContent className='flex flex-col gap-3'>
-              {/* Product label */}
-              <Box>
-                <Typography variant='h5' gutterBottom>
-                  Products
-                </Typography>
-              </Box>
-
-              {/* Products selector and table */}
-              <Grid container spacing={3} className='items-center'>
-                <Grid item xs={10} md={5} lg={4}>
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" height={200} />
-                  ) : (
-                    <FormControl className="w-full" variant="outlined">
-                      <InputLabel size="medium">Select Product</InputLabel>
-                      <Select
-                        size="medium"
-                        value={selectedProduct}
-                        onChange={(e) => handleProductChange(e.target.value)}
-                        label="Select Product"
-                      >
-                        {productsCloneData.map((product) => (
-                          <MenuItem key={product._id} value={product._id}>
-                            {product.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  )}
-                  {errors.items && (
-                    <Typography variant="caption" color="error">
-                      {errors.items.message}
-                    </Typography>
-                  )}
-                </Grid>
-
-                <Grid item xs={2} md={1} lg={1} className='flex items-center'>
-                  <Link href="/products/product-add" passHref>
-                    <CustomIconButtonTwo size='large' variant='outlined' color='primary' className='min-is-fit'>
-                      <i className='ri-add-line' />
-                    </CustomIconButtonTwo>
-                  </Link>
-                </Grid>
-              </Grid>
-
-              {/* Items Table */}
-              <Box className='border rounded overflow-hidden'>
-                <TableContainer
-                  sx={{
-                    maxWidth: '100%',
-                    overflowX: 'auto',
-                    '&::-webkit-scrollbar': {
-                      height: 8
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      borderRadius: 2,
-                      bgcolor: theme => alpha(theme.palette.secondary.main, 0.1)
-                    }
-                  }}
-                >
-                  <Table
-                    size='small'
-                    sx={{
-                      minWidth: {
-                        xs: 650,
-                        sm: 750,
-                        md: '100%'
-                      },
-                      '& .MuiTableCell-root': {
-                        borderColor: theme => alpha(theme.palette.secondary.main, 0.15),
-                        px: { xs: 1, sm: 2, md: 3 },
-                        py: { xs: 1, sm: 1.5 },
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                      }
-                    }}
-                  >
-                    <TableHead
-                      sx={{
-                        bgcolor: theme => alpha(theme.palette.secondary.main, 0.09),
-                      }}
-                    >
-                      <TableRow>
-                        <TableCell sx={{ minWidth: { xs: 120, sm: 150 } }}>Product / Service</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 60, sm: 80 } }}>Unit</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>Quantity</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>Rate</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 100, sm: 120 } }}>Discount</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>VAT</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>Amount</TableCell>
-                        <TableCell sx={{ minWidth: { xs: 80, sm: 100 } }}>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {items.length > 0 ? (
-                        items.map((item, index) => (
-                          <TableRow key={item.key}>
-                            <TableCell sx={{ maxWidth: { xs: 120, sm: 150 } }}>
-                              <Typography noWrap>{item.name}</Typography>
-                            </TableCell>
-                            <TableCell>{item.units}</TableCell>
-                            <TableCell>
-                              <TextField
-                                size='small'
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => handleQuantityChange(index, e.target.value)}
-                                inputProps={{
-                                  min: 1,
-                                  style: {
-                                    padding: { xs: '4px 8px', sm: '8px 12px' }
-                                  }
-                                }}
-                                sx={{
-                                  width: { xs: '70px', sm: '100px' },
-                                  '& .MuiInputBase-input': {
-                                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                                  }
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell>{Number(item.rate).toFixed(2)}</TableCell>
-                            <TableCell>
-                              <Box sx={{
-                                display: 'flex',
-                                flexDirection: { xs: 'column', sm: 'row' },
-                                gap: { xs: 0.5, sm: 1 },
-                                alignItems: { sm: 'center' }
-                              }}>
-                                {Number(item.discount) === 0 ? (
-                                  "0"
-                                ) : Number(item.discountType) === 2 ? (
-                                  <>
-                                    <span>{Number(item.discount)}%</span>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        color: 'text.secondary',
-                                        display: 'inline-block'
-                                      }}
-                                    >
-                                      ({((Number(item.discount) / 100) * item.rate).toFixed(2)} SAR)
-                                    </Typography>
-                                  </>
-                                ) : (
-                                  <>{Number(item.discount).toFixed(2)} SAR</>
-                                )}
-                              </Box>
-                            </TableCell>
-                            <TableCell>{item.tax.toLocaleString('en-IN', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}</TableCell>
-                            <TableCell>{Number(item.amount).toFixed(2)}</TableCell>
-                            <TableCell>
-                              <Box sx={{
-                                display: 'flex',
-                                gap: { xs: 0.5, sm: 1 }
-                              }}>
-                                <IconButton
-                                  onClick={() => handleEditClick(item)}
-                                  size="small"
-                                  sx={{
-                                    [theme.breakpoints.up('sm')]: {
-                                      padding: '8px'
-                                    }
-                                  }}
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton
-                                  onClick={() => handleRemoveItem(index)}
-                                  size="small"
-                                  sx={{
-                                    [theme.breakpoints.up('sm')]: {
-                                      padding: '8px'
-                                    }
-                                  }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Box>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell
-                            colSpan={8}
-                            align="center"
-                            sx={{
-                              py: { xs: 4, sm: 6, md: 8 },
-                              color: theme => theme.palette.text.secondary,
-                              borderBottom: 'none'
-                            }}
-                          >
-                            <Box sx={{
-                              position: 'relative',
-                              display: 'flex',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              py: 3
-                            }}>
-                              <Icon
-                                color={alpha(theme.palette.secondary.light, 0.2)}
-                                icon="line-md:alert-circle-loop"
-                                width='120px'
-                                height='120px'
-                              />
-                              <Typography
-                                variant="h5"
-                                color='secondary.light'
-                                sx={{
-                                  position: 'absolute',
-                                  top: '50%',
-                                  left: '50%',
-                                  transform: 'translate(-50%, -50%)',
-                                  zIndex: 1,
-                                  fontWeight: 700
-                                }}
-                              >
-                                No items added yet
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
-
-              {/* Totals Section */}
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
-                <Grid container spacing={2} sx={{ maxWidth: '300px' }}>
-                  <Grid item xs={6}>
-                    <Typography>Subtotal:</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {totals.subtotal.toFixed(2)}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography>Tax:</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {totals.vat.toLocaleString('en-IN', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography>Discount:</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {totals.totalDiscount.toFixed(2)}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Divider sx={{ my: 1 }} />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="h6">Total:</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="h6" sx={{ textAlign: 'right' }}>
-                      {totals.total.toFixed(2)}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Box>
-            </CardContent>
-          </Card>
-
-          {/* Bottom Section with Bank, Terms, and Signature */}
-          <Grid container spacing={4} sx={{ mt: 4 }} className='justify-between'>
-            {/* Left Side - Bank and Terms */}
-            <Grid item xs={12} md={6} lg={6}>
-              <Card>
-                <CardContent>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={12}>
-                      <Typography variant='h5'>Bank & Notes</Typography>
-                    </Grid>
-
-                    <Grid item xs={12} md={12}>
-                      <Grid container spacing={4} alignItems='center'>
-                        <Grid item xs={7} md={7} lg={7}>
-
-
-
-
-                          <Controller
-                            name="bank"
-
-                            control={control}
-                            render={({ field }) => (
-                              <FormControl variant='outlined' fullWidth>
-                                <InputLabel>Bank Account</InputLabel>
-                                <Select
-                                 label='Bank Account'
-                                 size="medium"
-                                 {...field}>
-                                  <MenuItem value="">None</MenuItem>
-                                  {banks.map(bank => (
-                                    <MenuItem key={bank._id} value={bank._id}>
-                                      {bank.bankName} - {bank.accountNumber}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                            )}
-                          />
-                        </Grid>
-
-                        <Grid item xs={5} md={2} lg={1}>
-                          <Button
-                            variant="contained"
-                            size='large'
-                            onClick={() => setOpenBankModal(true)}
-                            startIcon={<Icon icon="mdi:bank-outline" width='25px' />}
-                            sx={{ whiteSpace: 'nowrap' }}
-                          >
-                            Add Bank
-                          </Button>
-                        </Grid>
-                      </Grid>
-                    </Grid>
-
-                    <Grid item xs={11} md={10} lg={9.5}>
-                      <Controller
-                        name="notes"
-                        control={control}
-                        render={({ field }) => (
-                          <TextField
-                            variant={'standard'}
-                            {...field}
-                            label="Notes"
-                            multiline
-                            minRows={1}
-                            maxRows={4}
-                            fullWidth
-                          />
-                        )}
-                      />
-                    </Grid>
-
-                    <Grid item xs={11} md={10} lg={9.5}>
-                      <Controller
-                        name="termsAndCondition"
-                        control={control}
-                        render={({ field }) => (
-                          <TextField
-                            {...field}
-                            variant={'standard'}
-                            label="Terms and Conditions"
-                            multiline
-                            minRows={1}
-                            maxRows={4}
-                            fullWidth
-                          />
-                        )}
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Right Side - Signature */}
-            <Grid item xs={12} md={6} lg={6}>
-              <Card>
-                <CardContent>
-                  {renderSignatureSection()}
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-
-          {/* Form Actions */}
-          <Box className="mt-6 flex justify-end gap-2">
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={() => router.push('/purchase-orders/order-list')}
-              startIcon={<Icon icon="mdi:arrow-left" />}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              startIcon={<Icon icon="mdi:content-save" />}
-            >
-              Update Purchase Order
-            </Button>
-          </Box>
-        </form>
-
-        {/* Signature Dialog */}
-        <Dialog open={showSignatureDialog} onClose={handleCloseSignatureDialog}>
-          <DialogTitle>Draw Your Signature</DialogTitle>
-          <DialogContent>
-            <SignaturePad
-              ref={signaturePadRef}
-              canvasProps={{
-                width: 500,
-                height: 200,
-                className: 'border rounded-md'
-              }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClearSignature}>Clear</Button>
-            <Button onClick={handleCloseSignatureDialog}>Cancel</Button>
-            <Button onClick={handleSaveSignature} color="primary">
-              Save Signature
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Result Dialog */}
-        <Dialog
-          open={showResultDialog}
-          onClose={() => setShowResultDialog(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            {submissionResult?.includes('success') ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Icon icon="mdi:check-circle" color="success" width={24} />
-                Success
-              </Box>
-            ) : (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Icon icon="mdi:alert-circle" color="error" width={24} />
-                Error
-              </Box>
-            )}
-          </DialogTitle>
-          <DialogContent>
-            <Typography>{submissionResult}</Typography>
-          </DialogContent>
-          <DialogActions>
-            {submissionResult?.includes('success') ? (
-              <>
-                <Button
-                  onClick={() => router.push('/purchase-orders/order-list')}
-                  variant="contained"
-                  color="primary"
-                  startIcon={<Icon icon="mdi:format-list-bulleted" />}
-                >
-                  Go to Order List
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => setShowResultDialog(false)} color="secondary">
-                Close
-              </Button>
-            )}
-          </DialogActions>
-        </Dialog>
-
-        {/* Edit Item Dialog */}
-        <Dialog open={openEditModal} onClose={handleCloseEditModal} maxWidth="sm">
-          <DialogContent>
-            {editModalData && (
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <Typography variant='h5' color='primary' className=''>Edit Item</Typography>
-                </Grid>
-
-                {/* Rate */}
-                <Grid item xs={12} md={5} lg={5}>
-                  <FormControl fullWidth>
-                    <TextField
-                      size='small'
-                      label="Rate"
-                      type="number"
-                      value={editModalData.rate}
-                      onChange={(e) => setEditModalData({
-                        ...editModalData,
-                        rate: e.target.value
-                      })}
-                    />
-                  </FormControl>
-                </Grid>
-
-                {/* VAT */}
-                <Grid item xs={12} md={6} lg={6}>
-                  <FormControl size='small' fullWidth>
-                    <InputLabel>VAT (%)</InputLabel>
-                    <Select
-                      value={editModalData.taxInfo?._id || ''}
-                      onChange={(e) => {
-                        const selectedTax = taxRates.find(tax => tax._id === e.target.value);
-                        setEditModalData({
-                          ...editModalData,
-                          taxInfo: selectedTax,
-                          tax: selectedTax?.taxRate || 0
-                        });
-                      }}
-                      label="VAT (%)"
-                    >
-                      {taxRates.map((tax) => (
-                        <MenuItem key={tax._id} value={tax._id}>
-                          {tax.name} ({tax.taxRate}%)
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Discount */}
-                <Grid item xs={12} md={5} lg={5}>
-                  <TextField
-                    size='small'
-                    fullWidth
-                    label='Discount'
-                    type="number"
-                    value={editModalData.discount}
-                    onChange={(e) => setEditModalData({
-                      ...editModalData,
-                      discount: e.target.value
-                    })}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment
-                          className='text-secondary'
-                          position="end"
-                          color='secondary'
-                        >
-                          {Number(editModalData.discountType) === 2 ?
-                            <>
-                              <Typography className='text-[16px]'>
-                                %
-                              </Typography>
-                              <Typography className='text-[13px] ml-1'>
-                                ({((Number(editModalData.rate) || 0) * (Number(editModalData.discount) || 0) / 100).toFixed(2)} SAR)
-                              </Typography>
-                            </>
-                            : 'SAR'}
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-
-                {/* Discount Type */}
-                <Grid item xs={12} md={6} lg={6}>
-                  <FormControl component="fieldset" className="h-full flex items-center">
-                    <RadioGroup
-                      row
-                      value={editModalData.discountType}
-                      onChange={(e) => setEditModalData({
-                        ...editModalData,
-                        discountType: Number(e.target.value)
-                      })}
-                      className="flex items-center"
-                    >
-                      <Box sx={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <FormControlLabel
-                          value={2}
-                          control={
-                            <Radio
-                              icon={
-                                <Icon
-                                  icon="ri:discount-percent-line"
-                                  width={32}
-                                />
-                              }
-                              checkedIcon={
-                                <Icon
-                                  icon="ri:discount-percent-line"
-                                  width={32}
-                                />
-                              }
-                              size="medium"
-                            />}
-                          label="Percentage"
-                        />
-                        <FormControlLabel
-                          value={3}
-                          control={
-                            <Radio
-                              icon={
-                                <Icon
-                                  icon="mdi:cash-multiple"
-                                  width={32}
-                                />
-                              }
-                              checkedIcon={
-                                <Icon
-                                  icon="mdi:cash-multiple"
-                                  width={32}
-                                />
-                              }
-                              size="medium"
-                            />}
-                          label="Fixed"
-                        />
-                      </Box>
-                    </RadioGroup>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            )}
-          </DialogContent>
-
-          <DialogActions>
-            <Button onClick={handleCloseEditModal} color="secondary">
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                handleEditModalSave();
-                handleCloseEditModal();
-              }}
-              color="primary"
-              variant='contained'
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Add Bank Modal */}
-        <Modal open={openBankModal} onClose={() => setOpenBankModal(false)}>
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 400,
-              bgcolor: 'background.paper',
-              boxShadow: 24,
-              p: 4,
-              borderRadius: 1
+                    <Clear />
+                  </IconButton>
+                </InputAdornment>
+              )
             }}
-          >
-            <Typography variant="h5" color='primary' sx={{ mb: 2 }}>
-              Add Bank Details
-            </Typography>
-            <form onSubmit={handleAddBank}>
-              <TextField
-                fullWidth
-                label="Bank Name"
-                value={newBank.bankName}
-                onChange={(e) => setNewBank({ ...newBank, bankName: e.target.value })}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="Account Number"
-                value={newBank.accountNumber}
-                onChange={(e) => setNewBank({ ...newBank, accountNumber: e.target.value })}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="Account Holder Name"
-                value={newBank.name}
-                onChange={(e) => setNewBank({ ...newBank, name: e.target.value })}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="Branch Name"
-                value={newBank.branch}
-                onChange={(e) => setNewBank({ ...newBank, branch: e.target.value })}
-                margin="normal"
-                required
-              />
-              <TextField
-                fullWidth
-                label="IFSC Code"
-                value={newBank.IFSCCode}
-                onChange={(e) => setNewBank({ ...newBank, IFSCCode: e.target.value })}
-                margin="normal"
-                required
-              />
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                <Button
-                  onClick={() => setOpenBankModal(false)}
-                  variant="outlined"
-                  color="secondary"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                >
-                  Save
-                </Button>
-              </Box>
-            </form>
-          </Box>
-        </Modal>
-
-        {renderSnackbars()}
-      </Box>
-    </LocalizationProvider>
+          />
+        </DialogContent>
+        <Box className='flex flex-row justify-end gap-2 px-5 pb-4 pt-1'>
+          <Button onClick={handleCloseTermsDialog} variant="outlined" color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleSaveTerms} color="primary" variant="contained">
+            Save Changes
+          </Button>
+        </Box>
+      </Dialog>
+    </Grid>
   );
 };
 

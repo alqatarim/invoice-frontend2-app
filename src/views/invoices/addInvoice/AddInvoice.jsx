@@ -28,7 +28,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
 import CustomerAutocomplete from '@/components/custom-components/CustomerAutocomplete';
-import useInvoiceHandlers from '@/handlers/invoices/useInvoiceHandlers';
+import useAddInvoiceHandlers from '@/handlers/invoices/addInvoice/useAddInvoiceHandlers';
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
@@ -39,8 +39,8 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
   const [openBankModal, setOpenBankModal] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  const handlers = useInvoiceHandlers({
-    invoiceData: { invoiceNumber },
+  const handlers = useAddInvoiceHandlers({
+    invoiceNumber,
     productData,
     initialBanks,
     signatures,

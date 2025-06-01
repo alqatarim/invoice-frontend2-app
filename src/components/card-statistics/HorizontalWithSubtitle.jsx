@@ -14,7 +14,7 @@ const HorizontalWithSubtitle = props => {
   const { title, stats, symbol = '',avatarIcon, avatarColor, trend: trend, trendNumber: trendNumber, subtitle: subtitle } = props
 
   return (
-    <Card>
+    <Box>
       <CardContent className='flex justify-between gap-1'>
         <div className='flex flex-col gap-2 flex-grow'>
           <Typography color='text.primary'>{title}</Typography>
@@ -34,7 +34,7 @@ const HorizontalWithSubtitle = props => {
           <i className={classnames(avatarIcon, 'text-[26px]')} />
         </CustomAvatar>
       </CardContent>
-    </Card>
+    </Box>
   )
 }
 

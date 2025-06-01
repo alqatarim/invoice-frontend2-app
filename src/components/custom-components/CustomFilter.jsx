@@ -62,120 +62,123 @@ function CustomFilter({
   applyLabel = 'Apply',
   resetLabel = 'Reset',
   drawerProps = {},
+  embedded = false, // New prop for embedded usage
 }) {
-  return (
-    <Drawer anchor="right" open={open} onClose={onClose} {...drawerProps}>
-      <Box sx={{ width: { xs: '80vw', sm: '340px' }, p: 3 }}>
+  const content = (
+    <>
+      {!embedded && title && (
         <Typography variant="h6" sx={{ mb: 2 }}>
           {title}
         </Typography>
-        <List className="space-y-2">
-          {fields.map((field, idx) => (
-            <React.Fragment key={field.name}>
-              <ListItem disableGutters>
-                <ListItemText primary={field.label} />
-              </ListItem>
-              {/* Field Types */}
-              {field.type === 'text' && (
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  placeholder={field.placeholder}
-                  value={values[field.name] || ''}
-                  onChange={e => onChange(field.name, e.target.value)}
-                  InputProps={field.placeholder?.toLowerCase().includes('search') ? {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  } : {}}
-                />
-              )}
-              {field.type === 'select' && (
-                <Select
-                  fullWidth
-                  multiple={!!field.multiple}
-                  value={values[field.name] || (field.multiple ? [] : '')}
-                  onChange={e => onChange(field.name, e.target.value)}
-                  displayEmpty
-                  sx={{ my: 1 }}
-                >
-                  <MenuItem value="" disabled>{field.placeholder || 'Select'}</MenuItem>
-                  {field.options?.map(opt => (
-                    <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                  ))}
-                </Select>
-              )}
-              {field.type === 'date' && (
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  type="date"
-                  value={values[field.name] || ''}
-                  onChange={e => onChange(field.name, e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-              )}
-              {field.type === 'checkbox' && (
-                <FormGroup>
-                  {field.options?.map(opt => (
-                    <FormControlLabel
-                      key={opt.value}
-                      control={
-                        <Checkbox
-                          checked={Array.isArray(values[field.name]) ? values[field.name].includes(opt.value) : false}
-                          onChange={e => {
-                            const prev = Array.isArray(values[field.name]) ? values[field.name] : [];
-                            if (e.target.checked) {
-                              onChange(field.name, [...prev, opt.value]);
-                            } else {
-                              onChange(field.name, prev.filter(v => v !== opt.value));
-                            }
-                          }}
-                        />
-                      }
-                      label={opt.label}
-                    />
-                  ))}
-                </FormGroup>
-              )}
-              {field.type === 'autocomplete' && (
-                <Autocomplete
-                  multiple={!!field.multiple}
-                  options={field.options || []}
-                  getOptionLabel={opt => opt.label || ''}
-                  value={
-                    field.multiple
-                      ? (field.options || []).filter(opt => (values[field.name] || []).includes(opt.value))
-                      : (field.options || []).find(opt => opt.value === values[field.name]) || null
-                  }
-                  onChange={(_, newValue) => {
-                    if (field.multiple) {
-                      onChange(field.name, newValue.map(opt => opt.value));
-                    } else {
-                      onChange(field.name, newValue ? newValue.value : '');
+      )}
+      <List className="space-y-2">
+        {fields.map((field, idx) => (
+          <React.Fragment key={field.name}>
+            <ListItem disableGutters>
+              <ListItemText primary={field.label} />
+            </ListItem>
+            {/* Field Types */}
+            {field.type === 'text' && (
+              <TextField
+                fullWidth
+                margin="normal"
+                placeholder={field.placeholder}
+                value={values[field.name] || ''}
+                onChange={e => onChange(field.name, e.target.value)}
+                InputProps={field.placeholder?.toLowerCase().includes('search') ? {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                } : {}}
+              />
+            )}
+            {field.type === 'select' && (
+              <Select
+                fullWidth
+                multiple={!!field.multiple}
+                value={values[field.name] || (field.multiple ? [] : '')}
+                onChange={e => onChange(field.name, e.target.value)}
+                displayEmpty
+                sx={{ my: 1 }}
+              >
+                <MenuItem value="" disabled>{field.placeholder || 'Select'}</MenuItem>
+                {field.options?.map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            )}
+            {field.type === 'date' && (
+              <TextField
+                fullWidth
+                margin="normal"
+                type="date"
+                value={values[field.name] || ''}
+                onChange={e => onChange(field.name, e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+            )}
+            {field.type === 'checkbox' && (
+              <FormGroup>
+                {field.options?.map(opt => (
+                  <FormControlLabel
+                    key={opt.value}
+                    control={
+                      <Checkbox
+                        checked={Array.isArray(values[field.name]) ? values[field.name].includes(opt.value) : false}
+                        onChange={e => {
+                          const prev = Array.isArray(values[field.name]) ? values[field.name] : [];
+                          if (e.target.checked) {
+                            onChange(field.name, [...prev, opt.value]);
+                          } else {
+                            onChange(field.name, prev.filter(v => v !== opt.value));
+                          }
+                        }}
+                      />
                     }
-                  }}
-                  renderInput={params => (
-                    <TextField
-                      {...params}
-                      placeholder={field.placeholder}
-                      margin="normal"
-                    />
-                  )}
-                />
-              )}
-              {field.type === 'custom' && field.render && field.render({
-                value: values[field.name],
-                onChange: v => onChange(field.name, v),
-                field,
-                values,
-              })}
-              {idx < fields.length - 1 && <Divider className="my-2" />}
-            </React.Fragment>
-          ))}
-        </List>
+                    label={opt.label}
+                  />
+                ))}
+              </FormGroup>
+            )}
+            {field.type === 'autocomplete' && (
+              <Autocomplete
+                multiple={!!field.multiple}
+                options={field.options || []}
+                getOptionLabel={opt => opt.label || ''}
+                value={
+                  field.multiple
+                    ? (field.options || []).filter(opt => (values[field.name] || []).includes(opt.value))
+                    : (field.options || []).find(opt => opt.value === values[field.name]) || null
+                }
+                onChange={(_, newValue) => {
+                  if (field.multiple) {
+                    onChange(field.name, newValue.map(opt => opt.value));
+                  } else {
+                    onChange(field.name, newValue ? newValue.value : '');
+                  }
+                }}
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    placeholder={field.placeholder}
+                    margin="normal"
+                  />
+                )}
+              />
+            )}
+            {field.type === 'custom' && field.render && field.render({
+              value: values[field.name],
+              onChange: v => onChange(field.name, v),
+              field,
+              values,
+            })}
+            {idx < fields.length - 1 && <Divider className="my-2" />}
+          </React.Fragment>
+        ))}
+      </List>
+      {!embedded && (
         <Box className="flex justify-between mt-4">
           <Button variant="contained" onClick={onApply} color="primary">
             {applyLabel}
@@ -184,6 +187,18 @@ function CustomFilter({
             {resetLabel}
           </Button>
         </Box>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return <Box sx={{ width: '100%' }}>{content}</Box>;
+  }
+
+  return (
+    <Drawer anchor="right" open={open} onClose={onClose} {...drawerProps}>
+      <Box sx={{ width: { xs: '80vw', sm: '340px' }, p: 3 }}>
+        {content}
       </Box>
     </Drawer>
   );

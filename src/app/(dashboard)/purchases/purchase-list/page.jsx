@@ -1,15 +1,31 @@
-import { getPurchaseList } from '../actions';
-import PurchaseListIndex from '@/views/purchases/listPurchase';
+import React from 'react';
+import { getPurchaseList, getVendors } from '../actions';
+import PurchaseListIndex from '@/views/purchases/listPurchase/index';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
-async function PurchaseListPage() {
-  const initialData = await getPurchaseList();
+export const metadata = {
+  title: 'Purchase List | Kanakku',
+};
 
-  return (
-    <ProtectedComponent>
-      <PurchaseListIndex initialData={initialData} />
-    </ProtectedComponent>
-  );
+async function PurchaseListPage() {
+  try {
+    const [initialData, vendors] = await Promise.all([
+      getPurchaseList(),
+      getVendors()
+    ]);
+
+    return (
+      <ProtectedComponent>
+        <PurchaseListIndex 
+          initialData={initialData} 
+          vendors={vendors}
+        />
+      </ProtectedComponent>
+    );
+  } catch (error) {
+    console.error('Error loading purchase list data:', error);
+    return <div className="text-red-600 p-8">Failed to load purchase list.</div>;
+  }
 }
 
 export default PurchaseListPage;

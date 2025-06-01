@@ -213,10 +213,22 @@ export async function addDebitNote(data, signatureURL) {
 export async function getDebitNoteDetails(id) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.VIEW}/${id}`);
-    return response.data;
+
+    if (response.code !== 200) {
+      throw new Error(response?.message || 'Failed to fetch debit note details');
+    }
+
+    return {
+      success: true,
+      data: response.data
+    };
   } catch (error) {
     console.error('Error fetching debit note details:', error);
-    throw error;
+    return {
+      success: false,
+      message: error.message,
+      error
+    };
   }
 }
 
@@ -373,6 +385,7 @@ export async function addBank(bankData) {
 }
 
 export async function cloneDebitNote(id) {
+
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.CLONE}/${id}/clone`, {
       method: 'POST',
@@ -404,3 +417,4 @@ export async function cloneDebitNote(id) {
     };
   }
 }
+

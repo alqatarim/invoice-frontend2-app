@@ -2,16 +2,16 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Snackbar, Alert } from '@mui/material';
-import PurchaseList from './PurchaseList';
-import { getPurchaseList, getVendors } from '@/app/(dashboard)/purchases/actions';
+import PurchaseListNew from './PurchaseListNew';
+import { getPurchaseList } from '@/app/(dashboard)/purchases/actions';
 
-const PurchaseListIndex = ({ initialData }) => {
+const PurchaseListIndex = ({ initialData, vendors = [] }) => {
   const [purchases, setPurchases] = useState(initialData?.data || []);
   const [totalCount, setTotalCount] = useState(initialData?.totalRecords || 0);
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
-  const [vendors, setVendors] = useState([]);
   const [filterCriteria, setFilterCriteria] = useState({});
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -21,23 +21,6 @@ const PurchaseListIndex = ({ initialData }) => {
 
   // Add AbortController for cleanup
   const abortControllerRef = useRef(null);
-
-  // Memoized vendors fetch
-  const fetchVendors = useCallback(async () => {
-    try {
-      const vendorsList = await getVendors();
-      if (Array.isArray(vendorsList)) {
-        setVendors(vendorsList);
-      }
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
-      setSnackbar({
-        open: true,
-        message: 'Error fetching vendors',
-        severity: 'error'
-      });
-    }
-  }, []);
 
   const fetchPurchases = useCallback(async () => {
     // Cancel any ongoing request
@@ -80,9 +63,8 @@ const PurchaseListIndex = ({ initialData }) => {
     }
   }, [page, pageSize, filterCriteria]);
 
-  // Initial data fetch
+  // Cleanup effect
   useEffect(() => {
-    fetchVendors();
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -92,15 +74,24 @@ const PurchaseListIndex = ({ initialData }) => {
 
   // Fetch purchases when dependencies change
   useEffect(() => {
-    if (!initialData) {
-      fetchPurchases();
-    }
-  }, [fetchPurchases, initialData]);
+    fetchPurchases();
+  }, [fetchPurchases]);
 
   const resetAllFilters = useCallback(() => {
     setFilterCriteria({});
     setPage(1);
   }, []);
+
+  // Add filter change handler
+  const handleSetFilterCriteria = useCallback((newFilters) => {
+    setFilterCriteria(newFilters);
+    setPage(1); // Reset to first page when filters change
+  }, []);
+
+  // Add handler for list updates
+  const handleListUpdate = useCallback(() => {
+    fetchPurchases();
+  }, [fetchPurchases]);
 
   const handleSnackbarClose = (event, reason) => {
     if (reason === 'clickaway') return;
@@ -109,7 +100,7 @@ const PurchaseListIndex = ({ initialData }) => {
 
   return (
     <>
-      <PurchaseList
+      <PurchaseListNew
         purchaseList={purchases}
         totalCount={totalCount}
         page={page}
@@ -117,9 +108,10 @@ const PurchaseListIndex = ({ initialData }) => {
         pageSize={pageSize}
         setPageSize={setPageSize}
         loading={loading}
-        setFilterCriteria={setFilterCriteria}
+        setFilterCriteria={handleSetFilterCriteria}
         vendors={vendors}
         resetAllFilters={resetAllFilters}
+        onListUpdate={handleListUpdate}
       />
 
       <Snackbar

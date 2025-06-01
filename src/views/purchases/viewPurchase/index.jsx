@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { deletePurchase, getPurchaseDetails } from '@/app/(dashboard)/purchases/actions';
-import ViewPurchase from '@/views/purchases/viewPurchase/ViewPurchase';
+import ViewPurchaseNew from '@/views/purchases/viewPurchase/ViewPurchaseNew';
 
 const PurchaseViewIndex = ({ id }) => {
   const [purchaseData, setPurchaseData] = useState(null);
@@ -48,9 +48,9 @@ const PurchaseViewIndex = ({ id }) => {
   }
 
   return (
-    <ViewPurchase
+    <ViewPurchaseNew
       purchaseData={purchaseData}
-      onDelete={handleDelete}
+      loading={loading}
     />
   );
 };

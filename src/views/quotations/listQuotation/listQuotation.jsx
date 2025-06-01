@@ -33,9 +33,9 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { Icon } from '@iconify/react';
-import { formatDate } from '@/utils/helpers';
+import { formatDate } from '@/utils/dateUtils';
 import dayjs from 'dayjs';
-import { formatCurrency } from '@/utils/formatCurrency';
+import { formatCurrency } from '@/utils/currencyUtils';
 import QuotationFilter from './QuotationFilter';
 import { deleteQuotation, convertToInvoice, updateQuotationStatus } from '@/app/(dashboard)/quotations/actions';
 

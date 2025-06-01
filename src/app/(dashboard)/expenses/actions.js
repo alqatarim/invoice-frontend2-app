@@ -1,7 +1,7 @@
 'use server';
 
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
-import { dataURLtoBlob } from '@/utils/helpers';
+import { dataURLtoBlob } from '@/utils/fileUtils';
 
 import dayjs from 'dayjs';
 

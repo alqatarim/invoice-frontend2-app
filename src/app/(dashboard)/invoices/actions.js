@@ -7,6 +7,10 @@ import { processSignatureImage } from '@/utils/fileUtils';
 
 
 const ENDPOINTS = {
+
+  LIST: {
+    CUSTOMERS: '/customers/listCustomers',
+  },
   INVOICE: {
     LIST: '/invoice',
     VIEW: '/invoice',
@@ -17,16 +21,20 @@ const ENDPOINTS = {
     CARD_COUNTS: '/invoice/invoiceCard',
     PDF_CREATE: '/invoice/pdfCreate',
     PDF_DOWNLOAD: '/invoice/pdfDownload',
-    CONVERT_SALES_RETURN: '/invoice'
+    CONVERT_SALES_RETURN: '/invoice',
+    // CUSTOMER_LIST: '/invoice/customer-list',
+        CUSTOMERS: '/drop_down/customer',
+
   },
   PAYMENT: {
     ADD: '/payment/addPayment'
   },
   DROPDOWN: {
-    CUSTOMER: '/drop_down/customer',
+    // CUSTOMER: '/drop_down/customer',
     PRODUCT: '/drop_down/product',
     TAX: '/drop_down/tax',
-    SIGNATURE: '/drop_down/signature'
+    SIGNATURE: '/drop_down/signature',
+
   },
   BANK: {
     LIST: '/bankSettings/listBanks',
@@ -128,7 +136,7 @@ export async function addPayment(paymentData) {
 export async function getInitialInvoiceData() {
   try {
     const [invoiceResponse, cardCountsResponse] = await Promise.all([
-      fetchWithAuth(`${ENDPOINTS.INVOICE.LIST}?limit=10&skip=0&sortBy=&sortDirection=asc`),
+      fetchWithAuth(`${ENDPOINTS.INVOICE.LIST}?page=1&pageSize=10&sortBy=&sortDirection=asc`),
       fetchWithAuth(ENDPOINTS.INVOICE.CARD_COUNTS)
     ]);
 
@@ -152,28 +160,99 @@ export async function getInitialInvoiceData() {
   }
 }
 
-/**
- * Get filtered and sorted invoices based on parameters.
- *
- * @param {string} tab - The current tab/status filter (e.g., 'ALL', 'PAID').
- * @param {number} page - The current page number.
- * @param {number} pageSize - The number of invoices per page.
- * @param {Object} filters - Additional filters (e.g., customer, invoiceNumber, date range).
- * @param {string} [sortBy=''] - The field to sort by.
- * @param {string} [sortDirection='asc'] - The direction to sort ('asc' or 'desc').
- * @returns {Promise<Object>} - The filtered invoices and updated pagination.
- * @throws {Error} - Throws an error with a detailed message if the operation fails.
- */
 export async function getFilteredInvoices(tab, page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc') {
-  const skip = (page - 1) * pageSize;
-  let url = ENDPOINTS.INVOICE.LIST + `?limit=${pageSize}&skip=${skip}`;
+  // Handle multiple status filtering
+  const statusFilters = filters.status && Array.isArray(filters.status) && filters.status.length > 0
+    ? filters.status
+    : (tab !== 'ALL' ? [tab] : []);
 
-  // Only apply status filter if tab is not 'ALL'
-  if (tab !== 'ALL') {
-    url += `&status=${encodeURIComponent(tab)}`;
+  // If no specific status filters or ALL is selected, fetch all invoices
+  if (statusFilters.length === 0 || statusFilters.includes('ALL')) {
+    return await fetchInvoicesWithSingleStatus(null, page, pageSize, filters, sortBy, sortDirection);
   }
 
-  // Apply additional filters
+  // If only one status filter, use the existing logic
+  if (statusFilters.length === 1) {
+    return await fetchInvoicesWithSingleStatus(statusFilters[0], page, pageSize, filters, sortBy, sortDirection);
+  }
+
+  // For multiple status filters, we need to fetch each status separately and combine
+  // Since the backend doesn't support multiple status filtering in a single call
+  try {
+    const allResults = [];
+    let totalRecords = 0;
+
+    // Fetch data for each status
+    for (const status of statusFilters) {
+      const result = await fetchInvoicesWithSingleStatus(status, 1, 1000, filters, sortBy, sortDirection);
+      allResults.push(...result.invoices);
+      // Note: totalRecords will be the sum of all status results, which might not be accurate for pagination
+    }
+
+    // Remove duplicates (in case an invoice appears in multiple status results)
+    const uniqueInvoices = allResults.filter((invoice, index, self) =>
+      index === self.findIndex(i => i._id === invoice._id)
+    );
+
+    // Apply client-side sorting if needed
+    if (sortBy) {
+      uniqueInvoices.sort((a, b) => {
+        let aValue = a[sortBy];
+        let bValue = b[sortBy];
+
+        // Handle nested properties like customerId.name
+        if (sortBy.includes('.')) {
+          const keys = sortBy.split('.');
+          aValue = keys.reduce((obj, key) => obj?.[key], a);
+          bValue = keys.reduce((obj, key) => obj?.[key], b);
+        }
+
+        // Handle different data types
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          const comparison = aValue.localeCompare(bValue);
+          return sortDirection === 'desc' ? -comparison : comparison;
+        }
+
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortDirection === 'desc' ? bValue - aValue : aValue - bValue;
+        }
+
+        // Default comparison
+        if (aValue < bValue) return sortDirection === 'desc' ? 1 : -1;
+        if (aValue > bValue) return sortDirection === 'desc' ? -1 : 1;
+        return 0;
+      });
+    }
+
+    // Apply client-side pagination
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedInvoices = uniqueInvoices.slice(startIndex, endIndex);
+
+    return {
+      invoices: paginatedInvoices,
+      pagination: {
+        current: page,
+        pageSize,
+        total: uniqueInvoices.length,
+      },
+    };
+  } catch (error) {
+    console.error('Error in getFilteredInvoices (multiple status):', error);
+    throw new Error(error.message || 'Failed to fetch filtered invoices');
+  }
+}
+
+async function fetchInvoicesWithSingleStatus(status, page, pageSize, filters, sortBy, sortDirection) {
+  // Build the URL with single status
+  let url = ENDPOINTS.INVOICE.LIST + `?page=${page}&pageSize=${pageSize}`;
+
+  // Apply single status filter
+  if (status && status !== 'ALL') {
+    url += `&status=${encodeURIComponent(status)}`;
+    }
+
+  // Apply additional filters (excluding status since we handle it separately)
   if (filters.customer && Array.isArray(filters.customer) && filters.customer.length > 0) {
       url += `&customer=${filters.customer.map(id => encodeURIComponent(id)).join(',')}`;
   }
@@ -186,42 +265,30 @@ export async function getFilteredInvoices(tab, page, pageSize, filters = {}, sor
   if (filters.toDate) {
       url += `&toDate=${encodeURIComponent(filters.toDate)}`;
   }
-  if (filters.status && Array.isArray(filters.status) && filters.status.length > 0) {
-      url += `&status=${filters.status.map(status => encodeURIComponent(status)).join(',')}`;
-  }
 
   // Apply sorting
   if (sortBy) {
       url += `&sortBy=${encodeURIComponent(sortBy)}&sortDirection=${encodeURIComponent(sortDirection)}`;
   }
 
-  try {
-      const response = await fetchWithAuth(url);
-      if (response.code === 200) {
-          return {
-              invoices: response.data || [],
-              pagination: {
-                  current: page,
-                  pageSize,
-                  total: response.totalRecords || 0,
-              },
-          };
-      } else {
-          console.error('Failed to fetch filtered invoices:', error);
-          throw new Error(error.message || 'Failed to fetch filtered invoices');
-      }
-  } catch (error) {
-    console.error('Error in getFilteredInvoices:', error);
-    throw new Error(error.message || 'Failed to fetch filtered invoices');
+  const response = await fetchWithAuth(url);
+
+  if (response.code === 200) {
+      return {
+          invoices: response.data || [],
+          pagination: {
+              current: page,
+              pageSize,
+              total: response.totalRecords || 0,
+          },
+      };
+  } else {
+      console.error('Failed to fetch filtered invoices:', response.message);
+      throw new Error(response.message || 'Failed to fetch filtered invoices');
   }
 }
 
-/**
-* Clone an invoice by ID.
-*
-* @param {string} id - The ID of the invoice to clone.
-* @returns {Promise<Object>} - The cloned invoice data.
-*/
+
 export async function cloneInvoice(id) {
   if (!id || typeof id !== 'string') {
       console.error('Invalid invoice ID for cloning:', id);
@@ -242,13 +309,7 @@ export async function cloneInvoice(id) {
   }
 }
 
-/**
- * Send an invoice by ID.
- *
- * @param {string} id - The ID of the invoice to send.
- * @returns {Promise<Object>} - The response from sending the invoice.
- * @throws {Error} - Throws an error with a detailed message if the operation fails.
- */
+
 export async function sendInvoice(id) {
   if (!id || typeof id !== 'string') {
     console.error('Invalid invoice ID for sending:', id);
@@ -272,14 +333,7 @@ export async function sendInvoice(id) {
   }
 }
 
-/**
- * Convert an invoice to a sales return.
- *
- * @param {string} id - The ID of the invoice to convert.
- * @param {string} type - The current tab/status.
- * @returns {Promise<Object>} - The response from the conversion.
- * @throws {Error} - Throws an error with a detailed message if the operation fails.
- */
+
 export async function convertTosalesReturn(id, type) {
   if (!id || typeof id !== 'string') {
     console.error('Invalid invoice ID for conversion:', id);
@@ -303,20 +357,13 @@ export async function convertTosalesReturn(id, type) {
   }
 }
 
-/**
- * Search customers by name.
- *
- * @param {string} searchTerm - The term to search for customers.
- * @returns {Promise<Object>} - The search results.
- * @throws {Error} - Throws an error with a detailed message if the operation fails.
- */
-export async function searchCustomers(searchTerm) {
-  if (!searchTerm || typeof searchTerm !== 'string') {
-    console.error('Invalid search term for customers:', searchTerm);
-    throw new Error('Invalid search term');
-  }
 
-  const url = ENDPOINTS.DROPDOWN.CUSTOMER + `?search_customer=${encodeURIComponent(searchTerm)}`;
+export async function searchCustomers(searchTerm = '') {
+  // If no search term provided, return all customers
+  const url = searchTerm
+    ? ENDPOINTS.LIST.CUSTOMERS + `?search_customer=${encodeURIComponent(searchTerm)}`
+    : ENDPOINTS.LIST.CUSTOMERS;
+
   try {
     const response = await fetchWithAuth(url);
     if (response.code === 200) {
@@ -334,13 +381,6 @@ export async function searchCustomers(searchTerm) {
   }
 }
 
-/**
- * Search invoices by invoice number.
- *
- * @param {string} searchTerm - The term to search for invoices.
- * @returns {Promise<Object>} - The search results.
- * @throws {Error} - Throws an error with a detailed message if the operation fails.
- */
 export async function searchInvoices(searchTerm) {
   if (!searchTerm || typeof searchTerm !== 'string') {
     console.error('Invalid search term for invoices:', searchTerm);
@@ -365,13 +405,7 @@ export async function searchInvoices(searchTerm) {
   }
 }
 
-/**
- * Send a payment link to the customer.
- *
- * @param {string} id - The ID of the invoice.
- * @returns {Promise<Object>} - The response from the backend.
- * @throws {Error} - Throws an error with a detailed message if the operation fails.
- */
+
 export async function sendPaymentLink(id) {
   if (!id || typeof id !== 'string') {
     console.error('Invalid invoice ID for sending payment link:', id);
@@ -401,13 +435,7 @@ export async function sendPaymentLink(id) {
   }
 }
 
-/**
- * Print or download the invoice as PDF.
- *
- * @param {string} id - The ID of the invoice.
- * @returns {Promise<string>} - The PDF URL.
- * @throws {Error} - Throws an error with a detailed message if the operation fails.
- */
+
 export async function printDownloadInvoice(id) {
   if (!id || typeof id !== 'string') {
     console.error('Invalid invoice ID for printing/downloading:', id);
@@ -522,7 +550,7 @@ export async function updateInvoice(id, updatedFormData) {
 
 export async function getCustomers() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER);
+    const response = await fetchWithAuth(ENDPOINTS.INVOICE.CUSTOMERS);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -615,13 +643,7 @@ export async function getManualSignatures() {
   }
 }
 
-/**
- * Add a new invoice.
- *
- * @param {Object} invoiceData - The invoice details.
- * @returns {Promise<Object>} - The response from the backend.
- * @throws {Error} - Throws an error with a detailed message if the operation fails.
- */
+
 export async function addInvoice(invoiceData) {
   const formData = new FormData();
   const dataSource = invoiceData.items || [];
@@ -669,6 +691,8 @@ export async function addInvoice(invoiceData) {
   formData.append("isRecurring", false);
   formData.append("recurringCycle", "0");
 
+
+
   // Handle signature based on sign_type
   if (invoiceData.sign_type === "eSignature") {
     formData.append("signatureName", invoiceData.signatureName || "");
@@ -686,8 +710,14 @@ export async function addInvoice(invoiceData) {
   } else if (invoiceData.sign_type === "manualSignature") {
     if (invoiceData.signatureId) {
       formData.append("signatureId", invoiceData.signatureId);
+    } else
+    {
+      formData.append("signatureId", '');
     }
   }
+  console.log('final form data', formData);
+
+
 
   try {
     const response = await fetchWithAuth(ENDPOINTS.INVOICE.ADD, {
@@ -706,11 +736,6 @@ export async function addInvoice(invoiceData) {
   }
 }
 
-/**
- * Fetch the next available invoice number from the backend.
- * @returns {Promise<string>} - The next invoice number.
- * @throws {Error} - Throws an error if the fetch fails.
- */
 export async function getNextInvoiceNumber() {
   try {
     const response = await fetchWithAuth(ENDPOINTS.INVOICE.GET_INVOICE_NUMBER);

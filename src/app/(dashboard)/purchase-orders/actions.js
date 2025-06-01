@@ -17,17 +17,227 @@ const ENDPOINTS = {
   }
 };
 
-export async function getPurchaseOrderList(page = 1, pageSize = 10) {
+export async function getPurchaseOrderList(page = 1, pageSize = 10, filters = {}, sortConfig = {}) {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.LIST);
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+
+    // Add pagination
+    queryParams.append('skip', (page - 1) * pageSize);
+    queryParams.append('limit', pageSize);
+
+    // Add filters
+    if (filters.vendorId) {
+      queryParams.append('vendorId', filters.vendorId);
+    }
+    if (filters.startDate) {
+      queryParams.append('startDate', filters.startDate);
+    }
+    if (filters.endDate) {
+      queryParams.append('endDate', filters.endDate);
+    }
+    if (filters.minAmount) {
+      queryParams.append('minAmount', filters.minAmount);
+    }
+    if (filters.maxAmount) {
+      queryParams.append('maxAmount', filters.maxAmount);
+    }
+    if (filters.status) {
+      queryParams.append('status', filters.status);
+    }
+    if (filters.purchaseOrderId) {
+      queryParams.append('purchaseOrderId', filters.purchaseOrderId);
+    }
+
+    // Add sorting
+    if (sortConfig.sortBy) {
+      queryParams.append('sortBy', sortConfig.sortBy);
+      queryParams.append('sortDirection', sortConfig.sortDirection || 'asc');
+    }
+
+    const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.LIST}?${queryParams.toString()}`);
+
+    // Ensure vendor information is properly populated
+    const enhancedData = response.data?.map(order => ({
+      ...order,
+      vendorInfo: order.vendorInfo || order.vendorId || {}
+    })) || [];
+
     return {
       success: true,
-      data: response.data || [],
-      totalRecords: response.data?.length || 0
+      data: enhancedData,
+      totalRecords: response.total || response.data?.length || 0,
+      page,
+      pageSize
     };
   } catch (error) {
     console.error('Error fetching purchase order list:', error);
-    return { success: false, message: error.message };
+    return {
+      success: false,
+      message: error.message,
+      data: [],
+      totalRecords: 0
+    };
+  }
+}
+
+export async function getFilteredPurchaseOrders(tab, page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc') {
+  // Handle multiple status filtering
+  const statusFilters = filters.status && Array.isArray(filters.status) && filters.status.length > 0
+    ? filters.status
+    : (tab !== 'ALL' ? [tab] : []);
+
+  // If no specific status filters or ALL is selected, fetch all purchase orders
+  if (statusFilters.length === 0 || statusFilters.includes('ALL')) {
+    return await fetchPurchaseOrdersWithSingleStatus(null, page, pageSize, filters, sortBy, sortDirection);
+  }
+
+  // If only one status filter, use the existing logic
+  if (statusFilters.length === 1) {
+    return await fetchPurchaseOrdersWithSingleStatus(statusFilters[0], page, pageSize, filters, sortBy, sortDirection);
+  }
+
+  // For multiple status filters, we need to fetch each status separately and combine
+  // Since the backend doesn't support multiple status filtering in a single call
+  try {
+    const allResults = [];
+    let totalRecords = 0;
+
+    // Fetch data for each status
+    for (const status of statusFilters) {
+      const result = await fetchPurchaseOrdersWithSingleStatus(status, 1, 1000, filters, sortBy, sortDirection);
+      allResults.push(...result.purchaseOrders);
+      // Note: totalRecords will be the sum of all status results, which might not be accurate for pagination
+    }
+
+    // Remove duplicates (in case a purchase order appears in multiple status results)
+    const uniquePurchaseOrders = allResults.filter((purchaseOrder, index, self) =>
+      index === self.findIndex(po => po._id === purchaseOrder._id)
+    );
+
+    // Apply client-side sorting if needed
+    if (sortBy) {
+      uniquePurchaseOrders.sort((a, b) => {
+        let aValue = a[sortBy];
+        let bValue = b[sortBy];
+
+        // Handle nested properties like vendorId.vendor_name
+        if (sortBy.includes('.')) {
+          const keys = sortBy.split('.');
+          aValue = keys.reduce((obj, key) => obj?.[key], a);
+          bValue = keys.reduce((obj, key) => obj?.[key], b);
+        }
+
+        // Handle different data types
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          const comparison = aValue.localeCompare(bValue);
+          return sortDirection === 'desc' ? -comparison : comparison;
+        }
+
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortDirection === 'desc' ? bValue - aValue : aValue - bValue;
+        }
+
+        // Default comparison
+        if (aValue < bValue) return sortDirection === 'desc' ? 1 : -1;
+        if (aValue > bValue) return sortDirection === 'desc' ? -1 : 1;
+        return 0;
+      });
+    }
+
+    // Apply client-side pagination
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedPurchaseOrders = uniquePurchaseOrders.slice(startIndex, endIndex);
+
+    return {
+      purchaseOrders: paginatedPurchaseOrders,
+      pagination: {
+        current: page,
+        pageSize,
+        total: uniquePurchaseOrders.length,
+      },
+    };
+  } catch (error) {
+    console.error('Error in getFilteredPurchaseOrders (multiple status):', error);
+    throw new Error(error.message || 'Failed to fetch filtered purchase orders');
+  }
+}
+
+async function fetchPurchaseOrdersWithSingleStatus(status, page, pageSize, filters, sortBy, sortDirection) {
+  // Build the URL with single status
+  let url = ENDPOINTS.PURCHASE_ORDER.LIST + `?page=${page}&pageSize=${pageSize}`;
+
+  // Apply single status filter
+  if (status && status !== 'ALL') {
+    url += `&status=${encodeURIComponent(status)}`;
+  }
+
+  // Apply additional filters (excluding status since we handle it separately)
+  if (filters.vendor && Array.isArray(filters.vendor) && filters.vendor.length > 0) {
+    url += `&vendor=${filters.vendor.map(id => encodeURIComponent(id)).join(',')}`;
+  }
+  if (filters.purchaseOrderId && Array.isArray(filters.purchaseOrderId) && filters.purchaseOrderId.length > 0) {
+    url += `&purchaseOrderId=${filters.purchaseOrderId.map(id => encodeURIComponent(id)).join(',')}`;
+  }
+  if (filters.fromDate) {
+    url += `&fromDate=${encodeURIComponent(filters.fromDate)}`;
+  }
+  if (filters.toDate) {
+    url += `&toDate=${encodeURIComponent(filters.toDate)}`;
+  }
+
+  // Apply sorting
+  if (sortBy) {
+    url += `&sortBy=${encodeURIComponent(sortBy)}&sortDirection=${encodeURIComponent(sortDirection)}`;
+  }
+
+  const response = await fetchWithAuth(url);
+
+  if (response.code === 200 || response.data) {
+    // Ensure vendor information is properly populated
+    const enhancedData = response.data?.map(order => ({
+      ...order,
+      vendorDetails: order.vendorDetails || order.vendorId || order.vendorInfo || {},
+      vendorInfo: order.vendorInfo || order.vendorId || order.vendorDetails || {}
+    })) || [];
+
+    return {
+      purchaseOrders: enhancedData,
+      pagination: {
+        current: page,
+        pageSize,
+        total: response.totalRecords || response.total || enhancedData.length,
+      },
+    };
+  } else {
+    console.error('Failed to fetch filtered purchase orders:', response.message);
+    throw new Error(response.message || 'Failed to fetch filtered purchase orders');
+  }
+}
+
+export async function searchPurchaseOrders(searchTerm) {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.LIST}?search=${encodeURIComponent(searchTerm)}`);
+
+    const enhancedData = response.data?.map(order => ({
+      ...order,
+      vendorInfo: order.vendorInfo || order.vendorId || {}
+    })) || [];
+
+    return {
+      success: true,
+      data: enhancedData,
+      totalRecords: response.total || response.data?.length || 0
+    };
+  } catch (error) {
+    console.error('Error searching purchase orders:', error);
+    return {
+      success: false,
+      message: error.message,
+      data: [],
+      totalRecords: 0
+    };
   }
 }
 
@@ -424,5 +634,96 @@ export async function addBank(bankData) {
   } catch (error) {
     console.error('Error in addBank:', error);
     throw error;
+  }
+}
+
+export async function exportPurchaseOrders(format = 'csv', filters = {}) {
+  try {
+    const queryParams = new URLSearchParams({
+      format,
+      ...filters
+    });
+
+    const response = await fetchWithAuth(
+      `/purchase_orders/export?${queryParams.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': format === 'csv' ? 'text/csv' : 'application/pdf'
+        }
+      }
+    );
+
+    return {
+      success: true,
+      data: response
+    };
+  } catch (error) {
+    console.error('Error exporting purchase orders:', error);
+    return {
+      success: false,
+      message: error.message
+    };
+  }
+}
+
+export async function getPurchaseOrderStats() {
+  try {
+    const response = await fetchWithAuth('/purchase_orders/stats');
+
+    return {
+      success: true,
+      data: response.data || {
+        totalOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        totalAmount: 0,
+        avgOrderValue: 0
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching purchase order stats:', error);
+    return {
+      success: false,
+      message: error.message,
+      data: {
+        totalOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        totalAmount: 0,
+        avgOrderValue: 0
+      }
+    };
+  }
+}
+
+export async function getInitialPurchaseOrderData() {
+  try {
+    const response = await fetchWithAuth('/purchase_orders/getAllData');
+
+    if (response.code === 200) {
+      return {
+        purchaseOrders: response.data || [],
+        cardCounts: response.cardCounts || {},
+        pagination: {
+          current: 1,
+          pageSize: 10,
+          total: response.total || 0
+        }
+      };
+    }
+
+    throw new Error(response.message || 'Failed to fetch purchase order data');
+  } catch (error) {
+    console.error('Error fetching initial purchase order data:', error);
+    return {
+      purchaseOrders: [],
+      cardCounts: {},
+      pagination: {
+        current: 1,
+        pageSize: 10,
+        total: 0
+      }
+    };
   }
 }

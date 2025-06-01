@@ -60,6 +60,54 @@ const verticalMenuData = (dictionary, params) => [
         ]
       },
       {
+        label: dictionary['navigation'].purchaseReturn,
+        icon: 'ri-refund-2-line',
+        children: [
+          {
+            label: dictionary['navigation'].list,
+            icon: 'ri-circle-line',
+            href: '/debitNotes/purchaseReturn-list'
+          },
+          {
+            label: dictionary['navigation'].add,
+            icon: 'ri-circle-line',
+            href: '/debitNotes/purchaseReturn-add'
+          }
+        ]
+      },
+      {
+        label: dictionary['navigation'].purchases,
+        icon: 'ri-shopping-cart-2-line',
+        children: [
+          {
+            label: dictionary['navigation'].list,
+            icon: 'ri-circle-line',
+            href: '/purchases/purchase-list'
+          },
+          {
+            label: dictionary['navigation'].add,
+            icon: 'ri-circle-line',
+            href: '/purchases/purchase-add'
+          }
+        ]
+      },
+      {
+        label: dictionary['navigation'].purchaseOrder,
+        icon: 'ri-file-list-3-line',
+        children: [
+          {
+            label: dictionary['navigation'].list,
+            icon: 'ri-circle-line',
+            href: '/purchase-orders/purchase-order-list'
+          },
+          {
+            label: dictionary['navigation'].add,
+            icon: 'ri-circle-line',
+            href: '/purchase-orders/purchase-order-add'
+          }
+        ]
+      },
+      {
         label: dictionary['navigation'].user,
         icon: 'ri-user-line',
         children: [

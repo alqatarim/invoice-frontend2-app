@@ -5,6 +5,7 @@ import MuiCard from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
+import { Icon } from '@iconify/react'
 //Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'
 
@@ -25,17 +26,19 @@ const Card = styled(MuiCard)(({ color }) => ({
 
 const HorizontalWithBorder = props => {
   // Props
-  const { title, subtitle,  titleVariant, subtitleVariant, stats, trendNumber, avatarIcon, color, iconSize, statsVariant,trendNumberVariant } = props
+  const { title, subtitle,  titleVariant, subtitleVariant, stats, trendNumber, avatarIcon, color, iconSize, statsVariant,trendNumberVariant, fontSize } = props
 
   return (
-    <Card color={color || 'primary'}>
+   <Card color={color || 'primary'} className='bg-transparent border rounded shadow-none'>
+   {/* <Card color={color || 'primary'}> */}
+
       <CardContent className='flex flex-col gap-4 p-4 pb-2'>
         <div className='flex items-center gap-4 '>
-          <CustomAvatar color={color} skin='light' variant='rounded' size='auto' className='p-1'>
-            <i className={avatarIcon} style={{fontSize: iconSize}}/>
+          <CustomAvatar color={color} skin='light' variant='rounded' size='small' className='p-1'>
+            <Icon icon={avatarIcon} style={{fontSize: iconSize}}/>
 
           </CustomAvatar>
-          <Typography variant={ statsVariant || 'h4'}>{stats}</Typography>
+          <Typography variant={ statsVariant || 'h4'} fontSize={ fontSize || '1.25rem'}>{stats}</Typography>
         </div>
         <div className='flex flex-col justify-center gap-0'>
           <Typography variant={ titleVariant || 'h4'}>{title}</Typography>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Box,
@@ -44,6 +44,17 @@ import dayjs from 'dayjs';
 import { Icon } from '@iconify/react';
 import { useTheme } from '@mui/material/styles';
 
+// Define default columns outside component to prevent re-creation
+const DEFAULT_COLUMNS = [
+  { key: 'purchaseId', label: 'Purchase ID', visible: true },
+  { key: 'vendor', label: 'Vendor', visible: true },
+  { key: 'amount', label: 'Total Amount', visible: true },
+  { key: 'paymentMode', label: 'Payment Mode', visible: true },
+  { key: 'date', label: 'Date', visible: true },
+  { key: 'status', label: 'Status', visible: true },
+  { key: 'action', label: 'Actions', visible: true }
+];
+
 const PurchaseList = ({
   purchaseList,
   totalCount,
@@ -72,19 +83,8 @@ const PurchaseList = ({
   const canDelete = usePermission('purchase', 'delete');
   const isAdmin = usePermission('purchase', 'isAdmin');
 
-  // Define default columns
-  const defaultColumns = [
-
-    { key: 'purchaseId', label: 'Purchase ID', visible: true },
-    { key: 'vendor', label: 'Vendor', visible: true },
-    { key: 'amount', label: 'Total Amount', visible: true },
-    { key: 'paymentMode', label: 'Payment Mode', visible: true },
-    { key: 'date', label: 'Date', visible: true },
-    { key: 'status', label: 'Status', visible: true },
-    { key: 'action', label: 'Actions', visible: true }
-  ];
-
-  const [columns, setColumns] = useState(defaultColumns);
+  // Memoize columns to prevent re-creation on every render
+  const [columns, setColumns] = useState(() => DEFAULT_COLUMNS);
 
   const handleMenuOpen = (event, purchase) => {
     event.preventDefault();
@@ -95,7 +95,6 @@ const PurchaseList = ({
   };
 
   const handleMenuClose = () => {
-
     setAnchorEl(null);
     setSelectedPurchase(null);
   };
@@ -225,14 +224,11 @@ const PurchaseList = ({
                 ))
               ) : purchaseList.length > 0 ? (
                 purchaseList.map((purchase, index) => {
-
                   return (
                     <TableRow key={purchase._id} hover>
                       {columns.map(column =>
                         column.visible && (
                           <TableCell key={column.key}>
-
-
                             {column.key === 'purchaseId' && (
                               <Link
                                 href={`/purchases/purchase-view/${purchase._id}`}
@@ -249,7 +245,6 @@ const PurchaseList = ({
                                 </Typography>
                               </Link>
                             )}
-
                             {column.key === 'vendor' && (
                               <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                 <Link
@@ -271,17 +266,14 @@ const PurchaseList = ({
                                 </Typography>
                               </Box>
                             )}
-
                             {column.key === 'amount' && (
                               <Typography variant="body1">
-
                                 { Number(purchase.TotalAmount).toLocaleString('en-IN', {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })} SAR
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })} SAR
                               </Typography>
                             )}
-
                             {column.key === 'paymentMode' && (
                               <Chip
                                 size='medium'
@@ -289,15 +281,12 @@ const PurchaseList = ({
                                 color="secondary"
                                 label={purchase.paymentMode}
                               />
-
                             )}
-
                             {column.key === 'date' && (
                               <Typography variant="body1">
                                 {dayjs(purchase.purchaseDate).format('DD MMM YYYY')}
                               </Typography>
                             )}
-
                             {column.key === 'status' && (
                               <Chip
                                 label={purchase.status}
@@ -311,7 +300,6 @@ const PurchaseList = ({
                                 }
                               />
                             )}
-
                             {column.key === 'action' && (canUpdate || isAdmin) && (
                               <IconButton
                                 size="small"
@@ -372,7 +360,6 @@ const PurchaseList = ({
       >
         {(canUpdate || isAdmin) && selectedPurchase && (
           <>
-
             <MenuItem
               component={Link}
               href={`/purchases/purchase-edit/${selectedPurchase._id}`}

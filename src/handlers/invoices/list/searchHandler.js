@@ -1,9 +1,10 @@
+'use client';
+
 import { useState, useCallback } from 'react';
 import { searchCustomers, searchInvoices } from '@/app/(dashboard)/invoices/actions';
 
 /**
- * searchHandler
- * Handles async search for customers and invoices for filters/autocomplete.
+ * Generic search handler for invoice list filters.
  */
 export function searchHandler() {
   const [customerOptions, setCustomerOptions] = useState([]);
@@ -11,29 +12,39 @@ export function searchHandler() {
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   const [invoiceSearchLoading, setInvoiceSearchLoading] = useState(false);
 
-  const handleCustomerSearch = useCallback(async (searchTerm) => {
-    setCustomerSearchLoading(true);
+  /**
+   * Generic search function with error handling.
+   */
+  const performSearch = useCallback(async (searchFn, searchTerm, setOptions, setLoading, formatFn) => {
+    setLoading(true);
     try {
-      const customers = await searchCustomers(searchTerm);
-      setCustomerOptions(customers.map(c => ({ value: c._id, label: c.name })));
-    } catch {
-      setCustomerOptions([]);
+      const results = await searchFn(searchTerm);
+      setOptions(results.map(formatFn));
+    } catch (error) {
+      console.error('Search error:', error);
+      setOptions([]);
     } finally {
-      setCustomerSearchLoading(false);
+      setLoading(false);
     }
   }, []);
 
-  const handleInvoiceSearch = useCallback(async (searchTerm) => {
-    setInvoiceSearchLoading(true);
-    try {
-      const invoices = await searchInvoices(searchTerm);
-      setInvoiceOptions(invoices.map(inv => ({ value: inv.invoiceNumber, label: inv.invoiceNumber })));
-    } catch {
-      setInvoiceOptions([]);
-    } finally {
-      setInvoiceSearchLoading(false);
-    }
-  }, []);
+  const handleCustomerSearch = useCallback((searchTerm) =>
+    performSearch(
+      searchCustomers,
+      searchTerm,
+      setCustomerOptions,
+      setCustomerSearchLoading,
+      customer => ({ value: customer._id, label: customer.name })
+    ), [performSearch]);
+
+  const handleInvoiceSearch = useCallback((searchTerm) =>
+    performSearch(
+      searchInvoices,
+      searchTerm,
+      setInvoiceOptions,
+      setInvoiceSearchLoading,
+      invoice => ({ value: invoice.invoiceNumber, label: invoice.invoiceNumber })
+    ), [performSearch]);
 
   return {
     customerOptions,

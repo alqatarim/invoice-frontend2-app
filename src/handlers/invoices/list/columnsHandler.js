@@ -1,23 +1,59 @@
-// Column handler utilities for InvoiceList
+'use client'
 
-export function handleManageColumnsOpen(setAvailableColumns, setManageColumnsOpen, columns) {
-  setAvailableColumns(columns);
-  setManageColumnsOpen(true);
-}
+import { useState, useCallback, useMemo } from 'react';
 
-export function handleManageColumnsClose(setManageColumnsOpen) {
-  setManageColumnsOpen(false);
-}
+/**
+ * Column visibility management for invoice list.
+ */
+export function columnsHandler(initialColumns = []) {
+  const [availableColumns, setAvailableColumns] = useState(initialColumns);
+  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
 
-export function handleColumnToggle(setAvailableColumns, columnKey) {
-  setAvailableColumns(prevColumns =>
-    prevColumns.map(col =>
-      col.key === columnKey ? { ...col, visible: !col.visible } : col
-    )
+  const handleManageColumnsOpen = useCallback(() => {
+    setAvailableColumns(initialColumns);
+    setManageColumnsOpen(true);
+  }, [initialColumns]);
+
+  const handleManageColumnsClose = useCallback(() => {
+    setManageColumnsOpen(false);
+  }, []);
+
+  const handleColumnToggle = useCallback((columnKey) => {
+    setAvailableColumns(prev =>
+      prev.map(col =>
+        col.key === columnKey ? { ...col, visible: !col.visible } : col
+      )
+    );
+  }, []);
+
+  const handleManageColumnsSave = useCallback((setColumns) => {
+    setColumns(availableColumns);
+    setManageColumnsOpen(false);
+    localStorage.setItem('invoiceVisibleColumns', JSON.stringify(availableColumns));
+  }, [availableColumns]);
+
+  const handleColumnCheckboxChange = useCallback((columnKey, checked) => {
+    setAvailableColumns(prev =>
+      prev.map(col =>
+        col.key === columnKey ? { ...col, visible: checked } : col
+      )
+    );
+  }, []);
+
+  // Memoize visible columns count
+  const visibleColumnsCount = useMemo(() =>
+    availableColumns.filter(col => col.visible).length,
+    [availableColumns]
   );
-}
 
-export function handleManageColumnsSave(setColumns, setManageColumnsOpen, availableColumns) {
-  setColumns(availableColumns);
-  setManageColumnsOpen(false);
+  return {
+    availableColumns,
+    manageColumnsOpen,
+    visibleColumnsCount,
+    handleManageColumnsOpen,
+    handleManageColumnsClose,
+    handleColumnToggle,
+    handleManageColumnsSave,
+    handleColumnCheckboxChange,
+  };
 }

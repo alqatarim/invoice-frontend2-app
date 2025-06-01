@@ -59,9 +59,9 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { alpha } from '@mui/material/styles';
 import { addPurchase } from '@/app/(dashboard)/purchases/actions';
-import { purchaseCalculations } from '@/utils/helpers';
+import { purchaseCalculations } from '@/utils/purchaseCalculations';
 
-const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, purchaseNumber }) => {
+const AddPurchase = ({ onSave, vendors, products, taxRates, banks, signatures, units, purchaseNumber }) => {
 
 
 

@@ -1,51 +1,40 @@
-import { useState } from 'react';
+'use client'
+
+import { useState, useCallback } from 'react';
 
 /**
- * convertDialogHandler
- * Handles state and logic for the Convert to Sales Return dialog.
- * @param {Object} params
- * @param {Function} params.handleConvertToSalesReturn - Function to perform the conversion.
- * @param {Function} params.onError - Callback for error snackbar.
- * @param {Function} params.onSuccess - Callback for success snackbar.
+ * Dialog handler for converting invoices to sales returns.
  */
 export function convertDialogHandler({ handleConvertToSalesReturn, onError, onSuccess }) {
-  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
-  const [invoiceToConvert, setInvoiceToConvert] = useState(null);
+  const [dialogState, setDialogState] = useState({
+    open: false,
+    invoice: null
+  });
 
-  /**
-   * Open the Convert to Sales Return dialog.
-   * @param {object} invoice - The invoice to convert.
-   */
-  const openConvertDialog = (invoice) => {
-    setInvoiceToConvert(invoice);
-    setConvertDialogOpen(true);
-  };
+  const openConvertDialog = useCallback((invoice) => {
+    setDialogState({ open: true, invoice });
+  }, []);
 
-  /**
-   * Close the Convert to Sales Return dialog.
-   */
-  const closeConvertDialog = () => {
-    setInvoiceToConvert(null);
-    setConvertDialogOpen(false);
-  };
+  const closeConvertDialog = useCallback(() => {
+    setDialogState({ open: false, invoice: null });
+  }, []);
 
-  /**
-   * Confirm conversion to sales return.
-   */
-  const confirmConvertToSalesReturn = async () => {
-    if (!invoiceToConvert) return;
+  const confirmConvertToSalesReturn = useCallback(async () => {
+    const { invoice } = dialogState;
+    if (!invoice) return;
+
     try {
-      await handleConvertToSalesReturn(invoiceToConvert.id || invoiceToConvert._id);
+      await handleConvertToSalesReturn(invoice.id || invoice._id);
       closeConvertDialog();
-      if (onSuccess) onSuccess('Invoice converted to sales return successfully.');
+      onSuccess?.('Invoice converted to sales return successfully.');
     } catch (error) {
-      if (onError) onError(error.message || 'Failed to convert invoice to sales return.');
+      onError?.(error.message || 'Failed to convert invoice to sales return.');
     }
-  };
+  }, [dialogState.invoice, handleConvertToSalesReturn, closeConvertDialog, onSuccess, onError]);
 
   return {
-    convertDialogOpen,
-    invoiceToConvert,
+    convertDialogOpen: dialogState.open,
+    invoiceToConvert: dialogState.invoice,
     openConvertDialog,
     closeConvertDialog,
     confirmConvertToSalesReturn,
