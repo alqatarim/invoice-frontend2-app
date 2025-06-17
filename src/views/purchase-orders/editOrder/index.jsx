@@ -3,63 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { Snackbar, Alert, CircularProgress, Box, Typography } from '@mui/material';
 import EditPurchaseOrder from '@/views/purchase-orders/editOrder/EditPurchaseOrder';
-import {
-  updatePurchaseOrder,
-  getPurchaseOrderDetails,
-  getDropdownData
-} from '@/app/(dashboard)/purchase-orders/actions';
+import {updatePurchaseOrder} from '@/app/(dashboard)/purchase-orders/actions';
 
-const EditPurchaseOrderIndex = ({ orderId }) => {
+
+
+const EditPurchaseOrderIndex = ({ orderId, purchaseOrderData, vendorsData, productData, taxRates, initialBanks, signatures }) => {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'info'
   });
-
-  const [orderData, setOrderData] = useState(null);
-  const [dropdownData, setDropdownData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch both order details and dropdown data in parallel
-        const [orderResponse, dropdownResponse] = await Promise.all([
-          getPurchaseOrderDetails(orderId),
-          getDropdownData()
-        ]);
-
-        if (!orderResponse.success) {
-          throw new Error(orderResponse.message || 'Failed to fetch purchase order');
-        }
-
-        if (!dropdownResponse.success) {
-          throw new Error(dropdownResponse.message || 'Failed to fetch dropdown data');
-        }
-
-        setOrderData(orderResponse.data);
-        setDropdownData(dropdownResponse.data);
-
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError(error.message || 'An unexpected error occurred');
-        setSnackbar({
-          open: true,
-          message: error.message || 'An unexpected error occurred',
-          severity: 'error'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (orderId) {
-      fetchData();
-    }
-  }, [orderId]);
 
   const handleSnackbarClose = (event, reason) => {
     if (reason === 'clickaway') return;
@@ -113,32 +66,22 @@ const EditPurchaseOrderIndex = ({ orderId }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
-  if (error || !orderData || !dropdownData) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Typography color="error">{error || 'Failed to load required data'}</Typography>
-      </Box>
-    );
-  }
+console.log('signatures!!!!!!!');
+console.log(signatures);
+
+
 
   return (
     <>
       <EditPurchaseOrder
-        orderData={orderData}
+        purchaseOrderData={purchaseOrderData}
         onSave={handleSave}
-        vendors={dropdownData.vendors}
-        products={dropdownData.products}
-        taxRates={dropdownData.taxRates}
-        banks={dropdownData.banks}
-        signatures={dropdownData.signatures}
+        vendorsData={vendorsData}
+        productData={productData}
+        taxRates={taxRates}
+        initialBanks={initialBanks}
+        signatures={signatures}
       />
 
       <Snackbar

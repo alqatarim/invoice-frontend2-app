@@ -48,7 +48,7 @@ const ViewinvoiceComponentController = (props) => {
       data?.received_on == undefined ? new Date() : data?.received_on;
 
     const formData = {};
-    formData.amount = Number(data?.amount).toFixed(2);
+    formData.amount = Number(data?.amount || 0).toFixed(2);
     formData.invoiceAmount = data?.invoiceAmount || 0;
     formData.payment_method = data?.payment_method?.id;
     formData.received_on = format(received_on, "dd/MM/yyyy");

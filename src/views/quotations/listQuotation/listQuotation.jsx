@@ -78,7 +78,7 @@ const getStatusColor = (status) => {
 const formatNumber = (value) => {
   if (value === null || value === undefined) return '0.00';
   const num = typeof value === 'string' ? parseFloat(value) : value;
-  return isNaN(num) ? '0.00' : num.toFixed(2);
+  return isNaN(num) ? '0.00' : Number(num).toFixed(2);
 };
 
 // Helper function to map API status to display status

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Skeleton, Box } from '@mui/material';
-import ViewPurchaseReturn from './ViewPurchaseReturn';
+import ViewDebitNote from './ViewDebitNote';
 import { usePurchaseReturnViewHandlers } from '@/handlers/purchaseReturn/view/usePurchaseReturnViewHandlers';
 
 const ViewPurchaseReturnIndex = ({ debitNoteId }) => {
@@ -26,7 +26,10 @@ const ViewPurchaseReturnIndex = ({ debitNoteId }) => {
   }
 
   return (
-    <ViewPurchaseReturn handlers={handlers} />
+    <ViewDebitNote
+      debitNoteData={handlers.debitNoteData}
+      loading={handlers.isLoading}
+    />
   );
 };
 

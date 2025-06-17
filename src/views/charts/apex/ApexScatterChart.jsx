@@ -128,7 +128,7 @@ const ApexScatterChart = () => {
       },
       labels: {
         style: { colors: textDisabled, fontSize: '13px' },
-        formatter: val => parseFloat(val).toFixed(1)
+        formatter: val => Number(parseFloat(val)).toFixed(1)
       }
     }
   }

@@ -87,7 +87,7 @@ const ViewPurchaseReturn = ({ handlers }) => {
                   </Typography>
                 </div>
               </div>
-              
+
               <div className="flex gap-2">
                 <Button
                   variant="outlined"
@@ -97,7 +97,7 @@ const ViewPurchaseReturn = ({ handlers }) => {
                 >
                   Edit
                 </Button>
-                
+
                 <Button
                   variant="outlined"
                   startIcon={<Icon icon="tabler:copy" />}
@@ -106,7 +106,7 @@ const ViewPurchaseReturn = ({ handlers }) => {
                 >
                   Clone
                 </Button>
-                
+
                 <Button
                   variant="outlined"
                   startIcon={<Icon icon="tabler:printer" />}
@@ -115,7 +115,7 @@ const ViewPurchaseReturn = ({ handlers }) => {
                 >
                   Print
                 </Button>
-                
+
                 <Button
                   variant="outlined"
                   color="error"
@@ -125,7 +125,7 @@ const ViewPurchaseReturn = ({ handlers }) => {
                 >
                   Delete
                 </Button>
-                
+
                 <Button
                   component={Link}
                   href="/debitNotes/purchaseReturn-list"
@@ -155,12 +155,12 @@ const ViewPurchaseReturn = ({ handlers }) => {
                   Debit Note
                 </Typography>
               </div>
-              
+
               <div className="text-right">
                 <Typography variant="h6" className="font-semibold text-primary mb-1">
                   #{debitNoteData.debit_note_id}
                 </Typography>
-                <Chip 
+                <Chip
                   label={debitNoteData.status || 'Pending'}
                   color={getStatusColor(debitNoteData.status)}
                   size="small"
@@ -334,49 +334,49 @@ const ViewPurchaseReturn = ({ handlers }) => {
                   </div>
                 )}
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
                   <CardContent className="p-4">
                     <Typography variant="h6" className="font-semibold mb-4 text-blue-800">
                       Return Summary
                     </Typography>
-                    
+
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <Typography variant="body2" className="text-gray-700">Subtotal:</Typography>
                         <Typography variant="body2" className="font-medium">
-                          {calculations?.subtotal?.toFixed(2) || (Number(debitNoteData.taxableAmount || 0) + Number(debitNoteData.totalDiscount || 0)).toFixed(2)}
+                          {calculations?.subtotal ? Number(calculations.subtotal).toFixed(2) : Number(debitNoteData.taxableAmount || 0 + debitNoteData.totalDiscount || 0).toFixed(2)}
                         </Typography>
                       </div>
-                      
+
                       <div className="flex justify-between">
                         <Typography variant="body2" className="text-gray-700">Discount:</Typography>
                         <Typography variant="body2" className="font-medium text-orange-600">
-                          -{calculations?.totalDiscount?.toFixed(2) || (Number(debitNoteData.totalDiscount) || 0).toFixed(2)}
+                          -{calculations?.totalDiscount ? Number(calculations.totalDiscount).toFixed(2) : Number(debitNoteData.totalDiscount || 0).toFixed(2)}
                         </Typography>
                       </div>
-                      
+
                       <div className="flex justify-between">
                         <Typography variant="body2" className="text-gray-700">Taxable Amount:</Typography>
                         <Typography variant="body2" className="font-medium">
-                          {calculations?.taxableAmount?.toFixed(2) || (Number(debitNoteData.taxableAmount) || 0).toFixed(2)}
+                          {calculations?.taxableAmount ? Number(calculations.taxableAmount).toFixed(2) : Number(debitNoteData.taxableAmount || 0).toFixed(2)}
                         </Typography>
                       </div>
-                      
+
                       <div className="flex justify-between">
                         <Typography variant="body2" className="text-gray-700">Tax (VAT):</Typography>
                         <Typography variant="body2" className="font-medium text-blue-600">
-                          {calculations?.totalTax?.toFixed(2) || (Number(debitNoteData.vat) || 0).toFixed(2)}
+                          {calculations?.totalTax ? Number(calculations.totalTax).toFixed(2) : Number(debitNoteData.vat || 0).toFixed(2)}
                         </Typography>
                       </div>
-                      
+
                       <Divider className="my-2" />
-                      
+
                       <div className="flex justify-between">
                         <Typography variant="h6" className="font-bold text-gray-800">Total Amount:</Typography>
                         <Typography variant="h6" className="font-bold text-green-600">
-                          {calculations?.totalAmount?.toFixed(2) || (Number(debitNoteData.TotalAmount) || 0).toFixed(2)}
+                          {calculations?.totalAmount ? Number(calculations.totalAmount).toFixed(2) : Number(debitNoteData.TotalAmount || 0).toFixed(2)}
                         </Typography>
                       </div>
                     </div>
@@ -396,9 +396,9 @@ const ViewPurchaseReturn = ({ handlers }) => {
                 <div>
                   {debitNoteData.signatureImage && (
                     <div className="mb-2">
-                      <img 
-                        src={debitNoteData.signatureImage} 
-                        alt="Signature" 
+                      <img
+                        src={debitNoteData.signatureImage}
+                        alt="Signature"
                         className="max-h-16 border border-gray-300 rounded p-1"
                       />
                     </div>
@@ -414,7 +414,7 @@ const ViewPurchaseReturn = ({ handlers }) => {
                     </Typography>
                   </div>
                 </div>
-                
+
                 <div className="text-right">
                   <Typography variant="body2" className="text-gray-600">
                     Date: {formatDate(debitNoteData.purchaseOrderDate)}
@@ -467,9 +467,9 @@ const ViewPurchaseReturn = ({ handlers }) => {
           <Button onClick={handlers.handleDeleteDialogClose}>
             Cancel
           </Button>
-          <Button 
-            onClick={handlers.handleDelete} 
-            color="error" 
+          <Button
+            onClick={handlers.handleDelete}
+            color="error"
             variant="contained"
             disabled={handlers.isDeleting}
             startIcon={handlers.isDeleting ? <Icon icon="tabler:loader" className="animate-spin" /> : <Icon icon="tabler:trash" />}
@@ -500,9 +500,9 @@ const ViewPurchaseReturn = ({ handlers }) => {
           <Button onClick={handlers.handleCloneDialogClose}>
             Cancel
           </Button>
-          <Button 
-            onClick={handlers.handleClone} 
-            color="info" 
+          <Button
+            onClick={handlers.handleClone}
+            color="info"
             variant="contained"
             disabled={handlers.isCloning}
             startIcon={handlers.isCloning ? <Icon icon="tabler:loader" className="animate-spin" /> : <Icon icon="tabler:copy" />}
@@ -519,23 +519,23 @@ const ViewPurchaseReturn = ({ handlers }) => {
             -webkit-print-color-adjust: exact;
             color-adjust: exact;
           }
-          
+
           .print\\:hidden {
             display: none !important;
           }
-          
+
           .print\\:shadow-none {
             box-shadow: none !important;
           }
-          
+
           .print\\:border-none {
             border: none !important;
           }
-          
+
           .print\\:p-6 {
             padding: 1.5rem !important;
           }
-          
+
           @page {
             size: A4;
             margin: 1cm;

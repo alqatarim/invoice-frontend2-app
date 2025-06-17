@@ -60,6 +60,89 @@ export async function getInvoices() {
 
 
 
+/**
+ * Get initial payment data with default pagination and sorting.
+ *
+ * @returns {Promise<Object>} - The initial payment data including payments and pagination.
+ * @throws {Error} - Throws an error with a detailed message if the operation fails.
+ */
+export async function getInitialPaymentData() {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.PAYMENT.LIST}?skip=0&limit=10`);
+
+    if (response.code === 200) {
+      const result = {
+        payments: response.data || [],
+        pagination: {
+          current: 1,
+          pageSize: 10,
+          total: response.totalRecords || 0,
+        },
+      };
+
+      return result;
+    } else {
+      console.error('Failed to fetch initial payment data - Response code:', response.code);
+      throw new Error('Failed to fetch initial payment data');
+    }
+  } catch (error) {
+    console.error('Error in getInitialPaymentData:', error);
+    throw new Error(error.message || 'Failed to fetch initial payment data');
+  }
+}
+
+/**
+ * Get filtered payments with pagination and sorting.
+ *
+ * @param {number} page - Page number.
+ * @param {number} pageSize - Number of items per page.
+ * @param {Object} filters - Filter options.
+ * @param {string} sortBy - Sort field.
+ * @param {string} sortDirection - Sort direction (asc/desc).
+ * @returns {Promise<Object>} - Filtered payment data.
+ */
+export async function getFilteredPayments(page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc') {
+  try {
+    const skip = (page - 1) * pageSize;
+    let url = ENDPOINTS.PAYMENT.LIST + `?skip=${skip}&limit=${pageSize}`;
+
+    // Apply filters
+    if (filters.customer && Array.isArray(filters.customer) && filters.customer.length > 0) {
+      url += `&customer=${filters.customer.map(id => encodeURIComponent(id)).join(',')}`;
+    }
+    if (filters.search) {
+      url += `&search=${encodeURIComponent(filters.search)}`;
+    }
+    if (filters.status !== undefined && filters.status !== '') {
+      url += `&status=${encodeURIComponent(filters.status)}`;
+    }
+    
+    // Apply sorting
+    if (sortBy) {
+      url += `&sortBy=${encodeURIComponent(sortBy)}&sortDirection=${encodeURIComponent(sortDirection)}`;
+    }
+
+    const response = await fetchWithAuth(url);
+
+    if (response.code === 200) {
+      return {
+        payments: response.data || [],
+        pagination: {
+          current: page,
+          pageSize,
+          total: response.totalRecords || 0,
+        },
+      };
+    } else {
+      console.error('Failed to fetch filtered payments:', response.message);
+      throw new Error(response.message || 'Failed to fetch filtered payments');
+    }
+  } catch (error) {
+    console.error('Error in getFilteredPayments:', error);
+    throw new Error(error.message || 'Failed to fetch filtered payments');
+  }
+}
+
 export async function getPaymentsList(page = 1, pageSize = 10, filters = {}) {
   try {
     revalidatePath('/payments')

@@ -58,7 +58,7 @@ const shortcuts = [
     subtitle: 'Manage Inventory'
   },
   {
-    url: '/invoice-list',
+    url: '/invoices/invoice-list',
     icon: 'ri-file-list-line',
     title: 'Invoice',
     subtitle: 'Manage Invoices'
@@ -112,7 +112,7 @@ const shortcuts = [
     subtitle: 'Manage Delivery Challans'
   },
   {
-    url: '/payment-summary',
+    url: '/payment-summary/payment-summary-list',
     icon: 'ri-credit-card-line',
     title: 'Payment Summary',
     subtitle: 'View Payment Summary'

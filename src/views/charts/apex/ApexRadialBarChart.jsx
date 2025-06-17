@@ -85,7 +85,7 @@ const ApexRadialBarChart = () => {
               if (totalValue % 1 === 0) {
                 return totalValue + '%'
               } else {
-                return totalValue.toFixed(2) + '%'
+                return Number(totalValue).toFixed(2) + '%'
               }
             }
           }

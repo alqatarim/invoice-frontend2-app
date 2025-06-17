@@ -664,7 +664,7 @@ const EditQuotation = ({
                                   disabled
                                   type='text'
                                   size='small'
-                                  value={typeof field.value === 'number' ? field.value.toFixed(2) : field.value}
+                                  value={typeof field.value === 'number' ? Number(field.value).toFixed(2) : field.value}
                                 />
                               )}
                             />
@@ -868,7 +868,7 @@ const EditQuotation = ({
                       </Grid>
                       <Grid item xs={6} sx={{ textAlign: 'right' }}>
                         <Typography sx={{ fontWeight: 500, fontSize: '14px' }}>
-                          {themeConfig.currency}{subTotal.toFixed(2)}
+                          {themeConfig.currency}{Number(subTotal).toFixed(2)}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -881,7 +881,7 @@ const EditQuotation = ({
                       </Grid>
                       <Grid item xs={6} sx={{ textAlign: 'right' }}>
                         <Typography sx={{ fontWeight: 500, fontSize: '14px' }}>
-                          {themeConfig.currency}{totalDiscount.toFixed(2)}
+                          {themeConfig.currency}{Number(totalDiscount).toFixed(2)}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -894,7 +894,7 @@ const EditQuotation = ({
                       </Grid>
                       <Grid item xs={6} sx={{ textAlign: 'right' }}>
                         <Typography sx={{ fontWeight: 500, fontSize: '14px' }}>
-                          {themeConfig.currency}{totalTax.toFixed(2)}
+                          {themeConfig.currency}{Number(totalTax).toFixed(2)}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -909,7 +909,7 @@ const EditQuotation = ({
                       </Grid>
                       <Grid item xs={6} sx={{ textAlign: 'right' }}>
                         <Typography sx={{ fontWeight: 600, fontSize: '15px', color: 'primary.main' }}>
-                          {themeConfig.currency}{totalAmount.toFixed(2)}
+                          {themeConfig.currency}{Number(totalAmount).toFixed(2)}
                         </Typography>
                       </Grid>
                     </Grid>

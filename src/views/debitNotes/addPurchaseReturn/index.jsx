@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Skeleton, Box } from '@mui/material';
-import AddPurchaseReturn from '@/views/debitNotes/addPurchaseReturn/AddPurchaseReturn';
+import AddDebitNote from '@/views/debitNotes/addPurchaseReturn/AddDebitNote';
 import { getDropdownData } from '@/app/(dashboard)/debitNotes/actions';
 import { usePurchaseReturnAddHandlers } from '@/handlers/purchaseReturn/add/usePurchaseReturnAddHandlers';
 
@@ -62,7 +62,14 @@ function AddPurchaseReturnIndex() {
   }
 
   return (
-    <AddPurchaseReturn handlers={handlers} />
+    <AddDebitNote
+      vendorsData={dropdownData.vendors}
+      productData={dropdownData.products}
+      taxRates={dropdownData.taxRates}
+      initialBanks={dropdownData.banks}
+      signatures={dropdownData.signatures}
+      debitNoteNumber="DN-001"
+    />
   );
 }
 

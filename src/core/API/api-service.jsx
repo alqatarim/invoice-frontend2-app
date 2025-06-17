@@ -1,3 +1,5 @@
+'use client'
+
 /* eslint-disable react/prop-types */
 import React, { createContext, useContext } from "react";
 import { AxiosContext } from "../interceptor/interceptor";

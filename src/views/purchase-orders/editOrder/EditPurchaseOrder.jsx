@@ -39,6 +39,12 @@ const EditPurchaseOrder = ({ vendorsData, productData, taxRates, initialBanks, s
   const [openBankModal, setOpenBankModal] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
+
+
+  console.log('purchaseOrderData!!!!!!!');
+  console.log(purchaseOrderData);
+
+
   const handlers = useEditPurchaseOrderHandlers({
     purchaseOrderData,
     productData,
@@ -577,7 +583,7 @@ const EditPurchaseOrder = ({ vendorsData, productData, taxRates, initialBanks, s
               <Grid item xs={12} sm={6} md={4} lg={3}>
                 <Box className="flex flex-row items-center px-3 justify-between bg-tableHeader rounded-md w-full h-full">
                   <Typography variant="caption" className='text-[0.9rem]' color="text.secondary">
-                    Purchase Order Number
+                    Purchase Order No.
                   </Typography>
                   <Typography variant="h6" className='text-[1.1rem] font-medium'>
                     {purchaseOrderData?.purchaseOrderId || ''}

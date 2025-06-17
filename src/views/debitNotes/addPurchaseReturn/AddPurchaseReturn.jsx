@@ -35,12 +35,12 @@ import SignaturePad from 'react-signature-canvas';
 import { usePurchaseReturnAddHandlers } from '@/handlers/purchaseReturn/add/usePurchaseReturnAddHandlers';
 import Link from 'next/link';
 
-const AddPurchaseReturn = ({ 
-  vendors = [], 
-  products = [], 
-  taxRates = [], 
-  banks = [], 
-  signatures = [] 
+const AddPurchaseReturn = ({
+  vendors = [],
+  products = [],
+  taxRates = [],
+  banks = [],
+  signatures = []
 }) => {
   const theme = useTheme();
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -109,7 +109,7 @@ const AddPurchaseReturn = ({
                 <Typography variant="h6" className="mb-4 text-blue-800">
                   Purchase Return Details
                 </Typography>
-                
+
                 <Grid container spacing={3}>
                   {/* Debit Note ID */}
                   <Grid item xs={12} sm={6}>
@@ -298,7 +298,7 @@ const AddPurchaseReturn = ({
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <Typography variant="body2" className="font-medium text-green-600">
-                                  {(Number(item.amount) || 0).toFixed(2)}
+                                  {Number(item.amount || 0).toFixed(2)}
                                 </Typography>
                               </td>
                               <td className="px-4 py-3 text-center">
@@ -372,32 +372,32 @@ const AddPurchaseReturn = ({
                   <div className="flex justify-between items-center">
                     <Typography className="text-gray-600">Subtotal:</Typography>
                     <Typography className="font-medium">
-                      {handlers.calculations?.subtotal?.toFixed(2) || '0.00'}
+                      {Number(handlers.calculations?.subtotal || 0).toFixed(2)}
                     </Typography>
                   </div>
                   <div className="flex justify-between items-center">
                     <Typography className="text-gray-600">Discount:</Typography>
                     <Typography className="font-medium text-orange-600">
-                      -{handlers.calculations?.totalDiscount?.toFixed(2) || '0.00'}
+                      -{Number(handlers.calculations?.totalDiscount || 0).toFixed(2)}
                     </Typography>
                   </div>
                   <div className="flex justify-between items-center">
                     <Typography className="text-gray-600">Taxable Amount:</Typography>
                     <Typography className="font-medium">
-                      {handlers.calculations?.taxableAmount?.toFixed(2) || '0.00'}
+                      {Number(handlers.calculations?.taxableAmount || 0).toFixed(2)}
                     </Typography>
                   </div>
                   <div className="flex justify-between items-center">
                     <Typography className="text-gray-600">Tax:</Typography>
                     <Typography className="font-medium text-blue-600">
-                      {handlers.calculations?.totalTax?.toFixed(2) || '0.00'}
+                      {Number(handlers.calculations?.totalTax || 0).toFixed(2)}
                     </Typography>
                   </div>
                   <Divider />
                   <div className="flex justify-between items-center">
                     <Typography variant="h6" className="text-gray-800">Total:</Typography>
                     <Typography variant="h6" className="font-bold text-green-600">
-                      {handlers.calculations?.totalAmount?.toFixed(2) || '0.00'}
+                      {Number(handlers.calculations?.totalAmount || 0).toFixed(2)}
                     </Typography>
                   </div>
                 </div>
@@ -480,7 +480,7 @@ const AddPurchaseReturn = ({
                       onChange={(e) => handlers.handleFieldChange('signatureName', e.target.value)}
                       className="mb-3"
                     />
-                    
+
                     <div className="border border-gray-300 rounded p-2 bg-gray-50">
                       <SignaturePad
                         ref={handlers.signatureRef}
@@ -491,7 +491,7 @@ const AddPurchaseReturn = ({
                         }}
                       />
                     </div>
-                    
+
                     <Button
                       variant="outlined"
                       size="small"
@@ -536,8 +536,8 @@ const AddPurchaseReturn = ({
                     size="large"
                     disabled={handlers.isSubmitting || (handlers.formData.items || []).length === 0}
                     startIcon={
-                      handlers.isSubmitting ? 
-                      <Icon icon="tabler:loader" className="animate-spin" /> : 
+                      handlers.isSubmitting ?
+                      <Icon icon="tabler:loader" className="animate-spin" /> :
                       <Icon icon="tabler:check" />
                     }
                     className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
@@ -545,7 +545,7 @@ const AddPurchaseReturn = ({
                   >
                     {handlers.isSubmitting ? 'Creating...' : 'Create Purchase Return'}
                   </Button>
-                  
+
                   <Button
                     variant="outlined"
                     fullWidth
@@ -578,7 +578,7 @@ const AddPurchaseReturn = ({
             {products.map((product) => (
               <Grid item xs={12} sm={6} md={4} key={product._id}>
                 <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105">
-                  <CardContent 
+                  <CardContent
                     className="p-4"
                     onClick={() => handlers.handleAddItem(product)}
                   >
@@ -594,7 +594,7 @@ const AddPurchaseReturn = ({
                       SKU: {product.sku || 'N/A'}
                     </Typography>
                     <Typography variant="body2" className="font-medium text-green-600">
-                      Price: {product.purchasePrice || 0}
+                      Price: {Number(product.purchasePrice || 0).toFixed(2)}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -603,7 +603,7 @@ const AddPurchaseReturn = ({
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={handlers.handleProductDialogClose}
             startIcon={<Icon icon="tabler:x" />}
           >

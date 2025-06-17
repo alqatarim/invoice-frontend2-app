@@ -392,7 +392,7 @@ export async function getBanks  () {
 export async function getSignatures ()  {
   try {
     const response = await fetchWithAuth('/drop_down/signature');
-    return response.data || [];
+    return response.data;
   } catch (error) {
     console.error('Error fetching signatures:', error);
     return [];

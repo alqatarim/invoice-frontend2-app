@@ -1,151 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useSnackbar } from 'notistack';
-import { useTheme, alpha } from '@mui/material/styles';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  Typography,
-  Avatar,
-  Popover,
-  Paper,
-  Chip,
-  Menu,
-  MenuItem
-} from '@mui/material';
-import { Icon } from '@iconify/react';
-import { deletePayment } from '@/app/(dashboard)/payments/actions';
-import { formatDate } from '@/utils/dateUtils';
-import { formatCurrency } from '@/utils/currencyUtils';
-
-
-const getPaymentModeIcon = (mode) => {
-  switch (mode) {
-    case 'Cash':
-      return 'mdi:cash-multiple';
-    case 'Cheque':
-      return 'mdi:checkbook';
-    case 'Bank':
-      return 'mdi:bank';
-    case 'Online':
-      return 'mdi:web';
-    default:
-      return 'bi:credit-card';
-  }
-};
-
-
+import { Box, Typography } from '@mui/material';
+import { usePaymentListHandlers } from '@/handlers/payments/usePaymentListHandlers';
+import PaymentHead from './paymentHead';
+import PaymentFilter from './paymentFilter';
+import CustomListTable from '@/components/custom-components/CustomListTable';
+import { paymentColumns } from './paymentColumns';
 
 const PaymentList = ({
-  payments,
-  setPayments,
-  totalRecords,
-  page,
-  setPage,
-  pageSize,
-  setPageSize,
-  onFilterClick,
-  onClearFilter,
-  onStatusUpdate,
-  getPaymentsList,
-  isFiltered,
-  selectedCustomers
+  initialPayments = [],
+  initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialCustomerOptions = [],
+  onSuccess,
+  onError,
 }) => {
-  const theme = useTheme();
-  const { enqueueSnackbar } = useSnackbar();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedPaymentId, setSelectedPaymentId] = useState(null);
-  const [statusAnchorEl, setStatusAnchorEl] = useState(null);
-  const [selectedPayment, setSelectedPayment] = useState(null);
+  const handlers = usePaymentListHandlers({
+    initialPayments,
+    initialPagination,
+    initialCustomerOptions,
+    onSuccess,
+    onError,
+  });
 
-  const handleChangePage = async (event, newPage) => {
-    setPage(newPage + 1);
-    const response = await getPaymentsList(
-      newPage + 1,
-      pageSize,
-      isFiltered ? { customer: selectedCustomers } : {}
-    );
-    if (response && response.success) {
-      setPayments(response.data);
-    }
-  };
-
-  const handleChangeRowsPerPage = async (event) => {
-    const newPageSize = parseInt(event.target.value, 10);
-    setPageSize(newPageSize);
-    setPage(1);
-    const response = await getPaymentsList(
-      1,
-      newPageSize,
-      isFiltered ? { customer: selectedCustomers } : {}
-    );
-    if (response && response.success) {
-      setPayments(response.data);
-    }
-  };
-
-  const handleDeleteClick = (event, id) => {
-    setSelectedPaymentId(id);
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleConfirmClose = () => {
-    setAnchorEl(null);
-    setSelectedPaymentId(null);
-  };
-
-  const handleDeleteConfirm = async () => {
-    setIsDeleting(true);
-    try {
-      const response = await deletePayment(selectedPaymentId);
-      if (response.success) {
-        enqueueSnackbar('Payment deleted successfully', { variant: 'success' });
-        const updatedResponse = await getPaymentsList(page, pageSize);
-        if (updatedResponse && updatedResponse.success) {
-          setPayments(updatedResponse.data);
-        }
-      } else {
-        enqueueSnackbar('Error deleting payment', { variant: 'error' });
-      }
-    } catch (error) {
-      console.error('Error deleting payment:', error);
-      enqueueSnackbar('Error deleting payment', { variant: 'error' });
-    }
-    setIsDeleting(false);
-    handleConfirmClose();
-  };
-
-  const handleStatusClick = (event, payment) => {
-    if (payment.status === 'Processing' || payment.status === 'Pending') {
-      setSelectedPayment(payment);
-      setStatusAnchorEl(event.currentTarget);
-    }
-  };
-
-  const handleStatusClose = () => {
-    setStatusAnchorEl(null);
-    setSelectedPayment(null);
-  };
-
-  const handleStatusUpdate = async (newStatus) => {
-    if (selectedPayment) {
-      await onStatusUpdate(selectedPayment._id, newStatus);
-      handleStatusClose();
-    }
-  };
+  const tableColumns = paymentColumns({
+    handleView: handlers.handleView,
+    handleEdit: handlers.handleEdit,
+    handleDelete: handlers.handleDelete,
+  });
 
   return (
     <Box className="flex flex-col gap-4 p-4">
@@ -155,261 +36,42 @@ const PaymentList = ({
         </Typography>
       </Box>
 
+      <PaymentHead
+        onFilterToggle={handlers.handleFilterToggle}
+        isFilterApplied={handlers.isFilterApplied()}
+        filterCount={handlers.getFilterCount()}
+        onFilterReset={handlers.handleFilterReset}
+      />
 
-      <Box className='flex justify-end items-center gap-2'>
-
-        <IconButton
-          color='primary'
-                    variant='outlined'
-          size='medium'
-          onClick={isFiltered ? onClearFilter : onFilterClick}
-        >
-          <Icon
-            height='25px'
-            icon={isFiltered ? "line-md:filter-remove-twotone" : "line-md:filter-twotone"}
-          />
-        </IconButton>
-
-
-        <Button
-          variant="contained"
-          startIcon={<Icon icon="mdi:plus" />}
-          component={Link}
-          href='/payments/payment-add'
-        >
-          Add Payment
-        </Button>
-      </Box>
-
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 650 }} aria-label="payments table">
-          <TableHead>
-            <TableRow>
-              <TableCell>
-                <Typography className='text-[14px]' fontWeight={600}>Payment No</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography className='text-[14px]' fontWeight={600}>Customer</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography className='text-[14px]' fontWeight={600}>Amount</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography className='text-[14px]' fontWeight={600}>Payment Date</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography className='text-[14px]' fontWeight={600}>Payment Method</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography className='text-[14px]' fontWeight={600}>Status</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography className='text-[14px]' fontWeight={600}>Actions</Typography>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {payments.map((payment, index) => (
-              <TableRow key={payment._id} hover>
-                <TableCell>
-                  <Typography
-                    component={Link}
-                    href={`/payments/payment-view/${payment._id}`}
-                    variant='h6' color='primary'>{payment.payment_number}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar
-                      src={payment.customerDetail?.image}
-                      alt={payment.customerDetail?.name}
-                      sx={{ mr: 2, width: 34, height: 34 }}
-                    >
-                      {!payment.customerDetail?.image && <Icon icon="mdi:image-off-outline" />}
-                    </Avatar>
-                    <Box>
-                      <Typography
-                        color='primary.main'
-                        variant="h6"
-                        component={Link}
-                        href={`/customers/view/${payment.customerDetail?._id}`}
-                      >
-                        {payment.customerDetail?.name || 'Deleted Customer'}
-                      </Typography>
-                      <Typography variant='caption' display='block'>
-                        {payment.customerDetail?.phone || 'Deleted Customer'}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </TableCell>
-
-                <TableCell>
-                  <Typography variant='body1'>{formatCurrency(payment.amount)}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant='body1'>{formatDate(payment.createdAt)}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                    <Icon icon={getPaymentModeIcon(payment.payment_method)} fontSize={23} color={theme.palette.secondary.main} />
-
-                                    <Typography variant='body1'>{payment.payment_method}</Typography>
-                                  </Box>
-                </TableCell>
-                <TableCell>
-
-
-                  <Chip
-                    color={
-                      payment.status === 'Success'
-                        ? 'success'
-                        : payment.status === 'Processing'
-                          ? 'primary'
-                          : payment.status === 'Pending'
-                            ? 'warning'
-                            : payment.status === 'Failed'
-                              ? 'error'
-                              : payment.status === 'Cancelled'
-                                ? 'secondary'
-                                : 'secondary'
-                    }
-                    variant='tonal'
-                    size='medium'
-                    label={payment.status.split('_')
-                      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                      .join(' ')}
-                  />
-                </TableCell>
-                <TableCell>
-
- {(payment.status === 'Processing' || payment.status === 'Pending') ? (
-                    <IconButton
-                     size='medium'
-                      sx={{ mr: 1 }}
-                      onClick={(e) => handleStatusClick(e, payment)}
-                    >
-                      <Icon icon='line-md:rotate-270' />
-                    </IconButton>
-                  ) : (
-                    <Box component="span" sx={{ width: 40, display: 'inline-block', mr: 1 }} />
-                  )}
-                       <IconButton
-                       variant
-                      size='medium'
-                      sx={{ mr: 1 }}
-                      component={Link}
-                      href={`/payments/payment-view/${payment._id}`}
-                    >
-                      <Icon icon='line-md:watch' />
-                    </IconButton>
-
-
-
-                  {payment.status !== 'Cancelled' ? (
-                    <IconButton
-                    size='medium'
-                      onClick={(e) => handleDeleteClick(e, payment._id)}
-                    >
-                      <Icon icon='line-md:close-circle' />
-                    </IconButton>
-                  ) : (
-                    <Box component="span" sx={{ width: 40, display: 'inline-block' }} />
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          component='div'
-          count={totalRecords}
-          rowsPerPage={pageSize}
-          page={page - 1}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </TableContainer>
-
-      <Popover
-        open={Boolean(anchorEl)}
-        anchorEl={anchorEl}
-        onClose={handleConfirmClose}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'center',
+      <CustomListTable
+        columns={tableColumns}
+        rows={handlers.payments || []}
+        loading={handlers.loading}
+        pagination={{
+          page: handlers.pagination.current - 1, // Zero-indexed for MUI
+          pageSize: handlers.pagination.pageSize,
+          total: handlers.pagination.total,
         }}
-        transformOrigin={{
-          vertical: 'bottom',
-          horizontal: 'center',
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              p: 2,
-              backgroundColor: alpha(theme.palette.error.main, 0.07),
-              backdropFilter: 'blur(6px)',
-              color: theme.palette.success.main,
-              boxShadow: `0 4px 12px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-              width: 'auto',
-              border: `1px solid ${alpha(theme.palette.common.black, 0.01)}`
-            }
-          }
-        }}
-      >
-        <Box className="p-2">
-          <Typography variant="h6" className="mb-3">
-            Are you sure you want to cancel this payment?
-          </Typography>
-          <Box className="flex gap-2 justify-end">
-            <Button
-              size="small"
-              variant="outlined"
-              color="secondary"
-              onClick={handleConfirmClose}
-            >
-              No
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              color="error"
-              onClick={handleDeleteConfirm}
-              disabled={isDeleting}
-            >
-              {isDeleting ? 'Deleting...' : 'Yes'}
-            </Button>
-          </Box>
-        </Box>
-      </Popover>
+        onPageChange={handlers.handlePageChange}
+        onRowsPerPageChange={handlers.handlePageSizeChange}
+        onSort={handlers.handleSortRequest}
+        sortBy={handlers.sortBy}
+        sortDirection={handlers.sortDirection}
+        rowKey={(row, index) => row?._id || row?.id || `payment-${index}`}
+        noDataText="No payments found"
+      />
 
-      <Menu
-        anchorEl={statusAnchorEl}
-        open={Boolean(statusAnchorEl)}
-        onClose={handleStatusClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-      >
-        <MenuItem onClick={() => handleStatusUpdate('Success')}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Icon width='22px' icon="line-md:circle-twotone-to-confirm-circle-transition" style={{ color: theme.palette.success.dark }} />
-            Set status to Success
-          </Box>
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusUpdate('Failed')}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Icon width='22px' icon="line-md:close-circle" style={{ color: theme.palette.error.dark }} />
-            Set status to Failed
-          </Box>
-
-        </MenuItem>
-      </Menu>
+      <PaymentFilter
+        open={handlers.filterOpen}
+        onClose={handlers.handleFilterToggle}
+        filterValues={handlers.filterValues}
+        onFilterChange={handlers.handleFilterValueChange}
+        onApply={handlers.handleFilterApply}
+        onReset={handlers.handleFilterReset}
+        customerOptions={handlers.customerOptions || []}
+        customerSearchLoading={handlers.customerSearchLoading}
+        onCustomerSearch={handlers.handleCustomerSearch}
+      />
     </Box>
   );
 };

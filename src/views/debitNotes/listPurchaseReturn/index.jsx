@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getDebitNotesList, getVendors } from '@/app/(dashboard)/debitNotes/actions';
-import PurchaseReturnListNew from '@/views/debitNotes/listPurchaseReturn/PurchaseReturnListNew';
+import SimpleDebitNoteList from '@/views/debitNotes/listPurchaseReturn/SimpleDebitNoteList';
 
 const PurchaseReturnListIndex = () => {
   const [allDebitNotes, setAllDebitNotes] = useState([]);
@@ -92,18 +92,15 @@ const PurchaseReturnListIndex = () => {
   }, []);
 
   return (
-    <PurchaseReturnListNew
-      debitNoteList={allDebitNotes}
+    <SimpleDebitNoteList
+      allDebitNotes={allDebitNotes}
       totalCount={totalCount}
       page={page}
       setPage={setPage}
       pageSize={pageSize}
       setPageSize={setPageSize}
       loading={loading}
-      setFilterCriteria={setFilterCriteria}
       vendors={vendors}
-      resetAllFilters={resetAllFilters}
-      onListUpdate={handleListUpdate}
     />
   );
 };

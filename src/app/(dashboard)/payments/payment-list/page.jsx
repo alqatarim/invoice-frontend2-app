@@ -1,5 +1,5 @@
 import PaymentListIndex from '@/views/payments/listPayment/index';
-import { getPaymentsList } from '../actions';
+import { getInitialPaymentData, getCustomers } from '../actions';
 
 export const metadata = {
   title: 'Payments List | Invoices'
@@ -7,10 +7,16 @@ export const metadata = {
 
 async function PaymentListPage() {
   try {
-    // Directly await the data
-    const initialData = await getPaymentsList();
+    // Fetch initial data in parallel
+    const [initialData, customersData] = await Promise.all([
+      getInitialPaymentData(),
+      getCustomers()
+    ]);
 
-    return <PaymentListIndex initialData={initialData} />;
+    return <PaymentListIndex 
+      initialData={initialData} 
+      initialCustomerOptions={customersData || []}
+    />;
   } catch (error) {
     console.error('Error fetching payments list:', error);
     return <div>Error loading payments list</div>;

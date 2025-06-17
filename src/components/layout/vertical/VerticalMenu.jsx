@@ -73,11 +73,11 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
 
             </MenuSection>
 
-
+  <MenuItem icon={<i className='ri-user-line' />} href="/profile">Profile</MenuItem>
 
   <MenuSection label="Customers">
-    <MenuItem href="/customers">Customers</MenuItem>
-    <MenuItem href="/vendors">Vendors</MenuItem>
+    <MenuItem icon={<i className='ri-user-3-line' />} href="/customers/customer-list">Customers</MenuItem>
+    <MenuItem icon={<i className='ri-truck-line' />} href="/vendors/vendor-list">Vendors</MenuItem>
   </MenuSection>
   <MenuSection label="Inventory">
     <SubMenu label="Product / Services">
@@ -102,10 +102,10 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
   </MenuSection>
   <MenuSection label="Quotations">
     <MenuItem href="/quotations/quotation-list">Quotations</MenuItem>
-    <MenuItem href="/delivery-challans/delivery-challan-list">Delivery Challans</MenuItem>
+    <MenuItem href="/deliveryChallans/deliveryChallans-list">Delivery Challans</MenuItem>
   </MenuSection>
   <MenuSection label="Reports">
-    <MenuItem href="/payment-summary">Payment Summary</MenuItem>
+    <MenuItem href="/payment-summary/payment-summary-list">Payment Summary</MenuItem>
   </MenuSection>
   <MenuSection label="Settings">
     <MenuItem href="/settings">Settings</MenuItem>
