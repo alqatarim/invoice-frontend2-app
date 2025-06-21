@@ -114,7 +114,7 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
     <SubMenu label="Manage Users">
       <MenuItem href="/users">Users</MenuItem>
     </SubMenu>
-    <MenuItem href="/roles-permission">Roles & Permission</MenuItem>
+    <MenuItem href="/roles-permission/roles-permission-list">Roles & Permission</MenuItem>
   </MenuSection>
   <MenuItem href="/login">Logout</MenuItem>
 

@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
+import React, { useEffect, useState } from 'react';
+import { Controller } from 'react-hook-form';
 import {
   TextField,
   Button,
@@ -12,453 +10,996 @@ import {
   InputLabel,
   FormControl,
   Typography,
+  IconButton,
   Box,
   Card,
   CardContent,
   Grid,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogContent,
   FormHelperText,
-  Autocomplete,
-  CircularProgress,
+  InputAdornment,
+  Menu,
+  Divider,
 } from '@mui/material';
+import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
+import { Clear } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
+import Link from 'next/link';
 import { useTheme } from '@mui/material/styles';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import dayjs from 'dayjs';
-import { deliveryChallanSchema } from '@/views/deliveryChallans/deliveryChallansSchema';
-import SignaturePadComponent from '@/components/SignatureComponent';
+import { calculateInvoiceTotals } from '@/utils/invoiceTotals';
+import { formatDateForInput } from '@/utils/dateUtils';
+import { Icon } from '@iconify/react';
+import CustomIconButton from '@core/components/mui/CustomIconButton';
+import CustomerAutocomplete from '@/components/custom-components/CustomerAutocomplete';
+import useDeliveryChallanHandlers from '@/handlers/deliveryChallans/useDeliveryChallanHandlers';
+import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
+import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
+import DeliveryChallanTotals from '@/components/custom-components/DeliveryChallanTotals';
 
-const EditDeliveryChallan = ({
-  id,
-  deliveryChallanData,
-  customersData = [],
-  productData = [],
-  taxRates = [],
-  initialBanks = [],
-  signatures = [],
-  onSave,
-}) => {
-  const theme = useTheme();
-  const router = useRouter();
-  const [signatureURL, setSignatureURL] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
+const EditDeliveryChallan = (props) => {
+  // Destructure props for clarity
+  const {
+    id,
+    deliveryChallanData,
+    customersData,
+    productData,
+    taxRates,
+    initialBanks,
+    signatures,
+    onSave,
+    enqueueSnackbar,
+    closeSnackbar,
+  } = props;
 
+  // Use new composing hook for all handlers and state
   const {
     control,
     handleSubmit,
     setValue,
-    watch,
-    formState: { errors },
-    reset
-  } = useForm({
-    resolver: yupResolver(deliveryChallanSchema),
-    defaultValues: {
-      deliveryChallanNumber: '',
-      customerId: null,
-      deliveryChallanDate: dayjs(),
-      dueDate: null,
-      referenceNo: '',
-      address: '',
-      items: [],
-      bank: '',
-      notes: '',
-      termsAndCondition: '',
-      sign_type: 'eSignature',
-      signatureName: '',
-      signatureId: null,
-      roundOff: false,
-      taxableAmount: 0,
-      totalDiscount: 0,
-      vat: 0,
-      TotalAmount: 0,
-    }
+    getValues,
+    errors,
+    fields,
+    watchItems,
+    watchRoundOff,
+    watchCustomer,
+    productsCloneData,
+    banks,
+    newBank,
+    setNewBank,
+    signOptions,
+    // UI states and handlers
+    notesExpanded,
+    termsDialogOpen,
+    tempTerms,
+    addressDialogOpen,
+    tempAddress,
+    setTempAddress,
+    discountMenu,
+    setDiscountMenu,
+    taxMenu,
+    setTaxMenu,
+    // Functions
+    updateCalculatedFields,
+    handleUpdateItemProduct,
+    handleDeleteItem,
+    handleAddEmptyRow,
+    handleAddBank,
+    handleSignatureSelection,
+    handleFormSubmit,
+    handleError,
+    // UI action handlers
+    handleMenuItemClick,
+    handleTaxClick,
+    handleTaxClose,
+    handleTaxMenuItemClick,
+    handleToggleNotes,
+    handleOpenTermsDialog,
+    handleCloseTermsDialog,
+    handleSaveTerms,
+    handleOpenAddressDialog,
+    handleCloseAddressDialog,
+    handleSaveAddress,
+  } = useDeliveryChallanHandlers({
+    deliveryChallanData,
+    productData,
+    initialBanks,
+    signatures,
+    onSave,
+    enqueueSnackbar,
+    closeSnackbar
   });
 
-  const watchCustomer = watch('customerId');
-  const watchSignType = watch('sign_type');
+  // UI-only state (dialogs, expanded notes, etc.)
+  const [openBankModal, setOpenBankModal] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+  const theme = useTheme();
 
-  // Initialize form with existing data
   useEffect(() => {
-    if (deliveryChallanData) {
-      const customer = customersData.find(c => c._id === deliveryChallanData.customerId?._id);
-      const signature = signatures.find(s => s._id === deliveryChallanData.signatureId?._id);
+    if (watchItems) {
+      const { taxableAmount, totalDiscount, vat, TotalAmount, roundOffValue } = calculateInvoiceTotals(
+        watchItems,
+        watchRoundOff
+      );
 
-      reset({
-        deliveryChallanNumber: deliveryChallanData.deliveryChallanNumber || '',
-        customerId: customer || null,
-        deliveryChallanDate: deliveryChallanData.deliveryChallanDate ? dayjs(deliveryChallanData.deliveryChallanDate) : dayjs(),
-        dueDate: deliveryChallanData.dueDate ? dayjs(deliveryChallanData.dueDate) : null,
-        referenceNo: deliveryChallanData.referenceNo || '',
-        address: deliveryChallanData.deliveryAddress ?
-          `${deliveryChallanData.deliveryAddress.addressLine1 || ''}, ${deliveryChallanData.deliveryAddress.city || ''}, ${deliveryChallanData.deliveryAddress.state || ''} ${deliveryChallanData.deliveryAddress.pincode || ''}`.trim() : '',
-        items: deliveryChallanData.items || [],
-        bank: deliveryChallanData.bank || '',
-        notes: deliveryChallanData.notes || '',
-        termsAndCondition: deliveryChallanData.termsAndCondition || '',
-        sign_type: deliveryChallanData.sign_type || 'eSignature',
-        signatureName: deliveryChallanData.signatureName || '',
-        signatureId: signature || null,
-        roundOff: deliveryChallanData.roundOff || false,
-        taxableAmount: deliveryChallanData.taxableAmount || 0,
-        totalDiscount: deliveryChallanData.totalDiscount || 0,
-        vat: deliveryChallanData.vat || 0,
-        TotalAmount: deliveryChallanData.TotalAmount || 0,
-      });
+      setValue('taxableAmount', taxableAmount);
+      setValue('totalDiscount', totalDiscount);
+      setValue('vat', vat);
+      setValue('TotalAmount', TotalAmount);
+      setValue('roundOffValue', roundOffValue);
+    }
+  }, [watchItems, watchRoundOff]);
 
-      // Set existing signature URL if it's an e-signature
-      if (deliveryChallanData.sign_type === 'eSignature' && deliveryChallanData.signatureImage) {
-        setSignatureURL(deliveryChallanData.signatureImage);
+  // Handle customer change
+  useEffect(() => {
+    if (watchCustomer && customersData) {
+      const customer = customersData.find(c => c._id === watchCustomer);
+      if (customer?.shippingAddress) {
+        const address = `${customer.shippingAddress.addressLine1 || ''}, ${customer.shippingAddress.city || ''}, ${customer.shippingAddress.state || ''} ${customer.shippingAddress.pincode || ''}`.trim();
+        setValue('address', address);
       }
-
-      setLoading(false);
     }
-  }, [deliveryChallanData, customersData, signatures, reset]);
+  }, [watchCustomer, customersData, setValue]);
 
-  // Handle customer selection and auto-populate address
-  const handleCustomerChange = (customer) => {
-    if (customer?.shippingAddress) {
-      const address = `${customer.shippingAddress.addressLine1}, ${customer.shippingAddress.city}, ${customer.shippingAddress.state} ${customer.shippingAddress.pincode}`;
-      setValue('address', address);
-    }
-  };
+  // Define columns for InvoiceItemsTable
+  const columns = [
+    {
+      key: 'product',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Product/Service</Typography>,
+      width: '24%',
+      align: 'center',
+      renderCell: (item, index) => (
+        <Controller
+          name={`items.${index}.productId`}
+          control={control}
+          render={({ field }) => (
+            <FormControl fullWidth size="small" error={!!errors.items?.[index]?.productId}>
+              <Select
+                className={`py-0.5 min-h-[0] [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&.MuiOutlinedInput-input]:py-0.3 px-2.5`}
+                size='small'
+                sx={{ '& .MuiOutlinedInput-input': { py: 0.3, pl: 2.5 } }}
+                {...field}
+                displayEmpty
+                value={field.value || ''}
+                onChange={(e) => {
+                  const productId = e.target.value;
+                  const previousProductId = field.value;
+                  handleUpdateItemProduct(index, productId, previousProductId);
+                }}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return (
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        Select Product
+                      </Typography>
+                    );
+                  }
+                  return (
+                    <Box className='flex flex-col gap-0' sx={{ overflow: 'hidden' }}>
+                      <Typography variant="body1" color="text.primary" className='whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px]'>
+                        {watchItems[index].name}
+                      </Typography>
+                      <Typography variant="caption" fontSize={12} color='text.secondary'>
+                        Unit: {watchItems[index].units}
+                      </Typography>
+                    </Box>
+                  );
+                }}
+              >
+                <MenuItem value="" disabled>
+                  Select Product
+                </MenuItem>
+                {productsCloneData.map((product) => (
+                  <MenuItem key={product._id} value={product._id}>
+                    {product.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        />
+      )
+    },
+    {
+      key: 'quantity',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Quantity</Typography>,
+      width: '12%',
+      align: 'center',
+      renderCell: (item, index) => (
+        <Controller
+          name={`items.${index}.quantity`}
+          control={control}
+          render={({ field }) => (
+            <FormControl error={!!errors.items?.[index]?.quantity} fullWidth>
+              <TextField
+                {...field}
+                type="number"
+                variant="outlined"
+                size="small"
+                placeholder="Quantity"
+                className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                inputProps={{
+                  min: 1,
+                  step: 1,
+                  onKeyDown: (e) => { if (e.key === '.') e.preventDefault(); }
+                }}
+                onChange={e => {
+                  const raw = e.target.value;
+                  const quantity = Math.max(0, Math.floor(Number(raw)));
+                  setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
+                  const item = getValues(`items.${index}`);
+                  updateCalculatedFields(index, { ...item, quantity }, setValue);
+                }}
+                error={!!errors.items?.[index]?.quantity}
+              />
+            </FormControl>
+          )}
+        />
+      )
+    },
+    {
+      key: 'rate',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Rate</Typography>,
+      width: '19%',
+      align: 'center',
+      renderCell: (item, index) => (
+        <Controller
+          name={`items.${index}.rate`}
+          control={control}
+          render={({ field }) => (
+            <FormControl error={!!errors.items?.[index]?.rate} size="small" fullWidth>
+              <TextField
+                {...field}
+                type="number"
+                variant="outlined"
+                placeholder="Rate"
+                size="small"
+                className="min-w-[90px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                InputProps={{
+                  sx: { paddingLeft: '8px' },
+                  startAdornment: (
+                    <Icon icon="lucide:saudi-riyal" width={22} color={theme.palette.secondary.main}/>
+                  ),
+                }}
+                inputProps={{
+                  sx: { paddingLeft: '4px' },
+                  min: 0,
+                  step: 1,
+                  onKeyDown: (e) => { if (e.key === '.') e.preventDefault(); }
+                }}
+                onChange={e => {
+                  const rate = Number(e.target.value);
+                  setValue(`items.${index}.rate`, rate);
+                  setValue(`items.${index}.form_updated_rate`, (Number(rate) / Number(watchItems[index].quantity)).toFixed(4))
+                  setValue(`items.${index}.form_updated_discount`, Number(watchItems[index].discount))
+                  setValue(`items.${index}.form_updated_discounttype`, Number(watchItems[index].discountType))
+                  setValue(`items.${index}.isRateFormUpadted`, 'true')
+                  const item = getValues(`items.${index}`);
+                  updateCalculatedFields(index, item, setValue);
+                }}
+                error={!!errors.items?.[index]?.rate}
+              />
+            </FormControl>
+          )}
+        />
+      )
+    },
+    {
+      key: 'discount',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Discount</Typography>,
+      width: '19%',
+      align: 'center',
+      renderCell: (item, index) => {
+        const watched = watchItems[index] || {};
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CustomIconButton
+              variant="tonal"
+              onClick={e => setDiscountMenu({ anchorEl: e.currentTarget, rowIndex: index })}
+              color="primary"
+              skin="lightest"
+              size="small"
+              className="min-w-[32px] min-h-[36px] px-2 py-0"
+            >
+              {Number(watched.discountType) === 2 ? (
+                <Icon icon="lucide:percent" color={theme.palette.primary.light} width={19} />
+              ) : Number(watched.discountType) === 3 ? (
+                <Icon icon="lucide:saudi-riyal" color={theme.palette.primary.light} width={30} />
+              ) : ''}
+            </CustomIconButton>
 
-  const onSubmit = async (data) => {
-    setIsSubmitting(true);
-    try {
-      // Prepare data for submission
-      const formData = {
-        ...data,
-        deliveryChallanDate: data.deliveryChallanDate ? dayjs(data.deliveryChallanDate).toISOString() : null,
-        dueDate: data.dueDate ? dayjs(data.dueDate).toISOString() : null,
-        customerId: data.customerId?._id || data.customerId,
-        signatureId: data.sign_type === 'manualSignature' ? data.signatureId?._id : null,
-        deliveryAddress: data.customerId?.shippingAddress || {},
-      };
+            {Number(watched.discountType) === 2 ? (
+              <Controller
+                name={`items.${index}.form_updated_discount`}
+                control={control}
+                render={({ field }) => {
+                  const handleChange = (e) => {
+                    let value = Number(e.target.value);
+                    value = Math.min(100, value);
+                    field.onChange(value);
+                    setValue(`items.${index}.isRateFormUpadted`, true);
+                    const item = getValues(`items.${index}`);
+                    updateCalculatedFields(index, item, setValue)
+                  };
+                  return (
+                    <TextField
+                      {...field}
+                      value={field.value}
+                      type="number"
+                      variant="outlined"
+                      size="small"
+                      placeholder="Discount (%)"
+                      aria-label="Discount Percentage"
+                      tabIndex={0}
+                      className="min-w-[110px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                      inputProps={{
+                        min: 0,
+                        max: 100,
+                        step: 1,
+                        sx: { paddingLeft: '8px' },
+                      }}
+                      InputProps={{
+                        sx: { paddingRight: '8px' },
+                        endAdornment: Number(watched.discount) > 0 ? (
+                          <Box className='flex flex-row items-center gap-0'>
+                            <Icon icon="lucide:saudi-riyal" width={14} color={theme.palette.secondary.main} />
+                            <Typography variant="subtitle2" color="secondary.main">
+                              {Number(watched.discount).toFixed(2)}
+                            </Typography>
+                          </Box>
+                        ) : null
+                      }}
+                      onChange={handleChange}
+                      error={!!errors.items?.[index]?.form_updated_discount}
+                    />
+                  );
+                }}
+              />
+            ) : (
+              <Controller
+                name={`items.${index}.discount`}
+                control={control}
+                render={({ field }) => {
+                  const handleChange = (e) => {
+                    let value = Number(e.target.value);
+                    field.onChange(value);
+                    setValue(`items.${index}.form_updated_discount`, value);
+                    setValue(`items.${index}.isRateFormUpadted`, true);
+                    setValue(`items.${index}.discount`, value);
+                    const item = getValues(`items.${index}`);
+                    updateCalculatedFields(index, item, setValue);
+                  };
+                  return (
+                    <TextField
+                      {...field}
+                      value={field.value}
+                      type="number"
+                      variant="outlined"
+                      size="small"
+                      placeholder="Discount"
+                      aria-label="Discount Fixed Amount"
+                      tabIndex={0}
+                      className="min-w-[110px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                      inputProps={{
+                        min: 0,
+                        step: 1,
+                        sx: { paddingLeft: '8px' },
+                      }}
+                      onChange={handleChange}
+                      error={!!errors.items?.[index]?.discount}
+                    />
+                  );
+                }}
+              />
+            )}
 
-      const result = await onSave(formData, signatureURL);
-
-      if (result.success) {
-        router.push('/deliveryChallans/deliveryChallans-list');
+            <Menu
+              anchorEl={discountMenu.anchorEl}
+              open={discountMenu.rowIndex === index && Boolean(discountMenu.anchorEl)}
+              onClose={() => setDiscountMenu({ anchorEl: null, rowIndex: null })}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              PaperProps={{ sx: { borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } }}
+              className='[&_.MuiMenuItem-root]:py-1'
+            >
+              <MenuItem
+                onClick={() => {
+                  handleMenuItemClick(index, 2);
+                  setDiscountMenu({ anchorEl: null, rowIndex: null });
+                }}
+                className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
+              >
+                <Typography variant="overline">Percentage</Typography>
+                <Box className='flex flex-row items-center gap-1'>
+                  <Icon icon="material-symbols:percent-rounded" width="20" color={theme.palette.primary.main} />
+                </Box>
+              </MenuItem>
+              <MenuItem
+                className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
+                onClick={() => {
+                  handleMenuItemClick(index, 3);
+                  setDiscountMenu({ anchorEl: null, rowIndex: null });
+                }}
+              >
+                <Typography variant="overline">Fixed Amount</Typography>
+                <Box className='flex flex-row items-center gap-1'>
+                  <Icon icon="lucide:saudi-riyal" width="20" color={theme.palette.primary.main} />
+                </Box>
+              </MenuItem>
+            </Menu>
+          </Box>
+        );
       }
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    {
+      key: 'vat',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">VAT</Typography>,
+      width: '16%',
+      align: 'center',
+      renderCell: (item, index) => {
+        const watched = watchItems[index] || {};
+        return (
+          <Box className='flex flex-row items-center gap-2 h-[36px]'>
+            <CustomIconButton
+              variant="tonal"
+              onClick={(e) => handleTaxClick(e, index)}
+              color="primary"
+              skin="lightest"
+              size="small"
+              className='flex flex-row items-center gap-0.5 px-1'
+            >
+              <Typography variant="button" fontSize={13} color="primary.light">
+                {watched.taxInfo && typeof watched.taxInfo === 'object' ? (watched.taxInfo.taxRate || 0) : 0}%
+              </Typography>
+              <Icon icon="garden:chevron-down-fill-12" color={theme.palette.primary.light} width={11} />
+            </CustomIconButton>
+            <Box className='flex flex-row items-center gap-0.5'>
+              <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={18} />
+              <Typography variant='body1'>
+                {isNaN(Number(watched.tax)) ? '0.00' : Number(watched.tax).toFixed(2)}
+              </Typography>
+            </Box>
+            <Menu
+              anchorEl={taxMenu.anchorEl}
+              open={taxMenu.rowIndex === index && Boolean(taxMenu.anchorEl)}
+              onClose={handleTaxClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              {taxRates.map((tax) => (
+                <MenuItem
+                  key={tax._id}
+                  onClick={() => handleTaxMenuItemClick(index, tax)}
+                  sx={{
+                    py: 1,
+                    '&:hover': {
+                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08)
+                    }
+                  }}
+                >
+                  <Box className='flex flex-row items-center justify-between w-[8em]'>
+                    <Typography variant="body2">{tax.name}</Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: 'primary.main',
+                        backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: '4px'
+                      }}
+                    >
+                      {tax.taxRate}%
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
+        );
+      }
+    },
+    {
+      key: 'amount',
+      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Amount</Typography>,
+      width: '13%',
+      align: 'center',
+      renderCell: (item, index) => {
+        const watched = watchItems[index] || {};
+        return (
+          <Box className='flex flex-row items-center gap-0.5'>
+            <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={18} />
+            <Typography variant="body1" className='font-medium whitespace-nowrap'>
+              {isNaN(Number(watched.amount)) ? '0.00' : Number(watched.amount).toFixed(2)}
+            </Typography>
+          </Box>
+        );
+      }
+    },
+    {
+      key: 'actions',
+      label: '',
+      width: '4%',
+      align: 'center',
+      renderCell: (item, index) => (
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => handleDeleteItem(index)}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab' && !e.shiftKey && index === fields.length - 1) {
+              e.preventDefault();
+              handleAddEmptyRow();
+            }
+          }}
+          tabIndex={0}
+        >
+          <Icon icon="ic:twotone-delete" width={20} color={theme.palette.error.main} />
+        </IconButton>
+      )
+    },
+  ];
 
-  const handleCancel = () => {
-    router.push('/deliveryChallans/deliveryChallans-list');
-  };
+  const addRowButton = (
+    <CustomIconButton
+      className='flex flex-row items-center justify-center gap-3 w-[13rem]'
+      variant="tonal"
+      skin='lighter'
+      color="primary"
+      size="medium"
+      onClick={handleAddEmptyRow}
+    >
+      <Icon icon="mingcute:add-fill" color={theme.palette.primary.main} width={16} />
+      <Typography variant="button" color="primary.main" fontSize={14}>
+        Add Row
+      </Typography>
+    </CustomIconButton>
+  );
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const emptyContent = (
+    <Box className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+      <Icon icon="mdi:cart-outline" width={36} color={theme.palette.primary.main} />
+      <Typography variant="h6" color="text.primary">
+        No Items Added Yet
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: '300px' }}>
+        Click the 'Add Item' button to add items to your delivery challan
+      </Typography>
+      <Button
+        variant="outlined"
+        color="primary"
+        startIcon={<Icon icon="mingcute:add-fill" width={16} />}
+        size="small"
+        sx={{ mt: 1 }}
+        onClick={handleAddEmptyRow}
+      >
+        Add Item
+      </Button>
+    </Box>
+  );
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>
+    <Grid container rowSpacing={4} columnSpacing={3}>
+      <Grid item xs={12} md={12}>
+        <Typography variant="h5" sx={{ fontWeight: 500 }}>
           Edit Delivery Challan
         </Typography>
+      </Grid>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Grid container spacing={3}>
-                {/* Delivery Challan Number */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="deliveryChallanNumber"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
+      {/* Top Section - Delivery Challan Details*/}
+      <Grid item xs={12} md={12}>
+        <Card>
+          <CardContent className='py-3.5'>
+            <Grid container columnSpacing={3} rowSpacing={4}>
+              {/* Delivery Challan Details Header */}
+              <Grid item xs={12} className='flex flex-col gap-2'>
+                <Box className='flex flex-row gap-1.5 items-center'>
+                  <Box className='w-2 h-8 bg-secondaryLight rounded-md' />
+                  <Typography variant="caption" fontWeight={500} fontSize='1rem'>
+                    Delivery Challan Details
+                  </Typography>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Box className="flex flex-row items-center px-3 justify-between bg-tableHeader rounded-md w-full h-full">
+                  <Typography variant="caption" className='text-[0.9rem]' color="text.secondary">
+                    Delivery Challan Number
+                  </Typography>
+                  <Typography variant="h6" className='text-[1.1rem] font-medium'>
+                    {getValues('deliveryChallanNumber') || ''}
+                  </Typography>
+                </Box>
+              </Grid>
+
+              {/* Delivery Challan Date */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Controller
+                  name="deliveryChallanDate"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Delivery Challan Date"
+                      type="date"
+                      variant="outlined"
+                      fullWidth
+                      size="small"
+                      error={!!errors.deliveryChallanDate}
+                      inputProps={{
+                        max: formatDateForInput(new Date()),
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Due Date */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Controller
+                  name="dueDate"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Due Date"
+                      type="date"
+                      variant="outlined"
+                      fullWidth
+                      size="small"
+                      error={!!errors.dueDate}
+                      inputProps={{
+                        min: formatDateForInput(getValues('deliveryChallanDate')),
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Bank Selection */}
+              <Grid item xs={12} sm={6} md={4} lg={3} className="flex flex-row gap-1 justify-between">
+                <Controller
+                  name="bank"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl size='small' fullWidth variant="outlined" error={!!errors.bank}>
+                      <InputLabel size="small">Select Bank</InputLabel>
+                      <Select
                         {...field}
-                        label="Delivery Challan Number"
-                        fullWidth
-                        disabled
-                        error={!!errors.deliveryChallanNumber}
-                        helperText={errors.deliveryChallanNumber?.message}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Customer Selection */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="customerId"
-                    control={control}
-                    render={({ field: { onChange, value } }) => (
-                      <Autocomplete
-                        value={value}
-                        onChange={(_, newValue) => {
-                          onChange(newValue);
-                          handleCustomerChange(newValue);
+                        label="Select Bank"
+                        size="small"
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e.target.value);
                         }}
-                        options={customersData}
-                        getOptionLabel={(option) => option.name || ''}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Customer *"
-                            error={!!errors.customerId}
-                            helperText={errors.customerId?.message}
-                          />
-                        )}
-                      />
-                    )}
-                  />
-                </Grid>
+                      >
+                        {banks.map((bank) => (
+                          <MenuItem key={bank._id} value={bank._id}>
+                            {bank.bankName}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.bank && (
+                        <FormHelperText error>{errors.bank.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
 
-                {/* Delivery Challan Date */}
-                <Grid item xs={12} md={6}>
+                <CustomIconButton
+                  color="primary"
+                  size='small'
+                  variant='tonal'
+                  skin='lighter'
+                  onClick={() => setOpenBankModal(true)}
+                >
+                  <Icon icon="mdi:bank-plus" width={26}/>
+                </CustomIconButton>
+              </Grid>
+
+              {/* Reference No */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Controller
+                  name="referenceNo"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      label="Reference No"
+                      variant="outlined"
+                      fullWidth
+                      size="small"
+                      error={!!errors.referenceNo}
+                      helperText={errors.referenceNo?.message}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Signature Section - Simplified */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Controller
-                    name="deliveryChallanDate"
+                    name="signatureId"
                     control={control}
                     render={({ field }) => (
-                      <DatePicker
-                        {...field}
-                        label="Delivery Challan Date *"
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            error: !!errors.deliveryChallanDate,
-                            helperText: errors.deliveryChallanDate?.message,
-                          }
-                        }}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Due Date */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="dueDate"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        {...field}
-                        label="Due Date"
-                        slotProps={{
-                          textField: {
-                            fullWidth: true,
-                            error: !!errors.dueDate,
-                            helperText: errors.dueDate?.message,
-                          }
-                        }}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Reference Number */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="referenceNo"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Reference Number"
-                        fullWidth
-                        error={!!errors.referenceNo}
-                        helperText={errors.referenceNo?.message}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Shipping Address */}
-                <Grid item xs={12}>
-                  <Controller
-                    name="address"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Shipping Address *"
-                        fullWidth
-                        multiline
-                        rows={3}
-                        error={!!errors.address}
-                        helperText={errors.address?.message}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Bank */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="bank"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl fullWidth error={!!errors.bank}>
-                        <InputLabel>Bank</InputLabel>
-                        <Select {...field} label="Bank">
-                          <MenuItem value="">None</MenuItem>
-                          {initialBanks.map((bank) => (
-                            <MenuItem key={bank._id} value={bank._id}>
-                              {bank.bankName}
+                      <FormControl fullWidth error={!!errors.signatureId} variant="outlined" size="small">
+                        <InputLabel>Select Signature Name</InputLabel>
+                        <Select
+                          className='h-[39px]'
+                          label="Select Signature Name"
+                          value={field.value || ''}
+                          onChange={(event) => {
+                            const selected = signOptions.find(sig => sig._id === event.target.value);
+                            handleSignatureSelection(selected, field);
+                          }}
+                        >
+                          {signOptions.map((option) => (
+                            <MenuItem key={option._id} value={option._id}>
+                              {option.signatureName}
                             </MenuItem>
                           ))}
                         </Select>
-                        {errors.bank && <FormHelperText>{errors.bank.message}</FormHelperText>}
+                        {errors.signatureId && (
+                          <FormHelperText error>{errors.signatureId.message}</FormHelperText>
+                        )}
                       </FormControl>
                     )}
                   />
-                </Grid>
+                </Box>
+              </Grid>
 
-                {/* Signature Type */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="sign_type"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl fullWidth error={!!errors.sign_type}>
-                        <InputLabel>Signature Type *</InputLabel>
-                        <Select {...field} label="Signature Type *">
-                          <MenuItem value="eSignature">E-Signature</MenuItem>
-                          <MenuItem value="manualSignature">Manual Signature</MenuItem>
-                        </Select>
-                        {errors.sign_type && <FormHelperText>{errors.sign_type.message}</FormHelperText>}
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-
-                {/* Signature Name (for e-signature) */}
-                {watchSignType === 'eSignature' && (
-                  <Grid item xs={12} md={6}>
-                    <Controller
-                      name="signatureName"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          label="Signature Name *"
-                          fullWidth
-                          error={!!errors.signatureName}
-                          helperText={errors.signatureName?.message}
-                        />
-                      )}
-                    />
-                  </Grid>
-                )}
-
-                {/* Manual Signature Selection */}
-                {watchSignType === 'manualSignature' && (
-                  <Grid item xs={12} md={6}>
-                    <Controller
-                      name="signatureId"
-                      control={control}
-                      render={({ field: { onChange, value } }) => (
-                        <Autocomplete
-                          value={value}
-                          onChange={(_, newValue) => onChange(newValue)}
-                          options={signatures}
-                          getOptionLabel={(option) => option.signatureName || ''}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Select Signature *"
-                              error={!!errors.signatureId}
-                              helperText={errors.signatureId?.message}
-                            />
-                          )}
-                        />
-                      )}
-                    />
-                  </Grid>
-                )}
-
-                {/* Notes */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="notes"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Notes"
-                        fullWidth
-                        multiline
-                        rows={3}
-                        error={!!errors.notes}
-                        helperText={errors.notes?.message}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Terms and Conditions */}
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="termsAndCondition"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Terms and Conditions"
-                        fullWidth
-                        multiline
-                        rows={3}
-                        error={!!errors.termsAndCondition}
-                        helperText={errors.termsAndCondition?.message}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* E-Signature Pad */}
-                {watchSignType === 'eSignature' && (
-                  <Grid item xs={12}>
-                    <Typography variant="h6" gutterBottom>
-                      Draw Signature *
-                    </Typography>
-                    <SignaturePadComponent
-                      initialSignature={signatureURL}
-                      onSignatureChange={(signatureData) => {
-                        setSignatureURL(signatureData);
-                        setValue('signatureData', signatureData ? 'true' : 'false');
+              {/* Notes TextField */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Controller
+                  name="notes"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      className='overflow-auto scrollbar-thin scrollbar-thumb-primary scrollbar-thumb-opacity-20 scrollbar-thumb-rounded'
+                      {...field}
+                      multiline
+                      rows={notesExpanded ? 4 : 1}
+                      variant="outlined"
+                      size="small"
+                      placeholder="Add notes..."
+                      fullWidth
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <CustomOriginalIconButton
+                              onClick={handleToggleNotes}
+                              color='primary'
+                              skin='light'
+                            >
+                              {notesExpanded ? <Icon icon="mdi:keyboard-arrow-up" width={24} color={theme.palette.primary.main} /> : <Icon icon="mdi:keyboard-arrow-down" width={24} color={theme.palette.primary.main} />}
+                            </CustomOriginalIconButton>
+                          </InputAdornment>
+                        ),
                       }}
                     />
-                    {errors.signatureData && (
-                      <FormHelperText error>{errors.signatureData.message}</FormHelperText>
-                    )}
-                  </Grid>
-                )}
+                  )}
+                />
               </Grid>
+
+              {/* Customer */}
+              <Grid item xs={12} sm={6} md={8} lg={6}>
+                <CustomerAutocomplete control={control} errors={errors} customersData={customersData} />
+              </Grid>
+
+              {/* Shipping Address */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Button
+                  fullWidth 
+                  className="flex flex-row items-center gap-0 justify-center" 
+                  variant="text" 
+                  color="primary" 
+                  size="small"
+                  startIcon={<Icon icon="mdi:truck-delivery-outline" width={24} color={theme.palette.primary.main} />}
+                  onClick={handleOpenAddressDialog}
+                >
+                  Shipping Address
+                </Button>
+              </Grid>
+
+              {/* Terms & Conditions */}
+              <Grid item xs={12} sm={6} md={4} lg={3}>
+                <Button
+                  fullWidth 
+                  className="flex flex-row items-center gap-0 justify-center" 
+                  variant="text" 
+                  color="primary" 
+                  size="small"
+                  startIcon={<Icon icon="mdi:file-document-outline" width={24} color={theme.palette.primary.main} />}
+                  onClick={handleOpenTermsDialog}
+                >
+                  Terms & Conditions
+                </Button>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Middle Section - Products Table*/}
+      <Grid item xs={12} md={9.5}>
+        <form onSubmit={handleSubmit(handleFormSubmit, handleError)}>
+          <Card>
+            <CardContent spacing={12} className='flex flex-col gap-2 px-0 pt-0'>
+              {/* Products Table */}
+              <Box>
+                <InvoiceItemsTable
+                  columns={columns}
+                  rows={fields}
+                  rowKey={(row, idx) => row.id || idx}
+                  addRowButton={addRowButton}
+                  emptyContent={emptyContent}
+                />
+              </Box>
             </CardContent>
           </Card>
-
-          {/* Action Buttons */}
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button
-              variant="outlined"
-              onClick={handleCancel}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Updating...' : 'Update Delivery Challan'}
-            </Button>
-          </Box>
         </form>
-      </Box>
-    </LocalizationProvider>
+      </Grid>
+
+      {/* Left side totals card */}
+      <Grid item xs={12} md={2.5}>
+        <DeliveryChallanTotals
+          control={control}
+          handleSubmit={handleSubmit}
+          handleFormSubmit={handleFormSubmit}
+          handleError={handleError}
+        />
+      </Grid>
+
+      {/* Add Bank Modal */}
+      <BankDetailsDialog
+        open={openBankModal}
+        onClose={() => setOpenBankModal(false)}
+        newBank={newBank}
+        setNewBank={setNewBank}
+        handleAddBank={handleAddBank}
+      />
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+      >
+        <Alert
+          variant="filled"
+          size="small"
+          severity={snackbar.severity}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          className="is-full shadow-xs p-2 text-md"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      {/* Terms Dialog */}
+      <Dialog
+        open={termsDialogOpen}
+        onClose={handleCloseTermsDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <Box sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04), py: 3, px: 5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            Terms and Conditions
+          </Typography>
+        </Box>
+
+        <DialogContent sx={{ py: 5, px: 5 }}>
+          <TextField
+            value={tempTerms}
+            onChange={(e) => setTempTerms(e.target.value)}
+            fullWidth
+            multiline
+            rows={5}
+            variant="filled"
+            placeholder="Enter your standard terms and conditions (payment terms, delivery terms, warranty information, etc.)"
+            InputProps={{
+              endAdornment: tempTerms.trim() !== '' && (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={handleCloseTermsDialog}
+                    edge="end"
+                    className="transition-transform duration-200 ease-in-out hover:scale-110 active:scale-95"
+                    title="Clear terms and conditions"
+                    size="small"
+                  >
+                    <Clear />
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+          />
+        </DialogContent>
+
+        <Box className='flex flex-row justify-end gap-2 px-5 pb-4 pt-1'>
+          <Button
+            onClick={handleCloseTermsDialog}
+            variant="outlined"
+            color="secondary"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveTerms}
+            color="primary"
+            variant="contained"
+          >
+            Save Changes
+          </Button>
+        </Box>
+      </Dialog>
+
+      {/* Shipping Address Dialog */}
+      <Dialog
+        open={addressDialogOpen}
+        onClose={handleCloseAddressDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <Box sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04), py: 3, px: 5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            Shipping Address
+          </Typography>
+        </Box>
+
+        <DialogContent sx={{ py: 5, px: 5 }}>
+          <TextField
+            value={tempAddress}
+            onChange={(e) => setTempAddress(e.target.value)}
+            fullWidth
+            multiline
+            rows={4}
+            variant="filled"
+            placeholder="Enter shipping address (street, city, state, postal code)"
+            InputProps={{
+              endAdornment: tempAddress.trim() !== '' && (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setTempAddress('')}
+                    edge="end"
+                    className="transition-transform duration-200 ease-in-out hover:scale-110 active:scale-95"
+                    title="Clear address"
+                    size="small"
+                  >
+                    <Clear />
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+          />
+        </DialogContent>
+
+        <Box className='flex flex-row justify-end gap-2 px-5 pb-4 pt-1'>
+          <Button
+            onClick={handleCloseAddressDialog}
+            variant="outlined"
+            color="secondary"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveAddress}
+            color="primary"
+            variant="contained"
+          >
+            Save Address
+          </Button>
+        </Box>
+      </Dialog>
+    </Grid>
   );
 };
 

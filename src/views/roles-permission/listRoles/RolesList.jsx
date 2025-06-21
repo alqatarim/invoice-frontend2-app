@@ -1,0 +1,245 @@
+'use client'
+
+import React, { useState, useMemo } from 'react'
+import Link from 'next/link'
+import { Icon } from '@iconify/react'
+import {
+  Card,
+  Button,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControlLabel,
+  Checkbox,
+  FormGroup,
+  Grid,
+} from '@mui/material'
+import { useTheme } from '@mui/material/styles'
+import { usePermission } from '@/Auth/usePermission'
+
+import RolesHead from './rolesHead'
+import RolesFilter from './rolesFilter'
+import CustomListTable from '@/components/custom-components/CustomListTable'
+import RoleDialog from '@/components/dialogs/role-dialog'
+import PermissionsDialog from '@/components/dialogs/permissions-dialog'
+import { useRolesListHandlers } from '@/handlers/roles-permission/useRolesListHandlers'
+import rolesColumns from './rolesColumns'
+
+const RolesList = ({ initialData }) => {
+  const theme = useTheme()
+  const handlers = useRolesListHandlers(initialData)
+
+  // Permissions
+  const permissions = {
+    canCreate: usePermission('role', 'create'),
+    canUpdate: usePermission('role', 'update'),
+    canView: usePermission('role', 'view'),
+    canDelete: usePermission('role', 'delete'),
+  }
+
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  })
+
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') return
+    setSnackbar(prev => ({ ...prev, open: false }))
+  }
+
+  // Column state management
+  const [columnsState, setColumns] = useState(handlers.columns || [])
+  const [manageColumnsOpen, setManageColumnsOpen] = useState(false)
+
+  // Column actions
+  const columnActions = {
+    open: () => setManageColumnsOpen(true),
+    close: () => setManageColumnsOpen(false),
+    save: () => {
+      setManageColumnsOpen(false)
+      // You can add logic here to save column preferences
+    },
+  }
+
+  // Handle column checkbox changes
+  const handleColumnCheckboxChange = (columnKey, checked) => {
+    setColumns(prev => 
+      prev.map(col => 
+        col.key === columnKey ? { ...col, visible: checked } : col
+      )
+    )
+  }
+
+  // Format roles data for table
+  const formattedRoles = Array.isArray(handlers.roles) ? handlers.roles.map((role, index) => ({
+    ...role,
+    id: index + 1 + (handlers.paginationModel?.page || 0) * (handlers.paginationModel?.pageSize || 10),
+  })) : []
+
+  // Get column definitions with inline editing handlers
+  const columnDefs = rolesColumns({
+    handleEdit: handlers.handleEdit,
+    handleViewPermissions: handlers.handleViewPermissions,
+    canEdit: permissions.canUpdate,
+    // Inline editing props
+    editingRoleId: handlers.editingRoleId,
+    editingValue: handlers.editingValue,
+    inlineLoading: handlers.inlineLoading,
+    handleStartInlineEdit: handlers.handleStartInlineEdit,
+    handleInlineEditChange: handlers.handleInlineEditChange,
+    handleSaveInlineEdit: handlers.handleSaveInlineEdit,
+    handleCancelInlineEdit: handlers.handleCancelInlineEdit,
+  })
+
+  // Build table columns with visible filter
+  const tableColumns = useMemo(() =>
+    columnDefs.filter(col => 
+      columnsState.some(vc => vc.key === col.key && vc.visible)
+    ),
+    [columnDefs, columnsState]
+  )
+
+  // Filter values for the filter component
+  const filterValues = {
+    roleName: [],
+    fromDate: '',
+    toDate: '',
+  }
+
+  // Filter handlers
+  const handleFilterValueChange = (field, value) => {
+    // Handle filter value changes
+    console.log('Filter change:', field, value)
+  }
+
+  const handleFilterApply = (values) => {
+    // Handle filter apply
+    console.log('Apply filters:', values)
+  }
+
+  const handleFilterReset = () => {
+    // Handle filter reset
+    console.log('Reset filters')
+  }
+
+  return (
+    <div className='flex flex-col gap-5'>
+      {/* Header and Stats */}
+      <RolesHead cardCounts={handlers.cardCounts} />
+
+      <Grid container spacing={3}>
+        {/* New Role Button */}
+        {permissions.canCreate && (
+          <Grid item xs={12}>
+            <div className="flex justify-end">
+              <Button
+                variant="contained"
+                startIcon={<Icon icon="tabler:plus" />}
+                onClick={handlers.handleAdd}
+              >
+                New Role
+              </Button>
+            </div>
+          </Grid>
+        )}
+
+        {/* Filter Component */}
+        <Grid item xs={12}>
+          <RolesFilter
+            onChange={handleFilterValueChange}
+            onApply={handleFilterApply}
+            onReset={handleFilterReset}
+            values={filterValues}
+            onManageColumns={columnActions.open}
+            searchQuery={handlers.searchQuery}
+            onSearchChange={handlers.handleSearchChange}
+            onClearSearch={handlers.clearSearch}
+          />
+        </Grid>
+
+        {/* Roles Table */}
+        <Grid item xs={12}>
+          <Card>
+            <CustomListTable
+              columns={tableColumns}
+              rows={formattedRoles}
+              loading={handlers.loading}
+              pagination={{
+                page: handlers.paginationModel?.page || 0,
+                pageSize: handlers.paginationModel?.pageSize || 10,
+                total: handlers.totalCount || 0
+              }}
+              onPageChange={handlers.handlePageChange}
+              onRowsPerPageChange={handlers.handlePageSizeChange}
+              noDataText="No roles found."
+              rowKey={(row) => row._id || row.id}
+            />
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Manage Columns Dialog */}
+      <Dialog open={manageColumnsOpen} onClose={columnActions.close}>
+        <DialogTitle>Select Columns</DialogTitle>
+        <DialogContent>
+          <FormGroup>
+            {columnsState.map((column) => (
+              <FormControlLabel
+                key={column.key}
+                control={
+                  <Checkbox
+                    checked={column.visible}
+                    onChange={(e) => handleColumnCheckboxChange(column.key, e.target.checked)}
+                  />
+                }
+                label={column.label}
+              />
+            ))}
+          </FormGroup>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={columnActions.close}>Cancel</Button>
+          <Button onClick={columnActions.save} color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Role Dialog for Adding New Roles */}
+      <RoleDialog
+        open={handlers.openDialog}
+        onClose={handlers.handleCloseDialog}
+        data={handlers.editData}
+        onSubmit={handlers.handleSubmit}
+        loading={handlers.dialogLoading}
+      />
+
+      {/* Permissions Dialog */}
+      <PermissionsDialog
+        open={handlers.permissionsDialogOpen}
+        onClose={handlers.handleClosePermissionsDialog}
+        roleId={handlers.selectedRoleForPermissions?._id}
+        roleName={handlers.selectedRoleForPermissions?.roleName}
+      />
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </div>
+  )
+}
+
+export default RolesList

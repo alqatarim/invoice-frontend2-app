@@ -80,12 +80,7 @@ const horizontalMenuData = (dictionary, params) => [
           {
             label: dictionary['navigation'].roles,
             icon: 'ri-circle-line',
-            href: '/apps/roles'
-          },
-          {
-            label: dictionary['navigation'].permissions,
-            icon: 'ri-circle-line',
-            href: '/apps/permissions'
+            href: '/roles-permission/roles-permission-list'
           }
         ]
       }

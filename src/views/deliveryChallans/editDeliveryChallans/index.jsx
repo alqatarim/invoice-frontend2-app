@@ -14,7 +14,8 @@ const EditDeliveryChallanContent = ({
   productData, 
   taxRates, 
   initialBanks, 
-  signatures 
+  signatures,
+  addBank
 }) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
@@ -64,6 +65,7 @@ const EditDeliveryChallanContent = ({
       onSave={handleUpdate}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}
+      addBank={addBank}
     />
   );
 };

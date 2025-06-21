@@ -423,45 +423,6 @@ export const creditNoteEditSchema = yup.object().shape({
   signature_name: yup.string().nullable().required("Enter Signature Name"),
 });
 
-export const DeliveryChallanSchema = yup.object().shape({
-  // purchaseId: yup.string().required("Please enter Vendor name"),
-  // referenceNo: yup.string().required("Please enter Reference No"),
-  customerId: yup.object().required("Choose Any Customer"),
-  // listData: yup.string().required("Please select atleast one product"),
-  bank: yup.object().required("Choose Any Bank"),
-  notes: yup.string().required("Enter Notes"),
-  // bank: yup.string().required("Choose the bank"),
-
-  termsAndCondition: yup.string().required("Enter Terms And Condition"),
-  signatureName: yup.string().nullable().required("Enter Signature Name"),
-  signatureImage: yup
-    .mixed()
-    .test("required", "Upload Signature Image", (value) => {
-      if (value.length > 0) return true;
-      return false;
-    })
-    .test(
-      "fileSize",
-      "File size is too large",
-      (value) => value && value?.[0]?.size <= 1048576
-    ) // 1MB
-    .test(
-      "fileType",
-      "Unsupported file format",
-      (value) =>
-        value &&
-        ["image/jpeg", "image/png", "image/svg+xml"].includes(value?.[0]?.type)
-    ),
-});
-
-export const EditDeliveryChallanSchema = yup.object().shape({
-  // purchaseId: yup.string().required("Please enter Vendor name"),
-  // referenceNo: yup.string().required("Please enter Reference No"),
-  customerId: yup.object().required("Choose Any Customer"),
-  address: yup.string().required("Add Shipping Address").trim(),
-  // listData: yup.string().required("Please select atleast one product"),
-  // bank: yup.object().required("choose Any Bank"),
-  // bank: yup.string().required("Choose the bank"),
-
-  // signatureName: yup.string().nullable().required("Enter Signature Name"),
-});
+// Note: DeliveryChallanSchema and EditDeliveryChallanSchema have been moved to
+// @/views/deliveryChallans/deliveryChallansSchema for better organization
+// and to avoid conflicts with the new NextJS implementation

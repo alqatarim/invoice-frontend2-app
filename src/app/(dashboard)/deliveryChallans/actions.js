@@ -21,6 +21,9 @@ const ENDPOINTS = {
     TAX: '/drop_down/tax',
     BANK: '/drop_down/bank',
     SIGNATURE: '/drop_down/signature'
+  },
+  BANK: {
+    ADD: '/bankSettings/addbankDetails'
   }
 };
 
@@ -250,49 +253,84 @@ export async function addDeliveryChallan(data, signatureURL) {
   try {
     const formData = new FormData();
 
-    // Add items data with proper format
-    data.items.forEach((item, i) => {
-      Object.keys(item).forEach(key => {
-        if (item[key] !== undefined && item[key] !== null) {
-          if (key === 'taxInfo') {
-            const taxInfoStr = typeof item[key] === 'string'
-              ? item[key]
-              : JSON.stringify(item[key]);
-            formData.append(`items[${i}][${key}]`, taxInfoStr);
-          } else {
-            formData.append(`items[${i}][${key}]`, item[key]);
-          }
+    // Add items data with explicit field mapping
+    if (data.items && Array.isArray(data.items)) {
+      data.items.forEach((item, i) => {
+        // Explicit field assignment for each item
+        if (item.productId) formData.append(`items[${i}][productId]`, item.productId);
+        if (item.name) formData.append(`items[${i}][name]`, item.name);
+        if (item.quantity !== undefined) formData.append(`items[${i}][quantity]`, item.quantity);
+        if (item.unit) formData.append(`items[${i}][unit]`, item.unit);
+        if (item.units) formData.append(`items[${i}][units]`, item.units);
+        if (item.rate !== undefined) formData.append(`items[${i}][rate]`, item.rate);
+        if (item.discount !== undefined) formData.append(`items[${i}][discount]`, item.discount);
+        if (item.discountType !== undefined) formData.append(`items[${i}][discountType]`, item.discountType);
+        if (item.tax !== undefined) formData.append(`items[${i}][tax]`, item.tax);
+        if (item.amount !== undefined) formData.append(`items[${i}][amount]`, item.amount);
+        
+        // Handle taxInfo as JSON string
+        if (item.taxInfo) {
+          const taxInfoStr = typeof item.taxInfo === 'string' ? item.taxInfo : JSON.stringify(item.taxInfo);
+          formData.append(`items[${i}][taxInfo]`, taxInfoStr);
         }
-      });
-    });
-
-    // Add delivery address fields
-    if (data.deliveryAddress) {
-      Object.keys(data.deliveryAddress).forEach(key => {
-        if (data.deliveryAddress[key] !== undefined && data.deliveryAddress[key] !== null) {
-          formData.append(`deliveryAddress[${key}]`, data.deliveryAddress[key]);
-        }
+        
+        // Additional form tracking fields
+        if (item.key) formData.append(`items[${i}][key]`, item.key);
+        if (item.isRateFormUpadted !== undefined) formData.append(`items[${i}][isRateFormUpadted]`, item.isRateFormUpadted);
+        if (item.form_updated_rate !== undefined) formData.append(`items[${i}][form_updated_rate]`, item.form_updated_rate);
+        if (item.form_updated_discount !== undefined) formData.append(`items[${i}][form_updated_discount]`, item.form_updated_discount);
+        if (item.form_updated_discounttype !== undefined) formData.append(`items[${i}][form_updated_discounttype]`, item.form_updated_discounttype);
+        if (item.form_updated_tax !== undefined) formData.append(`items[${i}][form_updated_tax]`, item.form_updated_tax);
       });
     }
 
-    // Add all other fields with proper formatting
-    Object.keys(data).forEach(key => {
-      if (key !== 'items' && key !== 'deliveryAddress' && data[key] !== undefined && data[key] !== null) {
-        if (key === 'dueDate' || key === 'deliveryChallanDate') {
-          formData.append(key, new Date(data[key]).toISOString());
-        } else if (key === 'taxableAmount' || key === 'TotalAmount' || key === 'vat' || key === 'totalDiscount') {
-          formData.append(key, Number(data[key]).toString());
-        } else {
-          formData.append(key, data[key]);
-        }
-      }
-    });
+    // Add delivery address fields explicitly
+    if (data.deliveryAddress) {
+      if (data.deliveryAddress.name) formData.append('deliveryAddress[name]', data.deliveryAddress.name);
+      if (data.deliveryAddress.addressLine1) formData.append('deliveryAddress[addressLine1]', data.deliveryAddress.addressLine1);
+      if (data.deliveryAddress.addressLine2) formData.append('deliveryAddress[addressLine2]', data.deliveryAddress.addressLine2);
+      if (data.deliveryAddress.city) formData.append('deliveryAddress[city]', data.deliveryAddress.city);
+      if (data.deliveryAddress.state) formData.append('deliveryAddress[state]', data.deliveryAddress.state);
+      if (data.deliveryAddress.pincode) formData.append('deliveryAddress[pincode]', data.deliveryAddress.pincode);
+      if (data.deliveryAddress.country) formData.append('deliveryAddress[country]', data.deliveryAddress.country);
+    }
 
-    // Ensure required fields are present
+    // Add main delivery challan fields explicitly
+    if (data.customerId) formData.append('customerId', data.customerId);
+    if (data.deliveryChallanNumber) formData.append('deliveryChallanNumber', data.deliveryChallanNumber);
+    if (data.referenceNo) formData.append('referenceNo', data.referenceNo);
+    
+    // Handle date fields
+    if (data.deliveryChallanDate) {
+      formData.append('deliveryChallanDate', new Date(data.deliveryChallanDate).toISOString());
+    }
+    if (data.dueDate) {
+      formData.append('dueDate', new Date(data.dueDate).toISOString());
+    }
+
+    // Add address field
+    if (data.address) formData.append('address', data.address);
+
+    // Add financial fields
+    if (data.taxableAmount !== undefined) formData.append('taxableAmount', Number(data.taxableAmount).toString());
+    if (data.totalDiscount !== undefined) formData.append('totalDiscount', Number(data.totalDiscount).toString());
+    if (data.vat !== undefined) formData.append('vat', Number(data.vat).toString());
+    if (data.TotalAmount !== undefined) formData.append('TotalAmount', Number(data.TotalAmount).toString());
+    
+    // Add other fields
+    if (data.bank) formData.append('bank', data.bank);
+    if (data.notes) formData.append('notes', data.notes);
+    if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
+    
+    // Required fields with defaults
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type || 'eSignature');
+    formData.append('sign_type', data.sign_type || 'manualSignature');
+    
+    // Signature fields
+    if (data.signatureName) formData.append('signatureName', data.signatureName);
+    if (data.signatureId) formData.append('signatureId', data.signatureId);
 
-    // Handle signature
+    // Handle signature image for eSignature type
     if (signatureURL && data.sign_type === 'eSignature') {
       try {
         const blob = await dataURLtoBlob(signatureURL);
@@ -335,49 +373,87 @@ export async function updateDeliveryChallan(id, data, signatureURL) {
   try {
     const formData = new FormData();
 
-    // Add items data with proper format
-    data.items.forEach((item, i) => {
-      Object.keys(item).forEach(key => {
-        if (item[key] !== undefined && item[key] !== null) {
-          if (key === 'taxInfo') {
-            const taxInfoStr = typeof item[key] === 'string'
-              ? item[key]
-              : JSON.stringify(item[key]);
-            formData.append(`items[${i}][${key}]`, taxInfoStr);
-          } else {
-            formData.append(`items[${i}][${key}]`, item[key]);
-          }
-        }
-      });
-    });
+    // Add delivery challan ID for update
+    formData.append('_id', id);
 
-    // Add delivery address fields
-    if (data.deliveryAddress) {
-      Object.keys(data.deliveryAddress).forEach(key => {
-        if (data.deliveryAddress[key] !== undefined && data.deliveryAddress[key] !== null) {
-          formData.append(`deliveryAddress[${key}]`, data.deliveryAddress[key]);
+    // Add items data with explicit field mapping
+    if (data.items && Array.isArray(data.items)) {
+      data.items.forEach((item, i) => {
+        // Explicit field assignment for each item
+        if (item.productId) formData.append(`items[${i}][productId]`, item.productId);
+        if (item.name) formData.append(`items[${i}][name]`, item.name);
+        if (item.quantity !== undefined) formData.append(`items[${i}][quantity]`, item.quantity);
+        if (item.unit) formData.append(`items[${i}][unit]`, item.unit);
+        if (item.units) formData.append(`items[${i}][units]`, item.units);
+        if (item.rate !== undefined) formData.append(`items[${i}][rate]`, item.rate);
+        if (item.discount !== undefined) formData.append(`items[${i}][discount]`, item.discount);
+        if (item.discountType !== undefined) formData.append(`items[${i}][discountType]`, item.discountType);
+        if (item.tax !== undefined) formData.append(`items[${i}][tax]`, item.tax);
+        if (item.amount !== undefined) formData.append(`items[${i}][amount]`, item.amount);
+        
+        // Handle taxInfo as JSON string
+        if (item.taxInfo) {
+          const taxInfoStr = typeof item.taxInfo === 'string' ? item.taxInfo : JSON.stringify(item.taxInfo);
+          formData.append(`items[${i}][taxInfo]`, taxInfoStr);
         }
+        
+        // Additional form tracking fields
+        if (item.key) formData.append(`items[${i}][key]`, item.key);
+        if (item.isRateFormUpadted !== undefined) formData.append(`items[${i}][isRateFormUpadted]`, item.isRateFormUpadted);
+        if (item.form_updated_rate !== undefined) formData.append(`items[${i}][form_updated_rate]`, item.form_updated_rate);
+        if (item.form_updated_discount !== undefined) formData.append(`items[${i}][form_updated_discount]`, item.form_updated_discount);
+        if (item.form_updated_discounttype !== undefined) formData.append(`items[${i}][form_updated_discounttype]`, item.form_updated_discounttype);
+        if (item.form_updated_tax !== undefined) formData.append(`items[${i}][form_updated_tax]`, item.form_updated_tax);
       });
     }
 
-    // Add all other fields with proper formatting
-    Object.keys(data).forEach(key => {
-      if (key !== 'items' && key !== 'deliveryAddress' && data[key] !== undefined && data[key] !== null) {
-        if (key === 'dueDate' || key === 'deliveryChallanDate') {
-          formData.append(key, new Date(data[key]).toISOString());
-        } else if (key === 'taxableAmount' || key === 'TotalAmount' || key === 'vat' || key === 'totalDiscount') {
-          formData.append(key, Number(data[key]).toString());
-        } else {
-          formData.append(key, data[key]);
-        }
-      }
-    });
+    // Add delivery address fields explicitly
+    if (data.deliveryAddress) {
+      if (data.deliveryAddress.name) formData.append('deliveryAddress[name]', data.deliveryAddress.name);
+      if (data.deliveryAddress.addressLine1) formData.append('deliveryAddress[addressLine1]', data.deliveryAddress.addressLine1);
+      if (data.deliveryAddress.addressLine2) formData.append('deliveryAddress[addressLine2]', data.deliveryAddress.addressLine2);
+      if (data.deliveryAddress.city) formData.append('deliveryAddress[city]', data.deliveryAddress.city);
+      if (data.deliveryAddress.state) formData.append('deliveryAddress[state]', data.deliveryAddress.state);
+      if (data.deliveryAddress.pincode) formData.append('deliveryAddress[pincode]', data.deliveryAddress.pincode);
+      if (data.deliveryAddress.country) formData.append('deliveryAddress[country]', data.deliveryAddress.country);
+    }
 
-    // Ensure required fields are present
+    // Add main delivery challan fields explicitly
+    if (data.customerId) formData.append('customerId', data.customerId);
+    if (data.deliveryChallanNumber) formData.append('deliveryChallanNumber', data.deliveryChallanNumber);
+    if (data.referenceNo) formData.append('referenceNo', data.referenceNo);
+    
+    // Handle date fields
+    if (data.deliveryChallanDate) {
+      formData.append('deliveryChallanDate', new Date(data.deliveryChallanDate).toISOString());
+    }
+    if (data.dueDate) {
+      formData.append('dueDate', new Date(data.dueDate).toISOString());
+    }
+
+    // Add address field
+    if (data.address) formData.append('address', data.address);
+
+    // Add financial fields
+    if (data.taxableAmount !== undefined) formData.append('taxableAmount', Number(data.taxableAmount).toString());
+    if (data.totalDiscount !== undefined) formData.append('totalDiscount', Number(data.totalDiscount).toString());
+    if (data.vat !== undefined) formData.append('vat', Number(data.vat).toString());
+    if (data.TotalAmount !== undefined) formData.append('TotalAmount', Number(data.TotalAmount).toString());
+    
+    // Add other fields
+    if (data.bank) formData.append('bank', data.bank);
+    if (data.notes) formData.append('notes', data.notes);
+    if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
+    
+    // Required fields with defaults
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type || 'eSignature');
+    formData.append('sign_type', data.sign_type || 'manualSignature');
+    
+    // Signature fields
+    if (data.signatureName) formData.append('signatureName', data.signatureName);
+    if (data.signatureId) formData.append('signatureId', data.signatureId);
 
-    // Handle signature
+    // Handle signature image for eSignature type
     if (signatureURL && data.sign_type === 'eSignature') {
       try {
         const blob = await dataURLtoBlob(signatureURL);
@@ -491,5 +567,27 @@ export async function convertToInvoice(data) {
   } catch (error) {
     console.error('Error converting delivery challan to invoice:', error);
     return { success: false, message: error.message };
+  }
+}
+
+/**
+ * Add a new bank.
+ */
+export async function addBank(bankData) {
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.BANK.ADD, {
+      method: 'POST',
+      body: JSON.stringify(bankData),
+    });
+
+    if (response.code === 200) {
+      return response.data || {};
+    } else {
+      console.error('Failed to add bank');
+      throw new Error(response.message || 'Failed to add bank');
+    }
+  } catch (error) {
+    console.error('Error in addBank:', error);
+    throw error;
   }
 }
