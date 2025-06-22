@@ -1,13 +1,11 @@
-import { useState, useCallback, useEffect } from 'react'
-import { filterCustomers } from '@/app/(dashboard)/customers/actions'
+import { useState, useCallback } from 'react'
 
 /**
  * Filter handler for managing customer list filters
  */
 export const useFilterHandler = ({
   initialFilters,
-  setCustomers,
-  setPagination,
+  fetchCustomers,
   onError
 }) => {
   const [filterOpen, setFilterOpen] = useState(false)
@@ -33,33 +31,17 @@ export const useFilterHandler = ({
   // Apply filters
   const handleApplyFilter = useCallback(async () => {
     try {
-      const formData = new FormData()
-
-      // Add customer IDs if any
-      if (tempFilters.customerId && tempFilters.customerId.length > 0) {
-        tempFilters.customerId.forEach(id => formData.append('customerId', id))
-      }
-
-      // Add search term
-      if (tempFilters.search) {
-        formData.append('search', tempFilters.search)
-      }
-
-      const result = await filterCustomers(formData)
-
-      if (result.success) {
-        setCustomers(result.data || [])
-        setPagination(prev => ({ ...prev, current: 1, total: result.data?.length || 0 }))
-        setFilters(tempFilters)
-        setFilterOpen(false)
-      } else {
-        onError(result.error || 'Failed to apply filters')
-      }
+      setFilters(tempFilters)
+      await fetchCustomers({
+        page: 1,
+        filters: tempFilters
+      })
+      setFilterOpen(false)
     } catch (error) {
       console.error('Error applying filters:', error)
       onError(error.message || 'Failed to apply filters')
     }
-  }, [tempFilters, setCustomers, setPagination, onError])
+  }, [tempFilters, fetchCustomers, onError])
 
   // Reset filters
   const handleResetFilter = useCallback(() => {
@@ -76,14 +58,8 @@ export const useFilterHandler = ({
     handleResetFilter()
     setFilterOpen(false)
     // Fetch all customers without filters
-    const formData = new FormData()
-    const result = await filterCustomers(formData)
-
-    if (result.success) {
-      setCustomers(result.data || [])
-      setPagination(prev => ({ ...prev, current: 1, total: result.data?.length || 0 }))
-    }
-  }, [handleResetFilter, setCustomers, setPagination])
+    await fetchCustomers({ page: 1, filters: {} })
+  }, [handleResetFilter, fetchCustomers])
 
   // Update search filter
   const handleSearchChange = useCallback((searchTerm) => {

@@ -38,19 +38,11 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
     if (!selectedCustomer) return
 
     try {
-      const formData = new FormData()
-      formData.append('id', selectedCustomer._id)
-
-      const result = await deleteCustomer(formData)
-
-      if (result.success) {
-        onSuccess('Customer deleted successfully')
-        setDeleteDialogOpen(false)
-        setSelectedCustomer(null)
-        fetchCustomers()
-      } else {
-        onError(result.error || 'Failed to delete customer')
-      }
+      await deleteCustomer(selectedCustomer._id)
+      onSuccess('Customer deleted successfully')
+      setDeleteDialogOpen(false)
+      setSelectedCustomer(null)
+      fetchCustomers()
     } catch (error) {
       console.error('Error deleting customer:', error)
       onError(error.message || 'Failed to delete customer')
@@ -72,19 +64,11 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
     if (!selectedCustomer) return
 
     try {
-      const formData = new FormData()
-      formData.append('id', selectedCustomer._id)
-
-      const result = await activateCustomer(formData)
-
-      if (result.success) {
-        onSuccess('Customer activated successfully')
-        setActivateDialogOpen(false)
-        setSelectedCustomer(null)
-        fetchCustomers()
-      } else {
-        onError(result.error || 'Failed to activate customer')
-      }
+      await activateCustomer(selectedCustomer._id)
+      onSuccess('Customer activated successfully')
+      setActivateDialogOpen(false)
+      setSelectedCustomer(null)
+      fetchCustomers()
     } catch (error) {
       console.error('Error activating customer:', error)
       onError(error.message || 'Failed to activate customer')
@@ -106,19 +90,11 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
     if (!selectedCustomer) return
 
     try {
-      const formData = new FormData()
-      formData.append('id', selectedCustomer._id)
-
-      const result = await deactivateCustomer(formData)
-
-      if (result.success) {
-        onSuccess('Customer deactivated successfully')
-        setDeactivateDialogOpen(false)
-        setSelectedCustomer(null)
-        fetchCustomers()
-      } else {
-        onError(result.error || 'Failed to deactivate customer')
-      }
+      await deactivateCustomer(selectedCustomer._id)
+      onSuccess('Customer deactivated successfully')
+      setDeactivateDialogOpen(false)
+      setSelectedCustomer(null)
+      fetchCustomers()
     } catch (error) {
       console.error('Error deactivating customer:', error)
       onError(error.message || 'Failed to deactivate customer')

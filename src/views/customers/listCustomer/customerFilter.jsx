@@ -1,26 +1,27 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
-import { useTheme, alpha } from '@mui/material/styles'
+import { useState, useEffect, useMemo } from 'react';
+import { useTheme, alpha } from '@mui/material/styles';
 import {
-  Card,
-  Grid,
-  TextField,
   Button,
+  Card,
   Chip,
-  IconButton,
   Collapse,
   Divider,
   FormControl,
+  Grid,
+  IconButton,
   InputLabel,
-  Select,
   MenuItem,
   OutlinedInput,
-  Checkbox,
-  ListItemText,
+  Select,
   Typography,
-} from '@mui/material'
-import { Icon } from '@iconify/react'
+  ToggleButton,
+  ToggleButtonGroup,
+  TextField,
+} from '@mui/material';
+import { Icon } from '@iconify/react';
+import { customerTabs } from '@/data/dataSets';
 
 /**
  * Reusable multi-select dropdown component
@@ -90,44 +91,61 @@ const CustomerFilter = ({
 }) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
+  const [localFilters, setLocalFilters] = useState({
+    customer: values.customer || [],
+    search: values.search || '',
+  });
 
-  // Status options
-  const statusOptions = [
-    { value: 'Active', label: 'Active' },
-    { value: 'Inactive', label: 'Inactive' },
-  ]
+  // Sync local state with external values
+  useEffect(() => {
+    setLocalFilters({
+      customer: values.customer || [],
+      search: values.search || '',
+    });
+  }, [values]);
 
-  const handleFilterChange = (field, value) => {
-    onChange(field, value)
-  }
+  // Handlers
+  const handleLocalFilterChange = (field, value) => {
+    setLocalFilters(prev => ({ ...prev, [field]: value }));
+    onChange(field, value);
+  };
+
+  const handleSelectChange = (field) => (event) => {
+    const value = typeof event.target.value === 'string'
+      ? event.target.value.split(',')
+      : event.target.value;
+    handleLocalFilterChange(field, value);
+  };
 
   const handleSearchChange = (event) => {
-    handleFilterChange('search', event.target.value)
-  }
+    handleLocalFilterChange('search', event.target.value);
+  };
 
-  const handleStatusChange = (event) => {
-    const value = typeof event.target.value === 'string'
-      ? event.target.value.split(',')
-      : event.target.value
-    handleFilterChange('status', value)
-    onTabChange(value)
-  }
+  const applyFilters = () => {
+    const currentFilterValues = {
+      customer: localFilters.customer,
+      search: localFilters.search,
+      status: tab || []
+    };
+    onApply(currentFilterValues);
+  };
 
-  const handleCustomerChange = (event) => {
-    const value = typeof event.target.value === 'string'
-      ? event.target.value.split(',')
-      : event.target.value
-    handleFilterChange('customerId', value)
-  }
+  const resetFilters = () => {
+    setLocalFilters({
+      customer: [],
+      search: '',
+    });
+    onReset();
+  };
 
   // Calculate active filter count
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (values.search) count++;
-    if (values.status?.length > 0) count++;
-    if (values.customerId?.length > 0) count++;
+    if (localFilters.customer.length > 0) count++;
+    if (localFilters.search) count++;
+    if (tab?.length > 0 && !tab.includes('ALL')) count++;
     return count;
-  }, [values]);
+  }, [localFilters, tab]);
 
   return (
     <Card
@@ -184,13 +202,35 @@ const CustomerFilter = ({
         <Divider />
         <div className="p-6">
           <Grid container spacing={4}>
+            {/* Status Filter Section */}
+            <Grid item xs={12}>
+              <ToggleButtonGroup
+                color="primary"
+                value={tab}
+                exclusive={false}
+                onChange={onTabChange}
+                aria-label="customer status filter"
+              >
+                {customerTabs.map((tabObj) => (
+                  <ToggleButton
+                    key={tabObj.value}
+                    value={tabObj.value}
+                    aria-label={tabObj.label}
+                    size="medium"
+                  >
+                    {tabObj.label}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Grid>
+
             {/* Search Filter */}
             <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
                 size="small"
                 label="Search Customers"
-                value={values.search || ''}
+                value={localFilters.search}
                 onChange={handleSearchChange}
                 placeholder="Search by name, email, or phone"
                 InputProps={{
@@ -204,33 +244,21 @@ const CustomerFilter = ({
               />
             </Grid>
 
-            {/* Status Filter */}
-            <Grid item xs={12} sm={6} md={4}>
-              <MultiSelectDropdown
-                id="status-select"
-                label="Status"
-                value={values.status || []}
-                onChange={handleStatusChange}
-                options={statusOptions}
-              />
-            </Grid>
-
             {/* Customer Filter */}
             <Grid item xs={12} sm={6} md={4}>
               <MultiSelectDropdown
                 id="customer-select"
-                label="Select Customers"
-                value={values.customerId || []}
-                onChange={handleCustomerChange}
+                label="Customers"
+                value={localFilters.customer}
+                onChange={handleSelectChange('customer')}
                 options={customerOptions.map(customer => ({
-                  value: customer._id,
+                  value: customer._id || customer.id,
                   label: customer.name
                 }))}
               />
             </Grid>
           </Grid>
 
-          {/* Action Buttons - matches invoice filter layout exactly */}
           <div className='flex justify-end gap-3 mt-6'>
             <Button
               variant="text"
@@ -246,7 +274,7 @@ const CustomerFilter = ({
 
             <Button
               variant="outlined"
-              onClick={onReset}
+              onClick={resetFilters}
               size="medium"
               startIcon={<Icon icon="tabler:refresh" />}
             >
@@ -255,9 +283,9 @@ const CustomerFilter = ({
 
             <Button
               variant="contained"
-              onClick={onApply}
+              onClick={applyFilters}
               size="medium"
-              startIcon={<Icon icon="tabler:check" />}
+              startIcon={<Icon icon="tabler:search" />}
             >
               Apply Filters
             </Button>
@@ -265,7 +293,7 @@ const CustomerFilter = ({
         </div>
       </Collapse>
     </Card>
-  )
-}
+  );
+};
 
-export default CustomerFilter
+export default CustomerFilter;

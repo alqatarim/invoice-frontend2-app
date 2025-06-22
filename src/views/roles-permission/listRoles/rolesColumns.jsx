@@ -1,93 +1,45 @@
 'use client'
 
-import { Button, Box, Typography, TextField, IconButton, CircularProgress } from '@mui/material'
+import React from 'react'
+import { Button, Box, Typography, TextField, IconButton, CircularProgress, Menu, MenuItem, FormControl, Grid, InputAdornment, ButtonGroup } from '@mui/material'
 import { Icon } from '@iconify/react'
 import { formatDate } from '@/utils/dateUtils'
 import CustomButton from '@core/components/mui/CustomIconButton'
-
-// Smart icon mapping function based on role name analysis
-const getRoleIcon = (roleName) => {
-  if (!roleName) return 'mdi:account-circle'
-  
-  const name = roleName.toLowerCase()
-  
-  // Admin roles
-  if (name.includes('admin') || name.includes('administrator')) {
-    return 'mdi:shield-crown'
-  }
-  
-  // Super admin / Owner roles
-  if (name.includes('super') || name.includes('owner') || name.includes('root')) {
-    return 'mdi:crown'
-  }
-  
-  // Manager / Lead roles
-  if (name.includes('manager') || name.includes('lead') || name.includes('supervisor') || name.includes('director')) {
-    return 'mdi:account-tie'
-  }
-  
-  // Developer / Engineer roles
-  if (name.includes('developer') || name.includes('engineer') || name.includes('programmer') || name.includes('dev')) {
-    return 'mdi:code-tags'
-  }
-  
-  // Designer roles
-  if (name.includes('designer') || name.includes('ui') || name.includes('ux')) {
-    return 'mdi:palette'
-  }
-  
-  // Sales / Marketing roles
-  if (name.includes('sales') || name.includes('marketing') || name.includes('account')) {
-    return 'mdi:chart-line'
-  }
-  
-  // Support / Customer Service roles
-  if (name.includes('support') || name.includes('service') || name.includes('help')) {
-    return 'mdi:headset'
-  }
-  
-  // HR / People roles
-  if (name.includes('hr') || name.includes('human') || name.includes('people') || name.includes('recruitment')) {
-    return 'mdi:account-group'
-  }
-  
-  // Finance / Accounting roles
-  if (name.includes('finance') || name.includes('accounting') || name.includes('accountant')) {
-    return 'mdi:calculator'
-  }
-  
-  // Analyst / Data roles
-  if (name.includes('analyst') || name.includes('data') || name.includes('analytics')) {
-    return 'mdi:chart-bar'
-  }
-  
-  // Editor / Content roles
-  if (name.includes('editor') || name.includes('content') || name.includes('writer')) {
-    return 'mdi:pencil'
-  }
-  
-  // Viewer / Guest / Basic User roles
-  if (name.includes('viewer') || name.includes('guest') || name.includes('read') || name === 'user' || name === 'member') {
-    return 'mdi:eye'
-  }
-  
-  // Default icon for unrecognized roles
-  return 'mdi:account-circle'
-}
+import CustomIconButton from '@core/components/mui/CustomIconButtonTwo'
+import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton'
+import { ROLE_ICONS } from '@/data/dataSets'
 
 const rolesColumns = ({ 
-  handleEdit, 
   handleViewPermissions, 
   canEdit,
   // Inline editing props
   editingRoleId,
   editingValue,
+  editingIcon,
+  editingMode,
   inlineLoading,
-  handleStartInlineEdit,
+  handleStartNameEdit,
   handleInlineEditChange,
-  handleSaveInlineEdit,
+  handleIconChange,
+  handleSaveNameEdit,
   handleCancelInlineEdit
 }) => {
+  // State for Menu anchor
+  const [iconMenuAnchor, setIconMenuAnchor] = React.useState(null)
+
+  const handleIconMenuOpen = (event) => {
+    setIconMenuAnchor(event.currentTarget)
+  }
+
+  const handleIconMenuClose = () => {
+    setIconMenuAnchor(null)
+  }
+
+  const handleIconSelect = (iconValue) => {
+    handleIconChange(iconValue)
+    handleIconMenuClose()
+  }
+
   return [
     {
       key: 'id',
@@ -106,108 +58,148 @@ const rolesColumns = ({
       label: 'Role Name',
       visible: true,
       sortable: true,
-         align: 'center',
+      align: 'center',
       renderCell: (row) => {
-        const isEditing = editingRoleId === row._id
+        const isEditingName = editingRoleId === row._id && editingMode === 'name'
         const isSuperAdmin = row?.roleName === 'Super Admin'
         const canEditRole = canEdit && !isSuperAdmin
-        
 
+        // Name editing mode - simple text field with auto-save
+        if (isEditingName) {
+          return (
+            <Box className="flex justify-center items-center gap-2">
+              {/* Role Icon (read-only during name edit) */}
+              <CustomOriginalIconButton
+                color="primary"
+                size="medium"
+                className="cursor-default"
+                disabled
+              >
+                <Icon 
+                  icon={row?.roleIcon || 'mdi:user-circle-outline'} 
+                  width={23}
+                />
+              </CustomOriginalIconButton>
+
+              {/* Role Name Text Field (editable with auto-save) */}
+              <TextField
+                size="small"
+                variant="outlined"
+                value={editingValue}
+                onChange={(e) => handleInlineEditChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSaveNameEdit()
+                  } else if (e.key === 'Escape') {
+                    handleCancelInlineEdit()
+                  }
+                }}
+                onBlur={() => handleSaveNameEdit(true)}
+                disabled={inlineLoading}
+                placeholder="Role name"
+                autoFocus
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px'
+                  }
+                }}
+                className="flex-1 min-w-[180px]"
+              />
+
+              {/* Loading indicator */}
+              {inlineLoading && (
+                <CircularProgress size={20} />
+              )}
+              
+              {/* Placeholder space */}
+              <Box className="min-w-[80px]" />
+            </Box>
+          )
+        }
 
         return (
-          <Box className="flex justify-center items-center gap-2 group">
+          <Box className="flex justify-center items-center gap-2">
+            {/* Role Icon - Click to show immediate icon selector */}
+            <FormControl>
+              <CustomOriginalIconButton
+                color="primary"
+                size="medium"
+                onClick={canEditRole ? handleIconMenuOpen : undefined}
+                className={canEditRole ? "cursor-pointer" : "cursor-default"}
+                title={canEditRole ? 'Click to change role icon' : undefined}
+                disabled={inlineLoading}
+              >
+                <Icon 
+                  icon={row?.roleIcon || 'mdi:user-circle-outline'} 
+                  width={23}
+                />
+              </CustomOriginalIconButton>
+              
+              {/* Immediate Icon Selection Menu */}
+              <Menu
+                anchorEl={iconMenuAnchor}
+                open={Boolean(iconMenuAnchor)}
+                onClose={handleIconMenuClose}
+              >
+                <Grid container spacing={1} className='max-w-[300px] p-3'>
+                  {ROLE_ICONS.map((iconOption) => (
+                    <Grid item xs={'auto'} key={iconOption.value}>
+                      <CustomOriginalIconButton
+                        size="large"
+                        color='primary'
+                        onClick={() => {
+                          handleIconChange(row, iconOption.value)
+                          handleIconMenuClose()
+                        }}
+                        title={iconOption.label}
+                        disabled={inlineLoading}
+                      >
+                        <Icon icon={iconOption.value} width={23} />
+                      </CustomOriginalIconButton>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Menu>
+            </FormControl>
+
+            {/* Role Name Text Field with Edit Icon as InputAdornment */}
             <TextField
               size="small"
               variant="outlined"
-              value={isEditing ? editingValue : (row?.roleName || 'Unknown Role')}
-              onChange={isEditing ? (e) => handleInlineEditChange(e.target.value) : undefined}
-              onKeyDown={isEditing ? (e) => {
-                if (e.key === 'Enter') {
-                  handleSaveInlineEdit()
-                } else if (e.key === 'Escape') {
-                  handleCancelInlineEdit()
-                }
-              } : undefined}
-              disabled={isEditing && inlineLoading}
+              value={row?.roleName || 'Unknown Role'}
               InputProps={{
-                readOnly: !isEditing,
-                startAdornment: (
-                  <Box className="mr-2 flex items-center">
-                    <Icon 
-                      icon={getRoleIcon(isEditing ? editingValue : row?.roleName)} 
-                      fontSize={18}
-                      className="text-primary"
-                    />
-                  </Box>
-                ),
-                sx: {
-                  '& .MuiOutlinedInput-input': {
-                    cursor: !isEditing && canEditRole ? 'pointer' : isEditing ? 'text' : 'default',
-                    fontWeight: 500,
-                    fontSize: '0.9rem',
-                    color: 'primary.main',
-                    backgroundColor: 'transparent'
-                  },
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'transparent',
-                    '&:hover': canEditRole && !isEditing ? {
-                      borderColor: 'primary.main'
-                    } : {}
-                  },
-                  '& .MuiInputAdornment-root': {
-                    marginRight: '8px'
-                  },
-                  borderRadius: '8px',
-                  backgroundColor: 'transparent'
+                readOnly: true,
+                endAdornment: canEditRole && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleStartNameEdit(row)}
+                      edge="end"
+                      color="primary"
+                      title="Click to edit role name"
+                      disabled={inlineLoading}
+                    >
+                      <Icon icon="mdi:pencil-outline" width={18} />
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+              onClick={canEditRole ? () => handleStartNameEdit(row) : undefined}
+              title={canEditRole ? 'Click to edit role name' : undefined}
+              className="flex-1 min-w-[180px] cursor-pointer"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  cursor: canEditRole ? 'pointer' : 'default'
                 }
               }}
-              onClick={!isEditing && canEditRole ? () => handleStartInlineEdit(row) : undefined}
-              title={canEditRole ? 'Click to edit role name' : undefined}
-              className="flex-1 min-w-[200px]"
-              autoFocus={isEditing}
             />
-            {canEditRole && !isEditing && (
-              <IconButton
-                size="small"
-                onClick={() => handleStartInlineEdit(row)}
-                className="opacity-60 group-hover:opacity-100 transition-opacity p-1"
-                sx={{ 
-                  color: 'text.secondary',
-                  '&:hover': { 
-                    color: 'primary.main',
-                    backgroundColor: 'primary.light'
-                  }
-                }}
-              >
-                <Icon icon="mdi:pencil" fontSize={16} />
-              </IconButton>
-            )}
-            {isEditing && (
-              <>
-                <IconButton
-                  size="small"
-                  onClick={handleSaveInlineEdit}
-                  disabled={inlineLoading || !editingValue?.trim()}
-                  color="success"
-                  className="p-1"
-                >
-                  {inlineLoading ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <Icon icon="mdi:check" fontSize={16} />
-                  )}
-                </IconButton>
-                <IconButton
-                  size="small"
-                  onClick={handleCancelInlineEdit}
-                  disabled={inlineLoading}
-                  color="error" 
-                  className="p-1"
-                >
-                  <Icon icon="mdi:close" fontSize={16} />
-                </IconButton>
-              </>
-            )}
+
+            {/* Loading indicator or placeholder space */}
+            <Box className="min-w-[80px] flex justify-center">
+              {inlineLoading && (
+                <CircularProgress size={20} />
+              )}
+            </Box>
           </Box>
         )
       },

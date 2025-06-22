@@ -3,8 +3,8 @@
 import React from 'react'
 import ViewCustomer from './ViewCustomer'
 
-const ViewCustomerIndex = ({ customerId }) => {
-  return <ViewCustomer customerId={customerId} />
+const ViewCustomerIndex = ({ customerId, customerData }) => {
+  return <ViewCustomer customerId={customerId} customerData={customerData} />
 }
 
 export default ViewCustomerIndex

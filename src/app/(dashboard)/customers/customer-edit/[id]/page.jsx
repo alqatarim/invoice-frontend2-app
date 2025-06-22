@@ -1,14 +1,14 @@
 import React from 'react'
-import { getCustomerWithInvoices } from '../../actions'
+import { getCustomerById } from '../../actions'
 import ProtectedComponent from '@/components/ProtectedComponent'
-import ViewCustomerIndex from '@/views/customers/viewCustomer/index'
+import EditCustomerIndex from '@/views/customers/editCustomer/index'
 
-export default async function ViewCustomerPage({ params }) {
+export default async function EditCustomerPage({ params }) {
   const { id } = params
   
   try {
-    // Fetch customer data with invoices
-    const customerData = await getCustomerWithInvoices(id)
+    // Fetch customer data
+    const customerData = await getCustomerById(id)
     
     if (!customerData) {
       return (
@@ -29,7 +29,7 @@ export default async function ViewCustomerPage({ params }) {
 
     return (
       <ProtectedComponent>
-        <ViewCustomerIndex customerData={customerData} customerId={id} />
+        <EditCustomerIndex customerData={customerData} customerId={id} />
       </ProtectedComponent>
     )
   } catch (error) {
@@ -42,7 +42,7 @@ export default async function ViewCustomerPage({ params }) {
               Error Loading Customer
             </h2>
             <p className="text-gray-600 mb-4">
-              {error.message || 'Failed to load customer data with invoices'}
+              {error.message || 'Failed to load customer data'}
             </p>
           </div>
         </div>

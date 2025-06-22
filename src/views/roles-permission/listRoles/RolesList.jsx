@@ -89,10 +89,13 @@ const RolesList = ({ initialData }) => {
     // Inline editing props
     editingRoleId: handlers.editingRoleId,
     editingValue: handlers.editingValue,
+    editingIcon: handlers.editingIcon,
+    editingMode: handlers.editingMode,
     inlineLoading: handlers.inlineLoading,
-    handleStartInlineEdit: handlers.handleStartInlineEdit,
+    handleStartNameEdit: handlers.handleStartNameEdit,
     handleInlineEditChange: handlers.handleInlineEditChange,
-    handleSaveInlineEdit: handlers.handleSaveInlineEdit,
+    handleIconChange: handlers.handleIconChange,
+    handleSaveNameEdit: handlers.handleSaveNameEdit,
     handleCancelInlineEdit: handlers.handleCancelInlineEdit,
   })
 
@@ -114,17 +117,14 @@ const RolesList = ({ initialData }) => {
   // Filter handlers
   const handleFilterValueChange = (field, value) => {
     // Handle filter value changes
-    console.log('Filter change:', field, value)
   }
 
   const handleFilterApply = (values) => {
     // Handle filter apply
-    console.log('Apply filters:', values)
   }
 
   const handleFilterReset = () => {
     // Handle filter reset
-    console.log('Reset filters')
   }
 
   return (

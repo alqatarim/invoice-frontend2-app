@@ -37,7 +37,11 @@ export const useRolesListHandlers = (initialData = { roles: [], cardCounts: {} }
   // Inline editing state
   const [editingRoleId, setEditingRoleId] = useState(null)
   const [editingValue, setEditingValue] = useState('')
+  const [editingIcon, setEditingIcon] = useState('')
   const [inlineLoading, setInlineLoading] = useState(false)
+  
+  // Separate editing modes
+  const [editingMode, setEditingMode] = useState(null) // 'name' | 'icon' | null
   
   // Permissions dialog state
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
@@ -136,8 +140,8 @@ export const useRolesListHandlers = (initialData = { roles: [], cardCounts: {} }
     }
   }, [loadRoles, searchQuery])
   
-  // Inline editing handlers
-  const handleStartInlineEdit = useCallback((role) => {
+  // Immediate action handlers
+  const handleStartNameEdit = useCallback((role) => {
     // Prevent editing Super Admin role
     if (role.roleName === 'Super Admin') {
       enqueueSnackbar('Super Admin role cannot be edited', { variant: 'warning' })
@@ -146,15 +150,65 @@ export const useRolesListHandlers = (initialData = { roles: [], cardCounts: {} }
     
     setEditingRoleId(role._id)
     setEditingValue(role.roleName)
+    setEditingMode('name')
   }, [enqueueSnackbar])
+
+  // No separate icon edit mode - just handle icon selection directly
+  const handleIconChange = useCallback(async (role, iconValue) => {
+    // Prevent editing Super Admin role
+    if (role.roleName === 'Super Admin') {
+      enqueueSnackbar('Super Admin role cannot be edited', { variant: 'warning' })
+      return
+    }
+
+    const originalRole = roles.find(r => r._id === role._id)
+    const iconToSave = iconValue || 'mdi:account-circle'
+    
+    if (originalRole?.roleIcon === iconToSave) {
+      // No changes made
+      return
+    }
+
+    setInlineLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('_id', role._id)
+      formData.append('roleName', originalRole.roleName) // Keep existing name
+      formData.append('roleIcon', iconToSave)
+      
+      const result = await updateRole(formData)
+
+      if (result.success) {
+        enqueueSnackbar('Role icon updated successfully', { variant: 'success' })
+        
+        // Update local state optimistically
+        setRoles(prev => prev.map(r => 
+          r._id === role._id 
+            ? { ...r, roleIcon: iconToSave }
+            : r
+        ))
+        
+      
+      } else {
+        enqueueSnackbar(result.error || 'Failed to update role icon', { variant: 'error' })
+      }
+    } catch (error) {
+      console.error('Error updating role icon:', error)
+      enqueueSnackbar('An error occurred while updating role icon', { variant: 'error' })
+    } finally {
+      setInlineLoading(false)
+    }
+  }, [roles, enqueueSnackbar])
   
   const handleInlineEditChange = useCallback((value) => {
     setEditingValue(value)
   }, [])
   
-  const handleSaveInlineEdit = useCallback(async () => {
+  const handleSaveNameEdit = useCallback(async (autoSave = false) => {
     if (!editingRoleId || !editingValue?.trim()) {
-      enqueueSnackbar('Role name cannot be empty', { variant: 'error' })
+      if (!autoSave) {
+        enqueueSnackbar('Role name cannot be empty', { variant: 'error' })
+      }
       return
     }
 
@@ -165,6 +219,7 @@ export const useRolesListHandlers = (initialData = { roles: [], cardCounts: {} }
       // No changes made
       setEditingRoleId(null)
       setEditingValue('')
+      setEditingMode(null)
       return
     }
 
@@ -177,7 +232,7 @@ export const useRolesListHandlers = (initialData = { roles: [], cardCounts: {} }
       const result = await updateRole(formData)
 
       if (result.success) {
-        enqueueSnackbar(result.message, { variant: 'success' })
+        enqueueSnackbar('Role name updated successfully', { variant: 'success' })
         
         // Update local state optimistically
         setRoles(prev => prev.map(role => 
@@ -188,23 +243,27 @@ export const useRolesListHandlers = (initialData = { roles: [], cardCounts: {} }
         
         setEditingRoleId(null)
         setEditingValue('')
+        setEditingMode(null)
         
-        // Optionally refresh data from server
-        router.refresh()
+
       } else {
-        enqueueSnackbar(result.error || 'Failed to update role', { variant: 'error' })
+        enqueueSnackbar(result.error || 'Failed to update role name', { variant: 'error' })
       }
     } catch (error) {
-      console.error('Error updating role:', error)
-      enqueueSnackbar('An error occurred while updating role', { variant: 'error' })
+      console.error('Error updating role name:', error)
+      enqueueSnackbar('An error occurred while updating role name', { variant: 'error' })
     } finally {
       setInlineLoading(false)
     }
-  }, [editingRoleId, editingValue, roles, enqueueSnackbar, router])
+  }, [editingRoleId, editingValue, roles, enqueueSnackbar])
+
+
   
   const handleCancelInlineEdit = useCallback(() => {
     setEditingRoleId(null)
     setEditingValue('')
+    setEditingIcon('')
+    setEditingMode(null)
   }, [])
   
   // Permissions dialog handlers
@@ -303,10 +362,13 @@ export const useRolesListHandlers = (initialData = { roles: [], cardCounts: {} }
     // Inline editing
     editingRoleId,
     editingValue,
+    editingIcon,
+    editingMode,
     inlineLoading,
-    handleStartInlineEdit,
+    handleStartNameEdit,
     handleInlineEditChange,
-    handleSaveInlineEdit,
+    handleIconChange,
+    handleSaveNameEdit,
     handleCancelInlineEdit,
     
     // Permissions dialog

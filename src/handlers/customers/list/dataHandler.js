@@ -28,20 +28,13 @@ export const useDataHandler = ({
     setLoading(true)
     try {
       // Prepare filter object
-      const filterParams = {
-        search: params.search || filters.search,
-        status: []
-      }
-
-      // Handle status filtering based on tab
-      if (params.status) {
-        filterParams.status = [params.status]
-      } else if (tab !== 'ALL') {
-        const status = tab === 'ACTIVE' ? 'Active' : tab === 'INACTIVE' ? 'Deactive' : ''
-        if (status) filterParams.status = [status]
+      const filterParams = params.filters || {
+        search_customer: params.search || filters.search,
+        status: params.status || filters.status
       }
 
       const result = await getFilteredCustomers(
+        params.tab || tab,
         params.page || pagination.current,
         params.limit || pagination.pageSize,
         filterParams,
@@ -81,12 +74,7 @@ export const useDataHandler = ({
   const handleTabChange = useCallback((newTab) => {
     setTab(newTab)
     setPagination(prev => ({ ...prev, current: 1 }))
-
-    let status = ''
-    if (newTab === 'ACTIVE') status = 'Active'
-    else if (newTab === 'INACTIVE') status = 'Deactive'
-
-    fetchCustomers({ page: 1, status })
+    fetchCustomers({ page: 1, tab: newTab })
   }, [fetchCustomers])
 
   // Handle sort change

@@ -21,14 +21,22 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Divider,
+  Chip,
 } from '@mui/material'
+import { useTheme, alpha } from '@mui/material/styles'
 import { Icon } from '@iconify/react'
 import { usePermission } from '@/Auth/usePermission'
 import { useEditCustomerHandlers } from '@/handlers/customers/editCustomer'
 
 const EditCustomer = ({ customerData, customerId }) => {
+  const theme = useTheme()
+  
+  // Extract customer data from the correct structure
+  const customer = customerData?.customerDetails?.[0] || customerData?.customer || customerData
+  
   const [imagePreview, setImagePreview] = useState(
-    customerData?.image ? `${process.env.NEXT_PUBLIC_API_URL}/${customerData.image}` : null
+    customer?.image ? `${process.env.NEXT_PUBLIC_API_URL}/${customer.image}` : null
   )
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -45,7 +53,7 @@ const EditCustomer = ({ customerData, customerId }) => {
 
   // Initialize handlers
   const handlers = useEditCustomerHandlers({ 
-    initialCustomer: customerData, 
+    initialCustomer: customer, 
     customerId, 
     onError, 
     onSuccess 
@@ -53,14 +61,14 @@ const EditCustomer = ({ customerData, customerId }) => {
 
   // Update image preview when existing image is loaded
   useEffect(() => {
-    if (customerData?.image) {
-      setImagePreview(`${process.env.NEXT_PUBLIC_API_URL}/${customerData.image}`)
+    if (customer?.image) {
+      setImagePreview(`${process.env.NEXT_PUBLIC_API_URL}/${customer.image}`)
     }
-  }, [customerData])
+  }, [customer])
 
   if (!canUpdate) {
     return (
-      <Card>
+      <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
         <CardContent>
           <Typography variant="h6" color="error">
             You don't have permission to edit customers
@@ -84,7 +92,7 @@ const EditCustomer = ({ customerData, customerId }) => {
 
   const handleRemoveImage = () => {
     handlers.handleFileChange(null)
-    setImagePreview(customerData?.image ? `${process.env.NEXT_PUBLIC_API_URL}/${customerData.image}` : null)
+    setImagePreview(customer?.image ? `${process.env.NEXT_PUBLIC_API_URL}/${customer.image}` : null)
   }
 
   const handleSnackbarClose = () => {
@@ -92,18 +100,32 @@ const EditCustomer = ({ customerData, customerId }) => {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {/* Header */}
-      <Card>
+      <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
         <CardHeader
-          title="Edit Customer"
+          title={
+            <div className="flex items-center gap-2">
+              <Avatar className='bg-primary/12 text-primary w-12 h-12'>
+                <Icon icon="tabler:user-edit" fontSize={26} />
+              </Avatar>
+              <Typography variant="h5" className="font-semibold text-primary">
+                Edit Customer
+              </Typography>
+            </div>
+          }
           action={
             <Box display="flex" gap={2}>
-              <Button variant="outlined" onClick={handlers.handleCancel}>
+              <Button 
+                variant="outlined" 
+                startIcon={<Icon icon="tabler:arrow-left" />}
+                onClick={handlers.handleCancel}
+              >
                 Cancel
               </Button>
               <Button 
                 variant="outlined" 
+                startIcon={<Icon icon="tabler:device-floppy" />}
                 onClick={handlers.handleSaveAndContinue}
                 disabled={handlers.loading}
               >
@@ -111,9 +133,9 @@ const EditCustomer = ({ customerData, customerId }) => {
               </Button>
               <Button 
                 variant="contained" 
+                startIcon={handlers.loading ? <CircularProgress size={18} /> : <Icon icon="tabler:check" />}
                 onClick={handlers.handleSubmit}
                 disabled={handlers.loading}
-                startIcon={handlers.loading && <CircularProgress size={20} />}
               >
                 Update Customer
               </Button>
@@ -124,91 +146,136 @@ const EditCustomer = ({ customerData, customerId }) => {
 
       {/* Form */}
       <form onSubmit={handlers.handleSubmit}>
-        <Grid container spacing={3}>
+        <Grid container spacing={6}>
           {/* Basic Information */}
           <Grid item xs={12}>
-            <Card>
-              <CardHeader title="Basic Information" />
+            <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+              <CardHeader 
+                title={
+                  <div className="flex items-center gap-2">
+                    <Avatar className='bg-info/12 text-info w-10 h-10'>
+                      <Icon icon="tabler:info-circle" fontSize={20} />
+                    </Avatar>
+                    <Typography variant="h6" className="font-semibold">
+                      Basic Information
+                    </Typography>
+                  </div>
+                }
+              />
               <CardContent>
-                <Grid container spacing={3}>
+                <Grid container spacing={4}>
                   {/* Profile Image */}
                   <Grid item xs={12}>
-                    <Box display="flex" alignItems="center" gap={2}>
+                    <Box display="flex" alignItems="center" gap={3}>
                       <Avatar
                         src={imagePreview}
-                        sx={{ width: 80, height: 80 }}
+                        sx={{ width: 100, height: 100 }}
                       >
-                        <Icon icon="mdi:account" />
+                        <Icon icon="mdi:account" fontSize="3rem" />
                       </Avatar>
-                      <Box>
-                        <input
-                          accept="image/*"
-                          type="file"
-                          id="image-upload"
-                          style={{ display: 'none' }}
-                          onChange={handleImageChange}
-                        />
-                        <label htmlFor="image-upload">
-                          <Button variant="outlined" component="span">
-                            {imagePreview ? 'Change Image' : 'Upload Image'}
-                          </Button>
-                        </label>
-                        {imagePreview && (
-                          <IconButton onClick={handleRemoveImage} color="error">
-                            <Icon icon="mdi:delete" />
-                          </IconButton>
-                        )}
+                      <Box className="space-y-2">
+                        <Typography variant="subtitle2" className="font-semibold">
+                          Profile Picture
+                        </Typography>
+                        <Box display="flex" gap={2}>
+                          <input
+                            accept="image/*"
+                            type="file"
+                            id="image-upload"
+                            style={{ display: 'none' }}
+                            onChange={handleImageChange}
+                          />
+                          <label htmlFor="image-upload">
+                            <Button 
+                              variant="outlined" 
+                              component="span"
+                              startIcon={<Icon icon="tabler:upload" />}
+                              size="small"
+                            >
+                              {imagePreview ? 'Change Image' : 'Upload Image'}
+                            </Button>
+                          </label>
+                          {imagePreview && (
+                            <IconButton 
+                              onClick={handleRemoveImage} 
+                              color="error"
+                              size="small"
+                            >
+                              <Icon icon="tabler:trash" />
+                            </IconButton>
+                          )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Supported formats: PNG, JPG, JPEG. Max size: 5MB
+                        </Typography>
                       </Box>
                     </Box>
                   </Grid>
 
-                  {/* Name */}
+                  <Grid item xs={12}>
+                    <Divider />
+                  </Grid>
+
+                  {/* Name and Email */}
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Customer Name *"
+                      label="Customer Name"
+                      required
                       value={handlers.formData.name}
                       onChange={(e) => handlers.handleFieldChange('name', e.target.value)}
                       onBlur={() => handlers.handleFieldBlur('name')}
                       error={handlers.touched.name && !!handlers.errors.name}
                       helperText={handlers.touched.name && handlers.errors.name}
+                      InputProps={{
+                        startAdornment: <Icon icon="tabler:user" className="mr-2 text-gray-500" />,
+                      }}
                     />
                   </Grid>
 
-                  {/* Email */}
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Email *"
+                      label="Email Address"
                       type="email"
+                      required
                       value={handlers.formData.email}
                       onChange={(e) => handlers.handleFieldChange('email', e.target.value)}
                       onBlur={() => handlers.handleFieldBlur('email')}
                       error={handlers.touched.email && !!handlers.errors.email}
                       helperText={handlers.touched.email && handlers.errors.email}
+                      InputProps={{
+                        startAdornment: <Icon icon="tabler:mail" className="mr-2 text-gray-500" />,
+                      }}
                     />
                   </Grid>
 
-                  {/* Phone */}
+                  {/* Phone and Website */}
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Phone *"
+                      label="Phone Number"
+                      required
                       value={handlers.formData.phone}
                       onChange={(e) => handlers.handleFieldChange('phone', e.target.value)}
                       onBlur={() => handlers.handleFieldBlur('phone')}
                       error={handlers.touched.phone && !!handlers.errors.phone}
                       helperText={handlers.touched.phone && handlers.errors.phone}
+                      InputProps={{
+                        startAdornment: <Icon icon="tabler:phone" className="mr-2 text-gray-500" />,
+                      }}
                     />
                   </Grid>
 
-                  {/* Website */}
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
                       label="Website"
                       value={handlers.formData.website}
                       onChange={(e) => handlers.handleFieldChange('website', e.target.value)}
+                      InputProps={{
+                        startAdornment: <Icon icon="tabler:world" className="mr-2 text-gray-500" />,
+                      }}
                     />
                   </Grid>
 
@@ -220,6 +287,7 @@ const EditCustomer = ({ customerData, customerId }) => {
                         value={handlers.formData.status}
                         label="Status"
                         onChange={(e) => handlers.handleFieldChange('status', e.target.value)}
+                        startAdornment={<Icon icon="tabler:toggle-left" className="mr-2 text-gray-500" />}
                       >
                         <MenuItem value="Active">Active</MenuItem>
                         <MenuItem value="Deactive">Inactive</MenuItem>
@@ -236,6 +304,7 @@ const EditCustomer = ({ customerData, customerId }) => {
                       rows={3}
                       value={handlers.formData.notes}
                       onChange={(e) => handlers.handleFieldChange('notes', e.target.value)}
+                      placeholder="Add any additional notes about this customer..."
                     />
                   </Grid>
                 </Grid>
@@ -243,12 +312,30 @@ const EditCustomer = ({ customerData, customerId }) => {
             </Card>
           </Grid>
 
-          {/* Billing Address */}
+          {/* Address Information */}
           <Grid item xs={12}>
-            <Card>
-              <CardHeader title="Billing Address" />
+            <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+              <CardHeader 
+                title={
+                  <div className="flex items-center gap-2">
+                    <Avatar className='bg-warning/12 text-warning w-10 h-10'>
+                      <Icon icon="tabler:map-pin" fontSize={20} />
+                    </Avatar>
+                    <Typography variant="h6" className="font-semibold">
+                      Address Information
+                    </Typography>
+                  </div>
+                }
+              />
               <CardContent>
-                <Grid container spacing={3}>
+                <Grid container spacing={4}>
+                  {/* Billing Address Section */}
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle1" className="font-semibold mb-3 text-primary">
+                      Billing Address
+                    </Typography>
+                  </Grid>
+                  
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
@@ -305,34 +392,33 @@ const EditCustomer = ({ customerData, customerId }) => {
                       onChange={(e) => handlers.handleNestedFieldChange('billingAddress', 'pincode', e.target.value)}
                     />
                   </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
 
-          {/* Shipping Address */}
-          <Grid item xs={12}>
-            <Card>
-              <CardHeader 
-                title="Shipping Address"
-                action={
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={JSON.stringify(handlers.formData.shippingAddress) === JSON.stringify(handlers.formData.billingAddress)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            handlers.handleCopyBillingToShipping()
-                          }
-                        }}
+                  <Grid item xs={12}>
+                    <Divider />
+                  </Grid>
+
+                  {/* Shipping Address Section */}
+                  <Grid item xs={12}>
+                    <div className="flex items-center justify-between">
+                      <Typography variant="subtitle1" className="font-semibold text-primary">
+                        Shipping Address
+                      </Typography>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={JSON.stringify(handlers.formData.shippingAddress) === JSON.stringify(handlers.formData.billingAddress)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                handlers.handleCopyBillingToShipping()
+                              }
+                            }}
+                          />
+                        }
+                        label="Same as billing address"
                       />
-                    }
-                    label="Same as billing address"
-                  />
-                }
-              />
-              <CardContent>
-                <Grid container spacing={3}>
+                    </div>
+                  </Grid>
+
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
@@ -396,16 +482,36 @@ const EditCustomer = ({ customerData, customerId }) => {
 
           {/* Bank Details */}
           <Grid item xs={12}>
-            <Card>
-              <CardHeader title="Bank Details (Optional)" />
+            <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+              <CardHeader 
+                title={
+                  <div className="flex items-center gap-2">
+                    <Avatar className='bg-success/12 text-success w-10 h-10'>
+                      <Icon icon="tabler:building-bank" fontSize={20} />
+                    </Avatar>
+                    <Typography variant="h6" className="font-semibold">
+                      Bank Details
+                    </Typography>
+                    <Chip 
+                      label="Optional" 
+                      size="small" 
+                      variant="outlined" 
+                      color="secondary"
+                    />
+                  </div>
+                }
+              />
               <CardContent>
-                <Grid container spacing={3}>
+                <Grid container spacing={4}>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
                       label="Bank Name"
                       value={handlers.formData.bankDetails.bankName}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'bankName', e.target.value)}
+                      InputProps={{
+                        startAdornment: <Icon icon="tabler:building-bank" className="mr-2 text-gray-500" />,
+                      }}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -414,6 +520,9 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="Branch"
                       value={handlers.formData.bankDetails.branch}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'branch', e.target.value)}
+                      InputProps={{
+                        startAdornment: <Icon icon="tabler:map-pin" className="mr-2 text-gray-500" />,
+                      }}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -422,6 +531,9 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="Account Holder Name"
                       value={handlers.formData.bankDetails.accountHolderName}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'accountHolderName', e.target.value)}
+                      InputProps={{
+                        startAdornment: <Icon icon="tabler:user" className="mr-2 text-gray-500" />,
+                      }}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -430,6 +542,9 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="Account Number"
                       value={handlers.formData.bankDetails.accountNumber}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'accountNumber', e.target.value)}
+                      InputProps={{
+                        startAdornment: <Icon icon="tabler:credit-card" className="mr-2 text-gray-500" />,
+                      }}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -438,9 +553,45 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="IFSC Code"
                       value={handlers.formData.bankDetails.IFSC}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'IFSC', e.target.value)}
+                      InputProps={{
+                        startAdornment: <Icon icon="tabler:qrcode" className="mr-2 text-gray-500" />,
+                      }}
                     />
                   </Grid>
                 </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Action Buttons */}
+          <Grid item xs={12}>
+            <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+              <CardContent>
+                <Box display="flex" justifyContent="end" gap={2}>
+                  <Button 
+                    variant="outlined" 
+                    onClick={handlers.handleCancel}
+                    startIcon={<Icon icon="tabler:x" />}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="outlined" 
+                    onClick={handlers.handleSaveAndContinue}
+                    disabled={handlers.loading}
+                    startIcon={<Icon icon="tabler:device-floppy" />}
+                  >
+                    Save & Continue Editing
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    onClick={handlers.handleSubmit}
+                    disabled={handlers.loading}
+                    startIcon={handlers.loading ? <CircularProgress size={18} /> : <Icon icon="tabler:check" />}
+                  >
+                    {handlers.loading ? 'Updating...' : 'Update Customer'}
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
           </Grid>

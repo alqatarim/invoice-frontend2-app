@@ -38,11 +38,8 @@ const CustomerList = ({
   initialCustomers = [],
   pagination = { current: 1, pageSize: 10, total: 0 },
   cardCounts = { totalCustomers: 0, activeCustomers: 0, inactiveCustomers: 0 },
-  initialCustomerOptions = [],
 }) => {
   const theme = useTheme()
-  const { data: session } = useSession()
-  const router = useRouter()
 
   // Permissions
   const permissions = {
@@ -110,11 +107,7 @@ const CustomerList = ({
     <div className='flex flex-col gap-5'>
       {/* Header and Stats */}
       <CustomerHead
-        customerListData={{
-          totalCustomers: pagination.total || 0,
-          activeCustomers: handlers.customers?.filter(c => c.status === 'Active')?.length || 0,
-          inactiveCustomers: handlers.customers?.filter(c => c.status === 'Inactive')?.length || 0,
-        }}
+        customerListData={cardCounts}
         currencyData={formatCurrency(0).replace(/\d|\.|,/g, '').trim()}
         isLoading={handlers.loading}
       />

@@ -1,94 +1,122 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { Card, CardContent, Typography, Box, Skeleton } from '@mui/material'
-import { Icon } from '@iconify/react'
+import React, { useState, useEffect } from 'react';
+import { Grid, Avatar, Typography } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
+import { Icon } from '@iconify/react';
+import { amountFormat } from '@/utils/numberUtils';
+import { getInitialCustomerData } from '@/app/(dashboard)/customers/actions';
+import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
-const CustomerHead = ({ customerListData = {}, currencyData = '', isLoading = false }) => {
-  const {
-    totalCustomers = 0,
-    activeCustomers = 0,
-    inactiveCustomers = 0,
-  } = customerListData
+/**
+ * CustomerHead Component - Displays customer statistics header
+ * Styled to match InvoiceHead component exactly
+ */
+const CustomerHead = ({ customerListData }) => {
+  const theme = useTheme();
+  const [cardCounts, setCardCounts] = useState({
+    totalCustomers: 0,
+    activeCustomers: 0,
+    inactiveCustomers: 0
+  });
 
-  const cardData = [
-    {
-      title: 'Total Customers',
-      value: totalCustomers,
-      icon: 'tabler:users',
-      color: 'primary',
-      bgColor: 'primary.light',
-    },
-    {
-      title: 'Active Customers',
-      value: activeCustomers,
-      icon: 'tabler:user-check',
-      color: 'success',
-      bgColor: 'success.light',
-    },
-    {
-      title: 'Inactive Customers',
-      value: inactiveCustomers,
-      icon: 'tabler:user-off',
-      color: 'warning',
-      bgColor: 'warning.light',
-    },
-  ]
+  useEffect(() => {
+    const fetchCardCounts = async () => {
+      try {
+        const response = await getInitialCustomerData();
+        if (response.cardCounts) {
+          setCardCounts({
+            totalCustomers: response.cardCounts.totalCustomers || 0,
+            activeCustomers: response.cardCounts.activeCustomers || 0,
+            inactiveCustomers: response.cardCounts.inactiveCustomers || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching customer card counts:', error);
+      }
+    };
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {cardData.map((_, index) => (
-          <Card key={index}>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Skeleton variant="text" width={120} height={24} />
-                  <Skeleton variant="text" width={60} height={32} />
-                </div>
-                <Skeleton variant="circular" width={40} height={40} />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    )
-  }
+    if (customerListData) {
+      setCardCounts({
+        totalCustomers: customerListData.totalCustomers || 0,
+        activeCustomers: customerListData.activeCustomers || 0,
+        inactiveCustomers: customerListData.inactiveCustomers || 0
+      });
+    } else {
+      fetchCardCounts();
+    }
+  }, [customerListData]);
+
+  const currencySymbol = '$';
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {cardData.map((card, index) => (
-        <Card key={index} className="hover:shadow-md transition-shadow">
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <Typography variant="body2" color="text.secondary" className="mb-1">
-                  {card.title}
-                </Typography>
-                <Typography variant="h5" className="font-semibold">
-                  {card.value.toLocaleString()}
-                </Typography>
-              </div>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 48,
-                  height: 48,
-                  borderRadius: '50%',
-                  backgroundColor: card.bgColor,
-                  color: card.color + '.main',
-                }}
-              >
-                <Icon icon={card.icon} fontSize="1.5rem" />
-              </Box>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  )
-}
+    <>
+      {/* Header Section */}
+      <div className="flex justify-start items-center mb-5">
+        <div className="flex items-center gap-2">
+          <Avatar className='bg-primary/12 text-primary bg-primaryLight w-12 h-12'>
+            <Icon icon="tabler:users" fontSize={26} />
+          </Avatar>
+          <Typography variant="h5" className="font-semibold text-primary">
+            Customers
+          </Typography>
+        </div>
+      </div>
 
-export default CustomerHead
+      {/* Statistics Cards */}
+      <div className="mb-2">
+        <Grid container spacing={4}>
+          <Grid item xs={12} sm={6} md={4}>
+            <HorizontalWithBorder
+              title="Total Customers"
+              subtitle="No of Customers"
+              titleVariant='h5'
+              subtitleVariant='body2'
+              stats={cardCounts.totalCustomers.toLocaleString()}
+              statsVariant='h4'
+              trendNumber={cardCounts.totalCustomers || 0}
+              trendNumberVariant='body1'
+              avatarIcon='tabler:users'
+              color="primary"
+              iconSize='30px'
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <HorizontalWithBorder
+              title="Active Customers"
+              subtitle="No of Active"
+              titleVariant='h5'
+              subtitleVariant='body2'
+              stats={cardCounts.activeCustomers.toLocaleString()}
+              statsVariant='h4'
+              trendNumber={cardCounts.activeCustomers || 0}
+              trendNumberVariant='body1'
+              avatarIcon='tabler:user-check'
+              color="success"
+              iconSize='30px'
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <HorizontalWithBorder
+              title="Inactive Customers"
+              subtitle="No of Inactive"
+              titleVariant='h5'
+              subtitleVariant='body2'
+              stats={cardCounts.inactiveCustomers.toLocaleString()}
+              statsVariant='h4'
+              trendNumber={cardCounts.inactiveCustomers || 0}
+              trendNumberVariant='body1'
+              avatarIcon='tabler:user-off'
+              color="warning"
+              iconSize='30px'
+            />
+          </Grid>
+        </Grid>
+      </div>
+    </>
+  );
+};
+
+export default CustomerHead;

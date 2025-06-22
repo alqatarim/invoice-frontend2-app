@@ -116,6 +116,7 @@ export async function getFilteredRoles(searchQuery = '', page = 1, rowsPerPage =
 export async function addRole(formData) {
   try {
     const roleName = formData.get('roleName')?.trim()
+    const roleIcon = formData.get('roleIcon')
 
     if (!roleName) {
       return {
@@ -124,13 +125,21 @@ export async function addRole(formData) {
       }
     }
 
+    // Prepare request body
+    const requestBody = { roleName }
+    
+    // Add roleIcon if provided, otherwise backend will use default
+    if (roleIcon) {
+      requestBody.roleIcon = roleIcon
+    }
+
     // fetchWithAuth returns the JSON object directly, not a Response object
     const result = await fetchWithAuth(rolesApi.Add, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ roleName })
+      body: JSON.stringify(requestBody)
     })
 
     return {
@@ -151,6 +160,7 @@ export async function updateRole(formData) {
   try {
     const roleId = formData.get('_id')
     const roleName = formData.get('roleName')?.trim()
+    const roleIcon = formData.get('roleIcon')
 
     if (!roleId || !roleName) {
       return {
@@ -159,13 +169,29 @@ export async function updateRole(formData) {
       }
     }
 
+    // Prepare request body
+    const requestBody = { roleName }
+    
+    // Add roleIcon (including empty string check)
+    if (roleIcon !== undefined && roleIcon !== null) {
+      requestBody.roleIcon = roleIcon
+    }
+
+    // Debug logging
+    console.log('Frontend updateRole - FormData received:', {
+      roleId,
+      roleName,
+      roleIcon
+    })
+    console.log('Frontend updateRole - Request body:', requestBody)
+
     // fetchWithAuth returns the JSON object directly, not a Response object
     const result = await fetchWithAuth(`${rolesApi.Update}/${roleId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ roleName })
+      body: JSON.stringify(requestBody)
     })
 
     return {

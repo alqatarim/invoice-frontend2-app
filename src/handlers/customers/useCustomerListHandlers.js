@@ -37,8 +37,7 @@ export function useCustomerListHandlers({
   // Filter handler - manages filtering logic
   const filterHandler = useFilterHandler({
     initialFilters,
-    setCustomers: dataHandler.setCustomers,
-    setPagination: dataHandler.setPagination,
+    fetchCustomers: dataHandler.fetchCustomers,
     onError
   })
 

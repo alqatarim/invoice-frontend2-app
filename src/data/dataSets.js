@@ -182,3 +182,34 @@ export const deliveryChallanStatusOptions = [
   { value: 'CONVERTED', label: 'Converted', color: 'info' },
   { value: 'CANCELLED', label: 'Cancelled', color: 'error' },
 ]
+
+// Available icons for role selection
+export const ROLE_ICONS = [
+  { value: 'mdi:account-circle', label: 'Default User', category: 'General' },
+  { value: 'mdi:crown', label: 'Crown (Owner/CEO)', category: 'Leadership' },
+  { value: 'mdi:shield-crown', label: 'Shield Crown (Admin)', category: 'Leadership' },
+  { value: 'mdi:account-tie', label: 'Manager/Executive', category: 'Management' },
+  { value: 'mdi:account-supervisor', label: 'Supervisor', category: 'Management' },
+  { value: 'mdi:briefcase', label: 'Business', category: 'Management' },
+  { value: 'mdi:code-tags', label: 'Developer', category: 'Technical' },
+  { value: 'mdi:laptop', label: 'IT/Tech', category: 'Technical' },
+  { value: 'mdi:database', label: 'Database Admin', category: 'Technical' },
+  { value: 'mdi:palette', label: 'Designer', category: 'Creative' },
+  { value: 'mdi:brush', label: 'Artist/Creative', category: 'Creative' },
+  { value: 'mdi:camera', label: 'Photographer', category: 'Creative' },
+  { value: 'mdi:chart-line', label: 'Sales/Marketing', category: 'Business' },
+  { value: 'mdi:calculator', label: 'Finance/Accounting', category: 'Business' },
+  { value: 'mdi:chart-bar', label: 'Analytics', category: 'Business' },
+  { value: 'mdi:headset', label: 'Support', category: 'Service' },
+  { value: 'mdi:phone', label: 'Customer Service', category: 'Service' },
+  { value: 'mdi:lifebuoy', label: 'Help Desk', category: 'Service' },
+  { value: 'mdi:account-group', label: 'HR/People', category: 'HR' },
+  { value: 'mdi:handshake', label: 'Relations', category: 'HR' },
+  { value: 'mdi:school', label: 'Training', category: 'HR' },
+  { value: 'mdi:pencil', label: 'Editor/Writer', category: 'Content' },
+  { value: 'mdi:book-open', label: 'Content Manager', category: 'Content' },
+  { value: 'mdi:newspaper', label: 'Publisher', category: 'Content' },
+  { value: 'mdi:eye', label: 'Viewer/Guest', category: 'Access' },
+  { value: 'mdi:lock', label: 'Restricted', category: 'Access' },
+  { value: 'mdi:key', label: 'Key Holder', category: 'Access' }
+]

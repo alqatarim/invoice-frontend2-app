@@ -10,31 +10,17 @@ import { getInitialCustomerData, searchCustomers } from '@/app/(dashboard)/custo
  * @returns JSX.Element
  */
 const CustomersPage = async () => {
-  try {
-    // Fetch initial customer data and customers list separately on the server
-    const [initialData, customers] = await Promise.all([
-      getInitialCustomerData(),
-      searchCustomers('') // Get all customers by passing empty search term
-    ]);
+  // Fetch initial customer data on the server
+  const initialData = await getInitialCustomerData();
 
-    return (
-      <ProtectedComponent>
-        <CustomerListIndex
-          initialData={initialData}
-          initialCustomers={customers}
-        />
-      </ProtectedComponent>
-    );
-  } catch (error) {
-    console.error('CustomersPage: Error fetching data:', error);
-    return (
-      <ProtectedComponent>
-        <div className="text-red-600 p-8">
-          Failed to load customer data: {error.message}
-        </div>
-      </ProtectedComponent>
-    );
-  }
+  return (
+    <ProtectedComponent>
+      <CustomerListIndex 
+        initialData={initialData} 
+        initialCustomers={initialData.customers || []}
+      />
+    </ProtectedComponent>
+  );
 };
 
 export default CustomersPage;
