@@ -1,92 +1,71 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import { Icon } from '@iconify/react';
 import {
-    ToggleButtonGroup,
-  ButtonGroup,
-  Box,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Typography,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
   Card,
-  TableSortLabel,
-  TablePagination,
   Button,
-  Grid,
   Snackbar,
   Alert,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  FormControlLabel,
+  Checkbox,
+  FormGroup,
+  Grid,
+  Box,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
+  Typography,
+  IconButton,
 } from '@mui/material';
-import {
-  FilterList as FilterListIcon,
-  ViewColumn as ViewColumnIcon,
-  Clear as ClearIcon,
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  MoreVert as MoreVertIcon,
-} from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
 import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
-import { addStock, removeStock } from '@/app/(dashboard)/inventory/actions';
+import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
+
 import InventoryHead from '@/views/inventory/inventoryList/inventoryHead';
 import InventoryFilter from '@/views/inventory/inventoryList/inventoryFilter';
-import { amountFormat } from '@/utils/currencyUtils';
+import CustomListTable from '@/components/custom-components/CustomListTable';
+import { useInventoryListHandlers } from '@/handlers/inventory/useInventoryListHandlers';
+import { getInventoryColumns } from './inventoryColumns';
 
+/**
+ * InventoryList Component
+ */
 const InventoryList = ({
-  inventory,
-  pagination,
-  filters,
-  isLoading,
-  sortBy,
-  sortDirection,
-  onPaginationChange,
-  onFiltersChange,
-  onSortChange,
-  fetchData,
+  initialInventory = [],
+  pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
+  cardCounts: initialCardCounts = {},
+  filters: initialFilters = {},
+  sortBy: initialSortBy = '',
+  sortDirection: initialSortDirection = 'asc',
 }) => {
+  const theme = useTheme();
   const { data: session } = useSession();
-  const canCreate = usePermission('inventory', 'create');
-  const canUpdate = usePermission('inventory', 'update');
-  const canView = usePermission('inventory', 'view');
 
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [columns, setColumns] = useState([
-    { key: 'index', label: '#', visible: true },
-    { key: 'name', label: 'Item', visible: true },
-    { key: 'sku', label: 'Code', visible: true },
-    { key: 'units', label: 'Units', visible: true },
-    { key: 'quantity', label: 'Quantity', visible: true },
-    { key: 'sellingPrice', label: 'Sales Price', visible: true },
-    { key: 'purchasePrice', label: 'Purchase Price', visible: true },
-    { key: 'action', label: 'Action', visible: true },
-  ]);
+  // Permissions
+  const permissions = {
+    canCreate: usePermission('inventory', 'create'),
+    canUpdate: usePermission('inventory', 'update'),
+    canView: usePermission('inventory', 'view'),
+    canDelete: usePermission('inventory', 'delete'),
+  };
 
+  // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success',
   });
 
+  // Stock management dialog state
   const [stockDialog, setStockDialog] = useState({
     open: false,
     type: null, // 'add' or 'remove'
+    item: null,
     data: {
       quantity: '',
       notes: '',
@@ -95,23 +74,51 @@ const InventoryList = ({
 
   const handleSnackbarClose = (event, reason) => {
     if (reason === 'clickaway') return;
-    setSnackbar({ ...snackbar, open: false });
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
-  const handleStockDialogOpen = (type) => {
+  // Notification handlers
+  const onError = msg => setSnackbar({ open: true, message: msg, severity: 'error' });
+  const onSuccess = msg => setSnackbar({ open: true, message: msg, severity: 'success' });
+
+  // Initialize handlers with column definitions
+  const columns = useMemo(() => getInventoryColumns({ permissions }), [permissions]);
+
+  const handlers = useInventoryListHandlers({
+    initialInventory,
+    initialPagination,
+    initialFilters,
+    initialSortBy,
+    initialSortDirection,
+    initialColumns: columns,
+    onError,
+    onSuccess,
+  });
+
+  // Column state management
+  const [columnsState, setColumns] = useState(columns);
+
+  // Column actions
+  const columnActions = {
+    open: () => handlers.handleManageColumnsOpen(),
+    close: () => handlers.handleManageColumnsClose(),
+    save: () => handlers.handleManageColumnsSave(setColumns),
+  };
+
+  // Stock dialog handlers
+  const openStockDialog = (type, item) => {
     setStockDialog({
       open: true,
       type,
+      item,
       data: {
         quantity: '',
         notes: '',
-        productId: selectedItem?._id,
-        item: selectedItem
       },
     });
   };
 
-  const handleStockDialogClose = () => {
+  const closeStockDialog = () => {
     setStockDialog({
       ...stockDialog,
       open: false,
@@ -120,260 +127,155 @@ const InventoryList = ({
 
   const handleStockSubmit = async () => {
     try {
-    //   const item = stockDialog.data.item;
-    //   console.log('Selected Item in handleStockSubmit:', item);
-    //   console.log('Inventory Info:', item?.inventory_Info);
-
-      const currentStock = selectedItem?.inventory_Info[0]?.quantity
-
-
+      const currentStock = stockDialog.item?.inventory_Info?.[0]?.quantity || 0;
 
       if (!stockDialog.data.quantity || stockDialog.data.quantity <= 0) {
-        setSnackbar({
-          open: true,
-          message: 'Please enter a valid quantity greater than zero',
-          severity: 'error',
-        });
+        onError('Please enter a valid quantity greater than zero');
         return;
       }
 
       if (stockDialog.type === 'remove' && stockDialog.data.quantity > currentStock) {
-        setSnackbar({
-          open: true,
-          message: `Cannot remove more than current stock (${currentStock} units)`,
-          severity: 'error',
-        });
-        return;
-      }
-
-      if (!selectedItem?._id) {
-        setSnackbar({
-          open: true,
-          message: 'Invalid product selected',
-          severity: 'error',
-        });
+        onError(`Cannot remove more than current stock (${currentStock} units)`);
         return;
       }
 
       const stockData = {
-        productId: selectedItem._id,
+        productId: stockDialog.item._id,
         quantity: Number(stockDialog.data.quantity),
         notes: stockDialog.data.notes || ""
       };
 
-      const response = stockDialog.type === 'add'
-        ? await addStock(stockData)
-        : await removeStock(stockData);
-
-      if (response) {
-        setSnackbar({
-          open: true,
-          message: `Stock ${stockDialog.type === 'add' ? 'added' : 'removed'} successfully`,
-          severity: 'success',
-        });
-        fetchData(pagination.current, pagination.pageSize, filters);
+      if (stockDialog.type === 'add') {
+        await handlers.handleAddStock(stockData);
+      } else {
+        await handlers.handleRemoveStock(stockData);
       }
+
+      closeStockDialog();
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.message || `Failed to ${stockDialog.type} stock`,
-        severity: 'error',
-      });
-    } finally {
-      handleStockDialogClose();
+      onError(error.message || `Failed to ${stockDialog.type} stock`);
     }
   };
 
-  const handlePageChange = (event, newPage) => {
-    onPaginationChange({
-      ...pagination,
-      current: newPage + 1,
-    });
-  };
-
-  const handlePageSizeChange = (event) => {
-    onPaginationChange({
-      ...pagination,
-      pageSize: parseInt(event.target.value, 10),
-      current: 1,
-    });
-  };
-
-  const handleSortRequest = (columnKey) => {
-    const newDirection = sortBy === columnKey && sortDirection === 'asc' ? 'desc' : 'asc';
-    onSortChange(columnKey, newDirection);
-  };
-
-  const handleReset = () => {
-    onFiltersChange({});
-    onSortChange('', 'asc');
-  };
-
-  const isFilterApplied = useMemo(() => {
-    return Object.keys(filters).length > 0;
-  }, [filters]);
-
-  // Skeleton components for loading state
-  const TableRowSkeleton = () => (
-    <TableRow>
-      {columns.filter(col => col.visible).map((column) => (
-        <TableCell key={column.key}>
-          <Box sx={{ height: 24, bgcolor: 'grey.100', borderRadius: 1 }} />
-        </TableCell>
-      ))}
-    </TableRow>
+  // Build table columns with action handlers
+  const tableColumns = useMemo(() =>
+    columnsState.map(col => ({
+      ...col,
+      renderCell: col.renderCell ?
+        (row, rowIndex) => col.renderCell(row, rowIndex, {
+          ...handlers,
+          permissions,
+          openStockDialog,
+        }) : undefined
+    })),
+    [columnsState, handlers, permissions]
   );
 
   return (
-    <div>
-      {/* Stats Cards */}
-      <InventoryHead stats={inventory} isLoading={isLoading} />
-
-      {/* Action Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, mt: 6 }}>
-        <Button
-          variant="outlined"
-          startIcon={<ClearIcon />}
-          onClick={handleReset}
-          sx={{ mr: 1 }}
-        >
-          Reset
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<FilterListIcon />}
-          onClick={() => setFilterOpen(true)}
-        >
-          Filter {isFilterApplied && '*'}
-        </Button>
-      </Box>
-
-      {/* Inventory Table */}
-      <Card>
-        <Table>
-          <TableHead>
-            <TableRow>
-              {columns.filter(col => col.visible).map((column) => (
-                <TableCell key={column.key}>
-                  {column.key !== 'action' ? (
-                    <TableSortLabel
-                      active={sortBy === column.key}
-                      direction={sortBy === column.key ? sortDirection : 'asc'}
-                      onClick={() => handleSortRequest(column.key)}
-                    >
-                      {column.label}
-                    </TableSortLabel>
-                  ) : (
-                    column.label
-                  )}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              Array.from(new Array(5)).map((_, index) => (
-                <TableRowSkeleton key={index} />
-              ))
-            ) : inventory.length > 0 ? (
-              inventory.map((item, index) => (
-                <TableRow key={item._id}>
-                  <TableCell>{(pagination.current - 1) * pagination.pageSize + index + 1}</TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.sku}</TableCell>
-                  <TableCell>{item.unitInfo?.[0]?.name}</TableCell>
-                  <TableCell>{item.inventory_Info?.[0]?.quantity || 0}</TableCell>
-                  <TableCell>${amountFormat(item.sellingPrice)}</TableCell>
-                  <TableCell>${amountFormat(item.purchasePrice)}</TableCell>
-                  <TableCell
-                   className='m-0 p-0'
-                  >
-                    {canUpdate && (
-
-
-
-                      <ButtonGroup
-                        variant='outlined'
-                        color= 'secondary'
-                      >
-                        <Button
-
-
-
-                          onClick={() => {
-                            setSelectedItem(item);
-                            handleStockDialogOpen('add');
-                          }}
-                        >
-                          <AddIcon color='success' />
-                        </Button>
-                        <Button
-
-
-
-                          onClick={() => {
-                            setSelectedItem(item);
-                            handleStockDialogOpen('remove');
-                          }}
-                          title="Remove Stock"
-                        >
-                          <RemoveIcon color='error' className='size-5' />
-                        </Button>
-                      </ButtonGroup>
-
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} align="center">
-                  No inventory items found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-        <TablePagination
-          component="div"
-          count={pagination.total}
-          page={pagination.current - 1}
-          onPageChange={handlePageChange}
-          rowsPerPage={pagination.pageSize}
-          onRowsPerPageChange={handlePageSizeChange}
-          rowsPerPageOptions={[5, 10, 25, 50]}
-        />
-      </Card>
-
-      {/* Filter Drawer */}
-      <InventoryFilter
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        onFilterChange={onFiltersChange}
-        filters={filters}
+    <div className='flex flex-col gap-5'>
+      {/* Header and Stats */}
+      <InventoryHead
+        inventoryListData={initialCardCounts}
       />
 
-      {/* Stock Dialog */}
-      <Dialog open={stockDialog.open} onClose={handleStockDialogClose}>
+      <Grid container spacing={3}>
+        {/* New Product Button */}
+        {permissions.canCreate && (
+          <Grid size={12}>
+            <div className="flex justify-end">
+              <Button
+                component={Link}
+                href="/inventory/add"
+                variant="contained"
+                startIcon={<Icon icon="tabler:plus" />}
+              >
+                New Product
+              </Button>
+            </div>
+          </Grid>
+        )}
+
+        {/* Filter Component */}
+        <Grid size={12}>
+          <InventoryFilter
+            onFilterChange={handlers.handleFilterValueChange}
+            filters={handlers.filterValues}
+            onManageColumns={columnActions.open}
+          />
+        </Grid>
+
+        {/* Inventory Table */}
+        <Grid size={12}>
+          <Card>
+            <CustomListTable
+              columns={tableColumns}
+              rows={handlers.inventory}
+              loading={handlers.loading}
+              pagination={{
+                page: handlers.pagination.current - 1,
+                pageSize: handlers.pagination.pageSize,
+                total: handlers.pagination.total
+              }}
+              onPageChange={handlers.handlePageChange}
+              onRowsPerPageChange={handlers.handlePageSizeChange}
+              onSort={handlers.handleSortRequest}
+              sortBy={handlers.sortBy}
+              sortDirection={handlers.sortDirection}
+              noDataText="No inventory items found."
+              rowKey={(row) => row._id || row.id}
+            />
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Manage Columns Dialog */}
+      <Dialog open={handlers.manageColumnsOpen} onClose={columnActions.close}>
+        <DialogTitle>Select Columns</DialogTitle>
+        <DialogContent>
+          <FormGroup>
+            {handlers.availableColumns.map((column) => (
+              <FormControlLabel
+                key={column.key}
+                control={
+                  <Checkbox
+                    checked={column.visible}
+                    onChange={(e) => handlers.handleColumnCheckboxChange(column.key, e.target.checked)}
+                  />
+                }
+                label={column.label}
+              />
+            ))}
+          </FormGroup>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={columnActions.close}>Cancel</Button>
+          <Button onClick={columnActions.save} color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Stock Management Dialog */}
+      <Dialog open={stockDialog.open} onClose={closeStockDialog}>
         <DialogTitle>
           {stockDialog.type === 'add' ? 'Add Stock' : 'Remove Stock'}
         </DialogTitle>
         <DialogContent>
           <Typography variant="subtitle1" gutterBottom>
-            Product: {selectedItem?.name}
+            Product: {stockDialog.item?.name}
           </Typography>
 
           <Box sx={{ mb: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Current Quantity: {selectedItem?.inventory_Info[0]?.quantity || 0}
+              Current Quantity: {stockDialog.item?.inventory_Info?.[0]?.quantity || 0}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {stockDialog.type === 'add' ? 'New' : 'Remaining'} Quantity: {
                 stockDialog.data.quantity
                   ? (stockDialog.type === 'add'
-                    ? (selectedItem?.inventory_Info[0]?.quantity || 0) + Number(stockDialog.data.quantity)
-                    : (selectedItem?.inventory_Info[0]?.quantity || 0) - Number(stockDialog.data.quantity))
-                  : (selectedItem?.inventory_Info[0]?.quantity || 0)
+                    ? (stockDialog.item?.inventory_Info?.[0]?.quantity || 0) + Number(stockDialog.data.quantity)
+                    : (stockDialog.item?.inventory_Info?.[0]?.quantity || 0) - Number(stockDialog.data.quantity))
+                  : (stockDialog.item?.inventory_Info?.[0]?.quantity || 0)
               }
             </Typography>
           </Box>
@@ -404,7 +306,7 @@ const InventoryList = ({
               })}
               title="Increment"
             >
-              <AddIcon className='size-7 m-0 p-0'  />
+              <AddIcon className='size-7 m-0 p-0' />
             </IconButton>
             <IconButton
               className='m-0'
@@ -415,7 +317,7 @@ const InventoryList = ({
               })}
               title="Decrement"
             >
-              <RemoveIcon className='size-7 m-0 p-0'  />
+              <RemoveIcon className='size-7 m-0 p-0' />
             </IconButton>
           </Box>
           <TextField
@@ -432,7 +334,7 @@ const InventoryList = ({
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleStockDialogClose}>Cancel</Button>
+          <Button onClick={closeStockDialog}>Cancel</Button>
           <Button
             onClick={handleStockSubmit}
             variant="contained"
@@ -450,11 +352,7 @@ const InventoryList = ({
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
           {snackbar.message}
         </Alert>
       </Snackbar>
