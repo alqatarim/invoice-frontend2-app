@@ -4,9 +4,9 @@
 import { useMemo } from 'react'
 
 // MUI Imports
-import { deepmerge } from '@mui/utils'
-import { ThemeProvider, lighten, darken, createTheme } from '@mui/material/styles'
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter'
+import { Experimental_CssVarsProvider as CssVarsProvider } from '@mui/material/styles'
+import { extendTheme, lighten, darken } from '@mui/material/styles'
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
 import CssBaseline from '@mui/material/CssBaseline'
 
 // Third-party Imports
@@ -25,31 +25,37 @@ import { useSettings } from '@core/hooks/useSettings'
 // Core Theme Imports
 import defaultCoreTheme from '@core/theme'
 
-const CustomThemeProvider = props => {
+import { deepmerge } from '@mui/utils'
+
+const ThemeProvider = props => {
   // Props
   const { children, direction, systemMode } = props
 
   // Vars
   const isServer = typeof window === 'undefined'
-  let currentMode
-
   // Hooks
   const { settings } = useSettings()
   const isDark = useMedia('(prefers-color-scheme: dark)', systemMode === 'dark')
 
+  // Always set a valid mode
+  let currentMode = 'light'; // default fallback
   if (isServer) {
-    currentMode = systemMode
-  } else {
-    if (settings.mode === 'system') {
-      currentMode = isDark ? 'dark' : 'light'
-    } else {
-      currentMode = settings.mode
-    }
+    currentMode = systemMode || 'light';
+  } else if (settings.mode === 'system') {
+    currentMode = typeof isDark === 'boolean' ? (isDark ? 'dark' : 'light') : 'light';
+  } else if (settings.mode) {
+    currentMode = settings.mode;
   }
+
+  console.log('[ThemeProvider] settings.mode:', settings.mode)
+  console.log('[ThemeProvider] currentMode:', currentMode)
 
   // Merge the primary color scheme override with the core theme
   const theme = useMemo(() => {
-    const newTheme = {
+    console.log('[ThemeProvider] Creating theme with currentMode:', currentMode, 'and primaryColor:', settings.primaryColor)
+    
+    // In MUI v7, we need to define color schemes statically
+    const newColorScheme = {
       colorSchemes: {
         light: {
           palette: {
@@ -69,17 +75,15 @@ const CustomThemeProvider = props => {
             }
           }
         }
-      },
-      cssVariables: {
-        colorSchemeSelector: 'data'
       }
     }
 
-    const coreTheme = deepmerge(defaultCoreTheme(settings, currentMode, direction), newTheme)
+    // Create the base theme with static colorSchemes
+    const coreTheme = deepmerge(defaultCoreTheme(settings, 'light', direction), newColorScheme)
 
-    return createTheme(coreTheme)
+    return extendTheme(coreTheme)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.primaryColor, settings.skin, currentMode])
+  }, [settings.primaryColor, settings.skin, direction])
 
   return (
     <AppRouterCacheProvider
@@ -91,19 +95,20 @@ const CustomThemeProvider = props => {
         })
       }}
     >
-      <ThemeProvider
+      <CssVarsProvider
         theme={theme}
-        defaultMode={systemMode}
+        defaultMode={settings.mode === 'system' ? 'system' : settings.mode}
         modeStorageKey={`${themeConfig.templateName.toLowerCase().split(' ').join('-')}-mui-template-mode`}
+        colorSchemeStorageKey={`${themeConfig.templateName.toLowerCase().split(' ').join('-')}-mui-color-scheme`}
+        attribute='data-mui-color-scheme'
+        disableTransitionOnChange
       >
-        <>
-          <ModeChanger systemMode={systemMode} />
-          <CssBaseline />
-          {children}
-        </>
-      </ThemeProvider>
+        <ModeChanger systemMode={systemMode} />
+        <CssBaseline enableColorScheme />
+        {children}
+      </CssVarsProvider>
     </AppRouterCacheProvider>
   )
 }
 
-export default CustomThemeProvider
+export default ThemeProvider

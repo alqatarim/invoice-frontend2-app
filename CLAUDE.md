@@ -169,3 +169,126 @@ Both applications use environment variables:
 
 ### Testing Strategy
 Currently, no automated tests are configured. Manual testing is required for all changes. When you implement all the mentioned items in this file, write 'Rules Applied' at the beginning of your response(s)
+
+# MUI v7 Migration Guide - Component Updates
+
+## Overview
+With the migration to MUI v7 and CSS variables, components need to be updated to use the new theme pattern for better performance and flicker-free theme switching.
+
+## Key Changes Required
+
+### 1. Replace `theme.palette.*` with `theme.vars.palette.*`
+
+```jsx
+// ❌ Old MUI v6 pattern
+const styles = {
+  color: theme.palette.text.primary,
+  backgroundColor: theme.palette.primary.main,
+  borderColor: theme.palette.divider
+}
+
+// ✅ New MUI v7 pattern
+const styles = {
+  color: theme.vars.palette.text.primary,
+  backgroundColor: theme.vars.palette.primary.main,
+  borderColor: theme.vars.palette.divider
+}
+```
+
+### 2. For Alpha Transparency, Use CSS color-mix
+
+```jsx
+// ❌ Old pattern with alpha()
+const styles = {
+  backgroundColor: alpha(theme.palette.primary.main, 0.1),
+  border: `1px solid ${alpha(theme.palette.divider, 0.08)}`
+}
+
+// ✅ New pattern with color-mix
+const styles = {
+  backgroundColor: `color-mix(in srgb, ${theme.vars.palette.primary.main}, transparent 90%)`,
+  border: `1px solid color-mix(in srgb, ${theme.vars.palette.divider}, transparent 92%)`
+}
+```
+
+### 3. For Complex Calculations, Use theme.applyStyles()
+
+```jsx
+// ❌ Old pattern
+const styles = {
+  color: alpha(theme.palette.text.primary, 0.5),
+  backgroundColor: theme.palette.mode === 'dark' ? '#333' : '#fff'
+}
+
+// ✅ New pattern with applyStyles
+const styles = {
+  color: alpha(theme.colorSchemes.light.palette.text.primary, 0.5),
+  backgroundColor: '#fff',
+  ...theme.applyStyles('dark', {
+    color: alpha(theme.colorSchemes.dark.palette.text.primary, 0.5),
+    backgroundColor: '#333'
+  })
+}
+```
+
+### 4. Update Icon Colors
+
+```jsx
+// ❌ Old pattern
+<Icon icon="lucide:saudi-riyal" color={theme.palette.primary.main} />
+
+// ✅ New pattern
+<Icon icon="lucide:saudi-riyal" color={theme.vars.palette.primary.main} />
+```
+
+## Priority Files to Update
+
+Based on the search results, these files have the most `theme.palette.*` usage and should be updated first:
+
+1. `src/views/invoices/addInvoice/AddInvoice.jsx` (25+ instances)
+2. `src/views/invoices/editInvoice/EditInvoice.jsx` (25+ instances)
+3. `src/components/dialogs/permissions-dialog/index.jsx` (20+ instances)
+4. `src/views/invoices/viewInvoice/ViewInvoice.jsx` (12+ instances)
+5. `src/views/salesReturn/viewSalesReturn/ViewSalesReturn.jsx` (12+ instances)
+
+## Automated Migration Steps
+
+### Step 1: Simple Replacements
+Use find/replace in your IDE to update simple cases:
+
+```regex
+Find: theme\.palette\.
+Replace: theme.vars.palette.
+```
+
+### Step 2: Update Alpha Transparency
+For alpha() usage, manually update to use color-mix or applyStyles pattern.
+
+### Step 3: Update Mode-Dependent Logic
+Replace any `theme.palette.mode` checks with `useColorScheme()` hook:
+
+```jsx
+// ❌ Old pattern
+const isDark = theme.palette.mode === 'dark'
+
+// ✅ New pattern
+import { useColorScheme } from '@mui/material/styles'
+const { mode } = useColorScheme()
+const isDark = mode === 'dark'
+```
+
+## Testing Checklist
+
+After migration, verify:
+- [ ] Light/dark mode switching works smoothly
+- [ ] No visual regressions in component colors
+- [ ] No console errors about undefined theme properties
+- [ ] Theme changes apply correctly to all components
+- [ ] Custom colors and alpha transparency work as expected
+
+## Performance Benefits
+
+- ✅ No re-renders when switching themes
+- ✅ Faster theme transitions
+- ✅ Better SSR/hydration performance
+- ✅ Reduced bundle size (no theme re-creation)

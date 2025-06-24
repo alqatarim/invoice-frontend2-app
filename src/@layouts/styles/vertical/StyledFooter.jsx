@@ -37,9 +37,12 @@ const StyledFooter = styled.footer`
 
       & .${verticalLayoutClasses.footerContentWrapper} {
         pointer-events: auto;
-        ${({ theme }) => `
-          box-shadow: 0 -4px 8px -4px rgb(var(--mui-mainColorChannels-${theme.palette.mode}Shadow) / 0.42);
-        `}
+        box-shadow: 0 -4px 8px -4px rgb(var(--mui-mainColorChannels-lightShadow) / 0.42);
+        
+        [data-mui-color-scheme="dark"] & {
+          box-shadow: 0 -4px 8px -4px rgb(var(--mui-mainColorChannels-darkShadow) / 0.42);
+        }
+        
         border-start-start-radius: var(--border-radius);
         border-start-end-radius: var(--border-radius);
 
@@ -52,9 +55,11 @@ const StyledFooter = styled.footer`
     }
 
     &.${verticalLayoutClasses.footerAttached} {
-      ${({ theme }) => `
-        box-shadow: 0 -4px 8px -4px rgb(var(--mui-mainColorChannels-${theme.palette.mode}Shadow) / 0.42);
-      `}
+      box-shadow: 0 -4px 8px -4px rgb(var(--mui-mainColorChannels-lightShadow) / 0.42);
+      
+      [data-mui-color-scheme="dark"] & {
+        box-shadow: 0 -4px 8px -4px rgb(var(--mui-mainColorChannels-darkShadow) / 0.42);
+      }
 
       [data-skin="bordered"] & {
         box-shadow: none;

@@ -21,9 +21,11 @@ const RolesHead = ({ cardCounts }) => {
 
       {/* Statistics Cards */}
       <div className="mb-2">
-        <Grid container spacing={4}>
-          <Grid item xs={12} sm={6} md={4}>
+        <Grid container gap={2} className='flex justify-
+        '>
+          <Grid size={{ xs: 12, sm: 6, md: 4 , lg: 3}}>
             <HorizontalWithBorder
+
               title="Total Roles"
               subtitle="No of Roles"
               titleVariant='h5'
@@ -38,7 +40,7 @@ const RolesHead = ({ cardCounts }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 , lg: 3}}>
             <HorizontalWithBorder
               title="Active Roles"
               subtitle="No of Active Roles"
@@ -54,7 +56,7 @@ const RolesHead = ({ cardCounts }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 , lg: 3}}>
             <HorizontalWithBorder
               title="Super Admin"
               subtitle="No of Super Admin"

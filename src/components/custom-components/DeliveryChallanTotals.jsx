@@ -42,7 +42,7 @@ const DeliveryChallanTotals = ({ control, handleSubmit, handleFormSubmit, handle
               control={control}
               render={({ field }) => (
                 <Box className="flex flex-row items-center gap-0.5">
-                  <Icon icon="lucide:saudi-riyal" width={16} color={theme.palette.text.secondary} />
+                  <Icon icon="lucide:saudi-riyal" width={16} color={theme.vars.palette.text.secondary} />
                   <Typography variant="body2" fontWeight={500}>
                     {Number(field.value || 0).toFixed(2)}
                   </Typography>
@@ -61,7 +61,7 @@ const DeliveryChallanTotals = ({ control, handleSubmit, handleFormSubmit, handle
               control={control}
               render={({ field }) => (
                 <Box className="flex flex-row items-center gap-0.5">
-                  <Icon icon="lucide:saudi-riyal" width={16} color={theme.palette.text.secondary} />
+                  <Icon icon="lucide:saudi-riyal" width={16} color={theme.vars.palette.text.secondary} />
                   <Typography variant="body2" fontWeight={500}>
                     {Number(field.value || 0).toFixed(2)}
                   </Typography>
@@ -80,7 +80,7 @@ const DeliveryChallanTotals = ({ control, handleSubmit, handleFormSubmit, handle
               control={control}
               render={({ field }) => (
                 <Box className="flex flex-row items-center gap-0.5">
-                  <Icon icon="lucide:saudi-riyal" width={16} color={theme.palette.text.secondary} />
+                  <Icon icon="lucide:saudi-riyal" width={16} color={theme.vars.palette.text.secondary} />
                   <Typography variant="body2" fontWeight={500}>
                     {Number(field.value || 0).toFixed(2)}
                   </Typography>
@@ -130,7 +130,7 @@ const DeliveryChallanTotals = ({ control, handleSubmit, handleFormSubmit, handle
               control={control}
               render={({ field }) => (
                 <Box className="flex flex-row items-center gap-1">
-                  <Icon icon="lucide:saudi-riyal" width={20} color={theme.palette.primary.main} />
+                  <Icon icon="lucide:saudi-riyal" width={20} color={theme.vars.palette.primary.main} />
                   <Typography variant="h6" color="primary.main" fontWeight={600}>
                     {Number(field.value || 0).toFixed(2)}
                   </Typography>

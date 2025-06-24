@@ -92,12 +92,11 @@ const Navigation = props => {
       collapsedWidth={68}
       backgroundColor={isSkinBordered ? 'var(--mui-palette-background-paper)' : 'var(--mui-palette-background-default)'}
       // eslint-disable-next-line lines-around-comment
-      // The following condition adds the data-mui-color-scheme='dark' attribute to the VerticalNav component
-      // when semiDark is enabled and the mode or systemMode is light
-      {...(isSemiDark &&
-        !isDark && {
-          'data-mui-color-scheme': 'dark'
-        })}
+      // Remove the problematic semiDark override that was preventing mode switching
+      // {...(isSemiDark &&
+      //   !isDark && {
+      //     'data-mui-color-scheme': 'dark'
+      //   })}
     >
       {/* Nav Header including Logo & nav toggle icons  */}
       <NavHeader>

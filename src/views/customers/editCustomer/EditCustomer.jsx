@@ -21,10 +21,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider,
-  Chip,
+  Divider
 } from '@mui/material'
-import { useTheme, alpha } from '@mui/material/styles'
+import { useTheme } from '@mui/material/styles'
 import { Icon } from '@iconify/react'
 import { usePermission } from '@/Auth/usePermission'
 import { useEditCustomerHandlers } from '@/handlers/customers/editCustomer'
@@ -68,7 +67,7 @@ const EditCustomer = ({ customerData, customerId }) => {
 
   if (!canUpdate) {
     return (
-      <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+      <Card>
         <CardContent>
           <Typography variant="h6" color="error">
             You don't have permission to edit customers
@@ -100,42 +99,40 @@ const EditCustomer = ({ customerData, customerId }) => {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Header */}
-      <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+      <Card>
         <CardHeader
           title={
             <div className="flex items-center gap-2">
-              <Avatar className='bg-primary/12 text-primary w-12 h-12'>
-                <Icon icon="tabler:user-edit" fontSize={26} />
-              </Avatar>
-              <Typography variant="h5" className="font-semibold text-primary">
-                Edit Customer
-              </Typography>
+              <Typography variant="h5">Edit Customer</Typography>
             </div>
           }
           action={
             <Box display="flex" gap={2}>
               <Button 
-                variant="outlined" 
-                startIcon={<Icon icon="tabler:arrow-left" />}
+                variant="outlined"
+                color="secondary" 
                 onClick={handlers.handleCancel}
+                startIcon={<i className='ri-close-line' />}
               >
                 Cancel
               </Button>
               <Button 
                 variant="outlined" 
-                startIcon={<Icon icon="tabler:device-floppy" />}
+                color="primary"
                 onClick={handlers.handleSaveAndContinue}
                 disabled={handlers.loading}
+                startIcon={<i className='ri-edit-line' />}
               >
                 Save & Continue Editing
               </Button>
               <Button 
                 variant="contained" 
-                startIcon={handlers.loading ? <CircularProgress size={18} /> : <Icon icon="tabler:check" />}
+                color="primary"
                 onClick={handlers.handleSubmit}
                 disabled={handlers.loading}
+                startIcon={handlers.loading ? <CircularProgress size={20} /> : <i className='ri-check-line' />}
               >
                 Update Customer
               </Button>
@@ -146,22 +143,18 @@ const EditCustomer = ({ customerData, customerId }) => {
 
       {/* Form */}
       <form onSubmit={handlers.handleSubmit}>
-        <Grid container spacing={6}>
+        <Grid container spacing={3}>
           {/* Basic Information */}
           <Grid item xs={12}>
-            <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+            <Card>
               <CardHeader 
                 title={
-                  <div className="flex items-center gap-2">
-                    <Avatar className='bg-info/12 text-info w-10 h-10'>
-                      <Icon icon="tabler:info-circle" fontSize={20} />
-                    </Avatar>
-                    <Typography variant="h6" className="font-semibold">
-                      Basic Information
-                    </Typography>
-                  </div>
+                  <Typography variant="h6" className="font-medium">
+                    Basic Information
+                  </Typography>
                 }
               />
+              <Divider />
               <CardContent>
                 <Grid container spacing={4}>
                   {/* Profile Image */}
@@ -171,13 +164,12 @@ const EditCustomer = ({ customerData, customerId }) => {
                         src={imagePreview}
                         sx={{ width: 100, height: 100 }}
                       >
-                        <Icon icon="mdi:account" fontSize="3rem" />
+                        <i className='ri-user-line text-4xl' />
                       </Avatar>
-                      <Box className="space-y-2">
-                        <Typography variant="subtitle2" className="font-semibold">
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" className="mb-2">
                           Profile Picture
                         </Typography>
-                        <Box display="flex" gap={2}>
                           <input
                             accept="image/*"
                             type="file"
@@ -185,51 +177,40 @@ const EditCustomer = ({ customerData, customerId }) => {
                             style={{ display: 'none' }}
                             onChange={handleImageChange}
                           />
-                          <label htmlFor="image-upload">
-                            <Button 
-                              variant="outlined" 
-                              component="span"
-                              startIcon={<Icon icon="tabler:upload" />}
-                              size="small"
-                            >
-                              {imagePreview ? 'Change Image' : 'Upload Image'}
-                            </Button>
-                          </label>
-                          {imagePreview && (
-                            <IconButton 
-                              onClick={handleRemoveImage} 
-                              color="error"
-                              size="small"
-                            >
-                              <Icon icon="tabler:trash" />
-                            </IconButton>
-                          )}
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Supported formats: PNG, JPG, JPEG. Max size: 5MB
-                        </Typography>
+                        <label htmlFor="image-upload">
+                          <Button 
+                            variant="outlined" 
+                            component="span"
+                            size="small"
+                            startIcon={<i className='ri-upload-2-line' />}
+                          >
+                            {imagePreview ? 'Change Image' : 'Upload Image'}
+                          </Button>
+                        </label>
+                        {imagePreview && (
+                          <IconButton 
+                            onClick={handleRemoveImage} 
+                            color="error"
+                            size="small"
+                            className="ml-2"
+                          >
+                            <i className='ri-delete-bin-line' />
+                          </IconButton>
+                        )}
                       </Box>
                     </Box>
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <Divider />
                   </Grid>
 
                   {/* Name and Email */}
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Customer Name"
-                      required
+                      label="Customer Name *"
                       value={handlers.formData.name}
                       onChange={(e) => handlers.handleFieldChange('name', e.target.value)}
                       onBlur={() => handlers.handleFieldBlur('name')}
                       error={handlers.touched.name && !!handlers.errors.name}
                       helperText={handlers.touched.name && handlers.errors.name}
-                      InputProps={{
-                        startAdornment: <Icon icon="tabler:user" className="mr-2 text-gray-500" />,
-                      }}
                     />
                   </Grid>
 
@@ -244,9 +225,6 @@ const EditCustomer = ({ customerData, customerId }) => {
                       onBlur={() => handlers.handleFieldBlur('email')}
                       error={handlers.touched.email && !!handlers.errors.email}
                       helperText={handlers.touched.email && handlers.errors.email}
-                      InputProps={{
-                        startAdornment: <Icon icon="tabler:mail" className="mr-2 text-gray-500" />,
-                      }}
                     />
                   </Grid>
 
@@ -261,9 +239,6 @@ const EditCustomer = ({ customerData, customerId }) => {
                       onBlur={() => handlers.handleFieldBlur('phone')}
                       error={handlers.touched.phone && !!handlers.errors.phone}
                       helperText={handlers.touched.phone && handlers.errors.phone}
-                      InputProps={{
-                        startAdornment: <Icon icon="tabler:phone" className="mr-2 text-gray-500" />,
-                      }}
                     />
                   </Grid>
 
@@ -273,9 +248,6 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="Website"
                       value={handlers.formData.website}
                       onChange={(e) => handlers.handleFieldChange('website', e.target.value)}
-                      InputProps={{
-                        startAdornment: <Icon icon="tabler:world" className="mr-2 text-gray-500" />,
-                      }}
                     />
                   </Grid>
 
@@ -287,7 +259,6 @@ const EditCustomer = ({ customerData, customerId }) => {
                         value={handlers.formData.status}
                         label="Status"
                         onChange={(e) => handlers.handleFieldChange('status', e.target.value)}
-                        startAdornment={<Icon icon="tabler:toggle-left" className="mr-2 text-gray-500" />}
                       >
                         <MenuItem value="Active">Active</MenuItem>
                         <MenuItem value="Deactive">Inactive</MenuItem>
@@ -314,26 +285,23 @@ const EditCustomer = ({ customerData, customerId }) => {
 
           {/* Address Information */}
           <Grid item xs={12}>
-            <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+            <Card>
               <CardHeader 
                 title={
-                  <div className="flex items-center gap-2">
-                    <Avatar className='bg-warning/12 text-warning w-10 h-10'>
-                      <Icon icon="tabler:map-pin" fontSize={20} />
-                    </Avatar>
-                    <Typography variant="h6" className="font-semibold">
-                      Address Information
-                    </Typography>
-                  </div>
+                  <Typography variant="h6" className="font-medium">
+                    Address Information
+                  </Typography>
                 }
               />
+              <Divider />
               <CardContent>
                 <Grid container spacing={4}>
                   {/* Billing Address Section */}
                   <Grid item xs={12}>
-                    <Typography variant="subtitle1" className="font-semibold mb-3 text-primary">
+                    <Typography variant="h6" className="font-medium">
                       Billing Address
                     </Typography>
+                    <Divider className="mt-2 mb-4" />
                   </Grid>
                   
                   <Grid item xs={12} md={6}>
@@ -400,7 +368,7 @@ const EditCustomer = ({ customerData, customerId }) => {
                   {/* Shipping Address Section */}
                   <Grid item xs={12}>
                     <div className="flex items-center justify-between">
-                      <Typography variant="subtitle1" className="font-semibold text-primary">
+                      <Typography variant="h6" className="font-medium">
                         Shipping Address
                       </Typography>
                       <FormControlLabel
@@ -417,6 +385,7 @@ const EditCustomer = ({ customerData, customerId }) => {
                         label="Same as billing address"
                       />
                     </div>
+                    <Divider className="mt-2 mb-4" />
                   </Grid>
 
                   <Grid item xs={12} md={6}>
@@ -482,25 +451,15 @@ const EditCustomer = ({ customerData, customerId }) => {
 
           {/* Bank Details */}
           <Grid item xs={12}>
-            <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+            <Card>
               <CardHeader 
                 title={
-                  <div className="flex items-center gap-2">
-                    <Avatar className='bg-success/12 text-success w-10 h-10'>
-                      <Icon icon="tabler:building-bank" fontSize={20} />
-                    </Avatar>
-                    <Typography variant="h6" className="font-semibold">
-                      Bank Details
-                    </Typography>
-                    <Chip 
-                      label="Optional" 
-                      size="small" 
-                      variant="outlined" 
-                      color="secondary"
-                    />
-                  </div>
+                  <Typography variant="h6" className="font-medium">
+                    Bank Details
+                  </Typography>
                 }
               />
+              <Divider />
               <CardContent>
                 <Grid container spacing={4}>
                   <Grid item xs={12} md={6}>
@@ -509,9 +468,6 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="Bank Name"
                       value={handlers.formData.bankDetails.bankName}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'bankName', e.target.value)}
-                      InputProps={{
-                        startAdornment: <Icon icon="tabler:building-bank" className="mr-2 text-gray-500" />,
-                      }}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -520,9 +476,6 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="Branch"
                       value={handlers.formData.bankDetails.branch}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'branch', e.target.value)}
-                      InputProps={{
-                        startAdornment: <Icon icon="tabler:map-pin" className="mr-2 text-gray-500" />,
-                      }}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -531,9 +484,6 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="Account Holder Name"
                       value={handlers.formData.bankDetails.accountHolderName}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'accountHolderName', e.target.value)}
-                      InputProps={{
-                        startAdornment: <Icon icon="tabler:user" className="mr-2 text-gray-500" />,
-                      }}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -542,9 +492,6 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="Account Number"
                       value={handlers.formData.bankDetails.accountNumber}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'accountNumber', e.target.value)}
-                      InputProps={{
-                        startAdornment: <Icon icon="tabler:credit-card" className="mr-2 text-gray-500" />,
-                      }}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -553,9 +500,6 @@ const EditCustomer = ({ customerData, customerId }) => {
                       label="IFSC Code"
                       value={handlers.formData.bankDetails.IFSC}
                       onChange={(e) => handlers.handleNestedFieldChange('bankDetails', 'IFSC', e.target.value)}
-                      InputProps={{
-                        startAdornment: <Icon icon="tabler:qrcode" className="mr-2 text-gray-500" />,
-                      }}
                     />
                   </Grid>
                 </Grid>
@@ -565,7 +509,7 @@ const EditCustomer = ({ customerData, customerId }) => {
 
           {/* Action Buttons */}
           <Grid item xs={12}>
-            <Card elevation={0} sx={{ border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
+            <Card>
               <CardContent>
                 <Box display="flex" justifyContent="end" gap={2}>
                   <Button 

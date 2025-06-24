@@ -8,3 +8,4 @@ const AddCustomerIndex = () => {
 }
 
 export default AddCustomerIndex
+export { default as AddCustomerDrawer } from './AddCustomerDrawer'

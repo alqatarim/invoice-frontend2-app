@@ -5,10 +5,10 @@ import { useEffect } from 'react'
 
 // MUI Imports
 import {
-  Experimental_CssVarsProvider as CssVarsProvider,
-  experimental_extendTheme as extendTheme
+  CssVarsProvider,
+  extendTheme
 } from '@mui/material/styles'
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter'
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
 import CssBaseline from '@mui/material/CssBaseline'
 
 // Third-party Imports
@@ -27,9 +27,9 @@ const ThemeProvider = props => {
 
   const theme = extendTheme(defaultCoreTheme(settings, 'light', direction))
 
-  useEffect(() => {
-    document.body.setAttribute('data-mui-color-scheme', 'light')
-  }, [])
+  // useEffect(() => {
+  //   document.body.setAttribute('data-mui-color-scheme', 'light')
+  // }, [])
 
   return (
     <AppRouterCacheProvider

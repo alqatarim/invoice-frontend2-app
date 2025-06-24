@@ -468,11 +468,11 @@ const PermissionsDialog = ({ open, onClose, roleId, roleName }) => {
       </DialogContent>
 
       <DialogActions 
-        sx={{ 
-          p: 3,
-          borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-          gap: 2
-        }}
+                  sx={{ 
+            p: 3,
+            borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            gap: 2
+          }}
       >
         <Button
           onClick={handleCancel}

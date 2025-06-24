@@ -83,24 +83,36 @@ const AddCustomer = () => {
       {/* Header */}
       <Card>
         <CardHeader
-          title="Add Customer"
+          title={
+            <div className="flex items-center gap-2">
+              <Typography variant="h5">Add Customer</Typography>
+            </div>
+          }
           action={
             <Box display="flex" gap={2}>
-              <Button variant="outlined" onClick={handlers.handleCancel}>
+              <Button 
+                variant="outlined" 
+                color="secondary"
+                onClick={handlers.handleCancel}
+                startIcon={<i className='ri-close-line' />}
+              >
                 Cancel
               </Button>
               <Button 
                 variant="outlined" 
+                color="primary"
                 onClick={handlers.handleSaveAndContinue}
                 disabled={handlers.loading}
+                startIcon={<i className='ri-add-line' />}
               >
                 Save & Add Another
               </Button>
               <Button 
                 variant="contained" 
+                color="primary"
                 onClick={handlers.handleSubmit}
                 disabled={handlers.loading}
-                startIcon={handlers.loading && <CircularProgress size={20} />}
+                startIcon={handlers.loading ? <CircularProgress size={20} /> : <i className='ri-check-line' />}
               >
                 Save Customer
               </Button>
@@ -115,19 +127,29 @@ const AddCustomer = () => {
           {/* Basic Information */}
           <Grid item xs={12}>
             <Card>
-              <CardHeader title="Basic Information" />
+              <CardHeader 
+                title={
+                  <Typography variant="h6" className="font-medium">
+                    Basic Information
+                  </Typography>
+                }
+              />
+              <Divider />
               <CardContent>
                 <Grid container spacing={3}>
                   {/* Profile Image */}
                   <Grid item xs={12}>
-                    <Box display="flex" alignItems="center" gap={2}>
+                    <Box display="flex" alignItems="center" gap={3}>
                       <Avatar
                         src={imagePreview}
-                        sx={{ width: 80, height: 80 }}
+                        sx={{ width: 100, height: 100 }}
                       >
-                        <Icon icon="mdi:account" />
+                        <i className='ri-user-line text-4xl' />
                       </Avatar>
                       <Box>
+                        <Typography variant="body2" color="text.secondary" className="mb-2">
+                          Profile Picture
+                        </Typography>
                         <input
                           accept="image/*"
                           type="file"
@@ -136,13 +158,23 @@ const AddCustomer = () => {
                           onChange={handleImageChange}
                         />
                         <label htmlFor="image-upload">
-                          <Button variant="outlined" component="span">
+                          <Button 
+                            variant="outlined" 
+                            component="span"
+                            size="small"
+                            startIcon={<i className='ri-upload-2-line' />}
+                          >
                             Upload Image
                           </Button>
                         </label>
                         {imagePreview && (
-                          <IconButton onClick={handleRemoveImage} color="error">
-                            <Icon icon="mdi:delete" />
+                          <IconButton 
+                            onClick={handleRemoveImage} 
+                            color="error"
+                            size="small"
+                            className="ml-2"
+                          >
+                            <i className='ri-delete-bin-line' />
                           </IconButton>
                         )}
                       </Box>
@@ -233,7 +265,14 @@ const AddCustomer = () => {
           {/* Billing Address */}
           <Grid item xs={12}>
             <Card>
-              <CardHeader title="Billing Address" />
+              <CardHeader 
+                title={
+                  <Typography variant="h6" className="font-medium">
+                    Billing Address
+                  </Typography>
+                }
+              />
+              <Divider />
               <CardContent>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
@@ -301,7 +340,11 @@ const AddCustomer = () => {
           <Grid item xs={12}>
             <Card>
               <CardHeader 
-                title="Shipping Address"
+                title={
+                  <Typography variant="h6" className="font-medium">
+                    Shipping Address
+                  </Typography>
+                }
                 action={
                   <FormControlLabel
                     control={
@@ -318,6 +361,7 @@ const AddCustomer = () => {
                   />
                 }
               />
+              <Divider />
               <CardContent>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
@@ -384,7 +428,14 @@ const AddCustomer = () => {
           {/* Bank Details */}
           <Grid item xs={12}>
             <Card>
-              <CardHeader title="Bank Details (Optional)" />
+              <CardHeader 
+                title={
+                  <Typography variant="h6" className="font-medium">
+                    Bank Details (Optional)
+                  </Typography>
+                }
+              />
+              <Divider />
               <CardContent>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>

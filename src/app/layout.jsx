@@ -25,12 +25,8 @@ export default function RootLayout({ children, params }) {
   return (
     <html id='__next'>
       <body className='flex is-full min-bs-full flex-auto flex-col'>
-  <NextAuthProvider basePath={process.env.NEXTAUTH_BASEPATH}>
-
-
-              {children}
-
-
+        <NextAuthProvider basePath={process.env.NEXTAUTH_BASEPATH}>
+          {children}
         </NextAuthProvider>
       </body>
     </html>
