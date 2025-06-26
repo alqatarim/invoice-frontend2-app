@@ -20,8 +20,11 @@ import {
   TextField,
   Typography,
   IconButton,
+  Popover,
+  Paper,
+  Divider,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
@@ -66,6 +69,7 @@ const InventoryList = ({
     open: false,
     type: null, // 'add' or 'remove'
     item: null,
+    anchorEl: null,
     data: {
       quantity: '',
       notes: '',
@@ -106,11 +110,12 @@ const InventoryList = ({
   };
 
   // Stock dialog handlers
-  const openStockDialog = (type, item) => {
+  const openStockDialog = (type, item, anchorEl) => {
     setStockDialog({
       open: true,
       type,
       item,
+      anchorEl,
       data: {
         quantity: '',
         notes: '',
@@ -122,6 +127,7 @@ const InventoryList = ({
     setStockDialog({
       ...stockDialog,
       open: false,
+      anchorEl: null,
     });
   };
 
@@ -166,6 +172,7 @@ const InventoryList = ({
           ...handlers,
           permissions,
           openStockDialog,
+          stockLoading: handlers.stockLoading,
         }) : undefined
     })),
     [columnsState, handlers, permissions]
@@ -179,26 +186,13 @@ const InventoryList = ({
       />
 
       <Grid container spacing={3}>
-        {/* New Product Button */}
-        {permissions.canCreate && (
-          <Grid size={12}>
-            <div className="flex justify-end">
-              <Button
-                component={Link}
-                href="/inventory/add"
-                variant="contained"
-                startIcon={<Icon icon="tabler:plus" />}
-              >
-                New Product
-              </Button>
-            </div>
-          </Grid>
-        )}
+ 
 
         {/* Filter Component */}
         <Grid size={12}>
           <InventoryFilter
             onFilterChange={handlers.handleFilterValueChange}
+            onFilterApply={handlers.handleFilterApply}
             filters={handlers.filterValues}
             onManageColumns={columnActions.open}
           />
@@ -255,102 +249,182 @@ const InventoryList = ({
         </DialogActions>
       </Dialog>
 
-      {/* Stock Management Dialog */}
-      <Dialog open={stockDialog.open} onClose={closeStockDialog}>
-        <DialogTitle>
-          {stockDialog.type === 'add' ? 'Add Stock' : 'Remove Stock'}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="subtitle1" gutterBottom>
-            Product: {stockDialog.item?.name}
-          </Typography>
+      {/* Stock Management Popover */}
+      <Popover
+        open={stockDialog.open}
+        anchorEl={stockDialog.anchorEl}
+        onClose={closeStockDialog}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+        PaperProps={{
+          sx: {
+            width: 280,
+            maxWidth: '90vw',
+            borderRadius: 3,
+            boxShadow: theme.shadows[12],
+            border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
+          }
+        }}
+      >
+        <Box className="px-4 py-3">
+          {/* Compact Header with Product Info */}
+          <Box className="flex items-center justify-between mb-3">
+            <Box className="flex flex-col min-w-0 gap-2">
+            <Box className="flex flex-row items-center gap-1 min-w-0">
+              <Typography variant="body1" className=" truncate">
+                {stockDialog.type === 'add' ? 'Add' : 'Remove'}
+              </Typography>
+              <Typography variant="body1" color='primary.main' className="font-semibold">
+              {Number(stockDialog.data.quantity)}
+              </Typography>
+              <Typography variant="body1" className=" truncate">
+                {stockDialog.item?.name}
+              </Typography>
 
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Current Quantity: {stockDialog.item?.inventory_Info?.[0]?.quantity || 0}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {stockDialog.type === 'add' ? 'New' : 'Remaining'} Quantity: {
-                stockDialog.data.quantity
-                  ? (stockDialog.type === 'add'
+              </Box>
+
+              <Box className="flex flex-row gap-1 items-center min-w-0">
+              <Typography variant="h6" color="text.primary" className="font-semibold">
+                {stockDialog.item?.inventory_Info?.[0]?.quantity || 0}
+              </Typography>
+          
+              <Icon 
+                icon={stockDialog.type === 'add' ? "mdi:arrow-up-right-thick" : 'mdi:arrow-down-right-thick'} 
+                width={23} 
+                color={stockDialog.type === 'add' ? theme.palette.success.dark : theme.palette.error.dark} 
+              />
+
+
+                  {/* Real-time Result */}
+            {stockDialog.data.quantity && (
+               <Typography variant="h6" color="text.primary" className="font-semibold">
+                {
+                  stockDialog.type === 'add'
                     ? (stockDialog.item?.inventory_Info?.[0]?.quantity || 0) + Number(stockDialog.data.quantity)
-                    : (stockDialog.item?.inventory_Info?.[0]?.quantity || 0) - Number(stockDialog.data.quantity))
-                  : (stockDialog.item?.inventory_Info?.[0]?.quantity || 0)
-              }
-            </Typography>
+                    : Math.max(0, (stockDialog.item?.inventory_Info?.[0]?.quantity || 0) - Number(stockDialog.data.quantity))
+                }
+              </Typography>
+            )}
+
+
+
+
+
+              </Box>
+            </Box>
+            <IconButton
+              size="small"
+              onClick={closeStockDialog}
+              className="p-1 ml-2 opacity-70 hover:opacity-100"
+              disabled={handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
+            >
+              <Icon icon="tabler:x" className="text-lg" />
+            </IconButton>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="Quantity"
-              type="number"
-              fullWidth
-              inputProps={{ min: 1 }}
-              error={stockDialog.data.quantity !== '' && parseInt(stockDialog.data.quantity, 10) <= 0}
-              helperText={stockDialog.data.quantity !== '' && parseInt(stockDialog.data.quantity, 10) <= 0 ?
-                "Quantity must be greater than zero" : ""}
-              value={stockDialog.data.quantity}
-              onChange={(e) => setStockDialog({
-                ...stockDialog,
-                data: { ...stockDialog.data, quantity: Number(e.target.value) }
-              })}
-            />
-            <IconButton
-              className='m-0'
-              size="large"
-              onClick={() => setStockDialog({
-                ...stockDialog,
-                data: { ...stockDialog.data, quantity: Number(stockDialog.data.quantity || 0) + 1 }
-              })}
-              title="Increment"
-            >
-              <AddIcon className='size-7 m-0 p-0' />
-            </IconButton>
-            <IconButton
-              className='m-0'
-              size="large"
-              onClick={() => setStockDialog({
-                ...stockDialog,
-                data: { ...stockDialog.data, quantity: Math.max(0, Number(stockDialog.data.quantity || 0) - 1) }
-              })}
-              title="Decrement"
-            >
-              <RemoveIcon className='size-7 m-0 p-0' />
-            </IconButton>
+          {/* Horizontal Quantity Controls */}
+          <Box className="flex items-center gap-3 mb-3">
+            <Typography variant="body2" className="text-sm font-medium whitespace-nowrap">
+              Quantity
+            </Typography>
+            
+            <Box className="flex items-center gap-1 flex-1">
+              <IconButton
+                size="small"
+                onClick={() => setStockDialog({
+                  ...stockDialog,
+                  data: { ...stockDialog.data, quantity: Math.max(1, Number(stockDialog.data.quantity || 0) - 1) }
+                })}
+                className="p-1.5 border border-gray-300 hover:border-gray-400 rounded-lg"
+                disabled={Number(stockDialog.data.quantity || 0) <= 1 || handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
+              >
+                <RemoveIcon className="text-base" />
+              </IconButton>
+              
+              <TextField
+                size="small"
+                type="number"
+                inputProps={{ 
+                  min: 1, 
+                  style: { textAlign: 'center', fontSize: '0.875rem' },
+                  className: 'py-2'
+                }}
+                className="w-20"
+                value={stockDialog.data.quantity}
+                onChange={(e) => setStockDialog({
+                  ...stockDialog,
+                  data: { ...stockDialog.data, quantity: Math.max(1, Number(e.target.value) || 1) }
+                })}
+                disabled={handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
+              />
+              
+              <IconButton
+                size="small"
+                onClick={() => setStockDialog({
+                  ...stockDialog,
+                  data: { ...stockDialog.data, quantity: Number(stockDialog.data.quantity || 0) + 1 }
+                })}
+                className="p-1.5 border border-gray-300 hover:border-gray-400 rounded-lg"
+                disabled={handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
+              >
+                <AddIcon className="text-base" />
+              </IconButton>
+            </Box>
+
+        
           </Box>
-          <TextField
-            margin="dense"
-            label="Notes"
-            multiline
-            rows={3}
-            fullWidth
-            value={stockDialog.data.notes}
-            onChange={(e) => setStockDialog({
-              ...stockDialog,
-              data: { ...stockDialog.data, notes: e.target.value }
-            })}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeStockDialog}>Cancel</Button>
-          <Button
-            onClick={handleStockSubmit}
-            variant="contained"
-            disabled={!stockDialog.data.quantity || parseInt(stockDialog.data.quantity, 10) <= 0}
-          >
-            {stockDialog.type === 'add' ? 'Add' : 'Remove'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+
+          {/* Compact Actions */}
+          <Box className="flex gap-2">
+            <Button 
+              size="small" 
+              onClick={closeStockDialog}
+              className="flex-1 py-1.5 text-sm"
+              variant="outlined"
+              color="secondary"
+              disabled={handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={handleStockSubmit}
+              disabled={
+                !stockDialog.data.quantity || 
+                parseInt(stockDialog.data.quantity, 10) <= 0 ||
+                handlers.stockLoading?.addStock || 
+                handlers.stockLoading?.removeStock
+              }
+              className="flex-1 py-1.5 text-sm font-medium"
+              color="primary"
+            >
+              {handlers.stockLoading?.[stockDialog.type === 'add' ? 'addStock' : 'removeStock'] 
+                ? 'Processing...' 
+                : (stockDialog.type === 'add' ? 'Add' : 'Remove')
+              }
+            </Button>
+          </Box>
+        </Box>
+      </Popover>
 
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
           {snackbar.message}

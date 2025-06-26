@@ -18,6 +18,12 @@ export const getInitialInventoryData = async () => {
           current: 1,
           pageSize: 10,
           total: response.totalRecords || 0,
+        },
+        cardCounts: response.cardCounts || {
+          total_items: [],
+          low_stock: [],
+          out_of_stock: [],
+          total_value: []
         }
       };
     } else {
@@ -139,9 +145,9 @@ export async function searchProducts(searchTerm) {
   if (!searchTerm || typeof searchTerm !== 'string') {
     throw new Error('Invalid search term');
   }
-
+  
   try {
-    const response = await fetchWithAuth(`/drop_down/product?search=${encodeURIComponent(searchTerm)}`);
+    const response = await fetchWithAuth(`/products/listProduct?search_product=${encodeURIComponent(searchTerm)}`);
 
     if (response.code === 200) {
       return response.data || [];

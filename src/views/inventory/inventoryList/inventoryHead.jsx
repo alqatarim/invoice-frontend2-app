@@ -59,7 +59,7 @@ const InventoryHead = ({ inventoryListData }) => {
       {/* Statistics Cards */}
       <div className="mb-2">
         <Grid container spacing={4}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item size={{xs:12, sm:6, md:3}}>
             <HorizontalWithBorder
               title="Total Items"
               subtitle="No of Items"
@@ -75,7 +75,7 @@ const InventoryHead = ({ inventoryListData }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item size={{xs:12, sm:6, md:3}}>
             <HorizontalWithBorder
               title="Low Stock"
               subtitle="Items Running Low"
@@ -91,7 +91,7 @@ const InventoryHead = ({ inventoryListData }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item size={{xs:12, sm:6, md:3}}>
             <HorizontalWithBorder
               title="Out of Stock"
               subtitle="Items Out of Stock"
@@ -107,7 +107,7 @@ const InventoryHead = ({ inventoryListData }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item size={{xs:12, sm:6, md:3}}>
             <HorizontalWithBorder
               title="Total Value"
               subtitle="Inventory Value"

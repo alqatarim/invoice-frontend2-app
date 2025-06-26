@@ -65,6 +65,7 @@ export function useInventoryListHandlers(options = {}) {
     // Actions
     handleAddStock: actions.handleAddStock,
     handleRemoveStock: actions.handleRemoveStock,
+    stockLoading: actions.loading, // Expose stock operation loading states
 
     // Column management
     availableColumns: columns.availableColumns,

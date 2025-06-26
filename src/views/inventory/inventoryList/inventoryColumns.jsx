@@ -1,5 +1,6 @@
 import { Typography, ButtonGroup, Button } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
+import CustomButton from '@core/components/mui/CustomIconButton';
 import { amountFormat } from '@/utils/numberUtils';
 
 /**
@@ -27,7 +28,8 @@ export const getInventoryColumns = ({ permissions }) => [
     renderCell: (row) => (
       <Typography
         variant="body1"
-        className='text-[0.9rem] text-start cursor-pointer text-primary hover:underline'
+        className='text-[0.9rem] text-start'
+        color='text.primary'
       >
         {row.name || 'N/A'}
       </Typography>
@@ -94,12 +96,16 @@ export const getInventoryColumns = ({ permissions }) => [
     ),
   },
   {
-    key: 'action',
-    label: 'Action',
+    key: 'stock',
+    label: 'Stock',
     visible: true,
     align: 'center',
     renderCell: (row, rowIndex, handlers) => {
       if (!permissions.canUpdate) return null;
+
+      const isLoadingAdd = handlers?.stockLoading?.addStock;
+      const isLoadingRemove = handlers?.stockLoading?.removeStock;
+      const isAnyLoading = isLoadingAdd || isLoadingRemove;
 
       return (
         <ButtonGroup
@@ -107,18 +113,24 @@ export const getInventoryColumns = ({ permissions }) => [
           color='secondary'
           size="small"
         >
-          <Button
-            onClick={() => handlers?.openStockDialog?.('add', row)}
+          <CustomButton
+            skin='light'
+            color='success'
+            onClick={(e) => handlers?.openStockDialog?.('add', row, e.currentTarget)}
             title="Add Stock"
+            disabled={isAnyLoading}
           >
-            <AddIcon color='success' />
-          </Button>
-          <Button
-            onClick={() => handlers?.openStockDialog?.('remove', row)}
+            <AddIcon color={isAnyLoading ? 'disabled' : 'success'} />
+          </CustomButton>
+          <CustomButton
+            skin='light'
+            color='error'
+            onClick={(e) => handlers?.openStockDialog?.('remove', row, e.currentTarget)}
             title="Remove Stock"
+            disabled={isAnyLoading}
           >
-            <RemoveIcon color='error' className='size-5' />
-          </Button>
+            <RemoveIcon color={isAnyLoading ? 'disabled' : 'error'} className='size-5' />
+          </CustomButton>
         </ButtonGroup>
       );
     },

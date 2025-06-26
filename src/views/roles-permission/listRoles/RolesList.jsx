@@ -135,7 +135,7 @@ const RolesList = ({ initialData }) => {
       <Grid container spacing={3}>
         {/* New Role Button */}
         {permissions.canCreate && (
-          <Grid item xs={12}>
+          <Grid item siz={12}>
             <div className="flex justify-end">
               <Button
                 variant="contained"
@@ -149,7 +149,7 @@ const RolesList = ({ initialData }) => {
         )}
 
         {/* Filter Component */}
-        <Grid item xs={12}>
+        <Grid item size={12}>
           <RolesFilter
             onChange={handleFilterValueChange}
             onApply={handleFilterApply}
@@ -163,7 +163,7 @@ const RolesList = ({ initialData }) => {
         </Grid>
 
         {/* Roles Table */}
-        <Grid item xs={12}>
+        <Grid item size={12}>
           <Card>
             <CustomListTable
               columns={tableColumns}

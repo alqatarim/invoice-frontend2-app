@@ -38,6 +38,7 @@ const AddCustomerDrawer = props => {
 
   // States
   const [billingAsSameAddress, setBillingAsSameAddress] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   // Hooks
   const {
@@ -78,6 +79,8 @@ const AddCustomerDrawer = props => {
 
   const onSubmit = async (data) => {
     try {
+      setLoading(true)
+      
       // Create new customer object
       const newCustomer = {
         name: data.name,
@@ -115,6 +118,8 @@ const AddCustomerDrawer = props => {
       if (onError) {
         onError('Failed to add customer: ' + error.message)
       }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -444,8 +449,8 @@ const AddCustomerDrawer = props => {
               <Button 
                 variant='contained' 
                 type='submit'
-                disabled={handlers.loading}
-                startIcon={handlers.loading && <CircularProgress size={20} />}
+                disabled={loading}
+                startIcon={loading && <CircularProgress size={20} />}
               >
                 Add Customer
               </Button>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTheme, alpha } from '@mui/material/styles';
+import { searchProducts } from '@/app/(dashboard)/inventory/actions';
 import {
   Button,
   Card,
@@ -16,125 +17,229 @@ import {
   OutlinedInput,
   Select,
   Typography,
+  TextField,
+  Autocomplete,
+  Box,
+  Checkbox,
+  CircularProgress,
 } from '@mui/material';
 import { Icon } from '@iconify/react';
-import { searchProducts } from '@/app/(dashboard)/inventory/actions';
+import { fetchWithAuth } from '@/Auth/fetchWithAuth';
+
+// Debounce function
+const debounce = (func, delay) => {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
+
 
 /**
- * Reusable multi-select dropdown component
+ * Modern Autocomplete with search functionality
  */
-const MultiSelectDropdown = ({
+const ProductSearchSelect = ({
   label,
   value = [],
   onChange,
-  options = [],
   id
-}) => (
-  <FormControl fullWidth size="small">
-    <InputLabel id={`${id}-label`}>{label}</InputLabel>
-    <Select
-      labelId={`${id}-label`}
-      id={id}
+}) => {
+  const [inputValue, setInputValue] = useState('');
+  const [options, setOptions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce(async (searchTerm) => {
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        setOptions([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const results = await searchProducts(searchTerm);
+        
+        // Ensure results have the correct structure
+        const formattedResults = results.map(item => ({
+          _id: item._id,
+          name: item.name || item.text || 'Unknown Product',
+          ...item
+        }));
+        
+        setOptions(formattedResults);
+        setOpen(true); // Open dropdown when results arrive
+      } catch (error) {
+        console.error('Error searching products:', error);
+        setOptions([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 500), // Increased delay for better UX
+    []
+  );
+
+  // Handle input change
+  const handleInputChange = (event, newInputValue, reason) => {
+    setInputValue(newInputValue);
+    
+    if (reason === 'input') {
+      debouncedSearch(newInputValue);
+    }
+  };
+
+  // Handle selection
+  const handleChange = (event, newValue) => {
+    onChange(newValue.map(item => item._id));
+  };
+
+  return (
+    <Autocomplete
       multiple
-      value={value}
-      onChange={onChange}
-      input={<OutlinedInput label={label} />}
-      renderValue={(selected) => (
-        <div className="flex flex-row flex-wrap gap-1">
-          {selected.map((val) => {
-            const option = options.find(opt => opt.value === val);
-            return (
-              <Chip
-                key={val}
-                label={option?.label || val}
-                size="small"
-                variant="tonal"
-                color="primary"
-                className="rounded-md"
-              />
-            );
-          })}
-        </div>
-      )}
-      MenuProps={{
-        PaperProps: {
-          style: { maxHeight: 224, width: 280 }
+      id={id}
+      open={open}
+      onOpen={() => {
+        if (inputValue) {
+          setOpen(true);
         }
       }}
-      sx={{
-        '& .MuiOutlinedInput-root': {
-          borderRadius: '12px',
+      onClose={() => setOpen(false)}
+      options={options}
+      loading={loading}
+      inputValue={inputValue}
+      onInputChange={handleInputChange}
+      onChange={handleChange}
+      getOptionLabel={(option) => {
+        // Handle both string and object options
+        if (typeof option === 'string') {
+          return option;
         }
+        return option.name || option.text || '';
       }}
-    >
-      {options.map((option) => (
-        <MenuItem key={option.value} value={option.value}>
-          {option.label}
+      isOptionEqualToValue={(option, value) => {
+        if (!option || !value) return false;
+        return option._id === value._id;
+      }}
+      filterOptions={(x) => x} // Disable client-side filtering
+      clearOnBlur={false}
+      selectOnFocus={true}
+      handleHomeEndKeys={true}
+      freeSolo={false}
+      renderOption={(props, option, { selected }) => (
+        <MenuItem {...props} key={option._id}>
+
+<Box className='flex flex-row gap-3 items-center'>
+          <Checkbox
+            icon={<Icon icon="mdi:checkbox-blank-outline" />}
+            checkedIcon={<Icon icon="mdi:checkbox-marked" />}
+          
+            checked={selected}
+          />
+          
+            <Typography variant="body1" color='primary.main'>
+              {option.name}
+            </Typography>
+            {option.sku && (
+              <Typography variant="body2" color="text.secondary">
+                SKU {option.sku}
+              </Typography>
+            )}
+          </Box>
         </MenuItem>
-      ))}
-    </Select>
-  </FormControl>
-);
+      )}
+      renderTags={(value, getTagProps) =>
+        value.map((option, index) => (
+          <Chip
+            {...getTagProps({ index })}
+            key={option._id}
+            label={option.name}
+            size="small"
+            variant="tonal"
+            color="primary"
+          />
+        ))
+      }
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          size="small"
+          label={label}
+          placeholder="Type to search products..."
+          InputProps={{
+            ...params.InputProps,
+            startAdornment: (
+              <>
+                <Icon icon="mdi:magnify" style={{ marginRight: 8, color: 'text.secondary' }} />
+                {params.InputProps.startAdornment}
+              </>
+            ),
+            endAdornment: (
+              <>
+                {loading ? <CircularProgress size={20} /> : null}
+                {params.InputProps.endAdornment}
+              </>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '12px',
+            }
+          }}
+        />
+      )}
+      noOptionsText={
+        loading ? "Searching..." : 
+        inputValue ? "No products found" : 
+        "Type to search products"
+      }
+      loadingText="Searching products..."
+      sx={{
+        width: '100%',
+        '& .MuiAutocomplete-popupIndicator': {
+          display: 'none' // Hide default dropdown arrow
+        }
+      }}
+    />
+  );
+};
 
 const InventoryFilter = ({
   filters,
   onFilterChange,
+  onFilterApply,
   open,
   onClose,
   onManageColumns
 }) => {
   const theme = useTheme();
   const [filterOpen, setFilterOpen] = useState(false);
-  const [productSearchText, setProductSearchText] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState(filters.product || []);
 
   useEffect(() => {
     setSelectedProducts(filters.product || []);
   }, [filters]);
 
-  const handleProductSearch = async (e) => {
-    const searchTerm = e.target.value;
-    setProductSearchText(searchTerm);
-
-    if (searchTerm.length > 0) {
-      try {
-        const results = await searchProducts(searchTerm);
-        setSearchResults(results.map(product => ({
-          value: product._id,
-          label: product.name
-        })));
-      } catch (error) {
-        console.error('Error searching products:', error);
-        setSearchResults([]);
-      }
-    } else {
-      setSearchResults([]);
-    }
-  };
-
-  const handleSelectChange = (field) => (event) => {
-    const value = typeof event.target.value === 'string'
-      ? event.target.value.split(',')
-      : event.target.value;
-
-    if (field === 'product') {
-      setSelectedProducts(value);
-    }
-    onFilterChange({ [field]: value });
+  const handleSelectChange = (productIds) => {
+    setSelectedProducts(productIds);
   };
 
   const applyFilters = () => {
     onFilterChange({ product: selectedProducts });
-    onClose();
+    if (onFilterApply) {
+      onFilterApply({ product: selectedProducts });
+    }
+    setFilterOpen(false);
   };
 
   const resetFilters = () => {
-    setProductSearchText('');
-    setSearchResults([]);
     setSelectedProducts([]);
-    onFilterChange({});
-    onClose();
+    onFilterChange({ product: [] });
+    if (onFilterApply) {
+      onFilterApply({ product: [] });
+    }
+    setFilterOpen(false);
   };
 
   // Calculate active filter count
@@ -197,16 +302,15 @@ const InventoryFilter = ({
 
       <Collapse in={filterOpen}>
         <Divider />
-        <div className="p-6">
+        <div className="p-6" onClick={(e) => e.stopPropagation()}>
           <Grid container spacing={4}>
-            {/* Product Filter */}
-            <Grid item xs={12} sm={6} md={6}>
-              <MultiSelectDropdown
-                id="product-select"
-                label="Products"
+            {/* Product Filter with Search */}
+            <Grid item size={{xs:12, sm:6, md:6}}>
+              <ProductSearchSelect
+                id="product-search-select"
+                label="Search Products"
                 value={selectedProducts}
-                onChange={handleSelectChange('product')}
-                options={searchResults}
+                onChange={handleSelectChange}
               />
             </Grid>
           </Grid>
@@ -229,6 +333,7 @@ const InventoryFilter = ({
               onClick={resetFilters}
               size="medium"
               startIcon={<Icon icon="tabler:refresh" />}
+              disabled={selectedProducts.length === 0}
             >
               Reset Filters
             </Button>
@@ -238,8 +343,9 @@ const InventoryFilter = ({
               onClick={applyFilters}
               size="medium"
               startIcon={<Icon icon="tabler:check" />}
+              disabled={selectedProducts.length === 0}
             >
-              Apply Filters
+              Apply Filters ({selectedProducts.length})
             </Button>
           </div>
         </div>

@@ -145,21 +145,6 @@ const VendorList = ({ initialVendors, initialPagination }) => {
 
       <Grid container spacing={3}>
         <Grid item xs={12}>
-          <div className="flex justify-end">
-            {permissions.canCreate && (
-              <Button
-                component={Link}
-                href="/vendors/add"
-                variant="contained"
-                startIcon={<Icon icon="tabler:plus" />}
-              >
-                New Vendor
-              </Button>
-            )}
-          </div>
-        </Grid>
-
-        <Grid item xs={12}>
           <VendorFilter
             onApplyFilters={handlers.handleFilterApply}
             onResetFilters={handlers.handleFilterReset}
@@ -167,21 +152,32 @@ const VendorList = ({ initialVendors, initialPagination }) => {
         </Grid>
 
         <Grid item xs={12}>
-          <Card>
-            <CustomListTable
-              columns={tableColumns}
-              rows={handlers.vendors}
-              loading={handlers.loading}
-              pagination={tablePagination}
-              onPageChange={handlers.handlePageChange}
-              onRowsPerPageChange={handlers.handlePageSizeChange}
-              onSort={handlers.handleSortRequest}
-              sortBy={handlers.sortBy}
-              sortDirection={handlers.sortDirection}
-              noDataText="No vendors found"
-              rowKey={(row) => row._id || row.id}
-            />
-          </Card>
+          <CustomListTable
+            columns={tableColumns}
+            rows={handlers.vendors}
+            loading={handlers.loading}
+            pagination={tablePagination}
+            onPageChange={handlers.handlePageChange}
+            onRowsPerPageChange={handlers.handlePageSizeChange}
+            onSort={handlers.handleSortRequest}
+            sortBy={handlers.sortBy}
+            sortDirection={handlers.sortDirection}
+            noDataText="No vendors found"
+            rowKey={(row) => row._id || row.id}
+            showSearch={false}
+            headerActions={
+              permissions.canCreate && (
+                <Button
+                  component={Link}
+                  href="/vendors/add"
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                >
+                  New Vendor
+                </Button>
+              )
+            }
+          />
         </Grid>
       </Grid>
 

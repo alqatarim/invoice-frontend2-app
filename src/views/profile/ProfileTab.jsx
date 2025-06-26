@@ -191,10 +191,9 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
   return (
     <Grid container spacing={6}>
       {/* About Section */}
-      <Grid item xs={12} md={5} lg={4}>
-        <Grid container spacing={6}>
-          {/* Personal Information Card */}
-          <Grid item xs={12}>
+      <Grid size={{xs:12, md:5, lg:4}}>
+      
+ 
             <Card>
               <CardContent className='flex flex-col gap-6'>
                 <div className='flex flex-col gap-4'>
@@ -205,15 +204,16 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                 </div>
               </CardContent>
             </Card>
-          </Grid>
 
 
-        </Grid>
+
+
       </Grid>
 
-      {/* Edit Profile Form */}
-      <Grid item xs={12} md={7} lg={8}>
-        <Card>
+      <Grid size={{xs:12, md:7, lg:8}} component="form" onSubmit={handleSubmit(onSubmit)}>
+
+         {/* Edit Profile Form */}
+         <Card>
           <CardHeader title='Edit Profile' />
           <CardContent>
             {error && (
@@ -221,11 +221,10 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                 {error}
               </Alert>
             )}
-
-            <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+      
               <Grid container spacing={6}>
                 {/* Profile Picture Section */}
-                <Grid item xs={12}>
+                <Grid size={{xs:12}}>
                   <div className='flex items-start gap-6'>
                     <CustomAvatar
                       src={imagePreview}
@@ -282,15 +281,9 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                   </div>
                 </Grid>
 
-                <Grid item xs={12}>
-                  <Divider />
-                  <Typography variant="h6" className='mt-4 mb-4'>
-                    General Information
-                  </Typography>
-                </Grid>
 
-                {/* Personal Information Fields */}
-                <Grid item xs={12} sm={6}>
+                {/* First Name Field */}
+                <Grid size={{xs:12, sm:6}}>
                   <Controller
                     name="firstName"
                     control={control}
@@ -313,7 +306,8 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                {/* Last Name Field */}
+                <Grid size={{xs:12, sm:6}}>
                   <Controller
                     name="lastName"
                     control={control}
@@ -336,7 +330,8 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                {/* Email Field */}
+                <Grid size={{xs:12, sm:6}}>
                   <Controller
                     name="email"
                     control={control}
@@ -353,7 +348,9 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+
+                {/* Mobile Number Field */}
+                <Grid size={{xs:12, sm:6}}>
                   <Controller
                     name="mobileNumber"
                     control={control}
@@ -376,7 +373,8 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                {/* Gender Field */}
+                <Grid size={{xs:12, sm:6}}>
                   <Controller
                     name="gender"
                     control={control}
@@ -403,7 +401,8 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                {/* Date of Birth Field */}
+                <Grid size={{xs:12, sm:6}}>
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <Controller
                       name="DOB"
@@ -433,33 +432,41 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                     />
                   </LocalizationProvider>
                 </Grid>
-
+                </Grid>
                 {/* Action Buttons */}
-                <Grid item xs={12}>
-                  <div className='flex gap-4 mt-4'>
+                <Grid size={{xs:12}}>
+                  <Box className='flex gap-4 mt-4 justify-end'>
+
                     <Button
-                      type="submit"
-                      variant="contained"
-                      disabled={updating}
-                      startIcon={updating ? <CircularProgress size={20} /> : <i className='ri-save-line' />}
-                    >
-                      {updating ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                    <Button
+                    className='px-10'
                       variant="outlined"
                       onClick={() => window.location.reload()}
                       disabled={updating}
-                      startIcon={<i className='ri-refresh-line' />}
+                     
                     >
-                      Reset
+                      Cancel
                     </Button>
-                  </div>
+
+                    <Button
+                    className='px-12'
+                      type="submit"
+                      variant="contained"
+                      disabled={updating}
+                      startIcon={updating ? <CircularProgress size={20} /> : ''}
+                    >
+                      {updating ? 'Saving...' : 'Save'}
+                    </Button>
+                  </Box>
                 </Grid>
-              </Grid>
-            </Box>
+              
+           
           </CardContent>
         </Card>
+
       </Grid>
+
+     
+     
     </Grid>
   )
 }

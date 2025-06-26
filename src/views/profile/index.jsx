@@ -95,7 +95,7 @@ const ProfileContent = ({ initialData }) => {
   return (
     <Grid container spacing={6}>
       {/* Profile Header */}
-      <Grid item xs={12}>
+      <Grid size={{xs:12}}>
         <UserProfileHeader data={profile} />
       </Grid>
 

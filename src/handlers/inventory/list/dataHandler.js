@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react';
-import { getInitialInventoryData, getFilteredInventory } from '@/app/(dashboard)/inventory/actions';
+import {  getFilteredInventory } from '@/app/(dashboard)/inventory/actions';
 import { filterHandler } from '@/handlers/inventory/list/filterHandler';
 
 /**
@@ -48,12 +48,9 @@ export function dataHandler({
 
     setLoading(true);
     try {
-      let response;
-      if (Object.keys(filters || {}).length === 0) {
-        response = await getInitialInventoryData();
-      } else {
-        response = await getFilteredInventory(page, pageSize, filters, sortBy, sortDirection);
-      }
+      // Always use getFilteredInventory for consistency
+      // It handles empty filters by returning all inventory items
+      const response = await getFilteredInventory(page, pageSize, filters, sortBy, sortDirection);
 
       const newInventory = response?.inventory || [];
       const newPagination = {
@@ -95,14 +92,14 @@ export function dataHandler({
     return { sortBy: columnKey, sortDirection: newDirection };
   }, [sorting, fetchData]);
 
-  const handleFilterValueChange = useCallback((field, value) => {
-    filter.updateFilter(field, value);
-    if (field === 'productSearchText' && handleProductSearch) handleProductSearch(value);
-  }, [filter, handleProductSearch]);
+  const handleFilterValueChange = useCallback((filters) => {
+    // Update the filter state with the new filters object
+    filter.setFilterValues(filters);
+  }, [filter]);
 
   const handleFilterApply = useCallback((currentFilters = null) => {
-    fetchData({ page: 1, filters: currentFilters || filter.filterValues });
-    filter.setFilterOpen(false);
+    const filtersToApply = currentFilters || filter.filterValues;
+    fetchData({ page: 1, filters: filtersToApply });
   }, [filter, fetchData]);
 
   const handleFilterReset = useCallback(() => {
