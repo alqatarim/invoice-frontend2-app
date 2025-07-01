@@ -2,7 +2,6 @@
 
 // MUI Imports
 import Card from '@mui/material/Card'
-import CardMedia from '@mui/material/CardMedia'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
@@ -11,6 +10,7 @@ import { useTheme } from '@mui/material/styles'
 
 // Custom Components
 import CustomChip from '@/components/custom-components/CustomChip'
+import AnimatedDynamicCover from '@/components/AnimatedDynamicCover'
 
 // Hooks
 import { useDynamicBackground } from '@/hooks'
@@ -26,31 +26,27 @@ const UserProfileHeader = ({ data }) => {
 
   // Use dynamic background hook for company logo-based cover generation
   const {
-    backgroundSrc: coverImageSrc,
     isGenerating: isGeneratingCover,
     isDynamic: isDynamicCover,
     extractedColors
   } = useDynamicBackground(data?.companyLogo, {
     fallbackImage: '/images/pages/profile-banner.png',
-    colorCount: 4,
-    dimensions: { width: 800, height: 250 },
-    addPattern: true,
-    pattern: 'bars',
-    barDirection: 'horizontal'
+    colorCount: 4
   })
   return (
     <Card>
       <Box className='relative'>
-        <CardMedia
-          className='bs-[250px]'
-          image={coverImageSrc}
-        />
-        {/* Loading indicator while generating dynamic cover */}
+        <Box className='bs-[250px] overflow-hidden'>
+          <AnimatedDynamicCover 
+            colors={extractedColors}
+          />
+        </Box>
+        {/* Loading indicator while generating cover */}
         {isGeneratingCover && (
           <Box className='absolute top-4 right-4 flex items-center gap-2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm'>
             <Icon icon='mdi:palette' fontSize={16} className='animate-pulse' />
             <Typography variant='caption' className='text-white'>
-              Generating dynamic cover...
+              Extracting colors...
             </Typography>
           </Box>
         )}

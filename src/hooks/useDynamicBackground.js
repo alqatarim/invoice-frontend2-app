@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { extractColorsFromImage, generateBackgroundDataUrl, generateDynamicBackground } from '@/utils/colorUtils'
+import { extractColorsFromImage } from '@/utils/colorUtils'
 
 /**
- * Custom hook for generating dynamic backgrounds from images
+ * Custom hook for extracting colors from company logos
  * @param {string} sourceImage - Source image URL to extract colors from
  * @param {Object} options - Configuration options
  * @returns {Object} Hook state and utilities
@@ -12,15 +12,9 @@ import { extractColorsFromImage, generateBackgroundDataUrl, generateDynamicBackg
 export const useDynamicBackground = (sourceImage, options = {}) => {
   const {
     fallbackImage = '/images/pages/profile-banner.png',
-    colorCount = 4,
-    dimensions = { width: 800, height: 250 },
-    pattern = 'gradient',
-    addPattern = true,
-    direction = '135deg',
-    barDirection = 'horizontal' // 'horizontal' or 'vertical' for bar patterns
+    colorCount = 4
   } = options
 
-  const [backgroundSrc, setBackgroundSrc] = useState(fallbackImage)
   const [extractedColors, setExtractedColors] = useState([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState(null)
@@ -39,48 +33,23 @@ export const useDynamicBackground = (sourceImage, options = {}) => {
 
       if (colors && colors.length > 0) {
         setExtractedColors(colors)
-
-        // Generate dynamic background as data URL
-        const dynamicBackgroundDataUrl = generateBackgroundDataUrl(
-          colors,
-          dimensions,
-          { addPattern, pattern, barDirection }
-        )
-
-        setBackgroundSrc(dynamicBackgroundDataUrl)
       } else {
         throw new Error('No colors extracted from image')
       }
     } catch (err) {
-      console.log('Could not generate dynamic background:', err)
+      console.log('Could not extract colors:', err)
       setError(err.message)
-      // Keep the fallback background on error
-      setBackgroundSrc(fallbackImage)
+      setExtractedColors([])
     } finally {
       setIsGenerating(false)
     }
-  }, [colorCount, dimensions, addPattern, pattern, barDirection, fallbackImage, isGenerating])
+  }, [colorCount, isGenerating])
 
-  // Generate CSS background style from extracted colors
-  const getBackgroundStyle = useCallback((customOptions = {}) => {
-    if (extractedColors.length === 0) {
-      return {}
-    }
-
-    return generateDynamicBackground(extractedColors, {
-      direction,
-      pattern,
-      barDirection,
-      ...customOptions
-    })
-  }, [extractedColors, direction, pattern, barDirection])
-
-  // Reset to fallback background
+  // Reset colors
   const resetBackground = useCallback(() => {
-    setBackgroundSrc(fallbackImage)
     setExtractedColors([])
     setError(null)
-  }, [fallbackImage])
+  }, [])
 
   // Auto-generate when source image changes
   useEffect(() => {
@@ -92,13 +61,11 @@ export const useDynamicBackground = (sourceImage, options = {}) => {
   }, [sourceImage, fallbackImage, generateBackground, resetBackground])
 
   return {
-    backgroundSrc,
     extractedColors,
     isGenerating,
     error,
-    isDynamic: backgroundSrc !== fallbackImage,
+    isDynamic: extractedColors.length > 0,
     generateBackground,
-    getBackgroundStyle,
     resetBackground
   }
 }
