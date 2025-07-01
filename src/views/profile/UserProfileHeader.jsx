@@ -8,24 +8,74 @@ import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import { Icon } from '@iconify/react'
 import { useTheme } from '@mui/material/styles'
+
 // Custom Components
 import CustomChip from '@/components/custom-components/CustomChip'
+
+// Hooks
+import { useDynamicBackground } from '@/hooks'
 
 import { roleOptions } from '@/data/dataSets'
 
 const UserProfileHeader = ({ data }) => {
   const avatarSrc = data?.image || '/images/avatars/1.png'
-  const coverImageSrc = data?.coverImage || '/images/pages/profile-banner.png'
   const fullName = data?.firstName && data?.lastName
     ? `${data.firstName} ${data.lastName}`
     : data?.fullname || 'User Profile'
   const theme = useTheme()
+
+  // Use dynamic background hook for company logo-based cover generation
+  const {
+    backgroundSrc: coverImageSrc,
+    isGenerating: isGeneratingCover,
+    isDynamic: isDynamicCover,
+    extractedColors
+  } = useDynamicBackground(data?.companyLogo, {
+    fallbackImage: '/images/pages/profile-banner.png',
+    colorCount: 4,
+    dimensions: { width: 800, height: 250 },
+    addPattern: true,
+    pattern: 'bars',
+    barDirection: 'horizontal'
+  })
   return (
     <Card>
-      <CardMedia
-        className='bs-[250px]'
-        image={coverImageSrc}
-      />
+      <Box className='relative'>
+        <CardMedia
+          className='bs-[250px]'
+          image={coverImageSrc}
+        />
+        {/* Loading indicator while generating dynamic cover */}
+        {isGeneratingCover && (
+          <Box className='absolute top-4 right-4 flex items-center gap-2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm'>
+            <Icon icon='mdi:palette' fontSize={16} className='animate-pulse' />
+            <Typography variant='caption' className='text-white'>
+              Generating dynamic cover...
+            </Typography>
+          </Box>
+        )}
+        {/* Indicator that cover is generated from company logo */}
+        {data?.companyLogo && !isGeneratingCover && isDynamicCover && (
+          <Box className='absolute top-4 right-4 flex items-center gap-2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm'>
+            <Icon icon='mdi:palette-swatch' fontSize={16} />
+            <Typography variant='caption' className='text-white'>
+              Generated from company logo
+            </Typography>
+            {/* Show extracted colors as small dots */}
+            {extractedColors.length > 0 && (
+              <Box className='flex gap-1 ml-1'>
+                {extractedColors.slice(0, 3).map((color, index) => (
+                  <Box
+                    key={index}
+                    className='w-3 h-3 rounded-full border border-white'
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+        )}
+      </Box>
       <CardContent className='flex gap-6 justify-center flex-col items-center md:items-end md:flex-row !pt-0 md:justify-start'>
         <Box className='flex rounded-bs-md mbs-[-45px] border-[5px] border-backgroundPaper bg-backgroundPaper'>
           {avatarSrc ? (
@@ -52,6 +102,14 @@ const UserProfileHeader = ({ data }) => {
               <Typography variant='subtitle1' className='text-textSecondary'>
                 @{data.userName}
               </Typography>
+            )}
+            {data?.companyName && (
+              <Box className='flex items-center gap-2'>
+                <Icon icon='mdi:office-building-outline' fontSize={20} color={theme.palette.primary.main} />
+                <Typography variant='subtitle2' className='text-primary font-medium'>
+                  {data.companyName}
+                </Typography>
+              </Box>
             )}
             <Box className='flex flex-wrap gap-6 justify-center sm:justify-normal'>
               {data?.email && (

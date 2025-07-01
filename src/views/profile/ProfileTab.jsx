@@ -1,3 +1,16 @@
+/**
+ * ProfileTab Component - Account Settings with Schema-Based Validation
+ *
+ * Validation Approach:
+ * - Uses profileSchema for comprehensive form validation on submission
+ * - Real-time input restrictions derived from schema validation patterns
+ * - Schema includes enhanced validation rules (patterns, length, age validation)
+ * - Input handlers use validationHelpers from schema for consistency
+ *
+ * Permissions: 'accountSettings' module with 'view' and 'create' actions
+ * Image Validation: Uses generic validateProfileImage utility from fileUtils
+ */
+
 'use client'
 
 // React Imports
@@ -9,32 +22,31 @@ import { Grid, Card, CardHeader, CardContent, Typography, TextField, Button, Ava
 // Third-party Imports
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs'
 import { Icon } from '@iconify/react'
+
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'
 import { useTheme } from '@mui/material/styles'
+
+// Auth Imports
+import { useSession } from 'next-auth/react'
+import { usePermission } from '@/Auth/usePermission'
+
 // Add imports for datasets
 import { profilePersonalInfoIcons } from '@/data/dataSets'
 
-// Schema matching the old implementation
-const profileSchema = yup.object({
-  firstName: yup.string().required('Enter First name'),
-  lastName: yup.string().required('Enter Last name'),
-  email: yup.string().email('Email Must Be a Valid Email').required('Enter Email Address'),
-  mobileNumber: yup
-    .string()
-    .required('Enter Mobile Number')
-    .min(10, 'Mobile Number Must Be At Least 10 Digits')
-    .max(15, 'Mobile Number Must Be At Most 15 Digits')
-    .matches(/^\+?[1-9]\d*$/, 'Invalid phone number'),
-  gender: yup.string().nullable(),
-  DOB: yup.date().nullable()
-})
+// Schema import
+import { profileSchema, validationHelpers } from './profileSchema'
+import { genderOptions } from '@/data/dataSets'
+
+// Utils imports
+import {
+  validateProfileImage
+} from '@/utils'
 
 const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
   const [imagePreview, setImagePreview] = useState(data?.image || null)
@@ -42,11 +54,30 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
   const [imageError, setImageError] = useState('')
   const theme = useTheme()
 
-  // Gender options matching old implementation
-  const genderOptions = [
-    { id: 2, text: "Male" },
-    { id: 3, text: "Female" },
-  ]
+  // Permission checks matching old app's accountSettings permissions
+  const { data: session } = useSession()
+  const canUpdate = usePermission('accountSettings', 'create') // Using 'create' action like old app
+  const canView = usePermission('accountSettings', 'view')
+
+  // Schema-based input validation handlers
+  // These handlers use validation patterns from the schema to provide real-time input restrictions
+  const handleNameKeyPress = (event) => {
+    const keyCode = event.keyCode || event.which
+    const keyValue = String.fromCharCode(keyCode)
+    if (!validationHelpers.isValidNameCharacter(keyValue)) {
+      event.preventDefault()
+    }
+  }
+
+  const handlePhoneKeyPress = (event) => {
+    const keyCode = event.keyCode || event.which
+    const keyValue = String.fromCharCode(keyCode)
+    if (!validationHelpers.isValidPhoneCharacter(keyValue)) {
+      event.preventDefault()
+    }
+  }
+
+
 
   const {
     handleSubmit,
@@ -79,39 +110,21 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
     }
   }, [data, setValue])
 
-  // Image validation and handling exactly like old implementation
-  const handleImageChange = (event) => {
+  // Image validation and handling using extracted utility
+  const handleImageChange = async (event) => {
     const file = event.target.files[0]
     if (!file) return
 
-    const reader = new FileReader()
+    const validation = await validateProfileImage(file)
 
-    reader.onloadend = () => {
-      const img = new Image()
-      img.onload = () => {
-        if (
-          (img.width === 150 && img.height === 150) ||
-          (img.width >= 150 && img.height >= 150)
-        ) {
-          setImagePreview(reader.result)
-          setSelectedFile(file)
-          setImageError('')
-        } else {
-          setImageError('Profile Pic should be minimum 150 * 150')
-        }
-      }
-      img.onerror = () => {
-        setImageError('Only PNG, JPG, and JPEG file types are supported.')
-      }
-      img.src = reader.result
-    }
-
-    if (file) {
-      if (/\.(jpe?g|png)$/i.test(file.name)) {
-        reader.readAsDataURL(file)
-      } else {
-        setImageError('Only PNG, JPG, and JPEG file types are supported.')
-      }
+    if (validation.isValid) {
+      setImagePreview(validation.preview)
+      setSelectedFile(file)
+      setImageError('')
+    } else {
+      setImageError(validation.error)
+      setImagePreview(null)
+      setSelectedFile(null)
     }
   }
 
@@ -120,11 +133,19 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
     setImageError('')
   }
 
-
-
-
   // Form submission matching old implementation exactly
   const onSubmit = async (formData) => {
+    // Check permissions before submitting like old implementation
+    if (!canUpdate) {
+      if (enqueueSnackbar) {
+        enqueueSnackbar('You don\'t have permission to update account settings', {
+          variant: 'error',
+          autoHideDuration: 3000,
+        })
+      }
+      return false
+    }
+
     // Check for image requirement like old implementation
     // if (!imagePreview && !selectedFile) {
     //   setImageError('Profile Image is required')
@@ -186,14 +207,33 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
     ))
   }
 
-
+    // Show access denied message if user doesn't have view permission
+  if (!canView) {
+    return (
+      <Grid container spacing={6}>
+        <Grid size={{xs:12}}>
+          <Card>
+            <CardContent className='flex flex-col items-center justify-center gap-4 text-center py-16'>
+              <Icon icon='mdi:account-lock-outline' fontSize='4rem' color={theme.palette.error.main} />
+              <div>
+                <Typography variant='h5' className='mb-2'>
+                  Access Denied
+                </Typography>
+                <Typography variant='body2' color='text.secondary' className='mb-4'>
+                  You don't have permission to view account settings
+                </Typography>
+              </div>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    )
+  }
 
   return (
     <Grid container spacing={6}>
       {/* About Section */}
       <Grid size={{xs:12, md:5, lg:4}}>
-      
- 
             <Card>
               <CardContent className='flex flex-col gap-6'>
                 <div className='flex flex-col gap-4'>
@@ -204,10 +244,6 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                 </div>
               </CardContent>
             </Card>
-
-
-
-
       </Grid>
 
       <Grid size={{xs:12, md:7, lg:8}} component="form" onSubmit={handleSubmit(onSubmit)}>
@@ -221,7 +257,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                 {error}
               </Alert>
             )}
-      
+
               <Grid container spacing={6}>
                 {/* Profile Picture Section */}
                 <Grid size={{xs:12}}>
@@ -230,6 +266,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                       src={imagePreview}
                       alt={data?.firstName ? `${data.firstName} ${data.lastName}` : 'User'}
                       size={100}
+                      onError={handleImageError}
                     >
                       {data?.firstName?.[0]?.toUpperCase() || 'U'}
                     </CustomAvatar>
@@ -249,6 +286,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         id="profile-image-upload"
                         type="file"
                         onChange={handleImageChange}
+                        disabled={!canUpdate}
                       />
                       <div className='flex gap-4'>
                         <Button
@@ -256,6 +294,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                           component="label"
                           htmlFor="profile-image-upload"
                           size="small"
+                          disabled={!canUpdate}
                         >
                           Upload New Picture
                         </Button>
@@ -263,6 +302,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                           variant="outlined"
                           size="small"
                           color="error"
+                          disabled={!canUpdate}
                           onClick={() => {
                             setImagePreview(null)
                             setSelectedFile(null)
@@ -294,13 +334,8 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         label="First Name *"
                         error={!!errors.firstName}
                         helperText={errors.firstName?.message}
-                        onKeyPress={(e) => {
-                          const keyCode = e.keyCode || e.which
-                          const keyValue = String.fromCharCode(keyCode)
-                          if (/^\d+$/.test(keyValue)) {
-                            e.preventDefault()
-                          }
-                        }}
+                        InputProps={{ readOnly: !canUpdate }}
+                        onKeyPress={handleNameKeyPress}
                       />
                     )}
                   />
@@ -318,13 +353,8 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         label="Last Name *"
                         error={!!errors.lastName}
                         helperText={errors.lastName?.message}
-                        onKeyPress={(e) => {
-                          const keyCode = e.keyCode || e.which
-                          const keyValue = String.fromCharCode(keyCode)
-                          if (/^\d+$/.test(keyValue)) {
-                            e.preventDefault()
-                          }
-                        }}
+                        InputProps={{ readOnly: !canUpdate }}
+                        onKeyPress={handleNameKeyPress}
                       />
                     )}
                   />
@@ -343,6 +373,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         type="email"
                         error={!!errors.email}
                         helperText={errors.email?.message}
+                        InputProps={{ readOnly: !canUpdate }}
                       />
                     )}
                   />
@@ -361,13 +392,8 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         label="Mobile Number *"
                         error={!!errors.mobileNumber}
                         helperText={errors.mobileNumber?.message}
-                        onKeyPress={(e) => {
-                          const keyCode = e.keyCode || e.which
-                          const keyValue = String.fromCharCode(keyCode)
-                          if (!/^\d+$/.test(keyValue) && keyValue !== '+') {
-                            e.preventDefault()
-                          }
-                        }}
+                        InputProps={{ readOnly: !canUpdate }}
+                        onKeyPress={handlePhoneKeyPress}
                       />
                     )}
                   />
@@ -385,6 +411,8 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                           {...field}
                           label="Gender"
                           value={field.value || ''}
+                          readOnly={!canUpdate}
+                          disabled={!canUpdate}
                         >
                           <MenuItem value="">Choose Gender</MenuItem>
                           {genderOptions.map(option => (
@@ -411,22 +439,23 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         <DatePicker
                           label="Date of Birth"
                           value={field.value ? dayjs(field.value) : null}
+                          readOnly={!canUpdate}
+                          disabled={!canUpdate}
                           onChange={(newValue) => {
                             if (newValue) {
                               field.onChange(newValue.toDate())
-
                             } else {
                               field.onChange(null)
                             }
                           }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              fullWidth
-                              error={!!errors.DOB}
-                              helperText={errors.DOB?.message}
-                            />
-                          )}
+                          slotProps={{
+                            textField: {
+                              fullWidth: true,
+                              error: !!errors.DOB,
+                              helperText: errors.DOB?.message,
+                              InputProps: { readOnly: !canUpdate }
+                            }
+                          }}
                         />
                       )}
                     />
@@ -434,39 +463,49 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                 </Grid>
                 </Grid>
                 {/* Action Buttons */}
-                <Grid size={{xs:12}}>
+                                <Grid size={{xs:12}}>
                   <Box className='flex gap-4 mt-4 justify-end'>
+                    {canUpdate && (
+                      <>
+                        <Button
+                          className='px-10'
+                          variant="outlined"
+                          onClick={() => window.location.reload()}
+                          disabled={updating}
+                        >
+                          Cancel
+                        </Button>
 
-                    <Button
-                    className='px-10'
-                      variant="outlined"
-                      onClick={() => window.location.reload()}
-                      disabled={updating}
-                     
-                    >
-                      Cancel
-                    </Button>
-
-                    <Button
-                    className='px-12'
-                      type="submit"
-                      variant="contained"
-                      disabled={updating}
-                      startIcon={updating ? <CircularProgress size={20} /> : ''}
-                    >
-                      {updating ? 'Saving...' : 'Save'}
-                    </Button>
+                        <Button
+                          className='px-12'
+                          type="submit"
+                          variant="contained"
+                          disabled={updating}
+                          startIcon={updating ? <CircularProgress size={20} /> : ''}
+                        >
+                          {updating ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                      </>
+                    )}
+                    {!canUpdate && (
+                      <Box className='flex items-center gap-2'>
+                        <Icon icon='mdi:information-outline' color={theme.palette.warning.main} />
+                        <Typography variant="body2" color="text.secondary">
+                          You don't have permission to edit account settings
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                 </Grid>
-              
-           
+
+
           </CardContent>
         </Card>
 
       </Grid>
 
-     
-     
+
+
     </Grid>
   )
 }

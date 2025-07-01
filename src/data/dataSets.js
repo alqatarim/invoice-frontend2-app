@@ -104,13 +104,22 @@ export const ledgerModes = [
   { value: 'Debit', label: 'Debit' }
 ]
 
-// Gender options for profile forms
-export const genderOptions = [
-  { value: '', label: 'Select Gender' },
-  { value: '2', label: 'Male', icon: 'mdi:gender-male' },
-  { value: '1', label: 'Female', icon: 'mdi:gender-female' },
-  { value: 'other', label: 'Other', icon: '' }
-]
+// // Gender options for profile forms
+// export const genderOptions = [
+//   { value: '', label: 'Select Gender' },
+//   { value: 2, label: 'Male', icon: 'mdi:gender-male' },
+//   { value: 3, label: 'Female', icon: 'mdi:gender-female' },
+//   { value: 'other', label: 'Other', icon: '' }
+// ]
+
+
+  // Gender options matching old implementation
+  export const genderOptions = [
+    { id: 2, text: "Male" },
+    { id: 3, text: "Female" },
+  ]
+
+
 
 // Profile tabs for the profile page
 export const profileTabs = [

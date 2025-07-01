@@ -1,0 +1,1 @@
+export { useDynamicBackground } from './useDynamicBackground'
