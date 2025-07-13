@@ -1,46 +1,46 @@
+'use client'
+
 // MUI Imports
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
+import MuiButton from '@mui/material/Button'
+import { styled } from '@mui/material/styles'
 
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'
+import UpgradePlan from '@components/dialogs/upgrade-plan'
+import OpenDialogOnElementClick from '@components/dialogs/OpenDialogOnElementClick'
+
+const Button = styled(MuiButton)(() => ({
+  backgroundColor: 'var(--mui-palette-common-white) !important',
+  color: 'var(--mui-palette-primary-main) !important'
+}))
 
 const CustomerPlan = () => {
+  // Vars
+  const buttonProps = {
+    variant: 'contained',
+    children: 'Upgrade To Premium'
+  }
+
   return (
     <Card>
-      <CardContent className='flex flex-col gap-6'>
-        <div className='flex flex-col gap-4'>
-          <Typography variant='h5'>Current Plan</Typography>
-          <Divider />
-          <div className='flex items-center gap-4'>
-            <CustomAvatar variant='rounded' skin='light' color='primary'>
-              <i className='ri-crown-line' />
-            </CustomAvatar>
-            <div className='flex flex-col gap-1'>
-              <Typography variant='h6'>Standard Plan</Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Active subscription
-              </Typography>
-            </div>
+      <CardContent className='flex flex-col gap-6 bg-primary'>
+        <div className='flex items-center justify-between'>
+          <div className='flex flex-col gap-4'>
+            <Typography variant='h5' color='common.white'>
+              Upgrade to premium
+            </Typography>
+            <Typography color='common.white'>
+              Upgrade customer to premium membership to access pro features.
+            </Typography>
           </div>
-          <div className='flex flex-col gap-2'>
-            <div className='flex items-center justify-between'>
-              <Typography color='text.primary'>Plan Status:</Typography>
-              <Chip label='Active' variant='tonal' color='success' size='small' />
-            </div>
-            <div className='flex items-center justify-between'>
-              <Typography color='text.primary'>Billing Cycle:</Typography>
-              <Typography>Monthly</Typography>
-            </div>
-            <div className='flex items-center justify-between'>
-              <Typography color='text.primary'>Next Billing:</Typography>
-              <Typography>Jan 15, 2024</Typography>
-            </div>
-          </div>
+          <img src='/images/apps/ecommerce/3d-rocket.png' className='-mis-7 -mbe-7' />
         </div>
+        <OpenDialogOnElementClick element={Button} elementProps={buttonProps} dialog={UpgradePlan} />
       </CardContent>
     </Card>
   )

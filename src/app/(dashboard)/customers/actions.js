@@ -55,7 +55,10 @@ export async function getCustomerById(id) {
  */
 export async function getInitialCustomerData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.CUSTOMER.LIST}?page=1&pageSize=10&sortBy=&sortDirection=asc`);
+    const response = await fetchWithAuth(`${ENDPOINTS.CUSTOMER.LIST}?page=1&pageSize=10&sortBy=&sortDirection=asc`, {
+      cache: 'no-store',
+      next: { revalidate: 0 }
+    });
 
     if (response.code === 200) {
       // Calculate card counts from the data

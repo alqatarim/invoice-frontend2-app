@@ -26,8 +26,8 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     }
   },
   {
-    key: 'customer',
-    label: 'Customer',
+    key: 'name',
+    label: 'Name',
     visible: true,
     sortable: true,
     renderCell: (row) => (
@@ -61,7 +61,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     sortable: true,
     align: 'center',
     renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
+      <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap text-start'>
         {row.phone || 'N/A'}
       </Typography>
     )
@@ -72,14 +72,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     visible: true,
     sortable: true,
     align: 'center',
-    renderCell: (row) => (
-      <div className="flex items-center gap-1 justify-center">
-        <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
-        <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-          {(row.balance || 0).toLocaleString()}
-        </Typography>
-      </div>
-    )
+    renderCell: (row) => formatCurrency(row.balance)
   },
   {
     key: 'totalInvoices',

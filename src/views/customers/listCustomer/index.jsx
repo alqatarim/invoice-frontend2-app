@@ -1,7 +1,7 @@
 'use client'
 
-import React from "react";
-import CustomerList from "@/views/customers/listCustomer/CustomerList";
+import React from 'react'
+import CustomerList from './CustomerList'
 
 const CustomerListIndex = ({ initialData, initialCustomers }) => {
   // Extract and pass initial data as props

@@ -114,14 +114,12 @@ const InvoiceList = ({
       {/* Header and Stats */}
       <InvoiceHead
         invoiceListData={initialCardCounts}
-        currencyData={formatCurrency(0).replace(/\d|\.|,/g, '').trim()}
-        isLoading={handlers.loading}
       />
 
       <Grid container spacing={3}>
         {/* New Invoice Button */}
         {permissions.canCreate && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <div className="flex justify-end">
               <Button
                 component={Link}
@@ -136,7 +134,7 @@ const InvoiceList = ({
         )}
 
         {/* Filter Component */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <InvoiceFilter
             onChange={handlers.handleFilterValueChange}
             onApply={handlers.handleFilterApply}
@@ -151,7 +149,7 @@ const InvoiceList = ({
         </Grid>
 
         {/* Invoice Table */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CustomListTable
               columns={tableColumns}

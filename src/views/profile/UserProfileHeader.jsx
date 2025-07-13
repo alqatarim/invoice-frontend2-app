@@ -41,23 +41,13 @@ const UserProfileHeader = ({ data }) => {
             colors={extractedColors}
           />
         </Box>
-        {/* Loading indicator while generating cover */}
-        {isGeneratingCover && (
-          <Box className='absolute top-4 right-4 flex items-center gap-2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm'>
-            <Icon icon='mdi:palette' fontSize={16} className='animate-pulse' />
-            <Typography variant='caption' className='text-white'>
-              Extracting colors...
-            </Typography>
-          </Box>
-        )}
+
+
         {/* Indicator that cover is generated from company logo */}
-        {data?.companyLogo && !isGeneratingCover && isDynamicCover && (
+        {/* {data?.companyLogo && !isGeneratingCover && isDynamicCover && (
           <Box className='absolute top-4 right-4 flex items-center gap-2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm'>
-            <Icon icon='mdi:palette-swatch' fontSize={16} />
-            <Typography variant='caption' className='text-white'>
-              Generated from company logo
-            </Typography>
-            {/* Show extracted colors as small dots */}
+ 
+     
             {extractedColors.length > 0 && (
               <Box className='flex gap-1 ml-1'>
                 {extractedColors.slice(0, 3).map((color, index) => (
@@ -70,10 +60,10 @@ const UserProfileHeader = ({ data }) => {
               </Box>
             )}
           </Box>
-        )}
+        )} */}
       </Box>
       <CardContent className='flex gap-6 justify-center flex-col items-center md:items-end md:flex-row !pt-0 md:justify-start'>
-        <Box className='flex rounded-bs-md mbs-[-45px] border-[5px] border-backgroundPaper bg-backgroundPaper'>
+        <Card className='flex rounded-bs-md mbs-[-60px] relative z-10 ring-2 ring-white'>
           {avatarSrc ? (
             <img
               height={120}
@@ -90,7 +80,7 @@ const UserProfileHeader = ({ data }) => {
               {data?.firstName?.[0]?.toUpperCase() || data?.fullname?.[0]?.toUpperCase() || 'U'}
             </Box>
           )}
-        </Box>
+        </Card>
         <Box className='flex is-full flex-wrap justify-center flex-col items-center sm:flex-row sm:justify-between sm:items-end gap-5'>
           <Box className='flex flex-col items-center sm:items-start gap-2'>
             <Typography variant='h4'>{fullName}</Typography>

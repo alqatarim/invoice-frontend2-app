@@ -198,10 +198,10 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
       <div key={index} className='flex items-center gap-2'>
         <Icon icon={profilePersonalInfoIcons[item.property]} fontSize={23} color={theme.palette.secondary.main} />
         <div className='flex items-center flex-wrap gap-2'>
-          <Typography className='font-medium'>
+          <Typography variant='body1'>
             {`${item.property.charAt(0).toUpperCase() + item.property.slice(1)}:`}
           </Typography>
-          <Typography>{item.value.charAt(0).toUpperCase() + item.value.slice(1)}</Typography>
+          <Typography variant='h6'>{item.value.charAt(0).toUpperCase() + item.value.slice(1)}</Typography>
         </div>
       </div>
     ))
@@ -278,7 +278,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         }
                       </Typography>
                       <Typography variant="body2" color="text.secondary" className='mb-4'>
-                        Profile Picture should be minimum 150 * 150. Supported file formats: JPG, PNG, JPEG.
+                        Minimum dimensions 150 * 150. Supported formats: JPG, PNG, JPEG.
                       </Typography>
                       <input
                         accept="image/*"
@@ -470,6 +470,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         <Button
                           className='px-10'
                           variant="outlined"
+                          color='secondary'
                           onClick={() => window.location.reload()}
                           disabled={updating}
                         >

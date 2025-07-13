@@ -117,23 +117,23 @@ function CustomListTable({
 
   // Skeleton row for loading
   const TableRowSkeleton = () => (
-    <tr>
+    <TableRow>
       {onRowSelect && (
-        <td>
+        <TableCell>
           <Skeleton variant="circular" width={24} height={24} />
-        </td>
+        </TableCell>
       )}
       {columns.map((col) => (
-        <td key={col.key}>
+        <TableCell key={col.key} align={col.align || 'left'}>
           <Skeleton width={col.skeletonWidth || 80} />
-        </td>
+        </TableCell>
       ))}
-    </tr>
+    </TableRow>
   );
 
   return (
     <Card>
-      {(showSearch || headerActions || title) && (
+      {(showSearch || headerActions || title || addRowButton) && (
         <CardContent className='flex justify-between flex-wrap max-sm:flex-col sm:items-center gap-4'>
           <div className="flex items-center gap-4">
             {title && (
@@ -150,30 +150,34 @@ function CustomListTable({
               />
             )}
           </div>
-          {headerActions && (
-            <div className='flex gap-4 max-sm:flex-col max-sm:is-full'>
-              {headerActions}
-            </div>
-          )}
+          <div className='flex gap-4 max-sm:flex-col max-sm:is-full'>
+            {headerActions}
+            {addRowButton}
+          </div>
         </CardContent>
       )}
       
       <div className='overflow-x-auto'>
-        <table className={classnames(tableStyles.table, tableClassName)}>
-          <thead>
-            <tr>
+        <Table className={classnames(tableStyles.table, tableClassName)}>
+          <TableHead>
+            <TableRow>
               {onRowSelect && (
-                <th>
+                <TableCell>
                   <Checkbox
                     checked={allSelected}
                     indeterminate={someSelected}
                     onChange={handleSelectAll}
                     inputProps={{ 'aria-label': 'select all rows' }}
                   />
-                </th>
+                </TableCell>
               )}
               {columns.map((col) => (
-                <th key={col.key} style={col.width ? { width: col.width } : {}}>
+                <TableCell 
+                  key={col.key} 
+                  align={col.align || 'left'}
+                  style={col.width ? { width: col.width } : {}}
+                  className={col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : ''}
+                >
                   {col.sortable && onSort ? (
                     <div
                       className={classnames({
@@ -192,40 +196,41 @@ function CustomListTable({
                   ) : (
                     col.label
                   )}
-                </th>
+                </TableCell>
               ))}
-            </tr>
-          </thead>
+            </TableRow>
+          </TableHead>
           {loading ? (
-            <tbody>
+            <TableBody>
               {Array.from({ length: 5 }).map((_, idx) => <TableRowSkeleton key={idx} />)}
-            </tbody>
+            </TableBody>
           ) : rows.length === 0 ? (
-            <tbody>
-              <tr>
-                <td colSpan={columns.length + (onRowSelect ? 1 : 0)} className='text-center'>
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={columns.length + (onRowSelect ? 1 : 0)} className='text-center'>
                   {emptyContent || noDataText}
-                </td>
-              </tr>
-            </tbody>
+                </TableCell>
+              </TableRow>
+            </TableBody>
           ) : (
-            <tbody>
+            <TableBody>
               {rows.map((row, rowIdx) => {
                 const key = rowKey ? rowKey(row, rowIdx) : rowIdx;
                 return (
-                  <tr key={key} className={classnames(tableRowClassName, { selected: selectedRows.includes(key) })}>
+                  <TableRow key={key} className={classnames(tableRowClassName, { selected: selectedRows.includes(key) })}>
                     {onRowSelect && (
-                      <td>
+                      <TableCell>
                         <Checkbox
                           checked={selectedRows.includes(key)}
                           onChange={handleSelectRow(key)}
                           inputProps={{ 'aria-label': `select row ${rowIdx + 1}` }}
                         />
-                      </td>
+                      </TableCell>
                     )}
                     {columns.map((col) => (
-                      <td
+                      <TableCell
                         key={col.key}
+                        align={col.align || 'left'}
                         style={col.width ? { width: col.width } : {}}
                         className={tableCellClassName}
                       >
@@ -234,14 +239,14 @@ function CustomListTable({
                           : renderCell
                           ? renderCell(row, col, rowIdx)
                           : row[col.key] ?? ''}
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
+                  </TableRow>
                 );
               })}
-            </tbody>
+            </TableBody>
           )}
-        </table>
+        </Table>
       </div>
       
       {pagination && (
@@ -257,10 +262,6 @@ function CustomListTable({
           }}
           onRowsPerPageChange={e => onRowsPerPageChange && onRowsPerPageChange(Number(e.target.value))}
         />
-      )}
-      
-      {addRowButton && (
-        <Box className="flex justify-start mt-3 ml-4">{addRowButton}</Box>
       )}
     </Card>
   );

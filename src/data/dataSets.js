@@ -28,15 +28,15 @@ export const customerTableColumns = [
 ];
 
 export const statusOptions = [
-  { value: 'REFUND', label: 'Refund', color: 'secondary' },
-  { value: 'SENT', label: 'Sent', color: 'info' },
-  { value: 'UNPAID', label: 'Unpaid', color: 'warning' },
-  { value: 'PARTIALLY_PAID', label: 'Partial Paid', color: 'warning' },
-  { value: 'CANCELLED', label: 'Cancelled', color: 'secondary' },
-  { value: 'OVERDUE', label: 'Overdue', color: 'error' },
-  { value: 'PAID', label: 'Paid', color: 'success' },
-  { value: 'DRAFTED', label: 'Drafted', color: 'secondary' },
-    { value: 'Active', label: 'Active', color: 'info' },
+  { value: 'REFUND', label: 'Refund', color: 'secondary', icon: 'ri:refund-line' },
+  { value: 'SENT', label: 'Sent', color: 'info', icon: 'ri:send-plane-line' },
+  { value: 'UNPAID', label: 'Unpaid', color: 'warning', icon: 'ri:time-line' },
+  { value: 'PARTIALLY_PAID', label: 'Partial Paid', color: 'warning', icon: 'mdi:access-time' },
+  { value: 'CANCELLED', label: 'Cancelled', color: 'secondary', icon: 'ri:close-circle-line' },
+  { value: 'OVERDUE', label: 'Overdue', color: 'error', icon: 'mdi:clock-alert-outline' },
+  { value: 'PAID', label: 'Paid', color: 'success', icon: 'mdi:check-bold' },
+  { value: 'DRAFTED', label: 'Drafted', color: 'secondary', icon: 'ri:draft-line' },
+    { value: 'Active', label: 'Active', color: 'info', icon: 'ri:check-double-line' },
 ]
 
 export const paymentSummaryStatus = [
@@ -221,4 +221,56 @@ export const ROLE_ICONS = [
   { value: 'mdi:eye', label: 'Viewer/Guest', category: 'Access' },
   { value: 'mdi:lock', label: 'Restricted', category: 'Access' },
   { value: 'mdi:key', label: 'Key Holder', category: 'Access' }
+]
+
+// Customer statistics configuration for overview cards
+export const customerStatsConfig = [
+  {
+    key: 'totalAmount',
+    title: 'Total Amount',
+    subtitle: 'Total Invoiced',
+    avatarIcon: 'ri:money-dollar-circle-line',
+    color: 'success',
+    iconSize: '30px'
+  },
+  {
+    key: 'paidAmount',
+    title: 'Paid Amount',
+    subtitle: 'Total Paid',
+    avatarIcon: 'ri:check-double-line',
+    color: 'info',
+    iconSize: '30px'
+  },
+  {
+    key: 'outstandingAmount',
+    title: 'Outstanding',
+    subtitle: 'Amount Due',
+    avatarIcon: 'ri:time-line',
+    color: 'warning',
+    iconSize: '30px'
+  },
+  {
+    key: 'overdueAmount',
+    title: 'Overdue',
+    subtitle: 'Past Due',
+    avatarIcon: 'ri:alarm-warning-line',
+    color: 'error',
+    iconSize: '30px'
+  },
+  {
+    key: 'draftAmount',
+    title: 'Draft',
+    subtitle: 'Draft Invoices',
+    avatarIcon: 'ri:draft-line',
+    color: 'secondary',
+    iconSize: '30px'
+  },
+  {
+    key: 'cancelledAmount',
+    title: 'Cancelled',
+    subtitle: 'Cancelled Invoices',
+    avatarIcon: 'ri:close-circle-line',
+    color: 'default',
+    iconSize: '30px'
+  }
 ]

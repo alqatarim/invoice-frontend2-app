@@ -66,7 +66,7 @@ const CustomerHead = ({ customerListData }) => {
       {/* Statistics Cards */}
       <div className="mb-2">
         <Grid container spacing={4}>
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item size={{ xs: 12, sm: 6, md: 4 }}>
             <HorizontalWithBorder
               title="Total Customers"
               subtitle="No of Customers"
@@ -82,7 +82,7 @@ const CustomerHead = ({ customerListData }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item size={{ xs: 12, sm: 6, md: 4 }}>
             <HorizontalWithBorder
               title="Active Customers"
               subtitle="No of Active"
@@ -98,7 +98,7 @@ const CustomerHead = ({ customerListData }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item size={{ xs: 12, sm: 6, md: 4 }}>
             <HorizontalWithBorder
               title="Inactive Customers"
               subtitle="No of Inactive"
