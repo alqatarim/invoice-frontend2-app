@@ -6,6 +6,7 @@ import { Icon } from '@iconify/react';
 import { formatDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { useTheme } from '@mui/material/styles';
+import { actionButtons } from '@/data/dataSets';
 
 const getPaymentModeIcon = (mode) => {
   switch (mode) {
@@ -139,34 +140,38 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
       label: 'Actions',
       visible: true,
       sortable: false,
-      renderCell: (row) => (
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton
-            size="small"
-            onClick={() => handleView(row._id)}
-            title="View Payment"
-          >
-            <Icon icon="line-md:watch" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleEdit(row._id)}
-            title="Edit Payment"
-          >
-            <Icon icon="line-md:edit" />
-          </IconButton>
-          {row.status !== 'Cancelled' && (
+      renderCell: (row) => {
+        const menuOptions = actionButtons.filter(action => action.id !== 'view' && action.id !== 'edit');
+
+        return (
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton
               size="small"
-              onClick={() => handleDelete(row._id)}
-              title="Delete Payment"
-              color="error"
+              onClick={() => handleView(row._id)}
+              title={actionButtons.find(action => action.id === 'view').title}
             >
-              <Icon icon="line-md:close-circle" />
+              <Icon icon={actionButtons.find(action => action.id === 'view').icon} />
             </IconButton>
-          )}
-        </Box>
-      ),
+            <IconButton
+              size="small"
+              onClick={() => handleEdit(row._id)}
+              title={actionButtons.find(action => action.id === 'edit').title}
+            >
+              <Icon icon={actionButtons.find(action => action.id === 'edit').icon} />
+            </IconButton>
+            {row.status !== 'Cancelled' && (
+              <IconButton
+                size="small"
+                onClick={() => handleDelete(row._id)}
+                title={actionButtons.find(action => action.id === 'delete').title}
+                color={actionButtons.find(action => action.id === 'delete').color}
+              >
+                <Icon icon={actionButtons.find(action => action.id === 'delete').icon} />
+              </IconButton>
+            )}
+          </Box>
+        );
+      },
     },
   ];
 };

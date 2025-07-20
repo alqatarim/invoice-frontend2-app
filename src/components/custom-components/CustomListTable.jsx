@@ -16,11 +16,12 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Skeleton,
   Tooltip,
   Typography,
   TextField,
   Button,
+  TableContainer,
+  CircularProgress,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import classnames from 'classnames';
@@ -115,22 +116,6 @@ function CustomListTable({
     }
   };
 
-  // Skeleton row for loading
-  const TableRowSkeleton = () => (
-    <TableRow>
-      {onRowSelect && (
-        <TableCell>
-          <Skeleton variant="circular" width={24} height={24} />
-        </TableCell>
-      )}
-      {columns.map((col) => (
-        <TableCell key={col.key} align={col.align || 'left'}>
-          <Skeleton width={col.skeletonWidth || 80} />
-        </TableCell>
-      ))}
-    </TableRow>
-  );
-
   return (
     <Card>
       {(showSearch || headerActions || title || addRowButton) && (
@@ -142,12 +127,24 @@ function CustomListTable({
               </Typography>
             )}
             {showSearch && (
-              <DebouncedInput
-                value={searchValue ?? ''}
-                onChange={value => onSearchChange && onSearchChange(String(value))}
-                placeholder={searchPlaceholder}
-                className='max-sm:is-full'
-              />
+              <div className="flex items-center gap-2">
+                <DebouncedInput
+                  value={searchValue ?? ''}
+                  onChange={value => onSearchChange && onSearchChange(String(value))}
+                  placeholder={searchPlaceholder}
+                  className='max-sm:is-full'
+                />
+                {loading && (
+                  <CircularProgress 
+                    size={20} 
+                    thickness={4}
+                    sx={{ 
+                      color: 'primary.main',
+                      opacity: 0.7 
+                    }}
+                  />
+                )}
+              </div>
             )}
           </div>
           <div className='flex gap-4 max-sm:flex-col max-sm:is-full'>
@@ -157,12 +154,29 @@ function CustomListTable({
         </CardContent>
       )}
       
-      <div className='overflow-x-auto'>
-        <Table className={classnames(tableStyles.table, tableClassName)}>
+      <TableContainer 
+        sx={{
+          maxHeight: '70vh', // Enables vertical scrolling for large datasets
+          '& .MuiTableHead-root': {
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            // backgroundColor: 'background.paper'
+          }
+        }}
+      >
+        <Table 
+          className={classnames(tableStyles.table, tableClassName)}
+          sx={{ 
+            minWidth: '900px', // TableContainer handles width: 100% automatically
+            tableLayout: 'auto' // Explicit for better browser optimization
+          }}
+          stickyHeader // Works with TableContainer for sticky headers
+        >
           <TableHead>
             <TableRow>
               {onRowSelect && (
-                <TableCell>
+                <TableCell sx={{ minWidth: 50 }}>
                   <Checkbox
                     checked={allSelected}
                     indeterminate={someSelected}
@@ -175,7 +189,10 @@ function CustomListTable({
                 <TableCell 
                   key={col.key} 
                   align={col.align || 'left'}
-                  style={col.width ? { width: col.width } : {}}
+                  sx={{
+                    ...(col.minWidth && { minWidth: col.minWidth }),
+                    ...(col.width && { width: col.width })
+                  }}
                   className={col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : ''}
                 >
                   {col.sortable && onSort ? (
@@ -184,7 +201,14 @@ function CustomListTable({
                         'flex items-center': sortBy === col.key,
                         'cursor-pointer select-none': true
                       })}
-                      onClick={() => onSort(col.key)}
+                      onClick={() => {
+                        let newDirection = 'asc';
+                        if (sortBy === col.key) {
+                          // Toggle direction if clicking the same column
+                          newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                        }
+                        onSort(col.key, newDirection);
+                      }}
                     >
                       {col.label}
                       {sortBy === col.key && (
@@ -200,11 +224,7 @@ function CustomListTable({
               ))}
             </TableRow>
           </TableHead>
-          {loading ? (
-            <TableBody>
-              {Array.from({ length: 5 }).map((_, idx) => <TableRowSkeleton key={idx} />)}
-            </TableBody>
-          ) : rows.length === 0 ? (
+          {rows.length === 0 ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={columns.length + (onRowSelect ? 1 : 0)} className='text-center'>
@@ -219,7 +239,7 @@ function CustomListTable({
                 return (
                   <TableRow key={key} className={classnames(tableRowClassName, { selected: selectedRows.includes(key) })}>
                     {onRowSelect && (
-                      <TableCell>
+                      <TableCell sx={{ minWidth: 50 }}>
                         <Checkbox
                           checked={selectedRows.includes(key)}
                           onChange={handleSelectRow(key)}
@@ -231,7 +251,10 @@ function CustomListTable({
                       <TableCell
                         key={col.key}
                         align={col.align || 'left'}
-                        style={col.width ? { width: col.width } : {}}
+                        sx={{
+                          ...(col.minWidth && { minWidth: col.minWidth }),
+                          ...(col.width && { width: col.width })
+                        }}
                         className={tableCellClassName}
                       >
                         {col.renderCell
@@ -247,7 +270,7 @@ function CustomListTable({
             </TableBody>
           )}
         </Table>
-      </div>
+      </TableContainer>
       
       {pagination && (
         <TablePagination

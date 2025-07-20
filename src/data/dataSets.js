@@ -274,3 +274,63 @@ export const customerStatsConfig = [
     iconSize: '30px'
   }
 ]
+
+// Action buttons configuration for consistent usage across lists
+export const actionButtons = [
+  {
+    id: 'view',
+    label: 'View',
+    icon: 'line-md:watch',
+    color: 'default',
+    title: 'View Details'
+  },
+  {
+    id: 'edit',
+    label: 'Edit',
+    icon: 'line-md:edit',
+    color: 'default',
+    title: 'Edit Item'
+  },
+  {
+    id: 'delete',
+    label: 'Delete',
+    icon: 'line-md:close-circle',
+    color: 'error',
+    title: 'Delete Item'
+  },
+  {
+    id: 'clone',
+    label: 'Clone',
+    icon: 'mdi:content-duplicate',
+    color: 'default',
+    title: 'Clone Item'
+  },
+  {
+    id: 'send',
+    label: 'Send',
+    icon: 'mdi:invoice-send-outline',
+    color: 'default',
+    title: 'Send Item'
+  },
+  {
+    id: 'print',
+    label: 'Print & Download',
+    icon: 'mdi:printer-outline',
+    color: 'default',
+    title: 'Print & Download'
+  },
+  {
+    id: 'activate',
+    label: 'Activate',
+    icon: 'mdi:account-check-outline',
+    color: 'success',
+    title: 'Activate Item'
+  },
+  {
+    id: 'deactivate',
+    label: 'Deactivate',
+    icon: 'mdi:account-off-outline',
+    color: 'warning',
+    title: 'Deactivate Item'
+  }
+];

@@ -1,6 +1,6 @@
 // Next Imports
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -22,31 +22,38 @@ import moment from 'moment'
 import { getCustomerInvoiceColumns } from './tableColumns'
 
 // Data Imports
-import { customerStatsConfig, statusOptions } from '@/data/dataSets'
+import { statusOptions } from '@/data/dataSets'
 import { Box } from '@mui/material'
 
-const CustomerOverview = ({ customerData, invoices = [], cardDetails }) => {
+const CustomerOverview = ({ invoices = [], cardDetails }) => {
+  console.log('CustomerOverview!!!')
+  
   // Hooks
   const theme = useTheme()
   
   // States
   const [searchValue, setSearchValue] = useState('')
-  const [pagination, setPagination] = useState({ page: 0, pageSize: 10, total: invoices.length })
+  const [pagination, setPagination] = useState({ page: 0, pageSize: 10, total: 0 })
+  
+  // Reset pagination when search value changes
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, page: 0 }))
+  }, [searchValue])
 
-  const getStatusColor = (status) => {
+  const getStatusColor = useMemo(() => (status) => {
     const statusUpper = status?.toUpperCase()
     const statusOption = statusOptions.find(option => option.value === statusUpper)
     return statusOption?.color || 'default'
-  }
+  }, [])
 
-  const getStatusLabel = (status) => {
+  const getStatusLabel = useMemo(() => (status) => {
     const statusUpper = status?.toUpperCase()
     const statusOption = statusOptions.find(option => option.value === statusUpper)
     return statusOption?.label || status || 'Unpaid'
-  }
+  }, [])
 
   // Create stats array for HorizontalStatsGroup (exclude total amount)
-  const breakdownStats = [
+  const breakdownStats = useMemo(() => [
     {
       title: "Paid Amount",
       subtitle: "Total Paid",
@@ -141,60 +148,69 @@ const CustomerOverview = ({ customerData, invoices = [], cardDetails }) => {
       trendNumber: cardDetails?.cancelledRecs?.[0]?.count || 0,
       colorOpacity: 'Dark'
     }
-  ]
+  ], [cardDetails])
 
-  // Total amount for display and calculations
-  const totalAmount = cardDetails?.totalRecs?.[0]?.amount || 0
-
-  // Filter invoices based on search
-  const filteredInvoices = invoices.filter(invoice => 
-    invoice.invoiceNumber?.toLowerCase().includes(searchValue.toLowerCase()) ||
-    getStatusLabel(invoice.status).toLowerCase().includes(searchValue.toLowerCase()) ||
-    moment(invoice.invoiceDate).format('MMM DD, YYYY').toLowerCase().includes(searchValue.toLowerCase())
+  // Total amount for display and calculations - memoized to prevent re-computation
+  const totalAmount = useMemo(() => 
+    cardDetails?.totalRecs?.[0]?.amount || 0, 
+    [cardDetails?.totalRecs]
   )
 
-  // Update pagination total when filtered
-  const updatedPagination = {
-    ...pagination,
+  // Filter invoices based on search - memoized to prevent re-computation
+  const filteredInvoices = useMemo(() => 
+    invoices.filter(invoice => 
+      invoice.invoiceNumber?.toLowerCase().includes(searchValue.toLowerCase()) ||
+      getStatusLabel(invoice.status).toLowerCase().includes(searchValue.toLowerCase()) ||
+      moment(invoice.invoiceDate).format('MMM DD, YYYY').toLowerCase().includes(searchValue.toLowerCase())
+    ), [invoices, searchValue, getStatusLabel]
+  )
+
+  // Update pagination total when filtered - memoized to prevent re-renders
+  const updatedPagination = useMemo(() => ({
+    page: pagination.page,
+    pageSize: pagination.pageSize,
     total: filteredInvoices.length
-  }
+  }), [pagination.page, pagination.pageSize, filteredInvoices.length])
 
-  // Table columns configuration
-  const columns = getCustomerInvoiceColumns(getStatusColor, getStatusLabel, theme)
+  // Table columns configuration - memoized to prevent re-renders
+  const columns = useMemo(() => 
+    getCustomerInvoiceColumns(), 
+    []
+  )
 
-  // Handle pagination
-  const handlePageChange = (page) => {
+  // Handle pagination - memoized to prevent re-renders
+  const handlePageChange = useCallback((page) => {
     setPagination(prev => ({ ...prev, page }))
-  }
+  }, [])
 
-  const handleRowsPerPageChange = (pageSize) => {
+  const handleRowsPerPageChange = useCallback((pageSize) => {
     setPagination(prev => ({ ...prev, pageSize, page: 0 }))
-  }
+  }, [])
 
-  // Handle search
-  const handleSearchChange = (value) => {
+  // Handle search - memoized to prevent re-renders
+  const handleSearchChange = useCallback((value) => {
     setSearchValue(value)
-    setPagination(prev => ({ ...prev, page: 0 }))
-  }
+    // Don't update pagination here to avoid re-render loops
+  }, [])
 
-  // Row key function
-  const getRowKey = (row) => row._id
+  // Row key function - memoized to prevent re-renders
+  const getRowKey = useMemo(() => (row) => row._id, [])
 
-  // Header actions
-  const headerActions = (
+  // Header actions - memoized to prevent re-renders
+  const headerActions = useMemo(() => (
     <Button
       variant='outlined'
       component={Link}
-      href={`/invoices?customerId=${customerData?._id}`}
+      href={`/invoices/invoice-list`}
       startIcon={<i className='ri-external-link-line' />}
       size='small'
     >
       View All
     </Button>
-  )
+  ), [])
 
-  // Empty content
-  const emptyContent = (
+  // Empty content - memoized to prevent re-renders
+  const emptyContent = useMemo(() => (
     <div className='flex flex-col items-center gap-4 py-12'>
       <CustomAvatar variant='rounded' skin='light' color='secondary' size={64}>
         <i className='ri-file-list-line text-3xl' />
@@ -210,9 +226,11 @@ const CustomerOverview = ({ customerData, invoices = [], cardDetails }) => {
           }
         </Typography>
       </div>
-    
     </div>
-  )
+  ), [searchValue])
+
+
+
 
   return (
     <Grid container spacing={6}>
@@ -238,9 +256,9 @@ const CustomerOverview = ({ customerData, invoices = [], cardDetails }) => {
           showSearch={true}
           searchValue={searchValue}
           onSearchChange={handleSearchChange}
-          searchPlaceholder='Search invoices...'
-          headerActions={headerActions}
-          emptyContent={emptyContent}
+          // searchPlaceholder='Search invoices...'
+          // headerActions={headerActions}
+          // emptyContent={emptyContent}
           noDataText='No invoices found'
           loading={false}
         />

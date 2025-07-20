@@ -11,12 +11,16 @@ import Grid from '@mui/material/Grid'
 
 // Component Imports
 import CustomTabList from '@core/components/mui/TabList'
-import CustomerOverview from './CustomerOverview'
-import CustomerSecurity from './CustomerSecurity'
-import CustomerAddressBilling from './CustomerAddressBilling'
-import CustomerNotifications from './CustomerNotifications'
+import Overview from './rightSection/Overview'
+import Security from './rightSection/Security'
+import AddressBilling from './rightSection/AddressBilling'
+import Notifications from './rightSection/Notifications'
 
 const CustomerRight = ({ customerData, invoices, cardDetails }) => {
+
+
+
+
   // States
   const [activeTab, setActiveTab] = useState('overview')
 
@@ -48,20 +52,20 @@ const CustomerRight = ({ customerData, invoices, cardDetails }) => {
           </Grid>
           <Grid size={{ xs: 12 }}>
             <TabPanel value='overview' className='p-0'>
-              <CustomerOverview 
+              <Overview 
                 customerData={customerData} 
                 invoices={invoices} 
                 cardDetails={cardDetails} 
               />
             </TabPanel>
             <TabPanel value='security' className='p-0'>
-              <CustomerSecurity customerData={customerData} />
+              <Security customerData={customerData} />
             </TabPanel>
             <TabPanel value='addressBilling' className='p-0'>
-              <CustomerAddressBilling customerData={customerData} />
+              <AddressBilling customerData={customerData} />
             </TabPanel>
             <TabPanel value='notifications' className='p-0'>
-              <CustomerNotifications customerData={customerData} />
+              <Notifications customerData={customerData} />
             </TabPanel>
           </Grid>
         </Grid>

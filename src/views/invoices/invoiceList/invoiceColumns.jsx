@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
-import { Typography, Chip, LinearProgress } from '@mui/material';
+import { Typography, Chip, LinearProgress, IconButton, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
 import { statusOptions } from '@/data/dataSets';
 import OptionMenu from '@core/components/option-menu';
+import { actionButtons } from '@/data/dataSets';
 
 /**
  * Invoice table column definitions
@@ -116,43 +117,23 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     visible: true,
     align: 'right',
     renderCell: (row, handlers) => {
-      const options = [];
 
-      if (permissions.canView) {
-        options.push({
-          text: 'View',
-          icon: <Icon icon="mdi:eye-outline" />,
-          href: `/invoices/invoice-view/${row._id}`,
-          linkProps: {
-            className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
-          }
-        });
-      }
+      const menuOptions = [];
 
-      if (permissions.canUpdate) {
-        options.push({
-          text: 'Edit',
-          icon: <Icon icon="mdi:edit-outline" />,
-          href: `/invoices/edit/${row._id}`,
-          linkProps: {
-            className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
-          }
-        });
-      }
-
+      // Add additional menu options (not view/edit)
       if (permissions.canCreate) {
-        options.push({
-          text: 'Clone',
-          icon: <Icon icon="mdi:content-duplicate" />,
+        menuOptions.push({
+          text: actionButtons.find(action => action.id === 'clone').label,
+          icon: <Icon icon={actionButtons.find(action => action.id === 'clone').icon} />,
           menuItemProps: {
             className: 'flex items-center gap-2 text-textSecondary',
             onClick: () => handlers.handleClone(row.id || row._id)
           }
         });
 
-        options.push({
-          text: 'Send',
-          icon: <Icon icon="mdi:invoice-send-outline" />,
+        menuOptions.push({
+          text: actionButtons.find(action => action.id === 'send').label,
+          icon: <Icon icon={actionButtons.find(action => action.id === 'send').icon} />,
           menuItemProps: {
             className: 'flex items-center gap-2 text-textSecondary',
             onClick: () => handlers.handleSend(row.id || row._id)
@@ -161,7 +142,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
       }
 
       if (permissions.canUpdate) {
-        options.push({
+        menuOptions.push({
           text: 'Convert to Sales Return',
           icon: <Icon icon="mdi:invoice-export-outline" style={{ transform: 'scaleX(-1)' }} />,
           menuItemProps: {
@@ -170,9 +151,9 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
           }
         });
 
-        options.push({
-          text: 'Print & Download',
-          icon: <Icon icon="mdi:printer-outline" />,
+        menuOptions.push({
+          text: actionButtons.find(action => action.id === 'print').label,
+          icon: <Icon icon={actionButtons.find(action => action.id === 'print').icon} />,
           menuItemProps: {
             className: 'flex items-center gap-2 text-textSecondary',
             onClick: () => handlers.handlePrintDownload(row._id)
@@ -181,7 +162,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
       }
 
       if (permissions.canCreate) {
-        options.push({
+        menuOptions.push({
           text: 'Send Payment Link',
           icon: <Icon icon="mdi:link-variant" />,
           menuItemProps: {
@@ -192,11 +173,40 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
       }
 
       return (
-        <OptionMenu
-          icon={<MoreVertIcon />}
-          iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
-          options={options}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Direct action buttons */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {permissions.canView && (
+              <IconButton
+                size="small"
+                component={Link}
+                href={`/invoices/invoice-view/${row._id}`}
+                title={actionButtons.find(action => action.id === 'view').title}
+              >
+                <Icon icon={actionButtons.find(action => action.id === 'view').icon} />
+              </IconButton>
+            )}
+            {permissions.canUpdate && (
+              <IconButton
+                size="small"
+                component={Link}
+                href={`/invoices/edit/${row._id}`}
+                title={actionButtons.find(action => action.id === 'edit').title}
+              >
+                <Icon icon={actionButtons.find(action => action.id === 'edit').icon} />
+              </IconButton>
+            )}
+          </Box>
+
+          {/* Menu for additional actions */}
+          {menuOptions.length > 0 && (
+            <OptionMenu
+              icon={<MoreVertIcon />}
+              iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
+              options={menuOptions}
+            />
+          )}
+        </Box>
       );
     },
   },

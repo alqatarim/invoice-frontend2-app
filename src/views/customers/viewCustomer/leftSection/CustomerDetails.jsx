@@ -8,17 +8,22 @@ import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
-
+import { useMemo } from 'react'
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'
 import EditUserInfo from '@components/dialogs/edit-user-info'
 import OpenDialogOnElementClick from '@components/dialogs/OpenDialogOnElementClick'
 import { formatCurrency } from '@/utils/currencyUtils'
-
+import { Icon } from '@iconify/react'
 // Utils Imports
 import { getInitials } from '@/utils/getInitials'
 
-const CustomerDetails = ({ customerData, originalCustomerData }) => {
+const CustomerDetails = ({ customerData, cardDetails, permissions }) => {
+
+
+  // Extract and transform customer data
+  const customer = customerData
+
   // Vars
   const buttonProps = {
     variant: 'outlined',
@@ -26,30 +31,32 @@ const CustomerDetails = ({ customerData, originalCustomerData }) => {
   }
 
   const getAvatar = () => {
-    if (customerData?.avatar) {
-      return <CustomAvatar src={customerData.avatar} variant='rounded' alt='Customer Avatar' size={120} />
+    if (customer?.image) {
+      return <CustomAvatar src={`${process.env.NEXT_PUBLIC_API_URL}/${customer.image}`} variant='rounded' alt='Customer Avatar' size={120} />
     } else {
       return (
         <CustomAvatar variant='rounded' size={120} className='text-2xl font-medium'>
-          {getInitials(customerData?.customer || 'Customer')}
+          {getInitials(customer?.name || 'Customer')}
         </CustomAvatar>
       )
     }
   }
 
   // Transform data for edit dialog
-  const editDialogData = {
-    firstName: originalCustomerData?.name?.split(' ')[0] || '',
-    lastName: originalCustomerData?.name?.split(' ').slice(1).join(' ') || '',
-    userName: originalCustomerData?.name || '',
-    billingEmail: originalCustomerData?.email || '',
-    status: originalCustomerData?.status || 'active',
-    taxId: originalCustomerData?.taxId || '',
-    contact: originalCustomerData?.phone || '',
-    language: ['english'],
-    country: originalCustomerData?.billingAddress?.country || 'US',
-    useAsBillingAddress: true
-  }
+  const editDialogData = useMemo(() => {
+    return {
+      firstName: customer?.name?.split(' ')[0] || '',
+      lastName: customer?.name?.split(' ').slice(1).join(' ') || '',
+      userName: customer?.name || '',
+      billingEmail: customer?.email || '',
+      status: customer?.status || 'active',
+      taxId: customer?.taxId || '',
+      contact: customer?.phone || '',
+      language: ['english'],
+      country: customer?.billingAddress?.country || 'US',
+      useAsBillingAddress: true
+    }
+  }, [customer])
 
   return (
     <Card className='h-full'>
@@ -59,37 +66,37 @@ const CustomerDetails = ({ customerData, originalCustomerData }) => {
             {getAvatar()}
             <div className='flex flex-col items-center text-center gap-1'>
               <Typography variant='h5' className='font-semibold'>
-                {customerData?.customer}
+                {customer?.name || 'N/A'}
               </Typography>
               <Typography variant='body2' color='text.secondary'>
-                Customer ID #{customerData?.customerId}
+                Customer ID #{customer?._id?.slice(-8) || 'N/A'}
               </Typography>
             </div>
           </div>
           <div className='flex items-center justify-around gap-4 flex-wrap is-full'>
             <div className='flex items-center gap-4'>
               <CustomAvatar variant='rounded' skin='light' color='primary' size={48}>
-                <i className='ri-shopping-cart-2-line text-xl' />
+                <Icon icon='iconamoon:invoice' width={28} />
               </CustomAvatar>
-              <div className='text-center'>
+              <div className='text-left'>
                 <Typography variant='h5' className='font-semibold'>
-                  {customerData?.order || 0}
+                  {cardDetails?.totalRecs?.[0]?.count || 0}
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
-                  Orders
+                  Invoices
                 </Typography>
               </div>
             </div>
             <div className='flex items-center gap-4'>
-              <CustomAvatar variant='rounded' skin='light' color='success' size={48}>
-                <i className='ri-money-dollar-circle-line text-xl' />
+              <CustomAvatar variant='rounded' skin='light' color='primary' size={48}>
+              <Icon icon='lucide:saudi-riyal' width={23} />
               </CustomAvatar>
               <div className='text-center'>
                 <Typography variant='h5' className='font-semibold'>
-                  {formatCurrency(customerData?.totalSpent || 0)}
+                  {formatCurrency(cardDetails?.totalRecs?.[0]?.amount || 0)}
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
-                  Outstanding
+                  Total Amount
                 </Typography>
               </div>
             </div>
@@ -107,7 +114,7 @@ const CustomerDetails = ({ customerData, originalCustomerData }) => {
                 Username:
               </Typography>
               <Typography color='text.primary' className='font-medium'>
-                {customerData?.customer}
+                {customer?.name || 'N/A'}
               </Typography>
             </div>
             <div className='flex items-center justify-between'>
@@ -115,7 +122,7 @@ const CustomerDetails = ({ customerData, originalCustomerData }) => {
                 Email:
               </Typography>
               <Typography color='text.primary' className='font-medium'>
-                {customerData?.email}
+                {customer?.email || 'No email provided'}
               </Typography>
             </div>
             <div className='flex items-center justify-between'>
@@ -123,9 +130,9 @@ const CustomerDetails = ({ customerData, originalCustomerData }) => {
                 Status:
               </Typography>
               <Chip 
-                label={customerData?.status || 'Active'} 
+                label={customer?.status || 'Active'} 
                 variant='tonal' 
-                color={customerData?.status === 'Active' ? 'success' : 'error'} 
+                color={(customer?.status || 'Active') === 'Active' ? 'success' : 'error'} 
                 size='small'
                 className='font-medium'
               />
@@ -135,7 +142,7 @@ const CustomerDetails = ({ customerData, originalCustomerData }) => {
                 Phone:
               </Typography>
               <Typography color='text.primary' className='font-medium'>
-                {originalCustomerData?.phone || 'N/A'}
+                {customer?.phone || 'N/A'}
               </Typography>
             </div>
             <div className='flex items-center justify-between'>
@@ -143,18 +150,20 @@ const CustomerDetails = ({ customerData, originalCustomerData }) => {
                 Country:
               </Typography>
               <Typography color='text.primary' className='font-medium'>
-                {customerData?.country}
+                {customer?.billingAddress?.country || customer?.shippingAddress?.country || 'N/A'}
               </Typography>
             </div>
           </div>
         </div>
         
-        <OpenDialogOnElementClick 
-          element={Button} 
-          elementProps={buttonProps} 
-          dialog={EditUserInfo} 
-          dialogProps={{ data: editDialogData }}
-        />
+        {permissions?.canEdit && (
+          <OpenDialogOnElementClick 
+            element={Button} 
+            elementProps={buttonProps} 
+            dialog={EditUserInfo} 
+            dialogProps={{ data: editDialogData }}
+          />
+        )}
       </CardContent>
     </Card>
   )

@@ -55,7 +55,7 @@ export async function getCustomerById(id) {
  */
 export async function getInitialCustomerData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.CUSTOMER.LIST}?page=1&pageSize=10&sortBy=&sortDirection=asc`, {
+    const response = await fetchWithAuth(`${ENDPOINTS.CUSTOMER.LIST}?skip=0&limit=10&sortBy=createdAt&sortDirection=desc`, {
       cache: 'no-store',
       next: { revalidate: 0 }
     });
@@ -89,31 +89,42 @@ export async function getInitialCustomerData() {
   }
 }
 
-export async function getFilteredCustomers(tab, page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc') {
+export async function getFilteredCustomers(apiParams) {
   try {
-    // Build the URL
-    let url = ENDPOINTS.CUSTOMER.LIST + `?page=${page}&pageSize=${pageSize}`;
+    // Build the URL with the parameters expected by the backend
+    let url = ENDPOINTS.CUSTOMER.LIST;
+    const queryParams = [];
 
-    // Apply status filter based on tab
-    if (tab && tab !== 'ALL') {
-      if (tab === 'ACTIVE') {
-        url += `&status=Active`;
-      } else if (tab === 'INACTIVE') {
-        url += `&status=Deactive`;
-      }
+    // Add pagination parameters
+    if (apiParams.skip !== undefined) {
+      queryParams.push(`skip=${apiParams.skip}`);
+    }
+    if (apiParams.limit !== undefined) {
+      queryParams.push(`limit=${apiParams.limit}`);
     }
 
-    // Apply additional filters
-    if (filters.customer && Array.isArray(filters.customer) && filters.customer.length > 0) {
-      url += `&customer=${filters.customer.map(id => encodeURIComponent(id)).join(',')}`;
-    }
-    if (filters.search_customer) {
-      url += `&search_customer=${encodeURIComponent(filters.search_customer)}`;
+    // Add search parameter (searches across name, phone, email)
+    if (apiParams.search_customer) {
+      queryParams.push(`search_customer=${encodeURIComponent(apiParams.search_customer)}`);
     }
 
-    // Apply sorting
-    if (sortBy) {
-      url += `&sortBy=${encodeURIComponent(sortBy)}&sortDirection=${encodeURIComponent(sortDirection)}`;
+    // Add customer filter if provided
+    if (apiParams.customer) {
+      queryParams.push(`customer=${encodeURIComponent(apiParams.customer)}`);
+    }
+
+    // Add sorting parameters
+    if (apiParams.sortBy) {
+      queryParams.push(`sortBy=${encodeURIComponent(apiParams.sortBy)}`);
+    }
+    
+    if (apiParams.sortDirection) {
+      queryParams.push(`sortDirection=${encodeURIComponent(apiParams.sortDirection)}`);
+    }
+
+    // Construct final URL
+    if (queryParams.length > 0) {
+      url += `?${queryParams.join('&')}`;
     }
 
     const response = await fetchWithAuth(url);
@@ -121,11 +132,7 @@ export async function getFilteredCustomers(tab, page, pageSize, filters = {}, so
     if (response.code === 200) {
       return {
         customers: response.data || [],
-        pagination: {
-          current: page,
-          pageSize,
-          total: response.totalRecords || 0,
-        },
+        total: response.totalRecords || 0,
       };
     } else {
       console.error('Failed to fetch filtered customers:', response.message);

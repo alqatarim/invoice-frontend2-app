@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback, useRef } from 'react'
 import { Snackbar, Alert, useTheme, Button, Card, CardContent, Box } from '@mui/material'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import { AddCustomerDrawer } from '../addCustomer'
@@ -8,10 +8,9 @@ import { getCustomerColumns } from './customerColumns'
 import { usePermission } from '@/Auth/usePermission'
 import { useCustomerListHandlers } from '@/handlers/customers/useCustomerListHandlers'
 import CustomerHead from '@/views/customers/listCustomer/customerHead'
-import CustomerFilter from './customerFilter'
 
 /**
- * CustomerList Component - Now using TanStack Table like template
+ * CustomerList Component - Now using TanStack Table like template with proper search integration
  */
 const CustomerList = ({
   initialCustomers = [],
@@ -21,7 +20,7 @@ const CustomerList = ({
   // Permissions
   const permissions = {
     canCreate: usePermission('customer', 'create'),
-    canUpdate: usePermission('customer', 'update'),
+    canEdit: usePermission('customer', 'edit'),
     canView: usePermission('customer', 'view'),
     canDelete: usePermission('customer', 'delete'),
   }
@@ -38,64 +37,68 @@ const CustomerList = ({
     setSnackbar(prev => ({ ...prev, open: false }))
   }
 
-  // Notification handlers
-  const onError = msg => setSnackbar({ open: true, message: msg, severity: 'error' })
-  const onSuccess = msg => setSnackbar({ open: true, message: msg, severity: 'success' })
+  // Use refs for notification handlers to ensure stable references
+  const onErrorRef = useRef()
+  const onSuccessRef = useRef()
+  
+  onErrorRef.current = (msg) => setSnackbar({ open: true, message: msg, severity: 'error' })
+  onSuccessRef.current = (msg) => setSnackbar({ open: true, message: msg, severity: 'success' })
+
+  // Stable callback wrappers
+  const onError = useCallback((msg) => onErrorRef.current(msg), [])
+  const onSuccess = useCallback((msg) => onSuccessRef.current(msg), [])
 
   const theme = useTheme()
 
   // Add Customer Drawer state
   const [customerUserOpen, setCustomerUserOpen] = useState(false)
 
-  // Memoize columns
-  const columns = useMemo(() => getCustomerColumns({ theme, permissions }), [theme, permissions])
+  // Stable permissions object - only recreate when actual permissions change
+  const stablePermissions = useMemo(() => ({
+    canCreate: permissions.canCreate,
+    canEdit: permissions.canEdit,
+    canView: permissions.canView,
+    canDelete: permissions.canDelete,
+  }), [permissions.canCreate, permissions.canEdit, permissions.canView, permissions.canDelete])
 
-  // Handlers (mimic InvoiceList pattern)
+  // Memoize columns with stable dependencies
+  const columns = useMemo(() => {
+    return getCustomerColumns({ theme, permissions: stablePermissions })
+  }, [theme?.palette?.mode, stablePermissions]) // Only depend on theme mode, not entire theme object
+
+  // Handlers - properly configured with all functionality
   const handlers = useCustomerListHandlers({
     initialCustomers: initialCustomers,
-    initialPagination: { current: 1, pageSize: 10, total: initialCustomers.length },
-    initialTab: 'ALL',
-    initialFilters: {},
-    initialSortBy: '',
-    initialSortDirection: 'asc',
+    initialPagination: pagination,
+    initialSortBy: 'createdAt',
+    initialSortDirection: 'desc',
     initialColumns: columns,
     onError,
     onSuccess,
   })
 
-  // Column state management
-  const [columnsState, setColumns] = useState(columns)
-
   // Build table columns with action handlers
   const tableColumns = useMemo(
     () =>
-      columnsState.map(col => ({
+      columns.map(col => ({
         ...col,
         renderCell: col.renderCell
           ? (row, idx) =>
               col.renderCell(row, {
-                ...handlers,
+                handleDeleteClick: handlers.handleDeleteClick,
+                handleActivateClick: handlers.handleActivateClick,
+                handleDeactivateClick: handlers.handleDeactivateClick,
+                handleEdit: handlers.handleEdit,
+                handleView: handlers.handleView,
                 permissions,
                 pagination: handlers.pagination,
               })
           : undefined,
       })),
-    [columnsState, handlers, permissions, handlers.pagination]
+    [columns, handlers.handleDeleteClick, handlers.handleActivateClick, 
+     handlers.handleDeactivateClick, handlers.handleEdit, handlers.handleView, 
+     handlers.pagination, permissions]
   )
-
-  // Filter/search state
-  const [search, setSearch] = useState('')
-
-  // Optionally filter the customers based on search
-  const filteredCustomers = useMemo(() => {
-    if (!search) return handlers.customers
-    const lower = search.toLowerCase()
-    return handlers.customers.filter(c =>
-      c.name?.toLowerCase().includes(lower) ||
-      c.email?.toLowerCase().includes(lower) ||
-      c.phone?.toLowerCase().includes(lower)
-    )
-  }, [search, handlers.customers])
 
   return (
     <Box className='flex flex-col gap-5'>
@@ -106,14 +109,10 @@ const CustomerList = ({
         isLoading={false}
       />
 
-      {/* Main Customer Table - TanStack Implementation */}
-    
-      
-
-
-       
-        <CustomListTable
-        addRowButton={<Button
+      {/* Main Customer Table - Properly connected to handlers */}
+      <CustomListTable
+        addRowButton={
+          <Button
             variant='contained'
             color='primary'
             className=''
@@ -121,26 +120,29 @@ const CustomerList = ({
             onClick={() => setCustomerUserOpen(true)}
           >
             Add Customer
-          </Button>}
-          showSearch={true}
-          columns={tableColumns}
-          rows={filteredCustomers}
-          loading={handlers.loading}
-          pagination={{
-            page: handlers.pagination.current - 1,
-            pageSize: handlers.pagination.pageSize,
-            total: handlers.pagination.total,
-          }}
-          onPageChange={handlers.handlePageChange}
-          onRowsPerPageChange={handlers.handlePageSizeChange}
-          onSort={handlers.handleSortChange}
-          sortBy={handlers.sortBy}
-          sortDirection={handlers.sortDirection}
-          noDataText='No customers found.'
-          rowKey={row => row._id || row.id}
-        />
+          </Button>
+        }
+        showSearch={true}
+        searchValue={handlers.searchTerm || ''}
+        onSearchChange={handlers.handleSearchInputChange}
+        searchPlaceholder="Search customers..."
+        columns={tableColumns}
+        rows={handlers.customers}
+        loading={handlers.loading}
+        pagination={{
+          page: handlers.pagination.current - 1,
+          pageSize: handlers.pagination.pageSize,
+          total: handlers.pagination.total,
+        }}
+        onPageChange={(newPage) => handlers.handlePageChange(newPage + 1)}
+        onRowsPerPageChange={handlers.handlePageSizeChange}
+        onSort={handlers.handleSortChange}
+        sortBy={handlers.sortBy}
+        sortDirection={handlers.sortDirection}
+        noDataText='No customers found.'
+        rowKey={row => row._id || row.id}
+      />
  
-     
       <AddCustomerDrawer
         open={customerUserOpen}
         handleClose={() => setCustomerUserOpen(false)}
@@ -149,6 +151,7 @@ const CustomerList = ({
         onSuccess={onSuccess}
         onError={onError}
       />
+      
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}

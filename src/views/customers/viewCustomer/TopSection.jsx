@@ -1,6 +1,7 @@
 // Next Imports
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useMemo } from 'react'
 
 // MUI Imports
 import Button from '@mui/material/Button'
@@ -12,13 +13,13 @@ import OpenDialogOnElementClick from '@components/dialogs/OpenDialogOnElementCli
 
 const CustomerDetailsHeader = ({ customerId, customer, permissions }) => {
   const router = useRouter()
-
-  // Vars
-  const buttonProps = (children, color, variant) => ({
+ 
+  // Vars - memoized to prevent re-renders
+  const buttonProps = useMemo(() => (children, color, variant) => ({
     children,
     color,
     variant
-  })
+  }), [])
 
   return (
     <div className='flex flex-wrap justify-between max-sm:flex-col sm:items-center gap-x-6 gap-y-4'>
@@ -40,12 +41,12 @@ const CustomerDetailsHeader = ({ customerId, customer, permissions }) => {
         >
           Back
         </Button>
-        {permissions.canUpdate && (
+        {permissions.canEdit && (
           <Button
             variant='outlined'
             startIcon={<i className='ri-edit-line' />}
             component={Link}
-            href={`/customers/customer-edit/${customerId}`}
+            href={`/customers/customer-view/${customerId}`}
           >
             Edit Customer
           </Button>

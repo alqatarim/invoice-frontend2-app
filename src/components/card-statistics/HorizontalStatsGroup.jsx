@@ -9,6 +9,7 @@ import Box from '@mui/material/Box'
 import LinearProgress from '@mui/material/LinearProgress'
 import { styled } from '@mui/material/styles'
 import { Icon } from '@iconify/react'
+import { useMemo } from 'react'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -38,7 +39,8 @@ const Card = styled(MuiCard)(({ theme, bordercolor }) => ({
 
 const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor = 'primary', ...props }) => {
   const theme = useTheme()
-  
+  console.log('COLORS!!!')
+
   if (!stats || !Array.isArray(stats)) {
     return null
   }
@@ -47,30 +49,33 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
   const totalAmount = propTotalAmount || stats.reduce((sum, stat) => sum + Number(stat.stats || 0), 0)
   
   // Create segments with percentages, only include those with values > 0
-  const minPercentage = 10 // Minimum percentage for segments with values > 0
-  const rawSegments = stats.map(stat => {
-    const value = Number(stat.stats || 0)
-    const rawPercentage = totalAmount > 0 ? ((value / totalAmount) * 100) : 0
-    const percentage = value > 0 ? Math.max(rawPercentage, minPercentage) : 0
-    
-    return {
-      ...stat,
-      value,
-      percentage,
-      // Set default color opacity if not provided
-      colorOpacity: stat.colorOpacity || 'main'
-    }
-  }).filter(segment => segment.value > 0)
+  const segments = useMemo(() => {
+    const minPercentage = 10 // Minimum percentage for segments with values > 0
+    const rawSegments = stats.map(stat => {
+      const value = Number(stat.stats || 0)
+      const rawPercentage = totalAmount > 0 ? ((value / totalAmount) * 100) : 0
+      const percentage = value > 0 ? Math.max(rawPercentage, minPercentage) : 0
 
-  // Check if total exceeds 100% and scale down proportionally if needed
-  const totalPercentage = rawSegments.reduce((sum, segment) => sum + segment.percentage, 0)
-  const segments = totalPercentage > 100 
-    ? rawSegments.map(segment => ({
-        ...segment,
-        percentage: (segment.percentage / totalPercentage) * 100
-      }))
-    : rawSegments
+      return {
+        ...stat,
+        value,
+        percentage,
+        // Set default color opacity if not provided
+        colorOpacity: stat.colorOpacity || 'Main'
+      }
+    }).filter(segment => segment.value > 0)
 
+    // Check if total exceeds 100% and scale down proportionally if needed
+    const totalPercentage = rawSegments.reduce((sum, segment) => sum + segment.percentage, 0)
+    return totalPercentage > 100 
+      ? rawSegments.map(segment => ({
+          ...segment,
+          percentage: (segment.percentage / totalPercentage) * 100
+        }))
+      : rawSegments
+  }, [stats, totalAmount])
+
+  
   return (
 
         <Box className='flex flex-col gap-4 p-6'>
