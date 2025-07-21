@@ -23,28 +23,20 @@ import { getCustomerInvoiceColumns } from './tableColumns'
 
 // Data Imports
 import { statusOptions } from '@/data/dataSets'
-import { Box } from '@mui/material'
 
 const CustomerOverview = ({ invoices = [], cardDetails }) => {
-  console.log('CustomerOverview!!!')
-  
-  // Hooks
-  const theme = useTheme()
-  
+
+
   // States
   const [searchValue, setSearchValue] = useState('')
   const [pagination, setPagination] = useState({ page: 0, pageSize: 10, total: 0 })
-  
+
   // Reset pagination when search value changes
   useEffect(() => {
     setPagination(prev => ({ ...prev, page: 0 }))
   }, [searchValue])
 
-  const getStatusColor = useMemo(() => (status) => {
-    const statusUpper = status?.toUpperCase()
-    const statusOption = statusOptions.find(option => option.value === statusUpper)
-    return statusOption?.color || 'default'
-  }, [])
+
 
   const getStatusLabel = useMemo(() => (status) => {
     const statusUpper = status?.toUpperCase()
@@ -63,7 +55,7 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
       statsVariant: 'h5',
       avatarIcon: statusOptions.find(option => option.value === 'PAID')?.icon,
       color: statusOptions.find(option => option.value === 'PAID')?.color,
-      colorOpacity: 'Main',
+      colorOpacity: 'lightOpacity',
       iconSize: '30px',
       isCurrency: true,
       currencyIconWidth: '1.25rem',
@@ -79,7 +71,7 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
       statsVariant: 'h5',
       avatarIcon: statusOptions.find(option => option.value === 'PARTIALLY_PAID')?.icon,
       color: statusOptions.find(option => option.value === 'PARTIALLY_PAID')?.color,
-      colorOpacity: 'Light',
+      colorOpacity: 'lightOpacity',
       iconSize: '30px',
       isCurrency: true,
       currencyIconWidth: '1.25rem',
@@ -94,7 +86,7 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
       statsVariant: 'h5',
       avatarIcon: statusOptions.find(option => option.value === 'SENT')?.icon,
       color: statusOptions.find(option => option.value === 'SENT')?.color,
-      colorOpacity: 'Light',
+      colorOpacity: 'lightOpacity',
       iconSize: '30px',
       isCurrency: true,
       currencyIconWidth: '1.25rem',
@@ -111,11 +103,12 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
       statsVariant: 'h5',
       avatarIcon: statusOptions.find(option => option.value === 'OVERDUE')?.icon,
       color: statusOptions.find(option => option.value === 'OVERDUE')?.color,
+      colorOpacity: 'lightOpacity',
       iconSize: '30px',
       isCurrency: true,
       currencyIconWidth: '1.25rem',
       trendNumber: cardDetails?.overDueRecs?.[0]?.count || 0,
-      colorOpacity: 'Light'
+
     },
     {
       title: "Drafted",
@@ -126,7 +119,7 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
       statsVariant: 'h5',
       avatarIcon: statusOptions.find(option => option.value === 'DRAFTED')?.icon,
       color: statusOptions.find(option => option.value === 'DRAFTED')?.color,
-      colorOpacity: 'Lighter',
+      colorOpacity: 'lightOpacity',
       iconSize: '30px',
       isCurrency: true,
       currencyIconWidth: '1.25rem',
@@ -142,23 +135,23 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
       statsVariant: 'h5',
       avatarIcon: statusOptions.find(option => option.value === 'CANCELLED')?.icon,
       color: statusOptions.find(option => option.value === 'CANCELLED')?.color,
+      colorOpacity: 'lightOpacity',
       iconSize: '30px',
       isCurrency: true,
       currencyIconWidth: '1.25rem',
       trendNumber: cardDetails?.cancelledRecs?.[0]?.count || 0,
-      colorOpacity: 'Dark'
     }
   ], [cardDetails])
 
   // Total amount for display and calculations - memoized to prevent re-computation
-  const totalAmount = useMemo(() => 
-    cardDetails?.totalRecs?.[0]?.amount || 0, 
+  const totalAmount = useMemo(() =>
+    cardDetails?.totalRecs?.[0]?.amount || 0,
     [cardDetails?.totalRecs]
   )
 
   // Filter invoices based on search - memoized to prevent re-computation
-  const filteredInvoices = useMemo(() => 
-    invoices.filter(invoice => 
+  const filteredInvoices = useMemo(() =>
+    invoices.filter(invoice =>
       invoice.invoiceNumber?.toLowerCase().includes(searchValue.toLowerCase()) ||
       getStatusLabel(invoice.status).toLowerCase().includes(searchValue.toLowerCase()) ||
       moment(invoice.invoiceDate).format('MMM DD, YYYY').toLowerCase().includes(searchValue.toLowerCase())
@@ -173,8 +166,8 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
   }), [pagination.page, pagination.pageSize, filteredInvoices.length])
 
   // Table columns configuration - memoized to prevent re-renders
-  const columns = useMemo(() => 
-    getCustomerInvoiceColumns(), 
+  const columns = useMemo(() =>
+    getCustomerInvoiceColumns(),
     []
   )
 
@@ -220,7 +213,7 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
           No invoices found
         </Typography>
         <Typography variant='body2' color='text.secondary'>
-          {searchValue 
+          {searchValue
             ? 'Try adjusting your search criteria.'
             : "This customer hasn't made any invoices yet."
           }
@@ -236,7 +229,7 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
     <Grid container spacing={6}>
       {/* Statistics Cards */}
       <Grid size={{ xs: 12 }}>
-        <HorizontalStatsGroup 
+        <HorizontalStatsGroup
           stats={breakdownStats}
           totalAmount={totalAmount}
           borderColor="primary"

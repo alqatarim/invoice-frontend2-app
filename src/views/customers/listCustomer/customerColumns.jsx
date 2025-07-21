@@ -57,7 +57,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
 
 
 
-      
+
         // <div className="min-w-0">
         //   <Typography
         //     variant="body1"
@@ -69,7 +69,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
         //     {row.email || 'No email'}
         //   </Typography>
         // </div>
-    
+
     )
   },
   {
@@ -193,7 +193,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
       return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {/* Direct action buttons */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
+
             {permissions.canView && (
               <IconButton
                 size="small"
@@ -201,20 +201,10 @@ export const getCustomerColumns = ({ theme, permissions }) => [
                 href={`/customers/customer-view/${row._id}`}
                 title={viewAction.title}
               >
-                <Icon icon={viewAction.icon} />
+               <Icon icon={viewAction.icon} />
               </IconButton>
             )}
-            {permissions.canEdit && (
-              <IconButton
-                size="small"
-                component={Link}
-                href={`/customers/customer-view/${row._id}`}
-                title={editAction.title}
-              >
-                <Icon icon={editAction.icon} />
-              </IconButton>
-            )}
-          </Box>
+
 
           {/* Menu for additional actions */}
           {menuOptions.length > 0 && (

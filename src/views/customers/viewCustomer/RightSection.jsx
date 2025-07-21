@@ -16,10 +16,7 @@ import Security from './rightSection/Security'
 import AddressBilling from './rightSection/AddressBilling'
 import Notifications from './rightSection/Notifications'
 
-const CustomerRight = ({ customerData, invoices, cardDetails }) => {
-
-
-
+const CustomerRight = ({ customerData, invoices, cardDetails, onCustomerUpdate }) => {
 
   // States
   const [activeTab, setActiveTab] = useState('overview')
@@ -52,17 +49,20 @@ const CustomerRight = ({ customerData, invoices, cardDetails }) => {
           </Grid>
           <Grid size={{ xs: 12 }}>
             <TabPanel value='overview' className='p-0'>
-              <Overview 
-                customerData={customerData} 
-                invoices={invoices} 
-                cardDetails={cardDetails} 
+              <Overview
+                customerData={customerData}
+                invoices={invoices}
+                cardDetails={cardDetails}
               />
             </TabPanel>
             <TabPanel value='security' className='p-0'>
               <Security customerData={customerData} />
             </TabPanel>
             <TabPanel value='addressBilling' className='p-0'>
-              <AddressBilling customerData={customerData} />
+              <AddressBilling
+                customerData={customerData}
+                onCustomerUpdate={onCustomerUpdate}
+              />
             </TabPanel>
             <TabPanel value='notifications' className='p-0'>
               <Notifications customerData={customerData} />

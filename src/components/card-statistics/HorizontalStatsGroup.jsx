@@ -10,7 +10,7 @@ import LinearProgress from '@mui/material/LinearProgress'
 import { styled } from '@mui/material/styles'
 import { Icon } from '@iconify/react'
 import { useMemo } from 'react'
-
+import Divider from '@mui/material/Divider'
 // Third-party Imports
 import classnames from 'classnames'
 
@@ -19,8 +19,6 @@ import CustomAvatar from '@core/components/mui/Avatar'
 import { formatCurrency } from '@/utils/currencyUtils'
 import { useTheme } from '@mui/material/styles'
 
-// Style Imports
-import tableStyles from '@core/styles/table.module.css'
 
 const Card = styled(MuiCard)(({ theme, bordercolor }) => ({
   transition: 'border 0.3s ease-in-out, box-shadow 0.3s ease-in-out, margin 0.3s ease-in-out',
@@ -39,7 +37,7 @@ const Card = styled(MuiCard)(({ theme, bordercolor }) => ({
 
 const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor = 'primary', ...props }) => {
   const theme = useTheme()
-  console.log('COLORS!!!')
+
 
   if (!stats || !Array.isArray(stats)) {
     return null
@@ -47,7 +45,7 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
 
   // Use provided total amount or calculate from stats as fallback
   const totalAmount = propTotalAmount || stats.reduce((sum, stat) => sum + Number(stat.stats || 0), 0)
-  
+
   // Create segments with percentages, only include those with values > 0
   const segments = useMemo(() => {
     const minPercentage = 10 // Minimum percentage for segments with values > 0
@@ -61,13 +59,13 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
         value,
         percentage,
         // Set default color opacity if not provided
-        colorOpacity: stat.colorOpacity || 'Main'
+        colorOpacity: stat.colorOpacity || ''
       }
     }).filter(segment => segment.value > 0)
 
     // Check if total exceeds 100% and scale down proportionally if needed
     const totalPercentage = rawSegments.reduce((sum, segment) => sum + segment.percentage, 0)
-    return totalPercentage > 100 
+    return totalPercentage > 100
       ? rawSegments.map(segment => ({
           ...segment,
           percentage: (segment.percentage / totalPercentage) * 100
@@ -75,13 +73,13 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
       : rawSegments
   }, [stats, totalAmount])
 
-  
+
   return (
 
-        <Box className='flex flex-col gap-4 p-6'>
+        <Box className='flex flex-col gap-2 p-6'>
 
 
-        
+
 
           {/* Segmented Progress Bar */}
           <div className='flex is-full'>
@@ -91,7 +89,7 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
                 className={classnames('flex flex-col gap-[8px] relative')}
                 style={{ width: `${segment.percentage}%` }}
               >
-                <Typography 
+                <Typography
                   className='relative max-sm:hidden text-start text-sm pl-1 font-medium'
                   variant='subtitle2'
                   color={`${segment.color}.dark`}
@@ -101,23 +99,23 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
                 <LinearProgress
                   variant='determinate'
                   value={-1}
-                  // className={`bs-[46px] bg-${segment.color}${segment.colorOpacity}`}
-                  className={`bs-[46px] bg-${segment.color}${segment.colorOpacity} font-medium`}
+                  className={`bs-[46px] font-medium`}
                   sx={{
                     borderRadius: index === 0 ? '8px 0 0 8px' : index === segments.length - 1 ? '0 8px 8px 0' : '0',
+                    backgroundColor: theme => { return theme.palette[segment.color]?.[segment.colorOpacity] || theme.palette.secondary.light}
                   }}
                 />
                 <Box
                   className={`absolute bottom-3 start-2 font-medium flex items-center gap-1`}
-             
+
                 >
                   {segment.isCurrency && (
                     <Icon
                     color={theme.palette[segment.color].dark}
                       icon="lucide:saudi-riyal"
-                      width="0.85rem"s
+                      width="0.85rem"
                       // className={`text-${segment.color}LightOpacity`}
-               
+
                     />
                   )}
                   <Typography
@@ -125,7 +123,7 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
                     color={`${segment.color}.dark`}
                     className={`font-semibold`}
                   >
-                    {segment.isCurrency 
+                    {segment.isCurrency
                       ? Number(segment.value || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
                       : segment.value
                     }
@@ -147,21 +145,53 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
           </div>
 
             {/* Total Amount Display */}
-            <Box className='flex justify-start items-center gap-3'>
-            <Typography variant='body2' className='text-sm'>
-              Total Amount
-            </Typography>
-            <Box className='flex items-center gap-1'>
-              <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width="1rem" />
-              <Typography variant='h6' color='text.secondary'>
-                {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className='flex flex-col gap-0.5 relative'>
+
+
+
+              <LinearProgress
+                variant='determinate'
+                value={-1}
+                className='bs-[6px] font-medium br-[8px] bg-primaryDarker rounded-xs'
+              />
+
+
+              <Box
+                className='start-2 font-medium flex items-center gap-1'
+              >
+
+               <Typography
+                className='text-start  pl-1 font-medium text-sm'
+                variant='body2'
+                color='primary.dark'
+              >
+                Total
               </Typography>
-            </Box>
-          </Box>
+
+                <Icon
+                  color={theme.palette.primary.dark}
+                  icon="lucide:saudi-riyal"
+                  width="0.85rem"
+                />
+                <Typography
+                  variant='body2'
+                  color='primary.dark'
+                  className='font-semibold'
+                >
+                  {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Typography>
+              </Box>
+
+
+
+            </div>
+
+
+
 
         </Box>
-   
- 
+
+
   )
 }
 
