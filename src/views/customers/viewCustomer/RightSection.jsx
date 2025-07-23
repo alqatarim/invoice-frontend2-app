@@ -14,6 +14,7 @@ import CustomTabList from '@core/components/mui/TabList'
 import Overview from './rightSection/Overview'
 import Security from './rightSection/Security'
 import AddressBilling from './rightSection/AddressBilling'
+import PaymentTransactions from './rightSection/PaymentTransactions'
 import Notifications from './rightSection/Notifications'
 
 const CustomerRight = ({ customerData, invoices, cardDetails, onCustomerUpdate }) => {
@@ -40,6 +41,12 @@ const CustomerRight = ({ customerData, invoices, cardDetails, onCustomerUpdate }
                 iconPosition='start'
               />
               <Tab
+                icon={<i className='ri-bank-card-line' />}
+                value='payments'
+                label='Payments'
+                iconPosition='start'
+              />
+              <Tab
                 icon={<i className='ri-notification-2-line' />}
                 value='notifications'
                 label='Notifications'
@@ -60,6 +67,12 @@ const CustomerRight = ({ customerData, invoices, cardDetails, onCustomerUpdate }
             </TabPanel>
             <TabPanel value='addressBilling' className='p-0'>
               <AddressBilling
+                customerData={customerData}
+                onCustomerUpdate={onCustomerUpdate}
+              />
+            </TabPanel>
+            <TabPanel value='payments' className='p-0'>
+              <PaymentTransactions
                 customerData={customerData}
                 onCustomerUpdate={onCustomerUpdate}
               />

@@ -11,22 +11,41 @@ import { useTheme } from '@mui/material/styles'
 import CardHeader from '@mui/material/CardHeader'
 import Typography from '@mui/material/Typography'
 import CardContent from '@mui/material/CardContent'
+import Box from '@mui/material/Box'
 import {Icon} from '@iconify/react'
 // Components Imports
 import CustomAvatar from '@core/components/mui/Avatar'
 import OptionsMenu from '@core/components/option-menu'
+import { statusOptions } from '@/data/dataSets'
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
-const CardWidgetsSalesOverview = ({series, width, labels, amounts, currencyData}) => {
+const CardWidgetsSalesOverview = ({series,  labels, amounts, currencyData, width, height}) => {
   // Hooks
   const theme = useTheme()
-  const textSecondary = 'var(--mui-palette-text-secondary)'
+  
+  const hasData = (amounts || []).some(val => Number(val) > 0);
+
+  // Precompute status data for mapping, with safe fallbacks
+  const statusData = (labels || []).map((label, idx) => {
+    const option = statusOptions.find(opt => opt.value === label) || {};
+    return {
+      label: option.label || label || `Status ${idx + 1}`,
+      icon: option.icon || 'ri-circle-fill',
+      // color: option.color ? (theme.palette[option.color] || theme.palette.primary) : '#9f87ff',
+      color: option.color,
+      amount: amounts && amounts[idx] !== undefined ? amounts[idx] : 0,
+      idx
+    };
+  });
+
 
   const options = {
     chart: {
-      sparkline: { enabled: true }
+      sparkline: { enabled: true },
+      width: width,
+      height: height
     },
     grid: {
       padding: {
@@ -35,28 +54,9 @@ const CardWidgetsSalesOverview = ({series, width, labels, amounts, currencyData}
       }
     },
 
-  //    ["PAID","PARTIALLY PAID", "DRAFTED", "OVERDUE"]
-// PAID  '#826af9',
-// PARTIALLY PAID  '#9f87ff',
-// DRAFTED  '#d2b0ff',
-// OVERDUE  '#f8d3ff'
-
-
-
-    colors: [
-
-      // 'var(--mui-palette-primary-main)',
-      // 'rgba(var(--mui-palette-secondary-lightChannel) / 0.2)',
-      // 'rgba(var(--mui-palette-primary-mainChannel) / 0.6)',
-
-      // 'rgba(var(--mui-palette-primary-mainChannel) / 0.2)',
-      // 'rgba(var(--mui-palette-warning-mainChannel) / 0.3)'
-  '#826af9',
-'#9f87ff',
-'#d2b0ff',
-'#feeeee'
-      //'var(--mui-palette-customColors-trackBg)'
-    ],
+    colors: labels.map(label => {
+      return theme.palette[statusOptions.find(option => option.value === label).color].light || theme.palette.primary.light
+    }),
     stroke: { width: 0 },
     legend: { show: false },
     tooltip: { theme: 'false' },
@@ -74,13 +74,13 @@ const CardWidgetsSalesOverview = ({series, width, labels, amounts, currencyData}
       pie: {
         customScale: 1,
         donut: {
-          size: '75',
+          size: '80',
           labels: {
             show: true,
             name: {
               offsetY: 25,
               fontSize: '0.875rem',
-              color: textSecondary
+              color: 'var(--mui-palette-text-secondary)'
             },
             value: {
               offsetY: -15,
@@ -93,7 +93,7 @@ const CardWidgetsSalesOverview = ({series, width, labels, amounts, currencyData}
               show: true,
               fontSize: '0.875rem',
               label: 'Invoices',
-              color: textSecondary,
+              color: 'var(--mui-palette-text-secondary)',
               formatter: (w) => {
 
                 const total = w.globals.series.reduce((a, b) => a + b, 0);
@@ -120,6 +120,8 @@ const CardWidgetsSalesOverview = ({series, width, labels, amounts, currencyData}
     ]
   }
 
+
+
   return (
     <Card>
       <CardHeader
@@ -127,70 +129,51 @@ const CardWidgetsSalesOverview = ({series, width, labels, amounts, currencyData}
         action={<OptionsMenu iconClassName='text-textPrimary' options={['Last 28 Days', 'Last Month', 'Last Year']} />}
       />
       <CardContent>
-        <Grid container>
-          <Grid item xs={12} sm={6}  sx={{ mb: [3, 0] }}>
-            {/* <AppReactApexCharts type='donut' height={277} width='100%' series={series || []} options={options} /> */}
-            <AppReactApexCharts type='donut'  series={[25,10,20,15]} options={options} />
+        <Grid container className='flex flex-col justify-between items-center'>
+          <Grid size={{xs: '12'}}>
+          
+                <AppReactApexCharts type='donut' width={width} height={height} series={amounts} options={options} />
+           
           </Grid>
-          <Grid item xs={12} sm={6}  sx={{ my: 'auto' }}>
-            <div className='flex items-center gap-3'>
-              <CustomAvatar skin='light' color='primary' variant='rounded'>
-                <i className='ri-wallet-line text-primary' />
-              </CustomAvatar>
-              <div className='flex flex-col'>
-                <Typography>Number of Invoices</Typography>
-                <Typography variant='h5'>{amounts.reduce((a, b) => a + b, 0)} SAR</Typography>
-
-              </div>
-
-{/*
-               PAID  '#826af9',
- PARTIALLY PAID  '#9f87ff',
- DRAFTED  '#d2b0ff',
- OVERDUE  '#f8d3ff'
- OVERDUE  '#feeeee
- */}
-
-            </div>
+          <Grid size={{xs: '12'}}>
+   
             <Divider className='mlb-6' />
-            <Grid container spacing={6}>
-              <Grid item xs={6}>
-                <div className='flex items-center gap-2 mbe-1'>
-                  <div>
-                    <Icon   icon='ri-circle-fill' style={{color: '#d2b0ff'}} className={` text-[15px]`} />
-                  </div>
-                  <Typography>Draft</Typography>
-                </div>
-                <Typography variant='h6'>{amounts[0]} SAR</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <div className='flex items-center gap-2 mbe-1'>
-                  <div>
-                  <Icon   icon='ri-circle-fill' style={{color: '#9f87ff'}} className={` text-[15px]`} />
-                  </div>
-                  <Typography>Partially Paid</Typography>
-                </div>
-                <Typography variant='h6'>{amounts[1]} SAR</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <div className='flex items-center gap-2 mbe-1'>
-                  <div>
-                  <Icon   icon='ri-circle-fill' style={{color: '#826af9'}} className={` text-[15px]`} />
-                  </div>
-                  <Typography>Paid</Typography>
-                </div>
-                <Typography variant='h6'>{amounts[2]} SAR</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <div className='flex items-center gap-2 mbe-1'>
-                  <div>
-                  <Icon   icon='ri-circle-fill' style={{color: '#feeeee'}} className={` text-[15px]`} />
+            <Grid container className='flex flex-row justify-start gap-1'>
+                
+            <Grid size={{xs: 6, md: 3.5}} className=''>
+                  <Box className='flex items-center gap-2 mbe-1'>
 
-                  </div>
-                  <Typography>Overdue</Typography>
-                </div>
-                <Typography variant='h6'>{amounts[3]} SAR</Typography>
-              </Grid>
+                      <CustomAvatar size='2.35rem' skin='light' color='primary' variant='rounded'>
+                        <Icon icon={'mdi:invoice-text-outline'} color={theme.palette.primary}
+                        width={30} />
+                      </CustomAvatar>
+
+                    <Typography variant='body2' className='text-[0.9rem]'>Total</Typography>
+                  </Box>
+                  <Box className='flex items-center flex-row gap-1'>
+                    <Icon icon='lucide:saudi-riyal' width='1.2rem' color={theme.palette.secondary.light} />
+                    <Typography className='text-textPrimary font-medium text-[1.1rem]'>{amounts.reduce((a, b) => a + b, 0)}</Typography>
+                  </Box>
+                </Grid>
+
+                
+              {statusData.map((status, i) => (
+                <Grid size={{xs: 6, md: 3.5}}  key={status.label + i} className=''>
+                  <Box className='flex items-center gap-2 mbe-1'>
+
+                      <CustomAvatar size='2.35rem' skin='light' color={status.color} variant='rounded'>
+                        <Icon icon={status.icon} color={status.color}
+                        width={30} />
+                      </CustomAvatar>
+
+                    <Typography variant='body2' className='text-[0.9rem]'>{status.label}</Typography>
+                  </Box>
+                  <Box className='flex items-center flex-row gap-1'>
+                    <Icon icon='lucide:saudi-riyal' width='1.2rem' color={theme.palette.secondary.light} />
+                    <Typography className='text-textPrimary font-medium text-[1.1rem]'>{status.amount}</Typography>
+                  </Box>
+                </Grid>
+              ))}
             </Grid>
           </Grid>
         </Grid>

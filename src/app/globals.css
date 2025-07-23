@@ -126,3 +126,16 @@ code {
   background-color: rgb(var(--mui-palette-info-mainChannel) / 0.08);
   border: 0;
 }
+
+/* Fix for ApexCharts tooltip visibility */
+.apexcharts-tooltip {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  display: block !important;
+  opacity: 1 !important;
+}
+
+.apexcharts-xaxistooltip,
+.apexcharts-yaxistooltip {
+  z-index: 9999 !important;
+}

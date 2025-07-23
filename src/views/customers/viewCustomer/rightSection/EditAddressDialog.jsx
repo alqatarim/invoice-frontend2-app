@@ -20,21 +20,52 @@ import IconButton from '@mui/material/IconButton'
 import CircularProgress from '@mui/material/CircularProgress'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
+import InputAdornment from '@mui/material/InputAdornment'
+import Box from '@mui/material/Box'
 
 // Third-party Imports
 import { useSnackbar } from 'notistack'
+import { countries } from 'country-codes-flags-phone-codes'
+
+// CSS Import for flag icons
+import 'flag-icons/css/flag-icons.min.css'
 
 // Actions Import
 import { updateCustomer } from '@/app/(dashboard)/customers/actions'
 
-// Vars
-const countries = ['US', 'France', 'Russia', 'China', 'UK', 'Germany', 'Italy', 'Japan', 'Australia', 'Canada', 'Saudi Arabia', 'UAE']
+// Helper function to get flag CSS class
+const getFlagIcon = (countryCode) => {
+  if (!countryCode) return null
+  
+  return (
+    <span 
+      className={`fi fi-${countryCode.toLowerCase()}`}
+      style={{ marginRight: '8px' }}
+      title={countryCode}
+    />
+  )
+}
+
+// Helper function to get country code from country name
+const getCountryCodeFromName = (countryName) => {
+  if (!countryName) return null
+  const country = countries.find(c => c.name === countryName)
+  return country ? country.code : null
+}
+
+// Helper function to get country name from country code (for backwards compatibility)
+const getCountryNameFromCode = (countryCode) => {
+  if (!countryCode) return ''
+  const country = countries.find(c => c.code === countryCode)
+  return country ? country.name : countryCode // fallback to code if not found
+}
 
 const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) => {
   const { enqueueSnackbar } = useSnackbar()
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [copyToBilling, setCopyToBilling] = useState(false)
+  const [countrySearch, setCountrySearch] = useState('')
 
   // Form state for address fields
   const [formData, setFormData] = useState({
@@ -54,6 +85,13 @@ const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) 
         ? customer.billingAddress
         : customer.shippingAddress
 
+      // Handle backwards compatibility: if country is a code, convert to name
+      let countryValue = addressData?.country || 'Saudi Arabia'
+      if (countryValue && countryValue.length <= 3) {
+        // Likely a country code, convert to name
+        countryValue = getCountryNameFromCode(countryValue)
+      }
+
       setFormData({
         name: addressData?.name || customer?.name || '',
         addressLine1: addressData?.addressLine1 || '',
@@ -61,10 +99,11 @@ const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) 
         city: addressData?.city || '',
         state: addressData?.state || '',
         pincode: addressData?.pincode || '',
-        country: addressData?.country || 'US'
+        country: countryValue
       })
       setErrors({})
       setCopyToBilling(false)
+      setCountrySearch('')
     }
   }, [open, customer, addressType])
 
@@ -177,8 +216,15 @@ const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) 
     if (!loading) {
       setOpen(false)
       setErrors({})
+      setCountrySearch('')
     }
   }, [loading, setOpen])
+
+  // Filter countries based on search
+  const filteredCountries = countries.filter(country =>
+    country.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+    country.code.toLowerCase().includes(countrySearch.toLowerCase())
+  )
 
   const dialogTitle = addressType === 'billing' ? 'Edit Billing Address' : 'Edit Shipping Address'
   const dialogDescription = addressType === 'billing'
@@ -293,12 +339,119 @@ const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) 
                   value={formData.country}
                   onChange={e => handleFieldChange('country', e.target.value)}
                   disabled={loading}
+                  className='min-w-[230px]'
+                  renderValue={(selected) => {
+                    if (!selected) return ''
+                    const countryCode = getCountryCodeFromName(selected)
+                    return (
+                      <div className='flex items-center gap-2'>
+                        {getFlagIcon(countryCode)}
+                        <span>{selected}</span>
+                      </div>
+                    )
+                  }}
+                
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 400,
+                        minHeight: 300, // Consistent dropdown height
+                        width: 'auto',
+                        minWidth: '280px', // Prevent width fluctuation
+                      },
+                    },
+                    MenuListProps: {
+                      style: { 
+                        paddingTop: 0,
+                        minHeight: '250px', // Maintain consistent content area
+                      }
+                    },
+                    anchorOrigin: {
+                      vertical: 'bottom',
+                      horizontal: 'left',
+                    },
+                    transformOrigin: {
+                      vertical: 'top',
+                      horizontal: 'left',
+                    },
+                  }}
                 >
-                  {countries.map((country) => (
-                    <MenuItem key={country} value={country}>
-                      {country}
+                  {/* Search field at the top of dropdown - NOT disabled */}
+                  <Box sx={{ 
+                    px: 2, 
+                    py: 1.5, 
+                    position: 'sticky', 
+                    top: 0, 
+                    backgroundColor: 'background.paper', 
+                    zIndex: 1,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    mb: 1
+                  }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Search countries..."
+                      value={countrySearch}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <i className="ri-search-line" />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{ 
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'divider',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'primary.main',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'primary.main',
+                            borderWidth: '1px',
+                          },
+                        },
+                      }}
+                    />
+                  </Box>
+                  
+                  {/* Country options - NO Box wrapper */}
+                  {filteredCountries.length > 0 ? (
+                    filteredCountries.map((country) => (
+                      <MenuItem 
+                        key={country.code} 
+                        value={country.name} // Changed to country.name
+                        sx={{
+                          minHeight: '48px', // Consistent item height
+                          '&:hover': {
+                            backgroundColor: 'action.hover',
+                          }
+                        }}
+                      >
+                        <div className='flex items-center gap-2'>
+                          {getFlagIcon(country.code)}
+                          <span>{country.name}</span>
+                        </div>
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      minHeight: '100px',
+                      p: 2
+                    }}>
+                      <Typography variant="body2" color="textSecondary">
+                        No countries found
+                      </Typography>
                     </MenuItem>
-                  ))}
+                  )}
                 </Select>
               </FormControl>
             </Grid>

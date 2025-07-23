@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation'
 import { deleteCustomer } from '@/app/(dashboard)/customers/actions'
 import { useCustomerDetailsHandlers } from './useCustomerDetailsHandlers'
 import { useCustomerAddressHandlers } from './useCustomerAddressHandlers'
+import { useCustomerBankDetailsHandlers } from './useCustomerBankDetailsHandlers'
 import { useCustomerSecurityHandlers } from './useCustomerSecurityHandlers'
 import { useCustomerNotificationHandlers } from './useCustomerNotificationHandlers'
 
@@ -24,6 +25,14 @@ export const useViewCustomerHandlers = ({ customer, onError, onSuccess, onCustom
 
   // Address and billing handler - manages addresses and payment info
   const addressHandler = useCustomerAddressHandlers({
+    customer,
+    onError,
+    onSuccess,
+    onUpdate: onCustomerUpdate
+  })
+
+  // Bank details handler - manages bank account information
+  const bankDetailsHandler = useCustomerBankDetailsHandlers({
     customer,
     onError,
     onSuccess,
@@ -105,6 +114,7 @@ export const useViewCustomerHandlers = ({ customer, onError, onSuccess, onCustom
 
     // Address and billing handlers
     addressHandlers: {
+      // Legacy state and actions (for existing components)
       editMode: addressHandler.editMode,
       formData: addressHandler.formData,
       loading: addressHandler.loading,
@@ -113,7 +123,35 @@ export const useViewCustomerHandlers = ({ customer, onError, onSuccess, onCustom
       handleSaveSection: addressHandler.handleSaveSection,
       handleCancelEdit: addressHandler.handleCancelEdit,
       handleCopyBillingToShipping: addressHandler.handleCopyBillingToShipping,
-      initializeFormData: addressHandler.initializeFormData
+      initializeFormData: addressHandler.initializeFormData,
+
+      // Dialog state and actions (for new dialog components)
+      dialogState: addressHandler.dialogState,
+      handleOpenBillingAddressDialog: addressHandler.handleOpenBillingAddressDialog,
+      handleCloseBillingAddressDialog: addressHandler.handleCloseBillingAddressDialog,
+      handleOpenShippingAddressDialog: addressHandler.handleOpenShippingAddressDialog,
+      handleCloseShippingAddressDialog: addressHandler.handleCloseShippingAddressDialog,
+      handleOpenBankDetailsDialog: addressHandler.handleOpenBankDetailsDialog,
+      handleCloseBankDetailsDialog: addressHandler.handleCloseBankDetailsDialog,
+      handleAddressUpdateSuccess: addressHandler.handleAddressUpdateSuccess,
+      handleBankDetailsUpdateSuccess: addressHandler.handleBankDetailsUpdateSuccess,
+      handleDialogError: addressHandler.handleDialogError
+    },
+
+    // Bank details handlers (dedicated)
+    bankDetailsHandlers: {
+      loading: bankDetailsHandler.loading,
+      dialogOpen: bankDetailsHandler.dialogOpen,
+      bankDetails: bankDetailsHandler.bankDetails,
+      errors: bankDetailsHandler.errors,
+      handleOpenDialog: bankDetailsHandler.handleOpenDialog,
+      handleCloseDialog: bankDetailsHandler.handleCloseDialog,
+      handleFieldChange: bankDetailsHandler.handleFieldChange,
+      handleSaveBankDetails: bankDetailsHandler.handleSaveBankDetails,
+      handleCancelEdit: bankDetailsHandler.handleCancelEdit,
+      handleClearBankDetails: bankDetailsHandler.handleClearBankDetails,
+      initializeBankDetails: bankDetailsHandler.initializeBankDetails,
+      validateBankDetails: bankDetailsHandler.validateBankDetails
     },
 
     // Security handlers

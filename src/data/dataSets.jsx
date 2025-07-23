@@ -31,11 +31,12 @@ export const statusOptions = [
   { value: 'REFUND', label: 'Refund', color: 'secondary', icon: 'ri:refund-line' },
   { value: 'SENT', label: 'Sent', color: 'info', icon: 'ri:send-plane-line' },
   { value: 'UNPAID', label: 'Unpaid', color: 'warning', icon: 'ri:time-line' },
-  { value: 'PARTIALLY_PAID', label: 'Partial Paid', color: 'warning', icon: 'mdi:access-time' },
+  { value: 'PARTIALLY_PAID', label: 'Partial Paid', color: 'warning', icon: 'mdi:invoice-text-clock-outline' },
+  { value: 'PARTIALLY PAID', label: 'Partial Paid', color: 'warning', icon: 'mdi:invoice-text-clock-outline' },
   { value: 'CANCELLED', label: 'Cancelled', color: 'secondary', icon: 'ri:close-circle-line' },
-  { value: 'OVERDUE', label: 'Overdue', color: 'error', icon: 'mdi:clock-alert-outline' },
-  { value: 'PAID', label: 'Paid', color: 'success', icon: 'mdi:check-bold' },
-  { value: 'DRAFTED', label: 'Drafted', color: 'secondary', icon: 'ri:draft-line' },
+  { value: 'OVERDUE', label: 'Overdue', color: 'error', icon: 'mdi:invoice-text-clock-outline' },
+  { value: 'PAID', label: 'Paid', color: 'success', icon: 'mdi:invoice-text-check-outline' },
+  { value: 'DRAFTED', label: 'Drafted', color: 'secondary', icon: 'mdi:invoice-text-edit-outline' },
     { value: 'Active', label: 'Active', color: 'info', icon: 'ri:check-double-line' },
 ]
 

@@ -9,7 +9,7 @@ import Box from '@mui/material/Box'
 import LinearProgress from '@mui/material/LinearProgress'
 import { styled } from '@mui/material/styles'
 import { Icon } from '@iconify/react'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import Divider from '@mui/material/Divider'
 // Third-party Imports
 import classnames from 'classnames'
@@ -35,8 +35,18 @@ const Card = styled(MuiCard)(({ theme, bordercolor }) => ({
   }
 }))
 
-const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor = 'primary', ...props }) => {
+const HorizontalStatsGroup = ({ 
+  stats, 
+  totalAmount: propTotalAmount, 
+  borderColor = 'primary',
+  animationDuration = 1500, // Animation duration in ms
+  animationDelay = 100, // Delay between segment animations in ms
+  animateOnMount = true, // Whether to animate on component mount
+  ...props 
+}) => {
   const theme = useTheme()
+  const [segmentProgress, setSegmentProgress] = useState({})
+  const [totalProgress, setTotalProgress] = useState(0)
 
 
   if (!stats || !Array.isArray(stats)) {
@@ -74,6 +84,38 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
   }, [stats, totalAmount])
 
 
+  // Initialize animation states
+  useEffect(() => {
+    if (!animateOnMount || segments.length === 0) return
+
+    // Reset all progress to 0
+    const initialProgress = {}
+    segments.forEach((_, index) => {
+      initialProgress[index] = 0
+    })
+    setSegmentProgress(initialProgress)
+    setTotalProgress(0)
+
+    // Animate each segment with staggered timing
+    segments.forEach((segment, index) => {
+      const timer = setTimeout(() => {
+        setSegmentProgress(prev => ({
+          ...prev,
+          [index]: 100
+        }))
+      }, index * animationDelay)
+
+      return () => clearTimeout(timer)
+    })
+
+    // Animate total bar
+    const totalTimer = setTimeout(() => {
+      setTotalProgress(100)
+    }, segments.length * animationDelay)
+
+    return () => clearTimeout(totalTimer)
+  }, [segments, animateOnMount, animationDelay])
+
   return (
 
         <Box className='flex flex-col gap-2 p-6'>
@@ -98,16 +140,23 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
                 </Typography>
                 <LinearProgress
                   variant='determinate'
-                  value={-1}
+                  value={segmentProgress[index] || 0}
                   className={`bs-[46px] font-medium`}
                   sx={{
                     borderRadius: index === 0 ? '8px 0 0 8px' : index === segments.length - 1 ? '0 8px 8px 0' : '0',
-                    backgroundColor: theme => { return theme.palette[segment.color]?.[segment.colorOpacity] || theme.palette.secondary.light}
+                    backgroundColor: theme => theme.palette[segment.color]?.[segment.colorOpacity] || theme.palette.secondary.light,
+                    '& .MuiLinearProgress-bar': {
+                      transition: `transform ${animationDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+                      backgroundColor: theme => theme.palette[segment.color]?.main
+                    }
                   }}
                 />
                 <Box
                   className={`absolute bottom-3 start-2 font-medium flex items-center gap-1`}
-
+                  sx={{
+                    opacity: (segmentProgress[index] || 0) / 100,
+                    transition: `opacity ${animationDuration}ms ease-in-out`
+                  }}
                 >
                   {segment.isCurrency && (
                     <Icon
@@ -151,13 +200,23 @@ const HorizontalStatsGroup = ({ stats, totalAmount: propTotalAmount, borderColor
 
               <LinearProgress
                 variant='determinate'
-                value={-1}
+                value={totalProgress}
                 className='bs-[6px] font-medium br-[8px] bg-primaryDarker rounded-xs'
+                sx={{
+                  '& .MuiLinearProgress-bar': {
+                    transition: `transform ${animationDuration + (segments.length * animationDelay)}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+                    backgroundColor: theme => theme.palette.primary.main
+                  }
+                }}
               />
 
 
               <Box
                 className='start-2 font-medium flex items-center gap-1'
+                sx={{
+                  opacity: totalProgress / 100,
+                  transition: `opacity ${animationDuration}ms ease-in-out`
+                }}
               >
 
                <Typography

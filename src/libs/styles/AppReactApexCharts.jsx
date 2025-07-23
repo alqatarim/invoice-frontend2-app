@@ -9,6 +9,42 @@ import ReactApexcharts from '@/libs/ApexCharts'
 
 // Styled Components
 const ApexChartWrapper = styled(Box)(({ theme }) => ({
+  '& .apexcharts-tooltip': {
+    background: 'var(--mui-palette-background-paper)',
+    color: theme.palette.mode === 'dark'
+      ? 'var(--mui-palette-common-white)'
+      : 'var(--mui-palette-text-primary)',
+    boxShadow: 'var(--mui-customShadows-xs)',
+    borderColor: 'var(--mui-palette-divider)',
+    '& .apexcharts-tooltip-title': {
+      fontWeight: 600,
+      borderColor: 'var(--mui-palette-divider)',
+      background: 'var(--mui-palette-background-paper)'
+    },
+    '&.apexcharts-theme-light': {
+      color: 'var(--mui-palette-text-primary)'
+    },
+    '&.apexcharts-theme-dark': {
+      color: 'var(--mui-palette-common-white)'
+    }
+  },
+  '& .apexcharts-xaxistooltip, & .apexcharts-yaxistooltip': {
+    background: 'var(--mui-palette-grey-50)',
+    color: 'var(--mui-palette-text-primary)',
+    borderColor: 'var(--mui-palette-divider)'
+  },
+  '& .apexcharts-text, & .apexcharts-tooltip-text, & .apexcharts-datalabel-label, & .apexcharts-datalabel, & .apexcharts-xaxistooltip-text, & .apexcharts-yaxistooltip-text, & .apexcharts-legend-text': {
+    fontFamily: `${theme.typography.fontFamily} !important`
+  }
+}))
+
+
+
+
+
+
+
+const ApexChartWrapperX = styled(Box)(({ theme }) => ({
   '& .apexcharts-canvas': {
     "& line[stroke='transparent']": {
       display: 'none'
@@ -48,14 +84,14 @@ const ApexChartWrapper = styled(Box)(({ theme }) => ({
     '& .apexcharts-xaxistooltip': {
       borderColor: 'var(--mui-palette-divider)',
       background: 'var(--mui-palette-grey-50)',
-      '[data-mui-color-scheme="dark"] &': {
+      ...theme.applyStyles('dark', {
         background: 'var(--mui-palette-customColors-bodyBg)'
-      },
+      }),
       '&:after': {
         borderBottomColor: 'var(--mui-palette-grey-50)',
-        '[data-mui-color-scheme="dark"] &': {
+        ...theme.applyStyles('dark', {
           borderBottomColor: 'var(--mui-palette-customColors-bodyBg)'
-        }
+        })
       },
       '&:before': {
         borderBottomColor: 'var(--mui-palette-divider)'
@@ -64,14 +100,14 @@ const ApexChartWrapper = styled(Box)(({ theme }) => ({
     '& .apexcharts-yaxistooltip': {
       borderColor: 'var(--mui-palette-divider)',
       background: 'var(--mui-palette-grey-50)',
-      '[data-mui-color-scheme="dark"] &': {
+      ...theme.applyStyles('dark', {
         background: 'var(--mui-palette-customColors-bodyBg)'
-      },
+      }),
       '&:after': {
         borderLeftColor: 'var(--mui-palette-grey-50)',
-        '[data-mui-color-scheme="dark"] &': {
+        ...theme.applyStyles('dark', {
           borderLeftColor: 'var(--mui-palette-customColors-bodyBg)'
-        }
+        })
       },
       '&:before': {
         borderLeftColor: 'var(--mui-palette-divider)'
@@ -84,9 +120,9 @@ const ApexChartWrapper = styled(Box)(({ theme }) => ({
       textAnchor: theme.direction === 'rtl' ? 'start' : undefined
     },
     '& .apexcharts-text, & .apexcharts-tooltip-text, & .apexcharts-datalabel-label, & .apexcharts-datalabel, & .apexcharts-xaxistooltip-text, & .apexcharts-yaxistooltip-text, & .apexcharts-legend-text':
-    {
-      fontFamily: `${theme.typography.fontFamily} !important`
-    },
+      {
+        fontFamily: `${theme.typography.fontFamily} !important`
+      },
     '& .apexcharts-pie-label': {
       filter: 'none'
     },
@@ -96,10 +132,14 @@ const ApexChartWrapper = styled(Box)(({ theme }) => ({
   }
 }))
 
+
+
+
 const AppReactApexCharts = props => {
   // Props
   const { boxProps, ...rest } = props
 
+  // You can wrap with ApexChartWrapper if you want to apply the color styles
   return (
     <ApexChartWrapper {...boxProps}>
       <ReactApexcharts {...rest} />

@@ -27,9 +27,10 @@ export const getCustomerInvoiceColumns = () => [
     renderCell: (row) => (
       <Typography
         color='text.primary'
+
         component={Link}
         href={`/invoices/invoice-view/${row._id}`}
-        className=' text-primary text-[0.9rem] hover:underline'
+        className=' text-primary text-[0.9rem] hover:underline font-bold'
       >
         {row.invoiceNumber || 'N/A'}
       </Typography>
@@ -42,7 +43,8 @@ export const getCustomerInvoiceColumns = () => [
     align: 'center',
     renderCell: (row) => (
       <Typography
-      color='text.primary'
+      // color='text.primary'
+      color={useTheme().palette.primary.lightest}
       className='text-[0.9rem]'
       >
         {formatDate(row.invoiceDate)}

@@ -1,6 +1,5 @@
 // Next Imports
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 
 // MUI Imports
@@ -11,8 +10,12 @@ import Typography from '@mui/material/Typography'
 import ConfirmationDialog from '@components/dialogs/confirmation-dialog'
 import OpenDialogOnElementClick from '@components/dialogs/OpenDialogOnElementClick'
 
+// Handler Import
+import { useNavigationHandlers } from '@/handlers/customers/view'
+
 const CustomerDetailsHeader = ({ customerId, customer, permissions }) => {
-  const router = useRouter()
+  // Navigation handlers
+  const { handleBack, handleCreateInvoice } = useNavigationHandlers({ customerId, customer })
  
   // Vars - memoized to prevent re-renders
   const buttonProps = useMemo(() => (children, color, variant) => ({
@@ -37,7 +40,7 @@ const CustomerDetailsHeader = ({ customerId, customer, permissions }) => {
         <Button
           variant='outlined'
           startIcon={<i className='ri-arrow-left-line' />}
-          onClick={() => router.back()}
+          onClick={handleBack}
         >
           Back
         </Button>
@@ -55,8 +58,7 @@ const CustomerDetailsHeader = ({ customerId, customer, permissions }) => {
           <Button
             variant='contained'
             startIcon={<i className='ri-add-line' />}
-            component={Link}
-            href={`/invoices/add?customerId=${customerId}`}
+            onClick={handleCreateInvoice}
           >
             Create Invoice
           </Button>

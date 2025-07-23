@@ -10,6 +10,13 @@ export const useCustomerAddressHandlers = ({ customer, onError, onSuccess, onUpd
     shippingAddress: false,
     bankDetails: false
   })
+
+  // Dialog state management
+  const [dialogState, setDialogState] = useState({
+    billingAddress: false,
+    shippingAddress: false,
+    bankDetails: false
+  })
   
   const [formData, setFormData] = useState({
     billingAddress: {
@@ -92,6 +99,114 @@ export const useCustomerAddressHandlers = ({ customer, onError, onSuccess, onUpd
     }
   }, [initializeFormData])
 
+  // Dialog handlers
+  const handleOpenDialog = useCallback((dialogType) => {
+    setDialogState(prev => ({
+      ...prev,
+      [dialogType]: true
+    }))
+  }, [])
+
+  const handleCloseDialog = useCallback((dialogType) => {
+    setDialogState(prev => ({
+      ...prev,
+      [dialogType]: false
+    }))
+  }, [])
+
+  // Handle billing address dialog
+  const handleOpenBillingAddressDialog = useCallback(() => {
+    handleOpenDialog('billingAddress')
+  }, [handleOpenDialog])
+
+  const handleCloseBillingAddressDialog = useCallback(() => {
+    handleCloseDialog('billingAddress')
+  }, [handleCloseDialog])
+
+  // Handle shipping address dialog
+  const handleOpenShippingAddressDialog = useCallback(() => {
+    handleOpenDialog('shippingAddress')
+  }, [handleOpenDialog])
+
+  const handleCloseShippingAddressDialog = useCallback(() => {
+    handleCloseDialog('shippingAddress')
+  }, [handleCloseDialog])
+
+  // Handle bank details dialog
+  const handleOpenBankDetailsDialog = useCallback(() => {
+    handleOpenDialog('bankDetails')
+  }, [handleOpenDialog])
+
+  const handleCloseBankDetailsDialog = useCallback(() => {
+    handleCloseDialog('bankDetails')
+  }, [handleCloseDialog])
+
+  // Handle successful address update from dialog
+  const handleAddressUpdateSuccess = useCallback((updatedCustomer) => {
+    // Close any open dialogs
+    setDialogState({
+      billingAddress: false,
+      shippingAddress: false,
+      bankDetails: false
+    })
+
+    // Notify parent component of the update
+    if (onUpdate) {
+      onUpdate(updatedCustomer)
+    }
+
+    // Show success message
+    if (onSuccess) {
+      onSuccess('Address updated successfully')
+    }
+  }, [onUpdate, onSuccess])
+
+  // Handle successful bank details update from dialog
+  const handleBankDetailsUpdateSuccess = useCallback((updatedCustomer) => {
+    // Close bank details dialog
+    setDialogState(prev => ({
+      ...prev,
+      bankDetails: false
+    }))
+
+    // Notify parent component of the update
+    if (onUpdate) {
+      onUpdate(updatedCustomer)
+    }
+
+    // Show success message
+    if (onSuccess) {
+      onSuccess('Bank details updated successfully')
+    }
+  }, [onUpdate, onSuccess])
+
+  // Handle dialog error
+  const handleDialogError = useCallback((error) => {
+    if (onError) {
+      onError(error)
+    }
+  }, [onError])
+
+  // Generic update success handler for dialogs
+  const handleUpdateSuccess = useCallback((updatedCustomer) => {
+    // Close any open dialogs
+    setDialogState({
+      billingAddress: false,
+      shippingAddress: false,
+      bankDetails: false
+    })
+
+    // Notify parent component of the update
+    if (onUpdate) {
+      onUpdate(updatedCustomer)
+    }
+
+    // Show success message
+    if (onSuccess) {
+      onSuccess('Customer updated successfully')
+    }
+  }, [onUpdate, onSuccess])
+
   // Handle field changes
   const handleFieldChange = useCallback((section, field, value) => {
     setFormData(prev => ({
@@ -144,13 +259,26 @@ export const useCustomerAddressHandlers = ({ customer, onError, onSuccess, onUpd
     editMode,
     formData,
     loading,
+    dialogState,
     
-    // Actions
+    // Legacy actions (for existing components)
     handleEditModeToggle,
     handleFieldChange,
     handleSaveSection,
     handleCancelEdit,
     handleCopyBillingToShipping,
-    initializeFormData
+    initializeFormData,
+
+    // Dialog actions (for new dialog components)
+    handleOpenBillingAddressDialog,
+    handleCloseBillingAddressDialog,
+    handleOpenShippingAddressDialog,
+    handleCloseShippingAddressDialog,
+    handleOpenBankDetailsDialog,
+    handleCloseBankDetailsDialog,
+    handleAddressUpdateSuccess,
+    handleBankDetailsUpdateSuccess,
+    handleDialogError,
+    handleUpdateSuccess
   }
 } 

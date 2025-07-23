@@ -19,10 +19,7 @@ export const useCustomerSecurityHandlers = ({ customer, onError, onSuccess }) =>
 
   // Handle password form changes
   const handlePasswordFieldChange = useCallback((field, value) => {
-    setPasswordForm(prev => ({
-      ...prev,
-      [field]: value
-    }))
+    setPasswordForm(prev => ({ ...prev, [field]: value }))
   }, [])
 
   // Handle password visibility toggle
@@ -35,27 +32,27 @@ export const useCustomerSecurityHandlers = ({ customer, onError, onSuccess }) =>
     const { currentPassword, newPassword, confirmPassword } = passwordForm
 
     if (!currentPassword) {
-      onError('Current password is required')
+      onError?.('Current password is required')
       return false
     }
 
     if (!newPassword) {
-      onError('New password is required')
+      onError?.('New password is required')
       return false
     }
 
     if (newPassword.length < 8) {
-      onError('Password must be at least 8 characters long')
+      onError?.('Password must be at least 8 characters long')
       return false
     }
 
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(newPassword)) {
-      onError('Password must contain uppercase letters, lowercase letters, numbers, and special characters')
+      onError?.('Password must contain uppercase letters, lowercase letters, numbers, and special characters')
       return false
     }
 
     if (newPassword !== confirmPassword) {
-      onError('New password and confirmation do not match')
+      onError?.('New password and confirmation do not match')
       return false
     }
 
@@ -64,12 +61,7 @@ export const useCustomerSecurityHandlers = ({ customer, onError, onSuccess }) =>
 
   // Handle password change submission
   const handleChangePassword = useCallback(async () => {
-    if (!validatePasswordForm()) {
-      return
-    }
-
-    if (!customer?._id) {
-      onError('Customer ID is required')
+    if (!validatePasswordForm() || !customer?._id) {
       return
     }
 
@@ -77,19 +69,9 @@ export const useCustomerSecurityHandlers = ({ customer, onError, onSuccess }) =>
 
     try {
       // TODO: Implement password change API call
-      // This would typically call an API endpoint for changing passwords
-      // const result = await changeCustomerPassword({
-      //   customerId: customer._id,
-      //   currentPassword: passwordForm.currentPassword,
-      //   newPassword: passwordForm.newPassword
-      // })
-
-      // Simulate API call for now
       await new Promise(resolve => setTimeout(resolve, 1000))
 
-      onSuccess('Password changed successfully')
-      
-      // Reset form
+      onSuccess?.('Password changed successfully')
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
@@ -97,7 +79,7 @@ export const useCustomerSecurityHandlers = ({ customer, onError, onSuccess }) =>
       })
     } catch (error) {
       console.error('Error changing password:', error)
-      onError(error.message || 'Failed to change password')
+      onError?.(error.message || 'Failed to change password')
     } finally {
       setLoading(false)
     }
@@ -106,7 +88,7 @@ export const useCustomerSecurityHandlers = ({ customer, onError, onSuccess }) =>
   // Handle 2FA settings change
   const handle2FAToggle = useCallback(async (setting, enabled) => {
     if (!customer?._id) {
-      onError('Customer ID is required')
+      onError?.('Customer ID is required')
       return
     }
 
@@ -114,24 +96,13 @@ export const useCustomerSecurityHandlers = ({ customer, onError, onSuccess }) =>
 
     try {
       // TODO: Implement 2FA settings API call
-      // const result = await update2FASettings({
-      //   customerId: customer._id,
-      //   setting,
-      //   enabled
-      // })
-
-      // Simulate API call for now
       await new Promise(resolve => setTimeout(resolve, 1000))
 
-      setTwoFactorSettings(prev => ({
-        ...prev,
-        [setting]: enabled
-      }))
-
-      onSuccess(`Two-factor authentication ${enabled ? 'enabled' : 'disabled'} successfully`)
+      setTwoFactorSettings(prev => ({ ...prev, [setting]: enabled }))
+      onSuccess?.(`Two-factor authentication ${enabled ? 'enabled' : 'disabled'} successfully`)
     } catch (error) {
       console.error('Error updating 2FA settings:', error)
-      onError(error.message || 'Failed to update 2FA settings')
+      onError?.(error.message || 'Failed to update 2FA settings')
     } finally {
       setLoading(false)
     }

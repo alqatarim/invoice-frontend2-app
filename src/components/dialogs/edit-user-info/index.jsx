@@ -19,7 +19,42 @@ import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import Switch from '@mui/material/Switch'
 import IconButton from '@mui/material/IconButton'
+import InputAdornment from '@mui/material/InputAdornment'
+import Box from '@mui/material/Box'
 import { FormControlLabel } from '@mui/material'
+
+// Third-party Imports
+import { countries } from 'country-codes-flags-phone-codes'
+
+// CSS Import for flag icons
+import 'flag-icons/css/flag-icons.min.css'
+
+// Helper function to get flag CSS class
+const getFlagIcon = (countryCode) => {
+  if (!countryCode) return null
+  
+  return (
+    <span 
+      className={`fi fi-${countryCode.toLowerCase()}`}
+      style={{ marginRight: '8px' }}
+      title={countryCode}
+    />
+  )
+}
+
+// Helper function to get country code from country name
+const getCountryCodeFromName = (countryName) => {
+  if (!countryName) return null
+  const country = countries.find(c => c.name === countryName)
+  return country ? country.code : null
+}
+
+// Helper function to get country name from country code (for backwards compatibility)
+const getCountryNameFromCode = (countryCode) => {
+  if (!countryCode) return ''
+  const country = countries.find(c => c.code === countryCode)
+  return country ? country.name : countryCode // fallback to code if not found
+}
 
 // Vars
 const initialData = {
@@ -31,22 +66,29 @@ const initialData = {
   taxId: 'Tax-8894',
   contact: '+ 1 609 933 4422',
   language: ['english'],
-  country: 'US',
+  country: 'United States',
   useAsBillingAddress: true
 }
 
 const status = ['Status', 'Active', 'Inactive', 'Suspended']
 const languages = ['English', 'Spanish', 'French', 'German', 'Hindi']
-const countries = ['Select Country', 'France', 'Russia', 'China', 'UK', 'US']
 
 const EditUserInfo = ({ open, setOpen, data }) => {
   // States
   const [userData, setUserData] = useState(data || initialData)
+  const [countrySearch, setCountrySearch] = useState('')
 
   const handleClose = () => {
     setOpen(false)
     setUserData(initialData)
+    setCountrySearch('')
   }
+
+  // Filter countries based on search
+  const filteredCountries = countries.filter(country =>
+    country.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+    country.code.toLowerCase().includes(countrySearch.toLowerCase())
+  )
 
   return (
     <Dialog fullWidth open={open} onClose={handleClose} maxWidth='md' scroll='body'>
@@ -164,14 +206,122 @@ const EditUserInfo = ({ open, setOpen, data }) => {
                 <InputLabel>Country</InputLabel>
                 <Select
                   label='Country'
-                  value={userData?.country?.toLowerCase().replace(/\s+/g, '-')}
+                  value={userData?.country}
                   onChange={e => setUserData({ ...userData, country: e.target.value })}
+                  renderValue={(selected) => {
+                    if (!selected) return ''
+                    const countryCode = getCountryCodeFromName(selected)
+                    return (
+                      <div className='flex items-center gap-2'>
+                        {getFlagIcon(countryCode)}
+                        <span>{selected}</span>
+                      </div>
+                    )
+                  }}
+                  sx={{
+                    minWidth: '200px', // Ensure consistent width
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 400,
+                        minHeight: 300, // Consistent dropdown height
+                        width: 'auto',
+                        minWidth: '280px', // Prevent width fluctuation
+                      },
+                    },
+                    MenuListProps: {
+                      style: { 
+                        paddingTop: 0,
+                        minHeight: '250px', // Maintain consistent content area
+                      }
+                    },
+                    anchorOrigin: {
+                      vertical: 'bottom',
+                      horizontal: 'left',
+                    },
+                    transformOrigin: {
+                      vertical: 'top',
+                      horizontal: 'left',
+                    },
+                  }}
                 >
-                  {countries.map((country, index) => (
-                    <MenuItem key={index} value={country.toLowerCase().replace(/\s+/g, '-')}>
-                      {country}
+                  {/* Search field at the top of dropdown - NOT disabled */}
+                  <Box sx={{ 
+                    px: 2, 
+                    py: 1.5, 
+                    position: 'sticky', 
+                    top: 0, 
+                    backgroundColor: 'background.paper', 
+                    zIndex: 1,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    mb: 1
+                  }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Search countries..."
+                      value={countrySearch}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <i className="ri-search-line" />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{ 
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: 'divider',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'primary.main',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: 'primary.main',
+                            borderWidth: '1px',
+                          },
+                        },
+                      }}
+                    />
+                  </Box>
+                  
+                  {/* Country options - NO Box wrapper */}
+                  {filteredCountries.length > 0 ? (
+                    filteredCountries.map((country) => (
+                      <MenuItem 
+                        key={country.code} 
+                        value={country.name}
+                        sx={{
+                          minHeight: '48px', // Consistent item height
+                          '&:hover': {
+                            backgroundColor: 'action.hover',
+                          }
+                        }}
+                      >
+                        <div className='flex items-center gap-2'>
+                          {getFlagIcon(country.code)}
+                          <span>{country.name}</span>
+                        </div>
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      minHeight: '100px',
+                      p: 2
+                    }}>
+                      <Typography variant="body2" color="textSecondary">
+                        No countries found
+                      </Typography>
                     </MenuItem>
-                  ))}
+                  )}
                 </Select>
               </FormControl>
             </Grid>

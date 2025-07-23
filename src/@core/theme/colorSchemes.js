@@ -6,6 +6,10 @@ const colorSchemes = skin => {
           main: '#8C57FF',
           light: '#A379FF',
           dark: '#7E4EE6',
+
+           lighter: '#C3A6FF', // real lighter hex
+          lightest: '#E3DBFF', // real lightest hex
+     
           lighterOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.16)',
           lightestOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.06)',
@@ -18,6 +22,8 @@ const colorSchemes = skin => {
           main: '#8A8D93',
           light: '#A1A4A9',
           dark: '#7C7F84',
+          lighter: '#C2C4C8', // real lighter hex
+          lightest: '#E3E4E6', // real lightest hex
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.16)',
@@ -31,6 +37,8 @@ const colorSchemes = skin => {
           main: '#FF4C51',
           light: '#FF7074',
           dark: '#E64449',
+          lighter: '#FFB3B5', // real lighter hex
+          lightest: '#FFE5E6', // real lightest hex
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.16)',
@@ -44,6 +52,8 @@ const colorSchemes = skin => {
           main: '#FFB400',
           light: '#FFC333',
           dark: '#E6A200',
+          lighter: '#FFE099', // real lighter hex
+          lightest: '#FFF7E0', // real lightest hex
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.16)',
@@ -58,6 +68,8 @@ const colorSchemes = skin => {
           main: '#16B1FF',
           light: '#45C1FF',
           dark: '#149FE6',
+          lighter: '#99DBFF', // real lighter hex
+          lightest: '#E0F5FF', // real lightest hex
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.16)',
@@ -71,6 +83,8 @@ const colorSchemes = skin => {
           main: '#56CA00',
           light: '#78D533',
           dark: '#4DB600',
+          lighter: '#B6F399', // real lighter hex
+          lightest: '#E9FFD9', // real lightest hex
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.16)',
@@ -179,10 +193,10 @@ const colorSchemes = skin => {
           main: '#8C57FF',
           light: '#A379FF',
           dark: '#7E4EE6',
-          lighter: 'rgb(var(--mui-palette-primary-mainChannel) / 0.08)',
-          lightest: 'rgb(var(--mui-palette-primary-mainChannel) / 0.04)',
-          darker: 'rgb(var(--mui-palette-primary-mainChannel) / 0.38)',
-          darkest: 'rgb(var(--mui-palette-primary-mainChannel) / 0.42)',
+          lighter: '#BFA6FF', // real lighter hex
+          lightest: '#E5DBFF', // real lightest hex
+          darker: '#A37FFF',
+          darkest: '#8C57FF',
           lighterOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.08)',
           lightOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.16)',
           mainOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.24)',
@@ -193,10 +207,10 @@ const colorSchemes = skin => {
           main: '#8A8D93',
           light: '#A1A4A9',
           dark: '#7C7F84',
-          lighter: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.08)',
-          lightest: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.04)',
-          darker: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.38)',
-          darkest: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.42)',
+          lighter: '#B0B3B8', // real lighter hex
+          lightest: '#E0E1E2', // real lightest hex
+          darker: '#A1A4A9',
+          darkest: '#8A8D93',
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.08)',
           lightOpacity: 'rgb(var(--mui-palette-secondary-mainChannel) / 0.16)',
@@ -208,10 +222,10 @@ const colorSchemes = skin => {
           main: '#FF4C51',
           light: '#FF7074',
           dark: '#E64449',
-          lighter: 'rgb(var(--mui-palette-error-mainChannel) / 0.08)',
-          lightest: 'rgb(var(--mui-palette-error-mainChannel) / 0.04)',
-          darker: 'rgb(var(--mui-palette-error-mainChannel) / 0.38)',
-          darkest: 'rgb(var(--mui-palette-error-mainChannel) / 0.42)',
+          lighter: '#FFB3B5', // real lighter hex
+          lightest: '#FFE5E6', // real lightest hex
+          darker: '#FF7074',
+          darkest: '#FF4C51',
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.08)',
           lightOpacity: 'rgb(var(--mui-palette-error-mainChannel) / 0.16)',
@@ -223,10 +237,10 @@ const colorSchemes = skin => {
           main: '#FFB400',
           light: '#FFC333',
           dark: '#E6A200',
-          lighter: 'rgb(var(--mui-palette-warning-mainChannel) / 0.08)',
-          lightest: 'rgb(var(--mui-palette-warning-mainChannel) / 0.04)',
-          darker: 'rgb(var(--mui-palette-warning-mainChannel) / 0.38)',
-          darkest: 'rgb(var(--mui-palette-warning-mainChannel) / 0.42)',
+          lighter: '#FFE099', // real lighter hex
+          lightest: '#FFF7E0', // real lightest hex
+          darker: '#FFC333',
+          darkest: '#FFB400',
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.08)',
           lightOpacity: 'rgb(var(--mui-palette-warning-mainChannel) / 0.16)',
@@ -238,10 +252,10 @@ const colorSchemes = skin => {
           main: '#16B1FF',
           light: '#45C1FF',
           dark: '#149FE6',
-          lighter: 'rgb(var(--mui-palette-info-mainChannel) / 0.08)',
-          lightest: 'rgb(var(--mui-palette-info-mainChannel) / 0.04)',
-          darker: 'rgb(var(--mui-palette-info-mainChannel) / 0.38)',
-          darkest: 'rgb(var(--mui-palette-info-mainChannel) / 0.42)',
+          lighter: '#99DBFF', // real lighter hex
+          lightest: '#E0F5FF', // real lightest hex
+          darker: '#45C1FF',
+          darkest: '#16B1FF',
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.08)',
           lightOpacity: 'rgb(var(--mui-palette-info-mainChannel) / 0.16)',
@@ -253,10 +267,10 @@ const colorSchemes = skin => {
           main: '#56CA00',
           light: '#78D533',
           dark: '#4DB600',
-          lighter: 'rgb(var(--mui-palette-success-mainChannel) / 0.08)',
-          lightest: 'rgb(var(--mui-palette-success-mainChannel) / 0.04)',
-          darker: 'rgb(var(--mui-palette-success-mainChannel) / 0.38)',
-          darkest: 'rgb(var(--mui-palette-success-mainChannel) / 0.42)',
+          lighter: '#B6F399', // real lighter hex
+          lightest: '#E9FFD9', // real lightest hex
+          darker: '#78D533',
+          darkest: '#56CA00',
           contrastText: '#fff',
           lighterOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.08)',
           lightOpacity: 'rgb(var(--mui-palette-success-mainChannel) / 0.16)',

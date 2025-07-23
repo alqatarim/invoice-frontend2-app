@@ -9,6 +9,14 @@ import { lighten, styled } from '@mui/material/styles'
 
 const Avatar = styled(MuiAvatar)(({ skin, color, size, theme }) => {
   return {
+
+    ...(color &&
+      skin === 'lightish' && {
+        backgroundColor: `var(--mui-palette-${color}-light)`,
+        color: `var(--mui-palette-${color}-dark)`
+      }),
+
+
     ...(color &&
       skin === 'light' && {
         backgroundColor: `var(--mui-palette-${color}-lightOpacity)`,

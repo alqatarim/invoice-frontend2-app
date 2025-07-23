@@ -95,11 +95,6 @@ const Dashboard = () => {
         type: 'error',
       });
     } finally {
-
-      console.log('dasboard data:');
-      console.log(dashboardData)
-
-
       setLoading(false);
     }
   };
@@ -333,9 +328,9 @@ const Dashboard = () => {
   return (
     <Grid container spacing={6}>
       {/* Top Statistic Cards */}
-      <Grid item xs={12} md={12} lg={12}>
+      <Grid item size={{ xs: 12, md: 12, lg: 12 }}>
         <Grid container spacing={6} alignItems="center">
-          <Grid item xs={12} sm={6} md={3} height='100%' className='self-end'>
+          <Grid item size={{ xs: 12, sm: 6, md: 3 }} height='100%' className='self-end'>
             <CardStatWithImage
               stats={cardData[1].value}
               trend={cardData[1].change}
@@ -346,7 +341,7 @@ const Dashboard = () => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3} className='self-end'>
+          <Grid item size={{ xs: 12, sm: 6, md: 3 }} className='self-end'>
             <HorizontalWithSubtitle
               title={cardData[0].title}
               stats={Math.floor(cardData[0].value)}
@@ -359,7 +354,7 @@ const Dashboard = () => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3} className='self-end'>
+          <Grid item size={{ xs: 12, sm: 6, md: 3 }} className='self-end'>
             <HorizontalWithSubtitle
               title={cardData[2].title}
               stats={Math.floor(cardData[0].value)}
@@ -372,7 +367,7 @@ const Dashboard = () => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3} className='self-end'>
+          <Grid item size={{ xs: 12, sm: 6, md: 3 }} className='self-end'>
             <HorizontalWithSubtitle
               title={cardData[3].title}
               stats={cardData[3].value}
@@ -387,10 +382,10 @@ const Dashboard = () => {
       </Grid>
 
       {/* Recent Invoices and Invoice Analytics */}
-      <Grid item xs={12}>
+      <Grid item size={{ xs: 12 }}>
         <Grid container spacing={6}>
           {/* Recent Invoices Card */}
-          <Grid item xs={12} md={6}>
+          <Grid item size={{ xs: 12, md: 7 }}>
             <Card>
               <CardHeader
                 title="Recent Invoices"
@@ -439,6 +434,8 @@ const Dashboard = () => {
                         />
                       ))}
                     </Box>
+
+
                     {/* Legend */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
                       {progressBars.map((bar, index) => (
@@ -579,22 +576,6 @@ const Dashboard = () => {
 
 
 
-
-
-                                  {
-
-              // icon: 'far fa-eye text-[22px]',
-            //   component: (
-            //     <Link
-            //       href={`/view-invoice/${item._id}`}
-            //       target="_blank"
-            //       className="dropdown-item"
-            //     >
-            //       <i className="far fa-eye me-2" />
-            //       View
-            //     </Link>
-            //   )
-             }
                                 </Menu>
                               </TableCell>
                             </TableRow>
@@ -609,7 +590,7 @@ const Dashboard = () => {
           </Grid>
 
           {/* Invoice Analytics Card */}
-          <Grid item xs={12} md={6}>
+          <Grid item size={{ xs: 12, md: 5 }}>
             <SalesOverview
               series={dashboardData.series || []}
 
@@ -621,6 +602,8 @@ const Dashboard = () => {
               ]}
               currencyData={currencyData}
               labels={dashboardData.labels || []}
+              height={250}
+              width={250}
             />
           </Grid>
         </Grid>
