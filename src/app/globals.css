@@ -128,7 +128,7 @@ code {
 }
 
 /* Fix for ApexCharts tooltip visibility */
-.apexcharts-tooltip {
+/* .apexcharts-tooltip {
   z-index: 9999 !important;
   pointer-events: auto !important;
   display: block !important;
@@ -138,4 +138,4 @@ code {
 .apexcharts-xaxistooltip,
 .apexcharts-yaxistooltip {
   z-index: 9999 !important;
-}
+} */
