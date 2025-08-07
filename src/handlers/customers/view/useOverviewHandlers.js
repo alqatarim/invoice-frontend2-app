@@ -1,9 +1,14 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import moment from 'moment'
 import { statusOptions } from '@/data/dataSets'
+import { debounce } from '@/utils/performance'
+
+// Memoized status options map for better performance
+const statusOptionsMap = new Map(statusOptions.map(option => [option.value, option]))
 
 /**
  * Overview handler for managing search, pagination, and data filtering
+ * Optimized with memoization and debounced search
  */
 export const useOverviewHandlers = ({ invoices = [], cardDetails }) => {
   const [searchValue, setSearchValue] = useState('')
@@ -14,10 +19,10 @@ export const useOverviewHandlers = ({ invoices = [], cardDetails }) => {
     setPagination(prev => ({ ...prev, page: 0 }))
   }, [searchValue])
 
-  // Get status label helper
-  const getStatusLabel = useMemo(() => (status) => {
+  // Optimized status label helper using Map
+  const getStatusLabel = useCallback((status) => {
     const statusUpper = status?.toUpperCase()
-    const statusOption = statusOptions.find(option => option.value === statusUpper)
+    const statusOption = statusOptionsMap.get(statusUpper)
     return statusOption?.label || status || 'Unpaid'
   }, [])
 
@@ -46,10 +51,16 @@ export const useOverviewHandlers = ({ invoices = [], cardDetails }) => {
     setPagination(prev => ({ ...prev, pageSize, page: 0 }))
   }, [])
 
-  // Handle search changes
+  // Debounced search to improve performance
+  const debouncedSetSearchValue = useMemo(
+    () => debounce((value) => setSearchValue(value), 300),
+    []
+  )
+
+  // Handle search changes with debouncing
   const handleSearchChange = useCallback((value) => {
-    setSearchValue(value)
-  }, [])
+    debouncedSetSearchValue(value)
+  }, [debouncedSetSearchValue])
 
   // Row key function
   const getRowKey = useMemo(() => (row) => row._id, [])

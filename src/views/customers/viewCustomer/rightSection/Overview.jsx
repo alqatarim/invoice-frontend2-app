@@ -1,12 +1,22 @@
+// React Imports
+import { useMemo, useCallback } from "react";
+
 // Next Imports
-import { useMemo } from "react";
+import dynamic from "next/dynamic";
 
 // MUI Imports
 import Grid from "@mui/material/Grid";
 
-// Component Imports
-import CustomListTable from "@/components/custom-components/CustomListTable";
-import MultiBarProgress from "@components/card-statistics/MultiBarProgress";
+// Dynamic imports for better performance
+const CustomListTable = dynamic(() => import("@/components/custom-components/CustomListTable"), {
+	loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />,
+});
+
+const MultiBarProgress = dynamic(() => import("@components/card-statistics/MultiBarProgress"), {
+	loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-lg" />,
+});
+
+// Static imports
 import { getCustomerInvoiceColumns } from "./tableColumns";
 import { statusOptions } from "@/data/dataSets";
 
@@ -29,26 +39,41 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 	// Table columns configuration
 	const columns = useMemo(() => getCustomerInvoiceColumns(), []);
 
-	const a = 1;
-	// Create stats array for breakdown statistics
+	// Memoized status options lookup for better performance
+	const statusOptionsMap = useMemo(() => {
+		const map = new Map();
+		statusOptions.forEach(option => {
+			map.set(option.value, option);
+		});
+		return map;
+	}, []);
+
+	// Create stats array for breakdown statistics with optimized lookups
 	const breakdownStats = useMemo(
-		() => [
-			{
-				title: "Paid Amount",
-				subtitle: "Total Paid",
-				titleVariant: "h6",
-				subtitleVariant: "body2",
-				stats: cardDetails?.paidRecs?.[0]?.amount || 0,
-				statsVariant: "h5",
-				avatarIcon: statusOptions.find((option) => option.value === "PAID")
-					?.icon,
-				color: statusOptions.find((option) => option.value === "PAID")?.color,
-				colorOpacity: "light",
-				iconSize: "30px",
-				isCurrency: true,
-				currencyIconWidth: "1.25rem",
-				trendNumber: cardDetails?.paidRecs?.[0]?.count || 0,
-			},
+		() => {
+			const paidOption = statusOptionsMap.get("PAID");
+			const partiallyPaidOption = statusOptionsMap.get("PARTIALLY_PAID");
+			const sentOption = statusOptionsMap.get("SENT");
+			const draftedOption = statusOptionsMap.get("DRAFTED");
+			const overdueOption = statusOptionsMap.get("OVERDUE");
+			const cancelledOption = statusOptionsMap.get("CANCELLED");
+
+			return [
+				{
+					title: "Paid Amount",
+					subtitle: "Total Paid",
+					titleVariant: "h6",
+					subtitleVariant: "body2",
+					stats: cardDetails?.paidRecs?.[0]?.amount || 0,
+					statsVariant: "h5",
+					avatarIcon: paidOption?.icon,
+					color: paidOption?.color,
+					colorOpacity: "light",
+					iconSize: "30px",
+					isCurrency: true,
+					currencyIconWidth: "1.25rem",
+					trendNumber: cardDetails?.paidRecs?.[0]?.count || 0,
+				},
 			{
 				title: "Partially Paid",
 				subtitle: "Partial Payments",
@@ -56,11 +81,8 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 				subtitleVariant: "body2",
 				stats: cardDetails?.partiallyPaidRecs?.[0]?.amount || 0,
 				statsVariant: "h5",
-				avatarIcon: statusOptions.find(
-					(option) => option.value === "PARTIALLY_PAID"
-				)?.icon,
-				color: statusOptions.find((option) => option.value === "PARTIALLY_PAID")
-					?.color,
+				avatarIcon: partiallyPaidOption?.icon,
+				color: partiallyPaidOption?.color,
 				colorOpacity: "light",
 				iconSize: "30px",
 				isCurrency: true,
@@ -74,9 +96,8 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 				subtitleVariant: "body2",
 				stats: cardDetails?.sentRecs?.[0]?.amount || 0,
 				statsVariant: "h5",
-				avatarIcon: statusOptions.find((option) => option.value === "SENT")
-					?.icon,
-				color: statusOptions.find((option) => option.value === "SENT")?.color,
+				avatarIcon: sentOption?.icon,
+				color: sentOption?.color,
 				colorOpacity: "light",
 				iconSize: "30px",
 				isCurrency: true,
@@ -91,10 +112,8 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 				subtitleVariant: "body2",
 				stats: cardDetails?.draftedRecs?.[0]?.amount || 0,
 				statsVariant: "h5",
-				avatarIcon: statusOptions.find((option) => option.value === "DRAFTED")
-					?.icon,
-				color: statusOptions.find((option) => option.value === "DRAFTED")
-					?.color,
+				avatarIcon: draftedOption?.icon,
+				color: draftedOption?.color,
 				colorOpacity: "light",
 				iconSize: "30px",
 				isCurrency: true,
@@ -109,10 +128,8 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 				subtitleVariant: "body2",
 				stats: cardDetails?.overDueRecs?.[0]?.amount || 0,
 				statsVariant: "h5",
-				avatarIcon: statusOptions.find((option) => option.value === "OVERDUE")
-					?.icon,
-				color: statusOptions.find((option) => option.value === "OVERDUE")
-					?.color,
+				avatarIcon: overdueOption?.icon,
+				color: overdueOption?.color,
 				colorOpacity: "light",
 				iconSize: "30px",
 				isCurrency: true,
@@ -128,18 +145,17 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 				subtitleVariant: "body2",
 				stats: cardDetails?.cancelledRecs?.[0]?.amount || 0,
 				statsVariant: "h5",
-				avatarIcon: statusOptions.find((option) => option.value === "CANCELLED")
-					?.icon,
-				color: statusOptions.find((option) => option.value === "CANCELLED")
-					?.color,
+				avatarIcon: cancelledOption?.icon,
+				color: cancelledOption?.color,
 				colorOpacity: "light",
 				iconSize: "30px",
 				isCurrency: true,
 				currencyIconWidth: "1.25rem",
 				trendNumber: cardDetails?.cancelledRecs?.[0]?.count || 0,
 			},
-		],
-		[cardDetails]
+		];
+		},
+		[cardDetails, statusOptionsMap]
 	);
 
 	return (
@@ -151,7 +167,7 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 					totalAmount={cardDetails?.totalRecs?.[0]?.amount}
 					borderColor="primary"
 					height={"130px"}
-					barHeight={"30px"}
+					barHeight={"40px"}
 					width={"100%"}
 				/>
 			</Grid>

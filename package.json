@@ -74,10 +74,16 @@
   },
   "scripts": {
     "dev": "next dev",
-    "fast": "next dev --turbo",
+    "dev:turbo": "next dev --turbo",
+    "dev:fast": "next dev --turbo --experimental-https",
+    "dev:safe": "next dev",
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "start": "next start",
-    "remove-unused-dependencies": "node remove-unused-dependencies.js"
+    "start:fast": "next start --turbo",
+    "remove-unused-dependencies": "node remove-unused-dependencies.js",
+    "performance": "next build && next start",
+    "update-browserslist": "npx update-browserslist-db@latest"
   },
   "keywords": [
     "reactjs",

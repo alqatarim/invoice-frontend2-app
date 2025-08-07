@@ -15,9 +15,21 @@ import { SnackbarProvider } from 'notistack'
 // Component Imports
 import { usePermission } from '@/Auth/usePermission'
 import { formatCurrency } from '@/utils/currencyUtils'
-import TopSection from './TopSection'
-import LeftSection from './LeftSection'
-import RightSection from './RightSection'
+
+// Dynamic imports for better performance
+import dynamic from 'next/dynamic'
+
+const TopSection = dynamic(() => import('./TopSection'), {
+  loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-lg" />,
+})
+
+const LeftSection = dynamic(() => import('./LeftSection'), {
+  loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />,
+})
+
+const RightSection = dynamic(() => import('./RightSection'), {
+  loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />,
+})
 
 
 

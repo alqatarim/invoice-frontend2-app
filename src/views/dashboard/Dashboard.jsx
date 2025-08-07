@@ -1,15 +1,29 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import Table from '@mui/material/Table'
-import TableHead from '@mui/material/TableHead'
-import TableRow from '@mui/material/TableRow'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import SalesOverview from '@views/charts/SalesOverview'
+import dynamic from 'next/dynamic';
 
+// Dynamic imports for better code splitting
+const SalesOverview = dynamic(() => import('@views/charts/SalesOverview'), {
+  loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />,
+});
+
+// Lazy load heavy components
+const HorizontalWithSubtitle = dynamic(() => import('@components/card-statistics/HorizontalWithSubtitle'), {
+  loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-lg" />,
+});
+const CardStatWithImage = dynamic(() => import('@components/card-statistics/Character'), {
+  loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-lg" />,
+});
+
+// Group MUI imports to reduce bundle size
 import {
+  Table,
+  TableHead,
+  TableRow,
+  TableBody,
+  TableCell,
   Button,
   Chip,
   Box,
@@ -27,6 +41,7 @@ import {
   ListItemText,
 } from '@mui/material';
 
+// Dynamic imports for icons to reduce initial bundle size
 import SendIcon from '@mui/icons-material/Send'
 import FileCopyIcon from '@mui/icons-material/FileCopy'
 import RefundIcon from '@mui/icons-material/MonetizationOn'
@@ -43,8 +58,6 @@ import {
   sendInvoice,
   cloneInvoice,
 } from '@/app/(dashboard)/actions';
-import HorizontalWithSubtitle from '@components/card-statistics/HorizontalWithSubtitle';
-import CardStatWithImage from '@components/card-statistics/Character';
 
 
 
@@ -64,12 +77,10 @@ const Dashboard = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
-  // Unified fetch function that uses the appropriate API based on filter
-  const fetchDashboardData = async (filter = '') => {
+  // Memoized fetch function to prevent unnecessary re-renders
+  const fetchDashboardData = useCallback(async (filter = '') => {
     setLoading(true);
     try {
-
-
       const response = filter
         ? await getFilteredDashboardData(filter)
         : await getDashboardData('/dashboard');
@@ -88,7 +99,9 @@ const Dashboard = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching dashboard data:', error);
+      }
       setOpenSnackbar({
         open: true,
         message: `Failed to fetch ${filter ? 'filtered ' : ''}dashboard data`,
@@ -97,7 +110,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Handle filter changes
   const getDetails = async (filter = '') => {
@@ -310,19 +323,23 @@ const Dashboard = () => {
     },
   ];
 
-  // Calculate progress bar percentages based on dashboard data
-  const totalAmt =
-    (dashboardData?.paidAmt || 0) +
-    (dashboardData?.partiallyPaidAmt || 0) +
-    (dashboardData?.overdueAmt || 0) +
-    (dashboardData?.draftedAmt || 0);
+  // Memoized calculations to prevent unnecessary recalculations
+  const { totalAmt, progressBars } = useMemo(() => {
+    const total = 
+      (dashboardData?.paidAmt || 0) +
+      (dashboardData?.partiallyPaidAmt || 0) +
+      (dashboardData?.overdueAmt || 0) +
+      (dashboardData?.draftedAmt || 0);
 
-  const progressBars = [
-    { label: 'Paid', value: totalAmt ? (dashboardData.paidAmt / totalAmt) * 100 : 0, color: 'success' },
-    { label: 'Partially Paid', value: totalAmt ? (dashboardData.partiallyPaidAmt / totalAmt) * 100 : 0, color: 'warning' },
-    { label: 'Overdue', value: totalAmt ? (dashboardData.overdueAmt / totalAmt) * 100 : 0, color: 'error' },
-    { label: 'Drafted', value: totalAmt ? (dashboardData.draftedAmt / totalAmt) * 100 : 0, color: 'primary' },
-  ];
+    const bars = [
+      { label: 'Paid', value: total ? (dashboardData.paidAmt / total) * 100 : 0, color: 'success' },
+      { label: 'Partially Paid', value: total ? (dashboardData.partiallyPaidAmt / total) * 100 : 0, color: 'warning' },
+      { label: 'Overdue', value: total ? (dashboardData.overdueAmt / total) * 100 : 0, color: 'error' },
+      { label: 'Drafted', value: total ? (dashboardData.draftedAmt / total) * 100 : 0, color: 'primary' },
+    ];
+
+    return { totalAmt: total, progressBars: bars };
+  }, [dashboardData?.paidAmt, dashboardData?.partiallyPaidAmt, dashboardData?.overdueAmt, dashboardData?.draftedAmt]);
 
 
   return (

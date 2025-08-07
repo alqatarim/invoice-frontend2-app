@@ -1,3 +1,6 @@
+// React Imports
+import { useMemo } from 'react'
+
 // Next Imports
 import Link from 'next/link'
 
@@ -8,15 +11,19 @@ import IconButton from '@mui/material/IconButton'
 import LinearProgress from '@mui/material/LinearProgress'
 import { Box } from '@mui/material'
 import { Grid } from '@mui/material'
+
 // Icon Imports
 import { Icon } from '@iconify/react'
 
 // Utils Imports
-
 import { formatDate } from '@/utils/dateUtils'
 import { actionButtons } from '@/data/dataSets'
 import { statusOptions } from '@/data/dataSets'
 import { useTheme } from '@mui/material/styles'
+
+// Memoized action buttons lookup for better performance
+const actionButtonsMap = new Map(actionButtons.map(button => [button.id, button]))
+const statusOptionsMap = new Map(statusOptions.map(option => [option.value, option]))
 
 export const getCustomerInvoiceColumns = () => [
   {
@@ -30,7 +37,8 @@ export const getCustomerInvoiceColumns = () => [
 
         component={Link}
         href={`/invoices/invoice-view/${row._id}`}
-        className=' text-primary text-[0.9rem] hover:underline font-bold'
+        className=' text-primary text-[0.9rem] hover:underline font-semibold
+        '
       >
         {row.invoiceNumber || 'N/A'}
       </Typography>
@@ -92,15 +100,18 @@ export const getCustomerInvoiceColumns = () => [
     key: 'status',
     label: 'Status',
     sortable: true,
-    renderCell: (row) => (
-      <Chip
-        label={statusOptions.find(option => option.value === row.status)?.label || row.status || 'Unpaid'}
-        size='small'
-        color={statusOptions.find(option => option.value === row.status)?.color || 'default'}
-        variant='tonal'
-        className='font-medium'
-      />
-    )
+    renderCell: (row) => {
+      const statusOption = statusOptionsMap.get(row.status) || {};
+      return (
+        <Chip
+          label={statusOption.label || row.status || 'Unpaid'}
+          size='small'
+          color={statusOption.color || 'default'}
+          variant='tonal'
+          className='font-medium'
+        />
+      );
+    }
   },
   {
     key: 'actions',
@@ -114,20 +125,20 @@ export const getCustomerInvoiceColumns = () => [
           size='small'
           component={Link}
           href={`/invoices/invoice-view/${row._id}`}
-          title={actionButtons.find(action => action.id === 'view').title}
+          title={actionButtonsMap.get('view')?.title}
           // className='text-primary'
         >
-          <Icon icon={actionButtons.find(action => action.id === 'view').icon} />
+          <Icon icon={actionButtonsMap.get('view')?.icon} />
         </IconButton>
 
         <IconButton
           size='small'
           component={Link}
           href={`/invoices/edit/${row._id}`}
-          title={actionButtons.find(action => action.id === 'edit').title}
+          title={actionButtonsMap.get('edit')?.title}
           // className='text-primary'
         >
-          <Icon icon={actionButtons.find(action => action.id === 'edit').icon} />
+          <Icon icon={actionButtonsMap.get('edit')?.icon} />
         </IconButton>
 
 

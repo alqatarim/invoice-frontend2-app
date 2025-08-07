@@ -1,15 +1,27 @@
 "use client";
 
+// React Imports
+import { useMemo } from "react";
+
 // Next Imports
 import dynamic from "next/dynamic";
 
 // MUI Imports
 import { useTheme } from "@mui/material/styles";
 
-// Styled Component Imports
+// Styled Component Imports - Optimized with loading state
 const AppReactApexCharts = dynamic(() =>
-	import("@/libs/styles/AppReactApexCharts")
-);
+	import("@/libs/styles/AppReactApexCharts"), {
+	ssr: false,
+	loading: () => (
+		<div 
+			className="flex items-center justify-center bg-gray-100 animate-pulse rounded-lg"
+			style={{ height: '100px', width: '100%' }}
+		>
+			<span className="text-gray-500 text-sm">Loading chart...</span>
+		</div>
+	),
+});
 
 const MultiBarProgress = ({
 	stats = [],
@@ -27,40 +39,53 @@ const MultiBarProgress = ({
 	// Use provided total amount or calculate from stats as fallback
 	//   const totalAmount = propTotalAmount || stats.reduce((sum, stat) => sum + Number(stat.stats || 0), 0)
 
-	// Filter stats with values > 0
-	const validStats = stats.filter((stat) => Number(stat.stats || 0) > 0);
+	// Memoized calculations for better performance
+	const { validStats, colors } = useMemo(() => {
+		// Filter stats with values > 0
+		const filtered = stats.filter((stat) => Number(stat.stats || 0) > 0);
+
+		// Return early if no valid stats
+		if (filtered.length === 0) {
+			return { validStats: [], colors: [] };
+		}
+
+		// Map colors from stat objects to theme colors
+		const themeColors = filtered.map((stat) => {
+			const colorName = stat.color || "default";
+			const themeColor = theme.palette[colorName];
+			if (themeColor?.main) {
+				if (stat.colorOpacity && themeColor[stat.colorOpacity]) {
+					return themeColor[stat.colorOpacity];
+				}
+				return themeColor.main;
+			}
+			return theme.palette.primary.light;
+		});
+
+		return {
+			validStats: filtered,
+			colors: themeColors,
+		};
+	}, [stats, theme.palette]);
 
 	// Return null if no valid stats
 	if (validStats.length === 0) {
 		return null;
 	}
 
-	// Map colors from stat objects to theme colors
-
-	const colors = validStats.map((stat) => {
-		const colorName = stat.color || "default";
-		const themeColor = theme.palette[colorName];
-		if (themeColor?.main) {
-			if (stat.colorOpacity && themeColor[stat.colorOpacity]) {
-				return themeColor[stat.colorOpacity];
-			}
-			return themeColor.main;
-		}
-		return theme.palette.primary.light;
-	});
-
 	// Calculate total for percentage
 	const total =
 		totalAmount ||
 		validStats.reduce((sum, stat) => sum + Number(stat.stats || 0), 0);
 
-	// ApexCharts series data - one series per stat
-	const series = validStats.map((stat) => ({
-		name: stat.title,
-		data: [Number(stat.stats || 0), 0],
-	}));
+	// Memoized ApexCharts series data and options
+	const { series, options } = useMemo(() => {
+		const chartSeries = validStats.map((stat) => ({
+			name: stat.title,
+			data: [Number(stat.stats || 0), 0],
+		}));
 
-	const options = {
+		const chartOptions = {
 		chart: {
 			type: "bar",
 			stacked: true,
@@ -84,7 +109,7 @@ const MultiBarProgress = ({
 			bar: {
 				horizontal: true,
 				barHeight: barHeight,
-				borderRadius: 15,
+				borderRadius: 19,
 			},
 		},
 		dataLabels: {
@@ -213,6 +238,9 @@ const MultiBarProgress = ({
 			},
 		},
 	};
+
+		return { series: chartSeries, options: chartOptions };
+	}, [validStats, colors, width, height, barHeight, total]);
 
 	return (
 		<div

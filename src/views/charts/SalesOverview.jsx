@@ -18,8 +18,15 @@ import CustomAvatar from '@core/components/mui/Avatar'
 import OptionsMenu from '@core/components/option-menu'
 import { statusOptions } from '@/data/dataSets'
 
-// Styled Component Imports
-const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
+// Styled Component Imports - Optimized loading
+const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-64 bg-gray-100 animate-pulse rounded-lg">
+      <div className="text-gray-500">Loading chart...</div>
+    </div>
+  ),
+})
 
 const CardWidgetsSalesOverview = ({series,  labels, amounts, currencyData, width, height}) => {
   // Hooks

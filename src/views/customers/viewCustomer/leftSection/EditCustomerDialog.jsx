@@ -52,19 +52,17 @@ const EditCustomerDialog = ({ open, setOpen, customer, onSuccess }) => {
         className='flex gap-2 flex-col text-center pbs-10 pbe-6 pli-10 sm:pbs-16 sm:pbe-6 sm:pli-16'
       >
         Edit Customer Details
-        <Typography component='span' className='flex flex-col text-center text-textSecondary'>
-          Update customer information. All changes will be saved immediately.
-        </Typography>
+   
       </DialogTitle>
 
       <form onSubmit={handleSubmit}>
-        <DialogContent className='overflow-visible pbs-0 pbe-6 pli-10 sm:pli-16'>
+        <DialogContent className='overflow-visible pbs-0 pbe-6 pli-12 sm:pli-12'>
           <IconButton onClick={handleClose} className='absolute block-start-4 inline-end-4' disabled={loading}>
             <i className='ri-close-line text-textSecondary' />
           </IconButton>
 
           <Grid container spacing={4}>
-            <Grid item xs={12}>
+            <Grid size={{xs:12, md:6}}>
               <TextField
                 fullWidth
                 label='Customer Name'
@@ -78,7 +76,7 @@ const EditCustomerDialog = ({ open, setOpen, customer, onSuccess }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{xs:12, md:6}}>
               <TextField
                 fullWidth
                 type='email'
@@ -93,7 +91,7 @@ const EditCustomerDialog = ({ open, setOpen, customer, onSuccess }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{xs:12, md:6}}>
               <TextField
                 fullWidth
                 label='Phone Number'
@@ -107,7 +105,7 @@ const EditCustomerDialog = ({ open, setOpen, customer, onSuccess }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{xs:12, md:6}}>
               <TextField
                 fullWidth
                 label='Website'
@@ -120,7 +118,7 @@ const EditCustomerDialog = ({ open, setOpen, customer, onSuccess }) => {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{xs:12}}>
               <TextField
                 fullWidth
                 multiline
@@ -136,6 +134,15 @@ const EditCustomerDialog = ({ open, setOpen, customer, onSuccess }) => {
         </DialogContent>
 
         <DialogActions className='gap-2 justify-center pbs-0 pbe-10 pli-10 sm:pbe-16 sm:pli-16'>
+
+            <Button
+            variant='outlined'
+            color='secondary'
+            onClick={handleClose}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
           <Button
             variant='contained'
             type='submit'
@@ -144,14 +151,7 @@ const EditCustomerDialog = ({ open, setOpen, customer, onSuccess }) => {
           >
             {loading ? 'Updating...' : 'Update Customer'}
           </Button>
-          <Button
-            variant='outlined'
-            color='secondary'
-            onClick={handleClose}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
+        
         </DialogActions>
       </form>
     </Dialog>
