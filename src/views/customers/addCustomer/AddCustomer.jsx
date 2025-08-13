@@ -191,6 +191,7 @@ const AddCustomer = () => {
                       onBlur={() => handlers.handleFieldBlur('name')}
                       error={handlers.touched.name && !!handlers.errors.name}
                       helperText={handlers.touched.name && handlers.errors.name}
+                      inputProps={{ maxLength: 50 }}
                     />
                   </Grid>
 
@@ -278,57 +279,78 @@ const AddCustomer = () => {
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Contact Person"
+                      label="Contact Person *"
                       value={handlers.formData.billingAddress.name}
                       onChange={(e) => handlers.handleNestedFieldChange('billingAddress', 'name', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('billingAddress.name')}
+                      error={!!handlers.errors['billingAddress.name']}
+                      helperText={handlers.errors['billingAddress.name']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Address Line 1"
+                      label="Address Line 1 *"
                       value={handlers.formData.billingAddress.addressLine1}
                       onChange={(e) => handlers.handleNestedFieldChange('billingAddress', 'addressLine1', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('billingAddress.addressLine1')}
+                      error={!!handlers.errors['billingAddress.addressLine1']}
+                      helperText={handlers.errors['billingAddress.addressLine1']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Address Line 2"
+                      label="Address Line 2 *"
                       value={handlers.formData.billingAddress.addressLine2}
                       onChange={(e) => handlers.handleNestedFieldChange('billingAddress', 'addressLine2', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('billingAddress.addressLine2')}
+                      error={!!handlers.errors['billingAddress.addressLine2']}
+                      helperText={handlers.errors['billingAddress.addressLine2']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="City"
+                      label="City *"
                       value={handlers.formData.billingAddress.city}
                       onChange={(e) => handlers.handleNestedFieldChange('billingAddress', 'city', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('billingAddress.city')}
+                      error={!!handlers.errors['billingAddress.city']}
+                      helperText={handlers.errors['billingAddress.city']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="State"
+                      label="State *"
                       value={handlers.formData.billingAddress.state}
                       onChange={(e) => handlers.handleNestedFieldChange('billingAddress', 'state', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('billingAddress.state')}
+                      error={!!handlers.errors['billingAddress.state']}
+                      helperText={handlers.errors['billingAddress.state']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Country"
+                      label="Country *"
                       value={handlers.formData.billingAddress.country}
                       onChange={(e) => handlers.handleNestedFieldChange('billingAddress', 'country', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('billingAddress.country')}
+                      error={!!handlers.errors['billingAddress.country']}
+                      helperText={handlers.errors['billingAddress.country']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Pincode"
+                      label="Pincode *"
                       value={handlers.formData.billingAddress.pincode}
                       onChange={(e) => handlers.handleNestedFieldChange('billingAddress', 'pincode', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('billingAddress.pincode')}
+                      error={!!handlers.errors['billingAddress.pincode']}
+                      helperText={handlers.errors['billingAddress.pincode']}
                     />
                   </Grid>
                 </Grid>
@@ -367,57 +389,78 @@ const AddCustomer = () => {
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Contact Person"
+                      label="Contact Person *"
                       value={handlers.formData.shippingAddress.name}
                       onChange={(e) => handlers.handleNestedFieldChange('shippingAddress', 'name', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('shippingAddress.name')}
+                      error={!!handlers.errors['shippingAddress.name']}
+                      helperText={handlers.errors['shippingAddress.name']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Address Line 1"
+                      label="Address Line 1 *"
                       value={handlers.formData.shippingAddress.addressLine1}
                       onChange={(e) => handlers.handleNestedFieldChange('shippingAddress', 'addressLine1', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('shippingAddress.addressLine1')}
+                      error={!!handlers.errors['shippingAddress.addressLine1']}
+                      helperText={handlers.errors['shippingAddress.addressLine1']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Address Line 2"
+                      label="Address Line 2 *"
                       value={handlers.formData.shippingAddress.addressLine2}
                       onChange={(e) => handlers.handleNestedFieldChange('shippingAddress', 'addressLine2', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('shippingAddress.addressLine2')}
+                      error={!!handlers.errors['shippingAddress.addressLine2']}
+                      helperText={handlers.errors['shippingAddress.addressLine2']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="City"
+                      label="City *"
                       value={handlers.formData.shippingAddress.city}
                       onChange={(e) => handlers.handleNestedFieldChange('shippingAddress', 'city', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('shippingAddress.city')}
+                      error={!!handlers.errors['shippingAddress.city']}
+                      helperText={handlers.errors['shippingAddress.city']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="State"
+                      label="State *"
                       value={handlers.formData.shippingAddress.state}
                       onChange={(e) => handlers.handleNestedFieldChange('shippingAddress', 'state', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('shippingAddress.state')}
+                      error={!!handlers.errors['shippingAddress.state']}
+                      helperText={handlers.errors['shippingAddress.state']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Country"
+                      label="Country *"
                       value={handlers.formData.shippingAddress.country}
                       onChange={(e) => handlers.handleNestedFieldChange('shippingAddress', 'country', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('shippingAddress.country')}
+                      error={!!handlers.errors['shippingAddress.country']}
+                      helperText={handlers.errors['shippingAddress.country']}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Pincode"
+                      label="Pincode *"
                       value={handlers.formData.shippingAddress.pincode}
                       onChange={(e) => handlers.handleNestedFieldChange('shippingAddress', 'pincode', e.target.value)}
+                      onBlur={() => handlers.handleFieldBlur('shippingAddress.pincode')}
+                      error={!!handlers.errors['shippingAddress.pincode']}
+                      helperText={handlers.errors['shippingAddress.pincode']}
                     />
                   </Grid>
                 </Grid>

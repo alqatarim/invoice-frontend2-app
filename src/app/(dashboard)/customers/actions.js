@@ -176,7 +176,10 @@ export async function activateCustomer(id) {
   try {
     const response = await fetchWithAuth(ENDPOINTS.CUSTOMER.ACTIVATE, {
       method: 'POST',
-      body: JSON.stringify({ _id: id })
+      body: JSON.stringify({ _id: id }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
     if (response.code === 200) {
       return response;
@@ -202,7 +205,10 @@ export async function deactivateCustomer(id) {
   try {
     const response = await fetchWithAuth(ENDPOINTS.CUSTOMER.DEACTIVATE, {
       method: 'POST',
-      body: JSON.stringify({ _id: id })
+      body: JSON.stringify({ _id: id }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
     if (response.code === 200) {
       return response;
@@ -312,66 +318,26 @@ export async function updateCustomer(id, updatedFormData) {
   }
 }
 
-export async function addCustomer(customerData) {
-  const formData = new FormData();
-  
-  // Add basic customer information
-  formData.append("name", customerData.name);
-  formData.append("email", customerData.email);
-  formData.append("phone", customerData.phone);
-  formData.append("website", customerData.website || "");
-  formData.append("notes", customerData.notes || "");
-  
-  // Add billing address
-  if (customerData.billingAddress) {
-    formData.append("billingAddress[name]", customerData.billingAddress.name || "");
-    formData.append("billingAddress[addressLine1]", customerData.billingAddress.addressLine1 || "");
-    formData.append("billingAddress[addressLine2]", customerData.billingAddress.addressLine2 || "");
-    formData.append("billingAddress[city]", customerData.billingAddress.city || "");
-    formData.append("billingAddress[state]", customerData.billingAddress.state || "");
-    formData.append("billingAddress[pincode]", customerData.billingAddress.pincode || "");
-    formData.append("billingAddress[country]", customerData.billingAddress.country || "");
-  }
-  
-  // Add shipping address
-  if (customerData.shippingAddress) {
-    formData.append("shippingAddress[name]", customerData.shippingAddress.name || "");
-    formData.append("shippingAddress[addressLine1]", customerData.shippingAddress.addressLine1 || "");
-    formData.append("shippingAddress[addressLine2]", customerData.shippingAddress.addressLine2 || "");
-    formData.append("shippingAddress[city]", customerData.shippingAddress.city || "");
-    formData.append("shippingAddress[state]", customerData.shippingAddress.state || "");
-    formData.append("shippingAddress[pincode]", customerData.shippingAddress.pincode || "");
-    formData.append("shippingAddress[country]", customerData.shippingAddress.country || "");
-  }
-  
-  // Add bank details
-  if (customerData.bankDetails) {
-    formData.append("bankDetails[bankName]", customerData.bankDetails.bankName || "");
-    formData.append("bankDetails[branch]", customerData.bankDetails.branch || "");
-    formData.append("bankDetails[accountHolderName]", customerData.bankDetails.accountHolderName || "");
-    formData.append("bankDetails[accountNumber]", customerData.bankDetails.accountNumber || "");
-    formData.append("bankDetails[IFSC]", customerData.bankDetails.IFSC || "");
-  }
-
-  // Handle image upload if present
-  if (customerData.image && customerData.image instanceof File) {
-    formData.append("image", customerData.image);
-  }
-
+export async function addCustomer(formData) {
   try {
+    // FormData is already properly formatted from the frontend
+    // Just pass it directly to the API
     const response = await fetchWithAuth(ENDPOINTS.CUSTOMER.ADD, {
       method: 'POST',
       body: formData,
     });
 
-    if (response.code !== 200) {
-      throw new Error(response.message || 'Failed to add customer');
-    }
-
-    return { success: true, data: response.data };
+    // Return the response directly to match old app's format
+    // The frontend expects response.code === 200 for success
+    return response;
   } catch (error) {
     console.error('Error adding customer:', error);
-    return { success: false, message: error.message || 'Failed to add customer' };
+    // Return error in the expected format
+    return {
+      code: 400,
+      message: error.message || 'Failed to add customer',
+      data: { message: error.message || 'Failed to add customer' }
+    };
   }
 }
 

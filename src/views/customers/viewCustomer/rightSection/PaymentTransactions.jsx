@@ -294,14 +294,12 @@ const PaymentTransactions = ({ customerData, onCustomerUpdate }) => {
                       </Typography>
                       <div className='flex flex-col'>
                         {customerData.bankDetails.accountNumber ? (
-                          <>
+                    
                             <Typography variant='body1' color='text.primary' className='font-medium'>
-                              ****{customerData.bankDetails.accountNumber.slice(-4)}
-                            </Typography>
-                            <Typography variant='body2' color='text.secondary'>
                               {customerData.bankDetails.accountNumber}
                             </Typography>
-                          </>
+                     
+                       
                         ) : (
                           <Typography variant='body1' color='text.primary' className='font-medium'>
                             N/A

@@ -3,11 +3,11 @@ import { useTabHandler } from './tabHandler';
 import { useFormHandler } from './formHandler';
 import { useLedgerHandler } from './ledgerHandler';
 import { vendorStatusOptions, ledgerModes } from '@/data/dataSets';
-import { amountFormat } from '@/utils/numberUtils';
+import { formatCurrency } from '@/utils/currencyUtils';
 
-export function useViewVendorHandlers({ vendorData, onError, onSuccess }) {
+export function useViewVendorHandlers({ vendorData, defaultTab = 'details', isDialog = true, onError, onSuccess }) {
   // Tab management
-  const { currentTab, handleTabChange } = useTabHandler();
+  const { currentTab, handleTabChange } = useTabHandler(defaultTab, isDialog);
 
   // Form management
   const {
@@ -45,7 +45,7 @@ export function useViewVendorHandlers({ vendorData, onError, onSuccess }) {
 
   return {
     // Tab state
-    currentTab,
+    currentTab, 
     handleTabChange,
 
     // Ledger state
@@ -71,6 +71,6 @@ export function useViewVendorHandlers({ vendorData, onError, onSuccess }) {
     // Static data
     vendorStatusOptions,
     ledgerModes,
-    amountFormat
+    formatCurrency
   };
 }

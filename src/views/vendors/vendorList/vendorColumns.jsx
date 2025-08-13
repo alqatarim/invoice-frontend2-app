@@ -1,10 +1,81 @@
-import Link from 'next/link';
+import React from 'react';
 import { Icon } from '@iconify/react';
-import { Typography, Chip } from '@mui/material';
+import { Typography, Chip, IconButton, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
-import { vendorStatusOptions } from '@/data/dataSets';
+import { vendorStatusOptions, actionButtons } from '@/data/dataSets';
 import OptionMenu from '@core/components/option-menu';
+import { useTheme } from '@mui/material/styles';
+
+// Action cell extracted into its own component so hooks are used at the top level
+const ActionCell = ({ row, handlers, permissions, ledgerPermissions }) => {
+  const viewAction = actionButtons.find(action => action.id === 'view');
+  const editAction = actionButtons.find(action => action.id === 'edit');
+  const deleteAction = actionButtons.find(action => action.id === 'delete');
+
+  // Prepare menu options for ledger
+  const theme = useTheme();
+  const menuOptions = [];
+  if (ledgerPermissions?.canCreate) {
+    menuOptions.push({
+      text: 'Ledger',
+      icon: <Icon icon="mdi:book-outline" />,
+      onClick: () => handlers?.handleView?.(row._id, 'ledger'),
+      menuItemProps: {
+        className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
+      }
+    });
+  }
+
+  return (
+    <Box >
+      {/* View Button */}
+      {permissions?.canView && (
+        <IconButton
+          color='primary'
+          size="small"
+          onClick={() => handlers?.handleView?.(row._id)}
+          title={viewAction?.title || 'View'}
+        >
+          <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />
+        </IconButton>
+      )}
+
+      {/* Edit Button */}
+      {permissions?.canUpdate && (
+        <IconButton
+          size="small"
+          onClick={() => handlers?.handleEdit?.(row._id)}
+          title={editAction?.title || 'Edit'}
+          color="primary"
+        >
+          <Icon icon={editAction?.icon || 'mdi:edit-outline'} />
+        </IconButton>
+      )}
+
+      {/* Delete Button */}
+      {permissions?.canDelete && (
+        <IconButton
+          size="small"
+          onClick={() => handlers.handleDelete(row._id)}
+          title={deleteAction?.title || 'Delete'}
+          color="error"
+        >
+          <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />
+        </IconButton>
+      )}
+
+      {/* Menu for Ledger - only show if there are menu options */}
+      {menuOptions.length > 0 && (
+        <OptionMenu
+          icon={<MoreVertIcon />}
+          iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
+          options={menuOptions}
+        />
+      )}
+    </Box>
+  );
+};
 
 /**
  * Vendor table column definitions
@@ -36,17 +107,13 @@ export const getVendorColumns = ({ theme = {}, permissions = {}, ledgerPermissio
     visible: true,
     label: 'Name',
     sortable: true,
-    renderCell: (row) => (
-
-        <Link href={`/vendors/vendor-view/${row._id}`} passHref>
-          <Typography
-            className="cursor-pointer text-primary hover:underline font-medium"
-
-          >
-            {row.vendor_name || 'N/A'}
-          </Typography>
-        </Link>
-
+    renderCell: (row, handlers) => (
+        <Typography
+          className="cursor-pointer text-primary hover:underline font-medium"
+          onClick={() => handlers?.handleView?.(row._id)}
+        >
+          {row.vendor_name || 'N/A'}
+        </Typography>
     ),
   },
 
@@ -77,7 +144,7 @@ export const getVendorColumns = ({ theme = {}, permissions = {}, ledgerPermissio
     key: 'balance',
     label: 'Closing Balance',
     visible: true,
-    align: 'center',
+    align: 'left',
     sortable: true,
     renderCell: (row) => {
       // Ensure proper number handling and fallback
@@ -98,7 +165,7 @@ export const getVendorColumns = ({ theme = {}, permissions = {}, ledgerPermissio
       }
 
       return (
-        <div className="flex items-center justify-center gap-1">
+        <div className="flex items-center justify-start gap-1">
           <Icon
             icon="lucide:saudi-riyal"
             width="1rem"
@@ -172,62 +239,13 @@ export const getVendorColumns = ({ theme = {}, permissions = {}, ledgerPermissio
     label: '',
     visible: true,
     align: 'right',
-    renderCell: (row, handlers) => {
-      const options = [];
-      const { permissions, ledgerPermissions } = handlers;
-
-      if (permissions?.canView) {
-        options.push({
-          text: 'View',
-          icon: <Icon icon="mdi:eye-outline" />,
-          href: `/vendors/vendor-view/${row._id}`,
-          linkProps: {
-            className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
-          }
-        });
-      }
-
-      if (permissions?.canUpdate) {
-        options.push({
-          text: 'Edit',
-          icon: <Icon icon="mdi:edit-outline" />,
-          href: `/vendors/edit/${row._id}`,
-          linkProps: {
-            className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
-          }
-        });
-      }
-
-      if (ledgerPermissions?.canCreate) {
-        options.push({
-          text: 'Ledger',
-          icon: <Icon icon="mdi:book-outline" />,
-          href: `/vendors/vendor-view/${row._id}?tab=ledger`,
-          linkProps: {
-            className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
-          }
-        });
-      }
-
-      if (permissions?.canDelete) {
-        options.push({
-          text: 'Delete',
-          icon: <Icon icon="mdi:delete-outline" />,
-          menuItemProps: {
-            className: 'flex items-center gap-2 text-error',
-            onClick: () => handlers.handleDelete(row._id)
-          }
-        });
-      }
-
-
-      return (
-        <OptionMenu
-          icon={<MoreVertIcon />}
-          iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
-          options={options}
-        />
-      );
-    },
+    renderCell: (row, handlers) => (
+      <ActionCell 
+        row={row} 
+        handlers={handlers} 
+        permissions={permissions} 
+        ledgerPermissions={ledgerPermissions} 
+      />
+    ),
   },
 ];

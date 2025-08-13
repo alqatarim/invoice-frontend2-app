@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { Snackbar, Alert, useTheme, Button, Card, CardContent, Box } from '@mui/material'
+import { Snackbar, Alert, useTheme, Button, Card, CardContent, Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Popper, Fade, Paper, Typography, ClickAwayListener } from '@mui/material'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import { AddCustomerDrawer } from '../addCustomer'
 import { getCustomerColumns } from './customerColumns'
@@ -151,6 +151,93 @@ const CustomerList = ({
         onSuccess={onSuccess}
         onError={onError}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={handlers.deleteDialogOpen}
+        onClose={handlers.handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">Delete Customer</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete this customer? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handlers.handleDeleteCancel} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handlers.handleDeleteConfirm} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Activate Confirmation Popover */}
+      <Popper
+        open={handlers.activateDialogOpen}
+        anchorEl={handlers.activateAnchorEl}
+        placement="bottom-start"
+        transition
+        disablePortal
+        sx={{ zIndex: 1300 }}
+      >
+        {({ TransitionProps }) => (
+          <Fade {...TransitionProps}>
+            <Paper className="p-4 max-w-xs shadow-lg border">
+              <ClickAwayListener onClickAway={handlers.handleActivateCancel}>
+                <Box>
+                  <Typography variant="subtitle1" className="font-medium mb-2">
+                    Are you sure you want to activate?
+                  </Typography>
+                  <Box className="flex gap-2 justify-end">
+                    <Button size="small" onClick={handlers.handleActivateCancel} color="primary">
+                      Cancel
+                    </Button>
+                    <Button size="small" onClick={handlers.handleActivateConfirm} color="success" variant="contained">
+                      Activate
+                    </Button>
+                  </Box>
+                </Box>
+              </ClickAwayListener>
+            </Paper>
+          </Fade>
+        )}
+      </Popper>
+
+      {/* Deactivate Confirmation Popover */}
+      <Popper
+        open={handlers.deactivateDialogOpen}
+        anchorEl={handlers.deactivateAnchorEl}
+        placement="bottom-start"
+        transition
+        disablePortal
+        sx={{ zIndex: 1300 }}
+      >
+        {({ TransitionProps }) => (
+          <Fade {...TransitionProps}>
+            <Paper className="p-4 max-w-xs shadow-lg border">
+              <ClickAwayListener onClickAway={handlers.handleDeactivateCancel}>
+                <Box>
+                  <Typography variant="subtitle1" className="font-medium mb-2">
+                    Are you sure you want to deactivate?
+                  </Typography>
+                  <Box className="flex gap-2 justify-end">
+                    <Button size="small" onClick={handlers.handleDeactivateCancel} color="primary">
+                      Cancel
+                    </Button>
+                    <Button size="small" onClick={handlers.handleDeactivateConfirm} color="warning" variant="contained">
+                      Deactivate
+                    </Button>
+                  </Box>
+                </Box>
+              </ClickAwayListener>
+            </Paper>
+          </Fade>
+        )}
+      </Popper>
       
       {/* Snackbar */}
       <Snackbar

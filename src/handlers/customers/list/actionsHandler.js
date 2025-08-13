@@ -15,6 +15,8 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [activateDialogOpen, setActivateDialogOpen] = useState(false)
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
+  const [activateAnchorEl, setActivateAnchorEl] = useState(null)
+  const [deactivateAnchorEl, setDeactivateAnchorEl] = useState(null)
 
   // Handle edit navigation
   const handleEdit = useCallback((customer) => {
@@ -55,8 +57,9 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
   }, [])
 
   // Activate handlers
-  const handleActivateClick = useCallback((customer) => {
+  const handleActivateClick = useCallback((customer, anchorEl) => {
     setSelectedCustomer(customer)
+    setActivateAnchorEl(anchorEl)
     setActivateDialogOpen(true)
   }, [])
 
@@ -68,6 +71,7 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
       onSuccess('Customer activated successfully')
       setActivateDialogOpen(false)
       setSelectedCustomer(null)
+      setActivateAnchorEl(null)
       fetchCustomers()
     } catch (error) {
       console.error('Error activating customer:', error)
@@ -78,11 +82,13 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
   const handleActivateCancel = useCallback(() => {
     setActivateDialogOpen(false)
     setSelectedCustomer(null)
+    setActivateAnchorEl(null)
   }, [])
 
   // Deactivate handlers
-  const handleDeactivateClick = useCallback((customer) => {
+  const handleDeactivateClick = useCallback((customer, anchorEl) => {
     setSelectedCustomer(customer)
+    setDeactivateAnchorEl(anchorEl)
     setDeactivateDialogOpen(true)
   }, [])
 
@@ -94,6 +100,7 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
       onSuccess('Customer deactivated successfully')
       setDeactivateDialogOpen(false)
       setSelectedCustomer(null)
+      setDeactivateAnchorEl(null)
       fetchCustomers()
     } catch (error) {
       console.error('Error deactivating customer:', error)
@@ -104,6 +111,7 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
   const handleDeactivateCancel = useCallback(() => {
     setDeactivateDialogOpen(false)
     setSelectedCustomer(null)
+    setDeactivateAnchorEl(null)
   }, [])
 
   // Create invoice navigation
@@ -117,6 +125,8 @@ export const useActionsHandler = ({ onError, onSuccess, fetchCustomers }) => {
     deleteDialogOpen,
     activateDialogOpen,
     deactivateDialogOpen,
+    activateAnchorEl,
+    deactivateAnchorEl,
 
     // Navigation actions
     handleEdit,

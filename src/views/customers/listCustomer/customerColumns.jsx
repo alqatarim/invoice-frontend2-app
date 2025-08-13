@@ -1,13 +1,70 @@
 import React from 'react'
 import Link from 'next/link'
-import { Chip, Avatar, Typography, IconButton, Menu, MenuItem, Box } from '@mui/material'
-import { MoreVert as MoreVertIcon } from '@mui/icons-material'
+import { Chip, Avatar, Typography, IconButton, Box } from '@mui/material'
 import { Icon } from '@iconify/react'
 
 import { formatCurrency } from '@/utils/currencyUtils'
 import { formatDate } from '@/utils/dateUtils'
-import OptionMenu from '@core/components/option-menu'
 import { actionButtons } from '@/data/dataSets'
+
+// Action cell extracted into its own component so hooks are used at the top level
+const ActionCell = ({ row, handlers, permissions }) => {
+  const viewAction = actionButtons.find(action => action.id === 'view')
+  const deleteAction = actionButtons.find(action => action.id === 'delete')
+  const activateAction = actionButtons.find(action => action.id === 'activate')
+  const deactivateAction = actionButtons.find(action => action.id === 'deactivate')
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
+      {/* View Button */}
+      {permissions.canView && (
+        <IconButton
+          size="small"
+          component={Link}
+          href={`/customers/customer-view/${row._id}`}
+          title={viewAction.title}
+        >
+          <Icon icon={viewAction.icon} />
+        </IconButton>
+      )}
+
+      {/* Activate/Deactivate Button */}
+      {permissions.canEdit && row.status === 'Deactive' && (
+        <IconButton
+          size="small"
+          onClick={() => handlers.handleActivateClick(row, null)}
+          title={activateAction.title}
+          color="success"
+        >
+          <Icon icon={activateAction.icon} />
+        </IconButton>
+      )}
+
+      {permissions.canEdit && row.status === 'Active' && (
+        <IconButton
+          size="small"
+          onClick={() => handlers.handleDeactivateClick(row, null)}
+          title={deactivateAction.title}
+          color="warning"
+        >
+          <Icon icon={deactivateAction.icon} />
+        </IconButton>
+      )}
+
+      {/* Delete Button */}
+      {permissions.canDelete && (
+        <IconButton
+          size="small"
+          onClick={() => handlers.handleDeleteClick(row)}
+          title={deleteAction.title}
+          color="error"
+        >
+          <Icon icon={deleteAction.icon} />
+        </IconButton>
+      )}
+    </Box>
+  )
+}
 
 export const getCustomerColumns = ({ theme, permissions }) => [
   {
@@ -130,14 +187,14 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     visible: true,
     sortable: true,
     align: 'center',
-    minWidth: 90, // Stable width for status chips
+
     renderCell: (row) => (
       <Chip
-        className='mx-0'
+        
         size='small'
         variant='tonal'
-        label={row.status || 'Active'}
-        color={row.status === 'Active' ? 'success' : 'default'}
+        label={row.status === 'Deactive' ? 'Inactive' : (row.status || 'Active')}
+        color={row.status === 'Active' ? 'success' : 'warning'}
       />
     )
   },
@@ -146,77 +203,10 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     label: '',
     visible: true,
     align: 'right',
-    minWidth: 130, // Stable width for action buttons
-    renderCell: (row, handlers) => {
-      const viewAction = actionButtons.find(action => action.id === 'view');
-      const editAction = actionButtons.find(action => action.id === 'edit');
-      const deleteAction = actionButtons.find(action => action.id === 'delete');
-      const activateAction = actionButtons.find(action => action.id === 'activate');
-      const deactivateAction = actionButtons.find(action => action.id === 'deactivate');
-
-      const menuOptions = [];
-
-      // Add additional menu options (not view/edit)
-      if (permissions.canEdit && row.status === 'Active') {
-        menuOptions.push({
-          text: deactivateAction.label,
-          icon: <Icon icon={deactivateAction.icon} />,
-          menuItemProps: {
-            className: 'flex items-center gap-2 text-textSecondary',
-            onClick: () => handlers.handleDeactivateClick(row)
-          }
-        });
-      }
-
-      if (permissions.canEdit && row.status !== 'Active') {
-        menuOptions.push({
-          text: activateAction.label,
-          icon: <Icon icon={activateAction.icon} />,
-          menuItemProps: {
-            className: 'flex items-center gap-2 text-textSecondary',
-            onClick: () => handlers.handleActivateClick(row)
-          }
-        });
-      }
-
-      if (permissions.canDelete) {
-        menuOptions.push({
-          text: deleteAction.label,
-          icon: <Icon icon={deleteAction.icon} />,
-          menuItemProps: {
-            className: 'flex items-center gap-2 text-red-500',
-            onClick: () => handlers.handleDeleteClick(row)
-          }
-        });
-      }
-
-      return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Direct action buttons */}
-
-            {permissions.canView && (
-              <IconButton
-                size="small"
-                component={Link}
-                href={`/customers/customer-view/${row._id}`}
-                title={viewAction.title}
-              >
-               <Icon icon={viewAction.icon} />
-              </IconButton>
-            )}
-
-
-          {/* Menu for additional actions */}
-          {menuOptions.length > 0 && (
-            <OptionMenu
-              icon={<MoreVertIcon />}
-              iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
-              options={menuOptions}
-            />
-          )}
-        </Box>
-      );
-    }
+   
+    renderCell: (row, handlers) => (
+      <ActionCell row={row} handlers={handlers} permissions={permissions} />
+    )
   }
 ]
 

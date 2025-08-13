@@ -24,6 +24,10 @@ import VendorFilter from '@/views/vendors/vendorList/vendorFilter';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { useVendorListHandlers } from '@/handlers/vendors/useVendorListHandlers';
 import { getVendorColumns } from './vendorColumns';
+import AddVendorDialog from '@/views/vendors/addVendor';
+import EditVendorDialog from '@/views/vendors/editVendor';
+import ViewVendorDialog from '@/views/vendors/viewVendor';
+import { addVendor, updateVendor } from '@/app/(dashboard)/vendors/actions';
 
 /**
  * Simplified VendorList Component - eliminates redundant state and complexity
@@ -52,6 +56,16 @@ const VendorList = ({ initialVendors, initialPagination }) => {
     severity: 'success',
   });
 
+  // Dialog states
+  const [dialogStates, setDialogStates] = useState({
+    add: false,
+    edit: false,
+    view: false,
+    editVendorId: null,
+    viewVendorId: null,
+    viewTab: 'details',
+  });
+
   // Notification handlers
   const onError = useCallback(msg => {
     setSnackbar({ open: true, message: msg, severity: 'error' });
@@ -61,12 +75,89 @@ const VendorList = ({ initialVendors, initialPagination }) => {
     setSnackbar({ open: true, message: msg, severity: 'success' });
   }, []);
 
+  // Dialog handlers
+  const handleOpenAddDialog = useCallback(() => {
+    setDialogStates(prev => ({ ...prev, add: true }));
+  }, []);
+
+  const handleCloseAddDialog = useCallback(() => {
+    setDialogStates(prev => ({ ...prev, add: false }));
+  }, []);
+
+  const handleOpenEditDialog = useCallback((vendorId) => {
+    setDialogStates(prev => ({ ...prev, edit: true, editVendorId: vendorId }));
+  }, []);
+
+  const handleCloseEditDialog = useCallback(() => {
+    setDialogStates(prev => ({ ...prev, edit: false, editVendorId: null }));
+  }, []);
+
+  const handleOpenViewDialog = useCallback((vendorId, tab = 'details') => {
+    setDialogStates(prev => ({ ...prev, view: true, viewVendorId: vendorId, viewTab: tab }));
+  }, []);
+
+  const handleCloseViewDialog = useCallback(() => {
+    setDialogStates(prev => ({ ...prev, view: false, viewVendorId: null, viewTab: 'details' }));
+  }, []);
+
+  // CRUD operation handlers
+  const handleAddVendor = useCallback(async (formData) => {
+    try {
+      const loadingKey = 'adding-vendor';
+      onSuccess('Adding vendor...');
+      
+      const response = await addVendor(formData);
+      
+      if (!response.success) {
+        const errorMessage = response.error?.message || response.message || 'Failed to add vendor';
+        onError(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+
+      onSuccess('Vendor added successfully!');
+      // Refresh the vendor list
+      handlers.fetchData();
+      return response;
+    } catch (error) {
+      const errorMessage = error.message || 'An unexpected error occurred';
+      onError(errorMessage);
+      return { success: false, message: errorMessage };
+    }
+  }, [onSuccess, onError, handlers]);
+
+  const handleUpdateVendor = useCallback(async (vendorId, formData) => {
+    try {
+      const loadingKey = 'updating-vendor';
+      onSuccess('Updating vendor...');
+      
+      const response = await updateVendor(vendorId, formData);
+      
+      if (!response.success) {
+        const errorMessage = response.error?.message || response.message || 'Failed to update vendor';
+        onError(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+
+      onSuccess('Vendor updated successfully!');
+      // Refresh the vendor list
+      handlers.fetchData();
+      return response;
+    } catch (error) {
+      const errorMessage = error.message || 'An unexpected error occurred';
+      onError(errorMessage);
+      return { success: false, message: errorMessage };
+    }
+  }, [onSuccess, onError, handlers]);
+
   // Initialize simplified handlers
   const handlers = useVendorListHandlers({
     initialVendors,
     initialPagination,
     onError,
     onSuccess,
+    // Override handlers to use dialogs instead of navigation
+    onView: handleOpenViewDialog,
+    onEdit: handleOpenEditDialog,
   });
 
   // Column management
@@ -144,32 +235,34 @@ const VendorList = ({ initialVendors, initialPagination }) => {
       />
 
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        {/* <Grid size={{xs:12}}>
           <VendorFilter
             onApplyFilters={handlers.handleFilterApply}
             onResetFilters={handlers.handleFilterReset}
+            onOpenColumns={() => setManageColumnsOpen(true)}
           />
-        </Grid>
+        </Grid> */}
 
-        <Grid item xs={12}>
+        <Grid size={{xs:12}}>
           <CustomListTable
             columns={tableColumns}
             rows={handlers.vendors}
             loading={handlers.loading}
             pagination={tablePagination}
-            onPageChange={handlers.handlePageChange}
-            onRowsPerPageChange={handlers.handlePageSizeChange}
-            onSort={handlers.handleSortRequest}
+            onPageChange={(page) => handlers.handlePageChange(page)}
+            onRowsPerPageChange={(size) => handlers.handlePageSizeChange(size)}
+            onSort={(key, direction) => handlers.handleSortRequest(key, direction)}
             sortBy={handlers.sortBy}
             sortDirection={handlers.sortDirection}
             noDataText="No vendors found"
             rowKey={(row) => row._id || row.id}
-            showSearch={false}
+            showSearch={true}
+            searchValue={handlers.searchTerm || ''}
+            onSearchChange={handlers.handleSearchInputChange}
             headerActions={
               permissions.canCreate && (
                 <Button
-                  component={Link}
-                  href="/vendors/add"
+                  onClick={handleOpenAddDialog}
                   variant="contained"
                   startIcon={<Icon icon="tabler:plus" />}
                 >
@@ -229,6 +322,30 @@ const VendorList = ({ initialVendors, initialPagination }) => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Vendor Dialogs */}
+      <AddVendorDialog
+        open={dialogStates.add}
+        onClose={handleCloseAddDialog}
+        onSave={handleAddVendor}
+      />
+
+      <EditVendorDialog
+        open={dialogStates.edit}
+        vendorId={dialogStates.editVendorId}
+        onClose={handleCloseEditDialog}
+        onSave={handleUpdateVendor}
+      />
+
+      <ViewVendorDialog
+        open={dialogStates.view}
+        vendorId={dialogStates.viewVendorId}
+        defaultTab={dialogStates.viewTab}
+        onClose={handleCloseViewDialog}
+        onEdit={handleOpenEditDialog}
+        onError={onError}
+        onSuccess={onSuccess}
+      />
     </div>
   );
 };

@@ -6,7 +6,7 @@ import { deleteVendor } from '@/app/(dashboard)/vendors/actions';
 /**
  * Vendor actions handler - manages all vendor-related actions
  */
-export function actionsHandler({ onSuccess, onError, fetchData, pagination, filters }) {
+export function actionsHandler({ onSuccess, onError, fetchData, pagination, filters, onView, onEdit }) {
   const router = useRouter();
 
   /**
@@ -34,8 +34,20 @@ export function actionsHandler({ onSuccess, onError, fetchData, pagination, filt
         true
       ),
 
-    handleView: (id) => router.push(`/vendors/vendor-view/${id}`),
+    handleView: (id) => {
+      if (onView) {
+        onView(id);
+      } else {
+        router.push(`/vendors/vendor-view/${id}`);
+      }
+    },
 
-    handleEdit: (id) => router.push(`/vendors/edit/${id}`),
+    handleEdit: (id) => {
+      if (onEdit) {
+        onEdit(id);
+      } else {
+        router.push(`/vendors/edit/${id}`);
+      }
+    },
   };
 }

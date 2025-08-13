@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useRef, useState } from 'react'
+import { useRef, useState, forwardRef } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -43,7 +43,7 @@ const MenuItemWrapper = ({ children, option }) => {
   }
 }
 
-const OptionMenu = props => {
+const OptionMenu = forwardRef((props, ref) => {
   // Props
   const { tooltipProps, icon, iconClassName, options, leftAlignMenu, iconButtonProps } = props
 
@@ -71,7 +71,7 @@ const OptionMenu = props => {
   return (
     <>
       <IconButtonWrapper tooltipProps={tooltipProps}>
-        <IconButton ref={anchorRef} size='small' onClick={handleToggle} {...iconButtonProps}>
+        <IconButton ref={(node) => { anchorRef.current = node; if (ref) ref.current = node; }} size='small' onClick={handleToggle} {...iconButtonProps}>
           {typeof icon === 'string' ? (
             <i className={classnames(icon, iconClassName)} />
           ) : icon ? (
@@ -132,6 +132,6 @@ const OptionMenu = props => {
       </Popper>
     </>
   )
-}
+})
 
 export default OptionMenu

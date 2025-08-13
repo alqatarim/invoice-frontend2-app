@@ -482,3 +482,15 @@ export const isLightColor = (hexColor) => {
 export const getContrastingTextColor = (backgroundColor) => {
   return isLightColor(backgroundColor) ? '#000000' : '#ffffff'
 }
+
+/**
+ * Get MUI color based on balance value (positive/negative)
+ * @param {number} value - The balance value to evaluate
+ * @returns {string} MUI theme color ('success.dark' for positive, 'error.dark' for negative)
+ */
+export const getBalanceColor = (value) => {
+  return value > 0 ? 'success.dark' : value < 0 ? 'error.dark' : 'text.primary'
+}
+
+
+

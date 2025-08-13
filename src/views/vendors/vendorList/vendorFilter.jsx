@@ -24,7 +24,7 @@ import { searchVendors } from '@/app/(dashboard)/vendors/actions';
 /**
  * VendorFilter - Original UI/UX with optimized logic
  */
-const VendorFilter = ({ onApplyFilters, onResetFilters }) => {
+const VendorFilter = ({ onApplyFilters, onResetFilters, onOpenColumns }) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [selectedVendors, setSelectedVendors] = useState([]);
@@ -250,6 +250,7 @@ const VendorFilter = ({ onApplyFilters, onResetFilters }) => {
               variant="text"
               size="medium"
               startIcon={<Icon icon="material-symbols:view-column-2" width={22} />}
+              onClick={onOpenColumns}
             >
               Columns
             </Button>

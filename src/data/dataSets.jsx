@@ -101,8 +101,8 @@ export const vendorStatusOptions = [
 ]
 
 export const ledgerModes = [
-  { value: 'Credit', label: 'Credit' },
-  { value: 'Debit', label: 'Debit' }
+  { value: 'Credit', label: 'Credit', color: 'success' },
+  { value: 'Debit', label: 'Debit', color: 'error' }
 ]
 
 // // Gender options for profile forms

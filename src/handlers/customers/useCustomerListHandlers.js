@@ -85,6 +85,8 @@ export function useCustomerListHandlers({
     deleteDialogOpen: actionsHandler.deleteDialogOpen,
     activateDialogOpen: actionsHandler.activateDialogOpen,
     deactivateDialogOpen: actionsHandler.deactivateDialogOpen,
+    activateAnchorEl: actionsHandler.activateAnchorEl,
+    deactivateAnchorEl: actionsHandler.deactivateAnchorEl,
     handleEdit: actionsHandler.handleEdit,
     handleView: actionsHandler.handleView,
     handleCreateInvoice: actionsHandler.handleCreateInvoice,

@@ -21,6 +21,9 @@ export function useVendorListHandlers(options = {}) {
     fetchData: data.fetchData,
     pagination: data.pagination,
     filters: data.filters,
+    // Pass custom handlers if provided (for dialog mode)
+    onView: options.onView,
+    onEdit: options.onEdit,
   });
 
   return {
@@ -30,11 +33,14 @@ export function useVendorListHandlers(options = {}) {
     loading: data.loading,
     sortBy: data.sortBy,
     sortDirection: data.sortDirection,
+    searchTerm: data.searchTerm,
 
     // Data handlers
     handlePageChange: data.handlePageChange,
     handlePageSizeChange: data.handlePageSizeChange,
     handleSortRequest: data.handleSort,
+    handleSort: data.handleSort,
+    handleSearchInputChange: data.handleSearchInputChange,
 
     // Filter handlers
     handleFilterApply: data.applyFilters,

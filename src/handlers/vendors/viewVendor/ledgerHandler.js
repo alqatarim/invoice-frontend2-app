@@ -21,21 +21,23 @@ export function useLedgerHandler({ vendorData, currentTab, onError, onSuccess })
         }));
       } else {
         onError?.(response.error || 'Failed to load ledger data');
+        setLedgerData([]);
       }
     } catch (error) {
       console.error('Error fetching ledger:', error);
       onError?.('Failed to load ledger data');
+      setLedgerData([]);
     } finally {
       setLedgerLoading(false);
     }
   }, [vendorData?._id, ledgerPagination.page, ledgerPagination.limit, onError]);
 
-  // Load ledger data when switching to ledger tab
+  // Load ledger data when switching to ledger tab or page changes
   useEffect(() => {
     if (currentTab === 'ledger' && vendorData?._id) {
       fetchLedgerData();
     }
-  }, [currentTab, vendorData?._id, fetchLedgerData]);
+  }, [currentTab, vendorData?._id, ledgerPagination.page, fetchLedgerData]);
 
   const handleLedgerPageChange = useCallback((event, newPage) => {
     setLedgerPagination(prev => ({ ...prev, page: newPage }));
@@ -47,10 +49,12 @@ export function useLedgerHandler({ vendorData, currentTab, onError, onSuccess })
     setSubmittingState(true);
     try {
       const submitData = {
-        ...data,
-        vendorId: vendorData._id,
+        name: data.name,
         date: moment(data.date).format('YYYY-MM-DD'),
+        reference: data.reference || '',
         amount: parseFloat(data.amount),
+        mode: data.mode,
+        vendorId: vendorData._id,
       };
 
       const response = await addLedgerEntry(submitData);
@@ -58,7 +62,9 @@ export function useLedgerHandler({ vendorData, currentTab, onError, onSuccess })
       if (response.success) {
         onSuccess?.('Ledger entry added successfully');
         handleCloseLedgerDialog();
-        fetchLedgerData(); // Refresh ledger data
+        // Reset pagination to page 1 and refresh data
+        setLedgerPagination(prev => ({ ...prev, page: 1 }));
+        fetchLedgerData();
       } else {
         onError?.(response.error || 'Failed to add ledger entry');
       }

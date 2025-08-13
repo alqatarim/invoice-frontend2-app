@@ -1,16 +1,12 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   TextField,
   Button,
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl,
-  Typography,
-  Box,
-  Card,
-  CardContent,
   Grid,
   FormHelperText,
   InputAdornment,
@@ -19,15 +15,16 @@ import {
   FormControlLabel,
   FormLabel,
   Switch,
+  Box,
+  IconButton,
+  CircularProgress,
 } from '@mui/material';
-import CustomAvatar from '@core/components/mui/Avatar';
-import { alpha, useTheme } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
-import Link from 'next/link';
 
 import { useAddVendorHandlers } from '@/handlers/vendors/addVendor';
 
-const AddVendor = ({ onSave, enqueueSnackbar, closeSnackbar }) => {
+const AddVendorDialog = ({ open, onClose, onSave }) => {
   const theme = useTheme();
 
   const {
@@ -38,240 +35,216 @@ const AddVendor = ({ onSave, enqueueSnackbar, closeSnackbar }) => {
     vendorBalanceTypes,
     isSubmitting,
     handleFormSubmit,
-    handleCancel
+    reset,
   } = useAddVendorHandlers({
-    onSave,
-    enqueueSnackbar,
-    closeSnackbar
+    onSave: async (data) => {
+      const result = await onSave(data);
+      if (result.success) {
+        reset();
+        onClose();
+      }
+      return result;
+    },
+    enqueueSnackbar: () => {}, // Will be handled by parent
+    closeSnackbar: () => {}, // Will be handled by parent
   });
 
   const watchBalance = watch('balance');
 
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
   return (
-    <Box className="flex flex-col gap-6">
-      {/* Header */}
-      <Box className="flex items-center gap-3 mb-2">
-        <CustomAvatar
-          variant="rounded"
-          color="primary"
-          skin='light'
-        >
-          <Icon icon="mdi:account-plus" width={28} />
-        </CustomAvatar>
-        <Typography variant="h5" className="font-semibold" color='primary.main'>
-          Add New Vendor
-        </Typography>
-      </Box>
+    <Dialog fullWidth open={open} onClose={handleClose} maxWidth='md' scroll='body'>
+      <DialogTitle
+        variant='h4'
+        className='flex gap-2 flex-col text-center pbs-10 pbe-6 pli-10 sm:pbs-16 sm:pbe-6 sm:pli-16'
+      >
+        Add New Vendor
+      </DialogTitle>
 
-      {/* Form */}
-      <Card>
-        <form onSubmit={handleSubmit(handleFormSubmit)}>
-          <CardContent className='flex flex-col gap-4'>
-            <Grid container spacing={4}>
-              {/* Vendor Name */}
-              <Grid item xs={12} sm={6} md={4}>
-                <Controller
-                  name="vendor_name"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Vendor Name"
-                      placeholder="Enter vendor name"
-                      error={!!errors.vendor_name}
-                      helperText={errors.vendor_name?.message}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Icon icon="mdi:account" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-
-              {/* Email */}
-              <Grid item xs={12} sm={6} md={4}>
-                <Controller
-                  name="vendor_email"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Email Address"
-                      placeholder="Enter email address"
-                      type="email"
-                      error={!!errors.vendor_email}
-                      helperText={errors.vendor_email?.message}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Icon icon="mdi:email" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-
-              {/* Phone */}
-              <Grid item xs={12} sm={6} md={4}>
-                <Controller
-                  name="vendor_phone"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Phone Number"
-                      placeholder="Enter phone number"
-                      error={!!errors.vendor_phone}
-                      helperText={errors.vendor_phone?.message}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Icon icon="mdi:phone" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-
-              {/* Opening Balance */}
-              <Grid item xs={12} sm={6} md={4}>
-                <Controller
-                  name="balance"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Opening Balance (Optional)"
-                      placeholder="0.00"
-                      type="number"
-                      inputProps={{ min: 0, step: 0.01 }}
-                      error={!!errors.balance}
-                      helperText={errors.balance?.message}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Icon icon="lucide:saudi-riyal" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-
-              {/* Balance Type - Only show if balance is entered */}
-              {watchBalance && parseFloat(watchBalance) > 0 && (
-                <Grid item xs={6} sm={6} md={4}>
-                  <Controller
-                    name="balanceType"
-                    control={control}
-                    render={({ field }) => (
-                      <Box className="flex flex-col gap-2 items-start border border-Light rounded-md h-full py-1 px-1">
-                        <FormLabel component="legend" className="text-[0.8rem]">
-                          Balance Type
-                        </FormLabel>
-                        <RadioGroup
-                          {...field}
-                          row
-                          aria-label="balance-type"
-                          sx={{ display: 'flex', flexDirection: 'row', gap: 1, flexWrap: 'nowrap' }}
-                        >
-                          {vendorBalanceTypes.map((type) => (
-                            <FormControlLabel
-                              key={type.value}
-                              value={type.value}
-                              control={<Radio size="small" />}
-                              label={type.label}
-                              sx={{ m: 0, p: 0, alignItems: 'center' }}
-                              className='h-[18px]'
-                            />
-                          ))}
-                        </RadioGroup>
-                        {errors.balanceType && (
-                          <FormHelperText error>
-                            {errors.balanceType.message}
-                          </FormHelperText>
-                        )}
-                      </Box>
-                    )}
+      <form onSubmit={handleSubmit(handleFormSubmit)}>
+        <DialogContent className='overflow-visible pbs-0 pbe-6 pli-12 sm:pli-12'>
+          <IconButton onClick={handleClose} className='absolute block-start-4 inline-end-4' disabled={isSubmitting}>
+            <i className='ri-close-line text-textSecondary' />
+          </IconButton>
+          <Grid container spacing={4}>
+            {/* Vendor Name */}
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name="vendor_name"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Vendor Name"
+                    placeholder="Enter vendor name"
+                    error={!!errors.vendor_name}
+                    helperText={errors.vendor_name?.message}
+                    disabled={isSubmitting}
+                    required
                   />
-                </Grid>
-              )}
+                )}
+              />
+            </Grid>
 
-              {/* Status */}
-              <Grid item xs={6} sm={3} md={2}>
+            {/* Email */}
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name="vendor_email"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    type="email"
+                    label="Email Address"
+                    placeholder="Enter email address"
+                    error={!!errors.vendor_email}
+                    helperText={errors.vendor_email?.message}
+                    disabled={isSubmitting}
+                    required
+                  />
+                )}
+              />
+            </Grid>
+
+            {/* Phone */}
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name="vendor_phone"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Phone Number"
+                    placeholder="Enter phone number"
+                    error={!!errors.vendor_phone}
+                    helperText={errors.vendor_phone?.message}
+                    disabled={isSubmitting}
+                    required
+                  />
+                )}
+              />
+            </Grid>
+
+            {/* Opening Balance */}
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name="balance"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label="Opening Balance (Optional)"
+                    placeholder="0.00"
+                    type="number"
+                    inputProps={{ min: 0, step: 0.01 }}
+                    error={!!errors.balance}
+                    helperText={errors.balance?.message}
+                    disabled={isSubmitting}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <i className='ri-money-dollar-circle-line text-textSecondary' />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+
+            {/* Balance Type - Only show if balance is entered */}
+            {watchBalance && parseFloat(watchBalance) > 0 && (
+              <Grid size={{xs:12, md:6}}>
                 <Controller
-                  name="status"
+                  name="balanceType"
                   control={control}
                   render={({ field }) => (
-                    <Box className='flex flex-col gap-3 items-start border border-Light rounded-md pt-1 pb-2 px-2'>
-                      <FormLabel className='text-[0.8rem]' component="legend">
-                        Status
+                    <Box>
+                      <FormLabel component="legend" className="text-sm mb-2 block">
+                        Balance Type
                       </FormLabel>
-                      <FormControlLabel
-                        className='h-[10px]'
-                        labelPlacement="end"
-                        control={
-                          <Switch
-                            size='medium'
-                            checked={field.value}
-                            onChange={(e) => field.onChange(e.target.checked)}
-                            color="primary"
-                            sx={{
-                              // p: 0,
-                              // m: 0,
-                              // height: 24,
-                              // minHeight: 0,
-                              // '& .MuiSwitch-thumb': { width: 16, height: 16 },
-                              // '& .MuiSwitch-switchBase': { p: 0, m: 0 },
-                              // alignSelf: 'center'
-                            }}
+                      <RadioGroup
+                        {...field}
+                        row
+                        aria-label="balance-type"
+                      >
+                        {vendorBalanceTypes.map((type) => (
+                          <FormControlLabel
+                            key={type.value}
+                            value={type.value}
+                            control={<Radio size="small" disabled={isSubmitting} />}
+                            label={type.label}
                           />
-                        }
-                        label={field.value ? 'Active' : 'Inactive'}
-                      />
+                        ))}
+                      </RadioGroup>
+                      {errors.balanceType && (
+                        <FormHelperText error>
+                          {errors.balanceType.message}
+                        </FormHelperText>
+                      )}
                     </Box>
                   )}
                 />
               </Grid>
-            </Grid>
+            )}
 
-            {/* Form Actions */}
-            <Box className="flex justify-end gap-3">
-              <Button
-                className='min-w-[120px]'
-                variant="outlined"
-                onClick={handleCancel}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                className='min-w-[120px]'
-                type="submit"
-                variant="contained"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Saving...' : 'Save'}
-              </Button>
-            </Box>
-          </CardContent>
-        </form>
-      </Card>
-    </Box>
+            {/* Status */}
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Box>
+                    <FormLabel component="legend" className="text-sm mb-2 block">
+                      Status
+                    </FormLabel>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={field.value}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                          color="primary"
+                          disabled={isSubmitting}
+                        />
+                      }
+                      label={field.value ? 'Active' : 'Inactive'}
+                    />
+                  </Box>
+                )}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+
+        <DialogActions className='gap-2 justify-center pbs-0 pbe-10 pli-10 sm:pbe-16 sm:pli-16'>
+          <Button
+            variant='outlined'
+            color='secondary'
+            onClick={handleClose}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant='contained'
+            type='submit'
+            disabled={isSubmitting}
+            startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+          >
+            {isSubmitting ? 'Adding...' : 'Add Vendor'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };
 
-export default AddVendor;
+export default AddVendorDialog;

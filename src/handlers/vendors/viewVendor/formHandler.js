@@ -7,7 +7,7 @@ import * as yup from 'yup';
 const LedgerSchema = yup.object().shape({
   name: yup.string().required('Description is required'),
   date: yup.date().required('Date is required'),
-  reference: yup.string(),
+  reference: yup.string().optional(),
   mode: yup.string().required('Mode is required'),
   amount: yup.number().required('Amount is required').min(0.01, 'Amount must be greater than 0'),
 });

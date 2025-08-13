@@ -10,8 +10,11 @@ const ENDPOINTS = {
     UPDATE: '/vendor/updateVendor',
   },
   LEDGER: {
-    LIST: '/ledger/listLedger',
-    ADD: '/ledger/addLedger',
+    ADD: "/ledger/addData",
+    LIST: "/ledger/getAllData",
+    VIEW: "/ledger/getById",
+    UPDATE: "/ledger",
+    DELETE: "/ledger",
   },
 };
 
@@ -271,12 +274,22 @@ export async function getVendorLedger(vendorId, page = 1, pageSize = 10) {
   }
 
   try {
-    const url = `${ENDPOINTS.LEDGER.LIST}?vendorId=${encodeURIComponent(vendorId)}&page=${page}&pageSize=${pageSize}`;
-    const response = await fetchWithAuth(url);
+    const skip = (page - 1) * pageSize;
+    const url = `${ENDPOINTS.LEDGER.LIST}?vendorId=${encodeURIComponent(vendorId)}&skip=${skip}&limit=${pageSize}`;
+    
+    
+    const response = await fetchWithAuth(url, {
+      cache: 'no-store',
+      next: { revalidate: 0 }
+    });
 
     if (response.code === 200) {
       return {
-        ledger: response.data || [],
+        success: true,
+        data: {
+          ledgerEntries: response.data?.ledgers || [],
+          total: response.totalRecords || 0,
+        },
         pagination: {
           current: page,
           pageSize,
@@ -285,11 +298,17 @@ export async function getVendorLedger(vendorId, page = 1, pageSize = 10) {
       };
     } else {
       console.error('Failed to fetch vendor ledger:', response.message);
-      throw new Error(response.message || 'Failed to fetch vendor ledger');
+      return {
+        success: false,
+        error: response.message || 'Failed to fetch vendor ledger'
+      };
     }
   } catch (error) {
     console.error('Error in getVendorLedger:', error);
-    throw new Error(error.message || 'Failed to fetch vendor ledger');
+    return {
+      success: false,
+      error: error.message || 'Failed to fetch vendor ledger'
+    };
   }
 }
 
@@ -303,16 +322,25 @@ export async function addLedgerEntry(ledgerData) {
   try {
     const response = await fetchWithAuth(ENDPOINTS.LEDGER.ADD, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(ledgerData),
     });
 
-    if (response.code !== 200) {
-      throw new Error(response.message || 'Failed to add ledger entry');
+    if (response.code === 200) {
+      return { success: true, data: response.data };
+    } else {
+      return { 
+        success: false, 
+        error: response.message || 'Failed to add ledger entry'
+      };
     }
-
-    return { success: true, data: response.data };
   } catch (error) {
     console.error('Error adding ledger entry:', error);
-    return { success: false, message: error.message || 'Failed to add ledger entry' };
+    return { 
+      success: false, 
+      error: error.message || 'Failed to add ledger entry' 
+    };
   }
 }

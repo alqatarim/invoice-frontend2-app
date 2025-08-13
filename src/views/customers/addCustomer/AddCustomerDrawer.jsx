@@ -6,27 +6,53 @@ import { useRouter } from 'next/navigation'
 
 // MUI Imports
 import Button from '@mui/material/Button'
-import Drawer from '@mui/material/Drawer'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
 import Divider from '@mui/material/Divider'
-import FormControl from '@mui/material/FormControl'
 import IconButton from '@mui/material/IconButton'
-import InputLabel from '@mui/material/InputLabel'
-import MenuItem from '@mui/material/MenuItem'
-import Select from '@mui/material/Select'
 import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import FormHelperText from '@mui/material/FormHelperText'
 import Typography from '@mui/material/Typography'
 import CircularProgress from '@mui/material/CircularProgress'
+import Grid from '@mui/material/Grid'
+import Autocomplete from '@mui/material/Autocomplete'
+import Box from '@mui/material/Box'
 
 // Third-party Imports
-import PerfectScrollbar from 'react-perfect-scrollbar'
 import { useForm, Controller } from 'react-hook-form'
+import { countries } from 'country-codes-flags-phone-codes'
+
+// CSS Import for flag icons
+import 'flag-icons/css/flag-icons.min.css'
 
 // Component Imports
 import { usePermission } from '@/Auth/usePermission'
+import CustomAvatar from '@core/components/mui/Avatar'
 
-const AddCustomerDrawer = props => {
+// Helper function to get flag CSS class
+const getFlagIcon = (countryCode) => {
+  if (!countryCode) return null
+  
+  return (
+    <span 
+      className={`fi fi-${countryCode.toLowerCase()}`}
+      style={{ marginRight: '8px' }}
+      title={countryCode}
+    />
+  )
+}
+
+// Helper function to get country code from country name
+const getCountryCodeFromName = (countryName) => {
+  if (!countryName) return null
+  const country = countries.find(c => c.name === countryName)
+  return country ? country.code : null
+}
+
+const AddCustomerDialog = props => {
   // Props
   const { open, handleClose, onSuccess, onError, setData, customerData } = props
 
@@ -81,40 +107,73 @@ const AddCustomerDrawer = props => {
     try {
       setLoading(true)
       
-      // Create new customer object
-      const newCustomer = {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        website: data.website,
-        status: data.status,
-        notes: data.notes,
-        billingAddress: data.billingAddress,
-        shippingAddress: billingAsSameAddress ? data.billingAddress : data.shippingAddress
+      // Create FormData for API submission (matching backend expectations)
+      const formData = new FormData()
+      
+      // Add basic fields
+      formData.append('name', data.name || '')
+      formData.append('email', data.email || '')
+      formData.append('phone', data.phone || '')
+      formData.append('website', data.website || '')
+      formData.append('status', data.status || 'Active')
+      formData.append('notes', data.notes || '')
+      
+      // Add billing address
+      if (data.billingAddress) {
+        Object.keys(data.billingAddress).forEach(key => {
+          formData.append(`billingAddress[${key}]`, data.billingAddress[key] || '')
+        })
       }
       
-      // Add to local data (for demo purposes)
-      const updatedData = [...(customerData || []), { 
-        ...newCustomer, 
-        _id: Date.now().toString(),
-        balance: 0,
-        noOfInvoices: 0,
-        createdAt: new Date()
-      }]
-      
-      if (setData) {
-        setData(updatedData)
+      // Add shipping address (same as billing if toggle is on)
+      const shippingData = billingAsSameAddress ? data.billingAddress : data.shippingAddress
+      if (shippingData) {
+        Object.keys(shippingData).forEach(key => {
+          formData.append(`shippingAddress[${key}]`, shippingData[key] || '')
+        })
       }
       
-      if (onSuccess) {
-        onSuccess('Customer added successfully!')
-      }
+      // Add empty image field
+      formData.append('image', '')
       
-      // Reset and close
-      resetForm()
-      setBillingAsSameAddress(true)
-      handleClose()
+      // Add empty bank details
+      const bankFields = ['bankName', 'branch', 'accountHolderName', 'accountNumber', 'IFSC']
+      bankFields.forEach(field => {
+        formData.append(`bankDetails[${field}]`, '')
+      })
+
+
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value)
+      }
+
+      // Import the addCustomer action
+      const { addCustomer } = await import('@/app/(dashboard)/customers/actions')
+      
+      // Submit to API
+      const response = await addCustomer(formData)
+      
+    
+      
+      if (response.code === 200) {
+        if (onSuccess) {
+          onSuccess('Customer added successfully!')
+        }
+        
+        // Reset and close
+        resetForm()
+        setBillingAsSameAddress(true)
+        handleClose()
+        
+        // Refresh the page to show the new customer
+        window.location.reload()
+      } else {
+        if (onError) {
+          onError(response?.data?.message || response?.message || 'Failed to add customer')
+        }
+      }
     } catch (error) {
+      console.error('AddCustomerDrawer - Error:', error)
       if (onError) {
         onError('Failed to add customer: ' + error.message)
       }
@@ -141,328 +200,496 @@ const AddCustomerDrawer = props => {
   }
 
   return (
-    <Drawer
-      open={open}
-      anchor='right'
-      variant='temporary'
-      onClose={handleReset}
-      ModalProps={{ keepMounted: true }}
-      sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
+    <Dialog 
+      fullWidth 
+      open={open} 
+      onClose={handleReset} 
+      maxWidth='md' 
+      scroll='paper'
+      sx={{
+        '& .MuiDialog-container': {
+          alignItems: 'flex-start',
+          paddingTop: '5vh',
+        },
+        '& .MuiDialog-paper': {
+          margin: '0 auto',
+          maxHeight: '90vh',
+        }
+      }}
     >
-      <div className='flex items-center justify-between pli-5 plb-4'>
-        <Typography variant='h5'>Add a Customer</Typography>
-        <IconButton size='small' onClick={handleReset}>
-          <i className='ri-close-line text-2xl' />
-        </IconButton>
-      </div>
-      <Divider />
-      <PerfectScrollbar options={{ wheelPropagation: false, suppressScrollX: true }}>
-        <div className='p-5'>
-          <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-5'>
-            <Typography color='text.primary' className='font-medium'>
-              Basic Information
-            </Typography>
-            
-            <Controller
-              name='name'
-              control={control}
-              rules={{ required: 'Customer name is required' }}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='Customer Name'
-                  placeholder='John Doe'
-                  error={!!errors.name}
-                  helperText={errors.name?.message}
-                />
-              )}
-            />
-            
-            <Controller
-              name='email'
-              control={control}
-              rules={{ 
-                required: 'Email is required',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Invalid email address'
-                }
-              }}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type='email'
-                  label='Email Address'
-                  placeholder='johndoe@gmail.com'
-                  error={!!errors.email}
-                  helperText={errors.email?.message}
-                />
-              )}
-            />
-            
-            <Controller
-              name='phone'
-              control={control}
-              rules={{ required: 'Phone number is required' }}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='Phone Number'
-                  placeholder='(397) 294-5153'
-                  error={!!errors.phone}
-                  helperText={errors.phone?.message}
-                />
-              )}
-            />
+      <DialogTitle
+        variant='h4'
+        className='flex gap-2 flex-col text-center pbs-10 pbe-6 pli-10 sm:pbs-12 sm:pbe-4 sm:pli-16'
+      >
+        Add Customer
+      </DialogTitle>
 
-            <Controller
-              name='website'
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='Website'
-                  placeholder='www.example.com'
-                />
-              )}
-            />
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <DialogContent className='overflow-auto pbs-0 pbe-6 pli-12 sm:pli-12'>
+          <IconButton onClick={handleReset} className='absolute block-start-4 inline-end-4' disabled={loading}>
+            <i className='ri-close-line text-textSecondary' />
+          </IconButton>
 
-            <FormControl fullWidth>
-              <InputLabel id='status-select'>Status</InputLabel>
+          <Grid container spacing={4}>
+            <Grid size={{xs:12}}>
+              <Box className='flex items-center gap-3'>
+                <CustomAvatar variant='rounded' skin='light' color='success' size={40}>
+                  <i className='ri-user-line' />
+                </CustomAvatar>
+                <Typography color='text.primary' className='font-medium'>
+                  Basic Information
+                </Typography>
+               
+                
+              </Box>
+
+              {/* <Divider orientation='horizontal'  textAlign='left' flexItem className='mt-2 w-[60%]' /> */}
+              
+            </Grid>
+            
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name='name'
+                control={control}
+                rules={{ required: 'Customer name is required' }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    label='Customer Name'
+                    placeholder='John Doe'
+                    error={!!errors.name}
+                    helperText={errors.name?.message}
+                    disabled={loading}
+                    required
+                  />
+                )}
+              />
+            </Grid>
+            
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name='email'
+                control={control}
+                rules={{ 
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Invalid email address'
+                  }
+                }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    type='email'
+                    label='Email Address'
+                    placeholder='johndoe@gmail.com'
+                    error={!!errors.email}
+                    helperText={errors.email?.message}
+                    disabled={loading}
+                    required
+                  />
+                )}
+              />
+            </Grid>
+            
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name='phone'
+                control={control}
+                rules={{ required: 'Phone number is required' }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    label='Phone Number'
+                    placeholder='(397) 294-5153'
+                    error={!!errors.phone}
+                    helperText={errors.phone?.message}
+                    disabled={loading}
+                    required
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name='website'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    label='Website'
+                    placeholder='www.example.com'
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid size={{xs:12, md:6}}>
               <Controller
                 name='status'
                 control={control}
                 render={({ field }) => (
-                  <Select 
-                    {...field}
-                    labelId='status-select'
-                    label='Status'
-                  >
-                    <MenuItem value='Active'>Active</MenuItem>
-                    <MenuItem value='Deactive'>Inactive</MenuItem>
-                  </Select>
+                  <Grid container spacing={2} className='items-center'>
+                    <Grid size={{xs:4, md:4}}>
+                    <Typography variant='body1' className='font-medium'>
+                      Status: {field.value === 'Active' ? 'Active' : 'Inactive'}
+                    </Typography>
+                    </Grid>
+                    <Grid size={{xs:1, md:1}}>
+                    <Switch
+                      checked={field.value === 'Active'}
+                      onChange={(e) => field.onChange(e.target.checked ? 'Active' : 'Deactive')}
+                      disabled={loading}
+                      color='success'
+                    />
+                    </Grid>
+                  </Grid>
                 )}
               />
-            </FormControl>
+            </Grid>
 
-            <Typography color='text.primary' className='font-medium'>
-              Billing Address
-            </Typography>
-            
-            <Controller
-              name='billingAddress.addressLine1'
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='Address Line 1'
-                  placeholder='123 Main St'
-                />
-              )}
-            />
-            
-            <Controller
-              name='billingAddress.addressLine2'
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='Address Line 2'
-                  placeholder='Apt 4B'
-                />
-              )}
-            />
-            
-            <Controller
-              name='billingAddress.city'
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='City'
-                  placeholder='New York'
-                />
-              )}
-            />
-            
-            <Controller
-              name='billingAddress.state'
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='State/Province'
-                  placeholder='NY'
-                />
-              )}
-            />
-            
-            <Controller
-              name='billingAddress.country'
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='Country'
-                  placeholder='USA'
-                />
-              )}
-            />
-            
-            <Controller
-              name='billingAddress.pincode'
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='Post Code'
-                  placeholder='10001'
-                />
-              )}
-            />
-
-            <div className='flex justify-between'>
-              <div className='flex flex-col items-start gap-1'>
+            <Grid size={{xs:12}}>
+              <Box className='flex items-center gap-3 mt-4'>
+                <CustomAvatar variant='rounded' skin='light' color='primary' size={40}>
+                  <i className='ri-map-pin-line' />
+                </CustomAvatar>
                 <Typography color='text.primary' className='font-medium'>
-                  Use as shipping address?
+                  Billing Address
                 </Typography>
-                <Typography variant='body2'>Billing address will be used as shipping address.</Typography>
-              </div>
-              <Switch 
-                checked={billingAsSameAddress} 
-                onChange={(e) => handleBillingAddressToggle(e.target.checked)}
+              </Box>
+
+              {/* <Divider orientation='horizontal'  textAlign='left' flexItem className='mt-2 w-[60%]' /> */}
+            </Grid>
+            
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name='billingAddress.addressLine1'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    label='Address Line 1'
+                    placeholder='123 Main St'
+                    disabled={loading}
+                  />
+                )}
               />
-            </div>
+            </Grid>
+            
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name='billingAddress.addressLine2'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    label='Address Line 2'
+                    placeholder='Apt 4B'
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+            
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name='billingAddress.city'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    label='City'
+                    placeholder='New York'
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+            
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name='billingAddress.state'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    label='State/Province'
+                    placeholder='NY'
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+            
+            <Grid size={{xs:12, md:6}}>
+              <Controller
+                name='billingAddress.pincode'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    label='Post Code'
+                    placeholder='10001'
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+            
+            <Grid size={{xs:6}}>
+              <Controller
+                name='billingAddress.country'
+                control={control}
+                render={({ field: { onChange, value, ...field } }) => (
+                  <Autocomplete
+                    {...field}
+                    options={countries}
+                    getOptionLabel={(option) => option.name || ''}
+                    value={countries.find(country => country.name === value) || null}
+                    onChange={(event, newValue) => {
+                      onChange(newValue ? newValue.name : '')
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        fullWidth
+                        size='small'
+                        label='Country'
+                        placeholder='Select country'
+                        disabled={loading}
+                      />
+                    )}
+                    renderOption={(props, option) => (
+                      <li {...props} key={option.code}>
+                        <div className='flex items-center gap-2'>
+                          {getFlagIcon(option.code)}
+                          <span>{option.name}</span>
+                        </div>
+                      </li>
+                    )}
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid size={{xs:12}}>
+              <div className='flex justify-start items-center'>
+               
+                  <Typography color='text.primary' className='font-medium'>
+                    Use as shipping address?
+                  </Typography>
+                 
+                <Switch 
+                  checked={billingAsSameAddress} 
+                  onChange={(e) => handleBillingAddressToggle(e.target.checked)}
+                  disabled={loading}
+                />
+              </div>
+            </Grid>
 
             {!billingAsSameAddress && (
               <>
-                <Typography color='text.primary' className='font-medium'>
-                  Shipping Address
-                </Typography>
+                <Grid size={{xs:12}}>
+                  <div className='flex items-center gap-3 mt-4'>
+                    <CustomAvatar variant='rounded' skin='light' color='info' size={40}>
+                      <i className='ri-truck-line' />
+                    </CustomAvatar>
+                    <Typography color='text.primary' className='font-medium'>
+                      Shipping Address
+                    </Typography>
+                  </div>
+                </Grid>
                 
-                <Controller
-                  name='shippingAddress.addressLine1'
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='Address Line 1'
-                      placeholder='123 Main St'
-                    />
-                  )}
-                />
+                <Grid size={{xs:12, md:6}}>
+                  <Controller
+                    name='shippingAddress.addressLine1'
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        size='small'
+                        label='Address Line 1'
+                        placeholder='123 Main St'
+                        disabled={loading}
+                      />
+                    )}
+                  />
+                </Grid>
                 
-                <Controller
-                  name='shippingAddress.addressLine2'
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='Address Line 2'
-                      placeholder='Apt 4B'
-                    />
-                  )}
-                />
+                <Grid size={{xs:12, md:6}}>
+                  <Controller
+                    name='shippingAddress.addressLine2'
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        size='small'
+                        label='Address Line 2'
+                        placeholder='Apt 4B'
+                        disabled={loading}
+                      />
+                    )}
+                  />
+                </Grid>
                 
-                <Controller
-                  name='shippingAddress.city'
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='City'
-                      placeholder='New York'
-                    />
-                  )}
-                />
+                <Grid size={{xs:12, md:6}}>
+                  <Controller
+                    name='shippingAddress.city'
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        size='small'
+                        label='City'
+                        placeholder='New York'
+                        disabled={loading}
+                      />
+                    )}
+                  />
+                </Grid>
                 
-                <Controller
-                  name='shippingAddress.state'
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='State/Province'
-                      placeholder='NY'
-                    />
-                  )}
-                />
+                <Grid size={{xs:12, md:6}}>
+                  <Controller
+                    name='shippingAddress.state'
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        size='small'
+                        label='State/Province'
+                        placeholder='NY'
+                        disabled={loading}
+                      />
+                    )}
+                  />
+                </Grid>
                 
-                <Controller
-                  name='shippingAddress.country'
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='Country'
-                      placeholder='USA'
-                    />
-                  )}
-                />
+                <Grid size={{xs:12, md:6}}>
+                  <Controller
+                    name='shippingAddress.pincode'
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        size='small'
+                        label='Post Code'
+                        placeholder='10001'
+                        disabled={loading}
+                      />
+                    )}
+                  />
+                </Grid>
                 
-                <Controller
-                  name='shippingAddress.pincode'
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='Post Code'
-                      placeholder='10001'
-                    />
-                  )}
-                />
+                <Grid size={{xs:6}}>
+                  <Controller
+                    name='shippingAddress.country'
+                    control={control}
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <Autocomplete
+                        {...field}
+                        options={countries}
+                        getOptionLabel={(option) => option.name || ''}
+                        value={countries.find(country => country.name === value) || null}
+                        onChange={(event, newValue) => {
+                          onChange(newValue ? newValue.name : '')
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            fullWidth
+                            size='small'
+                            label='Country'
+                            placeholder='Select country'
+                            disabled={loading}
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <li {...props} key={option.code}>
+                            <div className='flex items-center gap-2'>
+                              {getFlagIcon(option.code)}
+                              <span>{option.name}</span>
+                            </div>
+                          </li>
+                        )}
+                        disabled={loading}
+                      />
+                    )}
+                  />
+                </Grid>
               </>
             )}
 
-            <Controller
-              name='notes'
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='Notes'
-                  multiline
-                  rows={3}
-                  placeholder='Additional notes...'
-                />
-              )}
-            />
+            <Grid size={{xs:12}}>
+              <Controller
+                name='notes'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    size='small'
+                    label='Notes'
+                    multiline
+                    rows={2}
+                    placeholder='Additional notes...'
+                    disabled={loading}
+                  />
+                )}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
 
-            <div className='flex items-center gap-4'>
-              <Button 
-                variant='contained' 
-                type='submit'
-                disabled={loading}
-                startIcon={loading && <CircularProgress size={20} />}
-              >
-                Add Customer
-              </Button>
-              <Button variant='outlined' color='error' type='reset' onClick={handleReset}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </div>
-      </PerfectScrollbar>
-    </Drawer>
+        <DialogActions className='gap-2 justify-center pbs-0 pbe-7 pli-10 sm:pbe-7 sm:pli-16'>
+          <Button
+            variant='outlined'
+            color='secondary'
+            onClick={handleReset}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant='contained'
+            type='submit'
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : null}
+          >
+            {loading ? 'Adding...' : 'Add Customer'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   )
 }
 
-export default AddCustomerDrawer
+export default AddCustomerDialog
+
+// Backward compatibility export
+export { AddCustomerDialog as AddCustomerDrawer }

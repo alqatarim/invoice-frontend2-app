@@ -37,23 +37,8 @@ const CustomerDetailsHeader = ({ customerId, customer, permissions }) => {
         })} (ET)</Typography>
       </div>
       <div className='flex gap-4'>
-        <Button
-          variant='outlined'
-          startIcon={<i className='ri-arrow-left-line' />}
-          onClick={handleBack}
-        >
-          Back
-        </Button>
-        {permissions.canEdit && (
-          <Button
-            variant='outlined'
-            startIcon={<i className='ri-edit-line' />}
-            component={Link}
-            href={`/customers/customer-view/${customerId}`}
-          >
-            Edit Customer
-          </Button>
-        )}
+     
+     
         {permissions.canCreateInvoice && customer?.status === 'Active' && (
           <Button
             variant='contained'
@@ -63,12 +48,22 @@ const CustomerDetailsHeader = ({ customerId, customer, permissions }) => {
             Create Invoice
           </Button>
         )}
-        <OpenDialogOnElementClick
+
+<Button
+          flex = {1}
+          variant='outlined'
+          startIcon={<i className='ri-arrow-left-line' />}
+          onClick={handleBack}
+        >
+          Back
+        </Button>
+
+        {/* <OpenDialogOnElementClick
           element={Button}
           elementProps={buttonProps('Delete Customer', 'error', 'outlined')}
           dialog={ConfirmationDialog}
           dialogProps={{ type: 'delete-customer' }}
-        />
+        /> */}
       </div>
     </div>
   )

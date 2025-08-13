@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { addCustomerSchema } from './validationSchema'
 
 /**
  * Form handler for managing customer form state and validation
@@ -124,68 +125,72 @@ export const useFormHandler = ({ onError }) => {
   }, [])
 
   // Handle field blur for validation
-  const handleFieldBlur = useCallback((field) => {
+  const handleFieldBlur = useCallback(async (field) => {
     setTouched(prev => ({
       ...prev,
       [field]: true
     }))
     
     // Perform validation on blur
-    validateField(field)
-  }, [])
+    await validateField(field)
+  }, [validateField])
 
-  // Validate individual field
-  const validateField = useCallback((field) => {
-    const value = formData[field]
-    let error = ''
-    
-    switch (field) {
-      case 'name':
-        if (!value || value.trim() === '') {
-          error = 'Name is required'
+  // Validate individual field using Yup schema
+  const validateField = useCallback(async (field) => {
+    try {
+      // Handle nested fields (e.g., 'billingAddress.name')
+      if (field.includes('.')) {
+        const [section, fieldName] = field.split('.')
+        const sectionSchema = addCustomerSchema.fields[section]
+        if (sectionSchema && sectionSchema.fields && sectionSchema.fields[fieldName]) {
+          await sectionSchema.fields[fieldName].validate(formData[section][fieldName])
+          setErrors(prev => ({
+            ...prev,
+            [field]: ''
+          }))
+          return true
         }
-        break
-      case 'email':
-        if (!value || value.trim() === '') {
-          error = 'Email is required'
-        } else if (!/\S+@\S+\.\S+/.test(value)) {
-          error = 'Please enter a valid email address'
+      } else {
+        // Handle top-level fields
+        const fieldSchema = addCustomerSchema.fields[field]
+        if (fieldSchema) {
+          await fieldSchema.validate(formData[field])
+          setErrors(prev => ({
+            ...prev,
+            [field]: ''
+          }))
+          return true
         }
-        break
-      case 'phone':
-        if (!value || value.trim() === '') {
-          error = 'Phone number is required'
-        } else if (!/^\d{10,15}$/.test(value.replace(/\D/g, ''))) {
-          error = 'Please enter a valid phone number (10-15 digits)'
-        }
-        break
-      default:
-        break
+      }
+      return true
+    } catch (error) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: error.message
+      }))
+      return false
     }
-    
-    setErrors(prev => ({
-      ...prev,
-      [field]: error
-    }))
-    
-    return error === ''
   }, [formData])
 
-  // Validate entire form
-  const validateForm = useCallback(() => {
-    const fieldsToValidate = ['name', 'email', 'phone']
-    let isValid = true
-    const newErrors = {}
-    
-    fieldsToValidate.forEach(field => {
-      const valid = validateField(field)
-      if (!valid) {
-        isValid = false
+  // Validate entire form using Yup schema
+  const validateForm = useCallback(async () => {
+    try {
+      await addCustomerSchema.validate(formData, { abortEarly: false })
+      setErrors({})
+      return true
+    } catch (validationErrors) {
+      const newErrors = {}
+      
+      if (validationErrors.inner) {
+        validationErrors.inner.forEach(error => {
+          newErrors[error.path] = error.message
+        })
       }
-    })
-    
-    return isValid
-  }, [validateField])
+      
+      setErrors(newErrors)
+      return false
+    }
+  }, [formData])
 
   // Reset form
   const resetForm = useCallback(() => {
