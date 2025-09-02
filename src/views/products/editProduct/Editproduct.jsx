@@ -1,839 +1,528 @@
-'use client'
-
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
+import React, { useEffect, useState } from 'react';
+import { Controller } from 'react-hook-form';
 import {
-
-  Input,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   TextField,
-  Select,
+  Button,
+  Grid,
+  FormHelperText,
+  InputAdornment,
   MenuItem,
   FormControl,
   InputLabel,
-  Button,
-  Grid,
-  Typography,
+  Select,
   Box,
-  Card,
-  CardContent,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  CircularProgress,
-  Snackbar,
   IconButton,
-  FormHelperText,
+  CircularProgress,
+  Avatar,
+  Typography,
 } from '@mui/material';
-import { QuestionMark, CheckCircle, Error, Close as CloseIcon, CloudUpload } from '@mui/icons-material';
-import { styled, useTheme } from '@mui/material/styles';
-import { updateProduct, generateSKU } from '@/app/(dashboard)/products/actions';
-import Image from 'next/image';
+import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
-import EditProductSchema from '@/views/products/editProduct/EditProductSchema';
+import { getProductById, getDropdownData } from '@/app/(dashboard)/products/actions';
+import { useEditProductHandlers } from '@/handlers/products/editProduct';
 
-const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
-  '& .MuiSnackbarContent-root': {
-    backgroundColor:
-      status === 'success'
-        ? theme.palette.success.main
-        : status === 'error'
-          ? theme.palette.error.main
-          : theme.palette.primary.main,
-    color: theme.palette.common.white,
-    display: 'flex',
-    alignItems: 'center',
-  },
-}));
-
-// Updated CustomTextField component
-const CustomTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiInputBase-root': {
-    height: '3rem', // Adjust this value to your desired height
-  },
-  '& .MuiInputBase-input': {
-    padding: '0.5rem', // Adjust padding to vertically center the text
-  },
-  '& .MuiInputLabel-root': {
-    lineHeight: '1rem', // Adjust line height for the label
-    transform: 'translate(14px, 12px) scale(1)', // Adjust positioning of the label
-  },
-  '& .MuiInputLabel-shrink': {
-    transform: 'translate(14px, -6px) scale(0.85)', // Increased scale from 0.75 to 0.85
-  },
-}));
-
-// Updated Custom label component
-const CustomInputLabel = styled(InputLabel)(({ theme }) => ({
-  fontSize: '0.875rem', // Adjust font size as needed
-  transform: 'translate(14px, 12px) scale(1)', // Initial position
-  '&.MuiInputLabel-shrink': {
-    transform: 'translate(14px, -6px) scale(0.85)', // Increased scale from 0.75 to 0.85
-    fontSize: '1rem', // Slightly larger font size when shrunk
-  },
-}));
-
-const EditProduct = ({ initialProductData, onSave }) => {
-  const router = useRouter();
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showSuccessOptions, setShowSuccessOptions] = useState(false);
-  const [preparedData, setPreparedData] = useState(null);
-  const [preparedImage, setPreparedImage] = useState(null);
-  const [confirmationStatus, setConfirmationStatus] = useState({
-    image: "/images/animated-icons/question.gif",
-    message: 'Are you sure you want to update?',
-    isInitialConfirmation: true
-  });
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    status: 'loading'
-  });
-  const [files, setFiles] = useState([]);
-  const [imgerror, setImgError] = useState("");
+const EditProductDialog = ({ open, productId, onClose, onSave }) => {
   const theme = useTheme();
-  const [updatingMessage, setUpdatingMessage] = useState('Updating');
-  const [dotCount, setDotCount] = useState(0);
-  const [imageFile, setImageFile] = useState(null);
+  const [productData, setProductData] = useState(null);
+  const [dropdownData, setDropdownData] = useState({ units: [], categories: [], taxes: [] });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const { control, handleSubmit, setValue, watch, register, formState: { errors, dirtyFields, isValid } } = useForm({
-    resolver: yupResolver(EditProductSchema),
-    defaultValues: {
-      ...initialProductData,
-      category: initialProductData.category,
-      units: initialProductData.units,
-      tax: initialProductData.tax,
+  const {
+    control,
+    handleSubmit,
+    watch,
+    errors,
+    productTypes,
+    discountTypes,
+    isSubmitting,
+    handleFormSubmit,
+    reset,
+  } = useEditProductHandlers({
+    productData: productData || null,
+    dropdownData,
+    onSave: async (data, preparedImage) => {
+      const result = await onSave(productId, data, preparedImage);
+      if (result.success) {
+        onClose();
+      }
+      return result;
     },
-    mode: 'onChange',
   });
 
-  const watchedImages = watch("images");
+  const watchDiscountType = watch('discountType');
 
+  // Fetch product and dropdown data when dialog opens
   useEffect(() => {
-    if (initialProductData) {
-      Object.keys(initialProductData).forEach((key) => {
-        setValue(key, initialProductData[key]);
-      });
-      setFiles(initialProductData.images ? [initialProductData.images] : []);
-    }
-  }, [initialProductData, setValue]);
-
-  useEffect(() => {
-    if (watchedImages && watchedImages.length > 0) {
-      const file = watchedImages[0];
-      if (file instanceof File) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setFiles([reader.result]);
-        };
-        reader.readAsDataURL(file);
+    const fetchData = async () => {
+      if (open && productId) {
+        setLoading(true);
+        setError(null);
+        try {
+          const [productResponse, dropdownResponse] = await Promise.all([
+            getProductById(productId),
+            getDropdownData()
+          ]);
+          
+          if (productResponse && typeof productResponse === 'object') {
+            setProductData(productResponse);
+          } else {
+            throw new Error('Invalid product data received');
+          }
+          
+          if (dropdownResponse.success) {
+            setDropdownData(dropdownResponse.data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch data:', error);
+          setError(error.message || 'Failed to load product data');
+          setProductData(null);
+        } finally {
+          setLoading(false);
+        }
       }
-    }
-  }, [watchedImages]);
-
-  useEffect(() => {
-    if (imgerror) {
-      setSnackbar({
-        open: true,
-        message: imgerror,
-        status: 'error'
-      });
-      setValue("images", null);
-      setImgError("");
-    }
-  }, [imgerror, setValue]);
-
-  useEffect(() => {
-    let interval;
-    if (isUpdating) {
-      interval = setInterval(() => {
-        setDotCount((prevCount) => (prevCount + 1) % 6);
-      }, 200); // Adjust this value to change the speed
-    } else {
-      setDotCount(0);
-    }
-
-    return () => clearInterval(interval);
-  }, [isUpdating]);
-
-  useEffect(() => {
-    // Ensure the messages array is used directly without any trimming or alteration
-    const messages = ["   ",".  ", ".. ", "...",".. ",".  "];
-    const messageIndex = (dotCount % messages.length);
-    setUpdatingMessage(`Updating${messages[messageIndex]}`);
-  }, [dotCount]);
-
-  const getSkuCode = async () => {
-    try {
-      const skuCode = await generateSKU();
-      if (skuCode) {
-        setValue("sku", skuCode);
-      }
-    } catch (error) {
-      console.error("Error generating SKU:", error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to generate SKU',
-        status: 'error'
-      });
-    }
-  };
-
-
-
-
-  const prepareFormData = (data) => {
-    return {
-      name: data.name,
-      type: data.type,
-      sku: data.sku,
-      category: data.category._id,
-      sellingPrice: data.sellingPrice,
-      purchasePrice: data.purchasePrice,
-      discountValue: data.discountValue,
-      units: data.units._id,
-      discountType: data.discountType,
-      alertQuantity: data.alertQuantity,
-      tax: data.tax._id,
-      barcode: data.barcode,
-      _id: initialProductData._id,
-      // imageData: imageData
-      //  images: imageData
-     //  images: data.images && data.images[0] ? data.images[0] : undefined
     };
+
+    fetchData();
+  }, [open, productId]);
+
+  const handleClose = () => {
+    setProductData(null);
+    setError(null);
+    onClose();
   };
 
-  const prepareImageData = (data) => {
-    return new Promise((resolve) => {
-      if (data.images && data.images[0] instanceof File) {
-        const file = data.images[0];
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const imageData = {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            base64: reader.result
-          };
-          resolve(imageData);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        resolve(null);
-      }
-    });
-  };
-
-  const onSubmit = async (data) => {
-    const preparedData = prepareFormData(data);
-    let preparedImage = null;
-
-    if (imageFile) {
-      preparedImage = {
-        name: imageFile.name,
-        type: imageFile.type,
-        size: imageFile.size,
-        base64: files[0] // This is the base64 string from the FileReader
-      };
-    }
-
-    setPreparedData(preparedData);
-    setPreparedImage(preparedImage);
-    setOpenConfirmDialog(true);
-    setConfirmationStatus({
-      image: "/images/animated-icons/question.gif",
-      message: 'Are you sure you want to update?',
-      isInitialConfirmation: true
-    });
-  };
-
-  const handleConfirmUpdate = async () => {
-    setIsUpdating(true);
-    setConfirmationStatus({
-      image: "/images/animated-icons/update.gif",
-      message: updatingMessage,
-      isInitialConfirmation: false
-    });
-
-    const result = await new Promise((resolve) => {
-      setTimeout(async () => {
-        const updateResult = await updateProduct(preparedData, preparedImage);
-        resolve(updateResult);
-      }, 2000);
-    });
-
-    setIsUpdating(false);
-
-    if (result.success) {
-      setConfirmationStatus({
-        image: "/images/animated-icons/success.gif",
-        message: 'Product updated successfully!',
-        isInitialConfirmation: false
-      });
-    } else {
-      setConfirmationStatus({
-        image: "/images/animated-icons/fail.gif",
-        message: result.message || 'Failed to update product',
-        isInitialConfirmation: false
-      });
-    }
-  };
-
-  const handleContinueEditing = () => {
-    setOpenConfirmDialog(false);
-    setShowSuccessOptions(false); // Reset to show confirmation buttons next time
-  };
-
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  const getFieldStatus = (fieldName) => {
-    if (dirtyFields[fieldName]) {
-      if (errors[fieldName]) {
-        return 'error';
-      } else {
-        return 'success';
-      }
-    }
-    return 'primary';
-  };
-
-  const onDrop = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const files = event.dataTransfer.files;
-    handleFileSelection(files[0]);
-  };
-
-  const onDragOver = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
-  const handleCancel = () => {
-    router.back();
-  };
-
-  const handleFileSelection = (file) => {
-    if (file) {
-      // Validate file type and size
-      const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-      const maxSize = 50 * 1024 * 1024; // 50MB
-
-      if (!validTypes.includes(file.type)) {
-        setImgError('Please upload a valid image file (JPEG, PNG, or GIF)');
-        // Reset the file input value so the same file can trigger another change event
-        const fileInput = document.getElementById('image_upload');
-        if (fileInput) fileInput.value = '';
-        return;
-      }
-
-      if (file.size > maxSize) {
-        setImgError('File size must be less than 50MB');
-        // Reset the file input value so the same file can trigger another change event
-        const fileInput = document.getElementById('image_upload');
-        if (fileInput) fileInput.value = '';
-        return;
-      }
-
-      // Store the file for form submission
-      setImageFile(file);
-
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFiles([reader.result]);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleFileInput = (event) => {
-    const file = event.target.files[0];
-    handleFileSelection(file);
-  };
+  if (!open) return null;
 
   return (
-    <Card>
-      <CardContent>
-        <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ mt: 1, display: 'flex', flexDirection: 'column' }}>
-          <Typography variant="h5" gutterBottom>
-            Edit Product
-          </Typography>
-          <Grid container spacing={2}>
+    <Dialog fullWidth open={open} onClose={handleClose} maxWidth='md' scroll='body'>
+      <DialogTitle
+        variant='h4'
+        className='flex gap-2 flex-col text-center pbs-10 pbe-6 pli-10 sm:pbs-16 sm:pbe-6 sm:pli-16'
+      >
+        Edit Product
+      </DialogTitle>
 
-            <Grid container item xs={12} spacing={6} sx={{ mb: 3 }}>
+      <DialogContent className='overflow-visible pbs-0 pbe-6 pli-12 sm:pli-12'>
+        <IconButton onClick={handleClose} className='absolute block-start-4 inline-end-4' disabled={isSubmitting}>
+          <i className='ri-close-line text-textSecondary' />
+        </IconButton>
 
-              <Grid item xs={12} sm={6} md={6} lg={4}>
+        {loading ? (
+          <Box className="flex justify-center items-center h-40">
+            <CircularProgress />
+            <Typography className="ml-3">Loading product data...</Typography>
+          </Box>
+        ) : error ? (
+          <Box className="flex flex-col justify-center items-center h-40 gap-4">
+            <Typography color="error" variant="h6">Error Loading Product</Typography>
+            <Typography color="error">{error}</Typography>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              onClick={() => {
+                setError(null);
+                // Trigger refetch by changing the dependency
+                const fetchData = async () => {
+                  if (open && productId) {
+                    setLoading(true);
+                    setError(null);
+                    try {
+                      const [productResponse, dropdownResponse] = await Promise.all([
+                        getProductById(productId),
+                        getDropdownData()
+                      ]);
+                      
+                      if (productResponse && typeof productResponse === 'object') {
+                        setProductData(productResponse);
+                      } else {
+                        throw new Error('Invalid product data received');
+                      }
+                      
+                      if (dropdownResponse.success) {
+                        setDropdownData(dropdownResponse.data);
+                      }
+                    } catch (error) {
+                      console.error('Failed to fetch data:', error);
+                      setError(error.message || 'Failed to load product data');
+                      setProductData(null);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }
+                };
+                fetchData();
+              }}
+            >
+              Retry
+            </Button>
+          </Box>
+        ) : productData ? (
+          <form onSubmit={handleSubmit(handleFormSubmit)} id="edit-product-form">
+            <Grid container spacing={4}>
+              {/* Product Type */}
+              <Grid size={{xs:12, md:6}}>
                 <Controller
                   name="type"
                   control={control}
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <CustomTextField
-                      {...field}
-                      select
-                      fullWidth
-                      variant="outlined"
-                      error={!!error}
-                      helperText={error?.message}
-                      color={getFieldStatus('type')}
-                      InputLabelProps={{
-                        component: CustomInputLabel,
-                      }}
-                      label="Type"
-                    >
-                      <MenuItem value="product">Product</MenuItem>
-                      <MenuItem value="service">Service</MenuItem>
-                    </CustomTextField>
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.type}>
+                      <InputLabel>Type</InputLabel>
+                      <Select {...field} label="Type" disabled={isSubmitting}>
+                        {productTypes.map((type) => (
+                          <MenuItem key={type.value} value={type.value}>
+                            {type.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.type && <FormHelperText>{errors.type.message}</FormHelperText>}
+                    </FormControl>
                   )}
                 />
               </Grid>
-                <Grid item xs={12} sm={6} md={6} lg={4}>
+
+              {/* Product Name */}
+              <Grid size={{xs:12, md:6}}>
                 <Controller
                   name="name"
                   control={control}
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <CustomTextField
+                  render={({ field }) => (
+                    <TextField
                       {...field}
                       fullWidth
-                      variant="outlined"
-                      error={!!error}
-                      helperText={error?.message}
-                      color={getFieldStatus('name')}
-                      InputLabelProps={{
-                        component: CustomInputLabel,
-                      }}
                       label="Product Name"
+                      placeholder="Enter product name"
+                      error={!!errors.name}
+                      helperText={errors.name?.message}
+                      disabled={isSubmitting}
+                      required
                     />
                   )}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={6} lg={4}>
+
+              {/* SKU */}
+              <Grid size={{xs:12, md:6}}>
                 <Controller
                   name="sku"
                   control={control}
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <CustomTextField
+                  render={({ field }) => (
+                    <TextField
                       {...field}
                       fullWidth
-                      variant="outlined"
+                      label="SKU"
+                      placeholder="Enter SKU"
                       error={!!errors.sku}
                       helperText={errors.sku?.message}
-                      InputLabelProps={{
-                        component: CustomInputLabel,
-                      }}
-                      label="SKU"
+                      disabled={isSubmitting}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Category */}
+              <Grid size={{xs:12, md:6}}>
+                <Controller
+                  name="category"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.category} required>
+                      <InputLabel>Category</InputLabel>
+                      <Select {...field} label="Category" disabled={isSubmitting}>
+                        {dropdownData.categories && dropdownData.categories.map((category) => (
+                          <MenuItem key={category._id} value={category._id}>
+                            {category.category_name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.category && <FormHelperText>{errors.category.message}</FormHelperText>}
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+
+              {/* Selling Price */}
+              <Grid size={{xs:12, md:6}}>
+                <Controller
+                  name="sellingPrice"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      type="number"
+                      label="Selling Price"
+                      placeholder="0.00"
+                      error={!!errors.sellingPrice}
+                      helperText={errors.sellingPrice?.message}
+                      disabled={isSubmitting}
+                      required
                       InputProps={{
-                        endAdornment: (
-                          <Button
-                            onClick={getSkuCode}
-                            sx={{ whiteSpace: 'nowrap' }}
-                          >
-                            Generate SKU
-                          </Button>
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Icon icon="lucide:saudi-riyal" />
+                          </InputAdornment>
                         ),
                       }}
                     />
                   )}
                 />
               </Grid>
-            </Grid>
 
-            <Grid container item xs={12} spacing={6} sx={{ mb: 3 }} >
-              <Grid item xs={12} sm={6} md={6} lg={4}>
-                <Controller
-                  name="category._id"
-                  control={control}
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <CustomTextField
-                      {...field}
-                      select
-                      fullWidth
-                      variant="outlined"
-                      error={!!error}
-                      helperText={error?.message}
-                      color={getFieldStatus('category._id')}
-                      InputLabelProps={{
-                        component: CustomInputLabel,
-                      }}
-                      label="Category"
-                    >
-                      <MenuItem value={initialProductData.category._id}>
-                        {initialProductData.category.name}
-                      </MenuItem>
-                      {/* Add more categories here if available */}
-                    </CustomTextField>
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={6} lg={4}>
-                <Controller
-                  name="sellingPrice"
-                  control={control}
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <CustomTextField
-                      {...field}
-                      fullWidth
-                      variant="outlined"
-                      error={!!error}
-                      helperText={error?.message}
-                      color={getFieldStatus('sellingPrice')}
-                      InputLabelProps={{
-                        component: CustomInputLabel,
-                      }}
-                      label="Selling Price"
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={6} lg={4}>
+              {/* Purchase Price */}
+              <Grid size={{xs:12, md:6}}>
                 <Controller
                   name="purchasePrice"
                   control={control}
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <CustomTextField
+                  render={({ field }) => (
+                    <TextField
                       {...field}
                       fullWidth
-                      variant="outlined"
-                      error={!!error}
-                      helperText={error?.message}
-                      color={getFieldStatus('purchasePrice')}
-                      InputLabelProps={{
-                        component: CustomInputLabel,
-                      }}
+                      type="number"
                       label="Purchase Price"
+                      placeholder="0.00"
+                      error={!!errors.purchasePrice}
+                      helperText={errors.purchasePrice?.message}
+                      disabled={isSubmitting}
+                      required
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Icon icon="lucide:saudi-riyal" />
+                          </InputAdornment>
+                        ),
+                      }}
                     />
                   )}
                 />
               </Grid>
 
-
-            </Grid>
-
-            <Grid container item xs={12} spacing={6} sx={{ mb:3 }}>
-
-
-              <Grid item xs={12} sm={6} md={6} lg={4}>
+              {/* Unit */}
+              <Grid size={{xs:12, md:6}}>
                 <Controller
-                  name="units._id"
+                  name="units"
                   control={control}
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <CustomTextField
-                      {...field}
-                      select
-                      fullWidth
-                      variant="outlined"
-                      error={!!error}
-                      helperText={error?.message}
-                      value={field.value || ''}
-                      color={getFieldStatus('units._id')}
-                      InputLabelProps={{
-                        component: CustomInputLabel,
-                      }}
-                      label="Units"
-                    >
-                      <MenuItem value={initialProductData.units._id}>
-                        {initialProductData.units.name}
-                      </MenuItem>
-                      {/* Add more units here if available */}
-                    </CustomTextField>
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.units} required>
+                      <InputLabel>Unit</InputLabel>
+                      <Select {...field} label="Unit" disabled={isSubmitting}>
+                        {dropdownData.units && dropdownData.units.map((unit) => (
+                          <MenuItem key={unit._id} value={unit._id}>
+                            {unit.unit}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.units && <FormHelperText>{errors.units.message}</FormHelperText>}
+                    </FormControl>
                   )}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={6} lg={4}>
+
+              {/* Alert Quantity */}
+              <Grid size={{xs:12, md:6}}>
+                <Controller
+                  name="alertQuantity"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      type="number"
+                      label="Alert Quantity"
+                      placeholder="0"
+                      error={!!errors.alertQuantity}
+                      helperText={errors.alertQuantity?.message}
+                      disabled={isSubmitting}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Tax */}
+              <Grid size={{xs:12, md:6}}>
+                <Controller
+                  name="tax"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.tax}>
+                      <InputLabel>Tax</InputLabel>
+                      <Select {...field} label="Tax" disabled={isSubmitting}>
+                        <MenuItem value="">None</MenuItem>
+                        {dropdownData.taxes && dropdownData.taxes.map((tax) => (
+                          <MenuItem key={tax._id} value={tax._id}>
+                            {tax.name} ({tax.tax_percentage}%)
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.tax && <FormHelperText>{errors.tax.message}</FormHelperText>}
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+
+              {/* Barcode */}
+              <Grid size={{xs:12, md:6}}>
+                <Controller
+                  name="barcode"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Barcode"
+                      placeholder="Enter barcode"
+                      error={!!errors.barcode}
+                      helperText={errors.barcode?.message}
+                      disabled={isSubmitting}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Discount Type */}
+              <Grid size={{xs:12, md:6}}>
                 <Controller
                   name="discountType"
                   control={control}
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <CustomTextField
-                      {...field}
-                      fullWidth
-                      variant="outlined"
-                      error={!!error}
-                      helperText={error?.message}
-                      color={getFieldStatus('discountType')}
-                      InputLabelProps={{
-                        component: CustomInputLabel,
-                      }}
-                      label="Discount Type"
-                    >
-                      <MenuItem value="2">Percentage</MenuItem>
-                      <MenuItem value="3">Fixed</MenuItem>
-                    </CustomTextField>
+                  render={({ field }) => (
+                    <FormControl fullWidth>
+                      <InputLabel>Discount Type</InputLabel>
+                      <Select {...field} label="Discount Type" disabled={isSubmitting}>
+                        {discountTypes.map((type) => (
+                          <MenuItem key={type.value} value={type.value}>
+                            {type.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                   )}
                 />
               </Grid>
-                 <Grid item xs={12} sm={6} md={6} lg={4}>
+
+              {/* Discount Value */}
+              <Grid size={{xs:12, md:6}}>
                 <Controller
                   name="discountValue"
                   control={control}
-                  rules={{ required: true }}
-                  render={({ field, fieldState: { error } }) => (
-                    <CustomTextField
+                  render={({ field }) => (
+                    <TextField
                       {...field}
                       fullWidth
-                      variant="outlined"
-                      error={!!error}
-                      helperText={error?.message}
-                      color={getFieldStatus('discountValue')}
-                      InputLabelProps={{
-                        component: CustomInputLabel,
-                      }}
+                      type="number"
                       label="Discount Value"
+                      placeholder="0"
+                      error={!!errors.discountValue}
+                      helperText={errors.discountValue?.message}
+                      disabled={isSubmitting}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Icon icon={watchDiscountType === 'Percentage' ? 'mdi:percent' : 'lucide:saudi-riyal'} />
+                          </InputAdornment>
+                        ),
+                      }}
                     />
                   )}
                 />
               </Grid>
-            </Grid>
 
-            <Grid container item xs={12} spacing={6} sx={{ mb: 3 }} >
-
-                <Grid item xs={12} sm={6} md={6} lg={4}>
-                            <Controller
-                              name="alertQuantity"
-                              control={control}
-                              rules={{ required: true }}
-                              render={({ field, fieldState: { error } }) => (
-                                <CustomTextField
-                                  {...field}
-                                  fullWidth
-                                  variant="outlined"
-                                  error={!!error}
-                                  helperText={error?.message}
-                                  color={getFieldStatus('alertQuantity')}
-                                  InputLabelProps={{
-                                    component: CustomInputLabel,
-                                  }}
-                                  label="Alert Quantity"
-                                />
-                              )}
-                            />
-                          </Grid>
-                          <Grid item xs={12} sm={6} md={6} lg={4}>
-                            <Controller
-                              name="tax._id"
-                              control={control}
-                              rules={{ required: true }}
-                              render={({ field, fieldState: { error } }) => (
-                                <CustomTextField
-                                  {...field}
-                                  select
-                                  fullWidth
-                                  variant="outlined"
-                                  error={!!error}
-                                  helperText={error?.message}
-                                  value={field.value || ''}
-                                  color={getFieldStatus('tax._id')}
-                                  InputLabelProps={{
-                                    component: CustomInputLabel,
-                                  }}
-                                  label="Tax"
-                                >
-                                  <MenuItem value={initialProductData.tax._id}>
-                                    {`${initialProductData.tax.name} (${initialProductData.tax.taxRate}%)`}
-                                  </MenuItem>
-                                  {/* Add more tax options here if available */}
-                                </CustomTextField>
-                              )}
-                            />
-                          </Grid>
-            </Grid>
-
-
-            {/* Image Upload Component */}
-            <Grid item xs={4} sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Product Image
-              </Typography>
-              <Box
-                sx={{
-                  border: '2px dashed #ccc',
-                  borderRadius: '4px',
-                  padding: '20px',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.3s',
-                  '&:hover': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                  },
-                }}
-                onClick={() => document.getElementById('image_upload').click()}
-                onDrop={onDrop}
-                onDragOver={(e) => e.preventDefault()}
-              >
-                <input
-                  type="file"
-                  id="image_upload"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={handleFileInput}
-                />
-                <Icon
-                  icon="line-md:upload-loop"
-                  width="100"
-                  height="100"
-                  style={{ color: theme.palette.primary.main }}
-                />
-                <Typography>
-                  Drop your files here or <span style={{ color: theme.palette.primary.main }}>browse</span>
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Maximum size: 50MB
-                </Typography>
-                {files[0] && !imgerror && (
-                  <Box mt={2}>
-                    <Image
-                      src={files[0]}
-                      alt="Product preview"
-                      width={200}
-                      height={200}
-                      objectFit="contain"
+              {/* Description */}
+              <Grid size={{xs:12}}>
+                <Controller
+                  name="productDescription"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      multiline
+                      rows={4}
+                      label="Description"
+                      placeholder="Enter product description"
+                      error={!!errors.productDescription}
+                      helperText={errors.productDescription?.message}
+                      disabled={isSubmitting}
                     />
-                  </Box>
-                )}
-              </Box>
+                  )}
+                />
+              </Grid>
+
+              {/* Current Image Display */}
+              {productData.images && productData.images[0] && (
+                <Grid size={{xs:12}}>
+                  <Typography variant="body2" className="mb-2">Current Image:</Typography>
+                  <Avatar
+                    src={productData.images[0]}
+                    variant="rounded"
+                    sx={{ width: 100, height: 100 }}
+                  />
+                </Grid>
+              )}
+
+              {/* Image Upload */}
+              <Grid size={{xs:12}}>
+                <Controller
+                  name="images"
+                  control={control}
+                  render={({ field: { onChange, value } }) => (
+                    <Box>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<Icon icon="mdi:upload" />}
+                        disabled={isSubmitting}
+                      >
+                        Upload New Image
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              onChange(file);
+                            }
+                          }}
+                        />
+                      </Button>
+                    </Box>
+                  )}
+                />
+              </Grid>
             </Grid>
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, gap:12}}>
-                <Button
-                className='pr-8 pl-8'
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  disabled={!isValid}
+          </form>
+        ) : (
+          <Box className="flex justify-center items-center h-40">
+            <Typography color="error">Failed to load product data</Typography>
+          </Box>
+        )}
+      </DialogContent>
 
-                >
-                  Update
-                </Button>
-                <Button
-                  className='pr-8 pl-8'
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleCancel}
-
-                >
-                  Cancel
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
-        </Box>
-      </CardContent>
-
-      {/* Confirmation Dialog */}
-      <Dialog
-        open={openConfirmDialog}
-        onClose={() => !isUpdating && setOpenConfirmDialog(false)}
-        PaperProps={{
-          style: {
-            minHeight: '300px', // Set a fixed minimum height
-            minWidth: '400px',  // Change this value to your desired width
-          },
-        }}
-      >
-        <DialogContent className="flex flex-col items-center justify-between">
-          <Image
-            src={confirmationStatus.image}
-            alt="Confirmation GIF"
-            width={150}
-            height={150}
-            unoptimized={true}
-          />
-          <DialogContentText>
-            <Typography
-              variant="h5"
-              sx={{ whiteSpace: 'pre-wrap' }}
-            >
-              {isUpdating ? updatingMessage : confirmationStatus.message}
-            </Typography>
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions className='flex flex-row justify-center gap-4'>
-          {!isUpdating && (
-            confirmationStatus.isInitialConfirmation ? (
-              <>
-                <Button
-                  size='medium'
-                  className='pr-8 pl-8'
-                  variant="contained"
-                  onClick={handleConfirmUpdate}
-                  autoFocus
-                >
-                  Yes
-                </Button>
-                <Button
-                  size='medium'
-                  className='pr-8 pl-8'
-                  variant="outlined"
-                  color='secondary'
-                  onClick={() => setOpenConfirmDialog(false)}
-                >
-                  No
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button onClick={handleContinueEditing}>
-                  Continue Editing
-                </Button>
-                <Link href="/products/product-list" passHref>
-                  <Button component="a">Return to Product List</Button>
-                </Link>
-              </>
-            )
-          )}
-        </DialogActions>
-      </Dialog>
-
-      <StyledSnackbar
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'center',
-        }}
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        message={
-          <span style={{ display: 'flex', alignItems: 'center' }}>
-            {snackbar.status === 'loading' && <CircularProgress size={24} color="inherit" style={{ marginRight: 10 }} />}
-            {snackbar.status === 'success' && <CheckCircle style={{ marginRight: 10 }} />}
-            {snackbar.status === 'error' && <Error style={{ marginRight: 10 }} />}
-            {snackbar.message}
-          </span>
-        }
-        action={
-          <IconButton
-            size="small"
-            aria-label="close"
-            color="inherit"
-            onClick={handleCloseSnackbar}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        }
-        status={snackbar.status}
-      />
-    </Card>
+      <DialogActions className='gap-2 justify-center pbs-0 pbe-10 pli-10 sm:pbe-16 sm:pli-16'>
+        <Button
+          variant='outlined'
+          color='secondary'
+          onClick={handleClose}
+          disabled={isSubmitting}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          form="edit-product-form"
+          variant='contained'
+          disabled={isSubmitting || loading || !productData}
+          startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+        >
+          {isSubmitting ? 'Updating...' : 'Update Product'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
-export default EditProduct;
-
+export default EditProductDialog;

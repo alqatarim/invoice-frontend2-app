@@ -2,156 +2,145 @@
 
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 
-// Update the endpoints to match the old implementation
 const ENDPOINTS = {
-  PRODUCT: '/products/listProduct',
-  CATEGORY: '/category',
-  UNIT: '/units/unitList'
+  PRODUCT: {
+    LIST: '/products/listProduct',
+    VIEW: '/products/viewProduct',
+    ADD: '/products/addProduct',
+    UPDATE: '/products/updateProduct',
+    DELETE: '/products/deleteProduct',
+    GENERATE_SKU: '/products/generateSKU'
+  },
+  DROPDOWN: {
+    UNIT: '/drop_down/unit',
+    CATEGORY: '/drop_down/category',
+    TAX: '/drop_down/tax'
+  }
 };
 
-// Product list with search and filter
-export const getProductList = async (page = 1, pageSize = 10, searchTerm = '', productIds = '') => {
-  try {
-    let url = `${ENDPOINTS.PRODUCT}?limit=${pageSize}&skip=${(page - 1) * pageSize}`;
+/**
+ * Get product details by ID.
+ */
+export async function getProductById(id) {
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid product ID');
+  }
 
-    if (searchTerm) {
-      url += `&search_product=${searchTerm}`;
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.PRODUCT.VIEW}/${id}`, {
+      cache: 'no-store',
+      next: { revalidate: 0 }
+    });
+
+    return response.data || {};
+  } catch (error) {
+    console.error('Error in getProductById:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get initial product data with default pagination.
+ */
+export async function getInitialProductData() {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.PRODUCT.LIST}?skip=0&limit=10`);
+
+    if (response.code === 200) {
+      const result = {
+        products: response.data || [],
+        pagination: {
+          current: 1,
+          pageSize: 10,
+          total: response.totalRecords || 0,
+        },
+      };
+
+      return result;
+    } else {
+      console.error('Failed to fetch initial product data - Response code:', response.code);
+      throw new Error('Failed to fetch initial product data');
     }
-    if (productIds) {
-      url += `&product=${productIds}`;
+  } catch (error) {
+    console.error('Error in getInitialProductData:', error);
+    throw new Error(error.message || 'Failed to fetch initial product data');
+  }
+}
+
+/**
+ * Get filtered products with pagination and sorting.
+ */
+export async function getFilteredProducts(page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc') {
+  try {
+    const skip = (page - 1) * pageSize;
+    let url = ENDPOINTS.PRODUCT.LIST + `?skip=${skip}&limit=${pageSize}`;
+
+    // Apply filters
+    if (filters.product && Array.isArray(filters.product) && filters.product.length > 0) {
+      url += `&product=${filters.product.map(id => encodeURIComponent(id)).join(',')}`;
+    }
+    if (filters.search_product) {
+      url += `&search_product=${encodeURIComponent(filters.search_product)}`;
+    }
+    if (filters.status !== undefined && filters.status !== '') {
+      url += `&status=${encodeURIComponent(filters.status)}`;
+    }
+    
+    // Apply sorting
+    if (sortBy) {
+      url += `&sortBy=${encodeURIComponent(sortBy)}&sortDirection=${encodeURIComponent(sortDirection)}`;
     }
 
     const response = await fetchWithAuth(url);
-    return {
-      success: response.code === 200,
-      data: response.data || [],
-      totalRecords: response.totalRecords
-    };
-  } catch (error) {
-    console.error('Error fetching product list:', error);
-    return { success: false, message: error.message };
-  }
-};
 
-// Category list with search and filter
-export const getCategoryList = async (page = 1, pageSize = 10, searchTerm = '', categoryIds = '') => {
-  try {
-    let url = `${ENDPOINTS.CATEGORY}?limit=${pageSize}&skip=${(page - 1) * pageSize}`;
-
-    if (searchTerm) {
-      url += `&search_category=${searchTerm}`;
+    if (response.code === 200) {
+      return {
+        products: response.data || [],
+        pagination: {
+          current: page,
+          pageSize,
+          total: response.totalRecords || 0,
+        },
+      };
+    } else {
+      console.error('Failed to fetch filtered products:', response.message);
+      throw new Error(response.message || 'Failed to fetch filtered products');
     }
-    if (categoryIds) {
-      url += `&category=${categoryIds}`;
+  } catch (error) {
+    console.error('Error in getFilteredProducts:', error);
+    throw new Error(error.message || 'Failed to fetch filtered products');
+  }
+}
+
+/**
+ * Search products by name.
+ */
+export async function searchProducts(searchTerm = '') {
+  const url = searchTerm
+    ? ENDPOINTS.PRODUCT.LIST + `?search_product=${encodeURIComponent(searchTerm)}`
+    : ENDPOINTS.PRODUCT.LIST;
+
+  try {
+    const response = await fetchWithAuth(url);
+    if (response.code === 200) {
+      return response.data || [];
+    } else if (response.message) {
+      console.error('Error searching products:', response.message);
+      throw new Error(response.message);
+    } else {
+      console.error('Failed to search products due to an unknown error.');
+      throw new Error('Failed to search products');
     }
-
-    const response = await fetchWithAuth(url);
-    return {
-      success: response.code === 200,
-      data: response.data || [],
-      totalRecords: response.totalRecords
-    };
   } catch (error) {
-    console.error('Error fetching category list:', error);
-    return { success: false, message: error.message };
+    console.error('Error in searchProducts:', error);
+    throw new Error(error.message || 'Failed to search products');
   }
-};
+}
 
-// Unit list with search and filter
-export const getUnitList = async (page = 1, pageSize = 10, searchTerm = '', unitIds = '') => {
-  try {
-    let url = `${ENDPOINTS.UNIT}?limit=${pageSize}&skip=${(page - 1) * pageSize}`;
-
-    if (searchTerm) {
-      url += `&search_unit=${searchTerm}`;
-    }
-    if (unitIds) {
-      url += `&unit=${unitIds}`;
-    }
-
-    const response = await fetchWithAuth(url);
-    return {
-      success: response.code === 200,
-      data: response.data || [],
-      totalRecords: response.totalRecords
-    };
-  } catch (error) {
-    console.error('Error fetching unit list:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-// Search functions for filters
-export const searchProducts = async (searchTerm) => {
-  try {
-    const url = `${ENDPOINTS.PRODUCT}?search_product=${searchTerm}`;
-    const response = await fetchWithAuth(url);
-    return {
-      success: response.code === 200,
-      data: response.data || [],
-      totalRecords: response.totalRecords
-    };
-  } catch (error) {
-    console.error('Error searching products:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-export const searchCategories = async (searchTerm) => {
-  try {
-    const url = `${ENDPOINTS.CATEGORY}?search_category=${searchTerm}`;
-    const response = await fetchWithAuth(url);
-    return {
-      success: response.code === 200,
-      data: response.data || [],
-      totalRecords: response.totalRecords
-    };
-  } catch (error) {
-    console.error('Error searching categories:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-export const searchUnits = async (searchTerm) => {
-  try {
-    const url = `${ENDPOINTS.UNIT}?search_unit=${searchTerm}`;
-    const response = await fetchWithAuth(url);
-    return {
-      success: response.code === 200,
-      data: response.data || [],
-      totalRecords: response.totalRecords
-    };
-  } catch (error) {
-    console.error('Error searching units:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-// Reset the product list
-export const resetProductList = async (page = 1, pageSize = 10) => {
-  const response = await fetchWithAuth(`/products/listProduct?limit=${pageSize}&skip=${(page - 1) * pageSize}`);
-
-  if (response.error) {
-    return { success: false, message: response.error }; // Propagate the error
-  }
-
-  return { success: true, data: response.data };
-};
-
-
-// Fetch product details by ID
-export const getProductDetails = async (productId) => {
-  const response = await fetchWithAuth(`/products/viewProduct/${productId}`);
-
-  if (response.error) {
-    return { success: false, message: response.error }; // Propagate the error
-  }
-
-  return { success: true, data: response.data };
-};
-
-// Add a new product
-export const addProduct = async (productData, preparedImage) => {
+/**
+ * Add a new product.
+ */
+export async function addProduct(productData, preparedImage) {
   try {
     const formData = new FormData();
 
@@ -162,8 +151,7 @@ export const addProduct = async (productData, preparedImage) => {
 
     // Add image if provided
     if (preparedImage) {
-
-       // Convert base64 to blob
+      // Convert base64 to blob
       const base64Data = preparedImage.base64.split(',')[1];
       const mimeType = preparedImage.type;
       const fileName = preparedImage.name;
@@ -187,30 +175,30 @@ export const addProduct = async (productData, preparedImage) => {
       formData.append('images', file);
     }
 
-    const response = await fetchWithAuth('/products/addProduct', {
+    const response = await fetchWithAuth(ENDPOINTS.PRODUCT.ADD, {
       method: 'POST',
       body: formData,
     });
 
-    if (response.error) {
-      return { success: false, message: response.error }; // Propagate the error
+    if (response.code !== 200) {
+      throw new Error(response.message || 'Failed to add product');
     }
 
-    if (response.code === 200) {
-      return { success: true, data: response.data };
-    } else {
-      return { success: false, message: response.message || 'Failed to add product' };
-    }
+    return { success: true, data: response.data };
   } catch (error) {
     console.error('Error adding product:', error);
     return { success: false, message: error.message || 'Failed to add product' };
   }
-};
+}
 
+/**
+ * Update an existing product.
+ */
+export async function updateProduct(id, productData, preparedImage) {
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid product ID');
+  }
 
-
-// Update an existing product
-export const updateProduct = async (productData, preparedImage) => {
   try {
     const formData = new FormData();
 
@@ -249,13 +237,13 @@ export const updateProduct = async (productData, preparedImage) => {
       formData.append('images', file);
     }
 
-    const response = await fetchWithAuth(`/products/updateProduct/${productData._id}`, {
+    const response = await fetchWithAuth(`${ENDPOINTS.PRODUCT.UPDATE}/${id}`, {
       method: 'PUT',
       body: formData,
     });
 
-    if (response.error) {
-      return { success: false, message: response.error };
+    if (response.code !== 200) {
+      throw new Error(response.message || 'Failed to update product');
     }
 
     return { success: true, data: response.data };
@@ -263,239 +251,93 @@ export const updateProduct = async (productData, preparedImage) => {
     console.error('Error updating product:', error);
     return { success: false, message: error.message || 'Failed to update product' };
   }
-};
+}
 
+/**
+ * Delete a product (soft delete).
+ */
+export async function deleteProduct(id) {
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid product ID');
+  }
 
-// Fetch dropdown data
-export const getDropdownData = async () => {
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.PRODUCT.DELETE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ _id: id }),
+    });
+
+    if (response.code !== 200) {
+      throw new Error(response.message || 'Failed to delete product');
+    }
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    return { success: false, message: error.message || 'Failed to delete product' };
+  }
+}
+
+/**
+ * Fetch dropdown data for product forms.
+ */
+export async function getDropdownData() {
   try {
     const [units, categories, taxes] = await Promise.all([
-      fetchWithAuth('/drop_down/unit'),
-      fetchWithAuth('/drop_down/category'),
-      fetchWithAuth('/drop_down/tax'),
+      fetchWithAuth(ENDPOINTS.DROPDOWN.UNIT),
+      fetchWithAuth(ENDPOINTS.DROPDOWN.CATEGORY),
+      fetchWithAuth(ENDPOINTS.DROPDOWN.TAX),
     ]);
 
-    if (units.error || categories.error || taxes.error) {
-      return { success: false, message: 'No authentication session found' }; // Propagate the error
+    // Check for authentication errors
+    if (units?.error || categories?.error || taxes?.error) {
+      const errorMsg = units?.error || categories?.error || taxes?.error || 'Authentication failed';
+      throw new Error(errorMsg);
     }
 
     return {
       success: true,
       data: {
-        units: units.data,
-        categories: categories.data,
-        taxes: taxes.data,
+        units: Array.isArray(units?.data) ? units.data : [],
+        categories: Array.isArray(categories?.data) ? categories.data : [],
+        taxes: Array.isArray(taxes?.data) ? taxes.data : [],
       },
     };
   } catch (error) {
     console.error('Error fetching dropdown data:', error);
-    return { success: false, message: error.message || 'Failed to fetch dropdown data' };
+    return { 
+      success: false, 
+      message: error.message || 'Failed to fetch dropdown data',
+      data: {
+        units: [],
+        categories: [],
+        taxes: []
+      }
+    };
   }
-};
+}
 
-
-// Generate SKU
-export const generateSKU = async () => {
+/**
+ * Generate SKU for a new product.
+ */
+export async function generateSKU() {
   try {
-    const response = await fetchWithAuth('/products/generateSKU');
+    const response = await fetchWithAuth(ENDPOINTS.PRODUCT.GENERATE_SKU);
 
-    //this will run if no session is found
     if (response.error) {
-      console.log('server error if caught', response)
-      return { success: false, message: response.error }; // Propagate the error
+      throw new Error(response.error);
     }
-console.log('server success if caught', response)
+
+    if (response.code !== 200) {
+      throw new Error(response.message || 'Failed to generate SKU');
+    }
+
     return { success: true, data: response.data };
   } catch (error) {
-    console.log('server error catch caught', error)
-    console.error('Error generating SKU:', error.message)
+    console.error('Error generating SKU:', error);
     return { success: false, message: error.message || 'Failed to generate SKU' };
   }
-};
-
-// Delete a product by ID
-export const deleteProduct = async (productId) => {
-  try {
-    const response = await fetchWithAuth(`/products/deleteProduct`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ _id: productId }),
-    });
-
-    if (response.error) {
-      return { success: false, message: response.error }; // Propagate the error
-    }
-
-    if (response.code === 200) {
-      return { success: true, data: response.data || {} };
-    } else {
-      return { success: false, message: response.message || 'Failed to delete product' };
-    }
-  } catch (error) {
-    console.error('Error deleting product:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-
-
-
-
-
-
-
-
-// Edit category
-
-
-// Delete a category by ID
-export const deleteCategory = async (categoryId) => {
-  try {
-    const response = await fetchWithAuth(`/category/${categoryId}`, {
-      method: 'PATCH',
-    });
-
-    if (response.error) {
-      return { success: false, message: response.error };
-    }
-
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error deleting category:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-// Add these unit-related actions to your existing actions.js
-
-export const deleteUnit = async (unitId) => {
-  try {
-    const response = await fetchWithAuth(`/units/delete/${unitId}`, {
-      method: 'PATCH',
-    });
-
-    if (response.error) {
-      return { success: false, message: response.error };
-    }
-
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error deleting unit:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-export const addUnit = async (unitData) => {
-  try {
-    const response = await fetchWithAuth('/units', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(unitData),
-    });
-
-    if (response.error) {
-      return { success: false, message: response.error };
-    }
-
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error adding unit:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-export const getUnitDetails = async (unitId) => {
-  try {
-    const response = await fetchWithAuth(`/units/viewUnit/${unitId}`);
-
-    if (response.error) {
-      return { success: false, message: response.error };
-    }
-
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error fetching unit details:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-export const updateUnit = async (unitId, unitData) => {
-  try {
-    const response = await fetchWithAuth(`/units/${unitId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(unitData),
-    });
-
-    if (response.error) {
-      return { success: false, message: response.error };
-    }
-
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error updating unit:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-// Add these category-related actions
-
-export const getCategoryDetails = async (categoryId) => {
-  try {
-    const response = await fetchWithAuth(`/category/${categoryId}`);
-
-    if (response.error) {
-      return { success: false, message: response.error };
-    }
-
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error fetching category details:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-export const updateCategory = async (categoryId, categoryData) => {
-  try {
-    const response = await fetchWithAuth(`/category/${categoryId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(categoryData),
-    });
-
-    if (response.error) {
-      return { success: false, message: response.error };
-    }
-
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error updating category:', error);
-    return { success: false, message: error.message };
-  }
-};
-
-export const addCategory = async (categoryData) => {
-  try {
-    const response = await fetchWithAuth('/category', {
-      method: 'POST',
-      body: categoryData, // FormData will be sent directly
-    });
-
-    if (response.error) {
-      return { success: false, message: response.error };
-    }
-
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error adding category:', error);
-    return { success: false, message: error.message };
-  }
-};
+}

@@ -1,22 +1,21 @@
 import React from 'react';
 import AddProductIndex from '@/views/products/addProduct/index';
 import ProtectedComponent from '@/components/ProtectedComponent';
-import { getDropdownData } from '@/app/(dashboard)/products/actions';
+
+export const metadata = {
+  title: 'Add Product | Kanakku',
+};
 
 const AddProductPage = async () => {
   try {
-    const dropdownData = await getDropdownData();
-
     return (
       <ProtectedComponent>
-        <AddProductIndex
-          initialData={dropdownData.data}
-        />
+        <AddProductIndex />
       </ProtectedComponent>
     );
   } catch (error) {
-    console.error('Error loading product data:', error);
-    return <div>Error loading form data</div>;
+    console.error('Error loading add product data:', error);
+    return <div className="text-red-600 p-8">Failed to load data for Add Product.</div>;
   }
 };
 

@@ -24,6 +24,7 @@ export function useVendorListHandlers(options = {}) {
     // Pass custom handlers if provided (for dialog mode)
     onView: options.onView,
     onEdit: options.onEdit,
+    onLedger: options.onLedger,
   });
 
   return {
@@ -50,5 +51,6 @@ export function useVendorListHandlers(options = {}) {
     handleDelete: actions.handleDelete,
     handleView: actions.handleView,
     handleEdit: actions.handleEdit,
+    handleLedger: actions.handleLedger,
   };
 }

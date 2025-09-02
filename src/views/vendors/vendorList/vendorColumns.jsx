@@ -16,16 +16,16 @@ const ActionCell = ({ row, handlers, permissions, ledgerPermissions }) => {
   // Prepare menu options for ledger
   const theme = useTheme();
   const menuOptions = [];
-  if (ledgerPermissions?.canCreate) {
+  // if (ledgerPermissions?.canCreate) {
     menuOptions.push({
       text: 'Ledger',
       icon: <Icon icon="mdi:book-outline" />,
-      onClick: () => handlers?.handleView?.(row._id, 'ledger'),
+      onClick: () => handlers?.handleLedger?.(row._id),
       menuItemProps: {
         className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
       }
     });
-  }
+  // }
 
   return (
     <Box >

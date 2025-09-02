@@ -223,7 +223,7 @@ const ViewVendorDialog = ({ open, vendorId, defaultTab = 'details', onClose, onE
                       <TextField
                         fullWidth
                         label="Current Balance"
-                        value={`${formatCurrency(balance.amount)} (${balance.type})`}
+                        value={`${balance.amount} (${balance.type})`}
                         InputProps={{
                           readOnly: true,
                           startAdornment: (
@@ -290,7 +290,7 @@ const ViewVendorDialog = ({ open, vendorId, defaultTab = 'details', onClose, onE
                   </div>
 
                   <TableContainer component={Paper} variant="outlined">
-                    <Table>
+                    <Table size='small'>
                       <TableHead>
                         <TableRow>
                           <TableCell>Name</TableCell>
@@ -302,16 +302,7 @@ const ViewVendorDialog = ({ open, vendorId, defaultTab = 'details', onClose, onE
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {ledgerLoading ? (
-                          <TableRow>
-                            <TableCell colSpan={6} align="center">
-                              <Box className="flex items-center justify-center py-4">
-                                <CircularProgress size={24} className="mr-2" />
-                                <Typography>Loading ledger entries...</Typography>
-                              </Box>
-                            </TableCell>
-                          </TableRow>
-                        ) : ledgerData.length > 0 ? (
+                        {ledgerData.length > 0 ? (
                           ledgerData.map((entry) => (
                             <TableRow key={entry._id}>
                               <TableCell>{entry.name}</TableCell>

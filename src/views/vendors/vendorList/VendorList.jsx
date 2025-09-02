@@ -45,8 +45,8 @@ const VendorList = ({ initialVendors, initialPagination }) => {
   };
 
   const ledgerPermissions = {
-    canCreate: usePermission('ledger', 'create'),
-    canView: usePermission('ledger', 'view'),
+    canCreate: usePermission('vendor', 'view'), // Use vendor view permission for ledger access
+    canView: usePermission('vendor', 'view'),
   };
 
   // Snackbar state
@@ -96,6 +96,10 @@ const VendorList = ({ initialVendors, initialPagination }) => {
     setDialogStates(prev => ({ ...prev, view: true, viewVendorId: vendorId, viewTab: tab }));
   }, []);
 
+  const handleOpenLedgerDialog = useCallback((vendorId) => {
+    setDialogStates(prev => ({ ...prev, view: true, viewVendorId: vendorId, viewTab: 'ledger' }));
+  }, []);
+
   const handleCloseViewDialog = useCallback(() => {
     setDialogStates(prev => ({ ...prev, view: false, viewVendorId: null, viewTab: 'details' }));
   }, []);
@@ -115,15 +119,13 @@ const VendorList = ({ initialVendors, initialPagination }) => {
       }
 
       onSuccess('Vendor added successfully!');
-      // Refresh the vendor list
-      handlers.fetchData();
       return response;
     } catch (error) {
       const errorMessage = error.message || 'An unexpected error occurred';
       onError(errorMessage);
       return { success: false, message: errorMessage };
     }
-  }, [onSuccess, onError, handlers]);
+  }, [onSuccess, onError]);
 
   const handleUpdateVendor = useCallback(async (vendorId, formData) => {
     try {
@@ -139,15 +141,13 @@ const VendorList = ({ initialVendors, initialPagination }) => {
       }
 
       onSuccess('Vendor updated successfully!');
-      // Refresh the vendor list
-      handlers.fetchData();
       return response;
     } catch (error) {
       const errorMessage = error.message || 'An unexpected error occurred';
       onError(errorMessage);
       return { success: false, message: errorMessage };
     }
-  }, [onSuccess, onError, handlers]);
+  }, [onSuccess, onError]);
 
   // Initialize simplified handlers
   const handlers = useVendorListHandlers({
@@ -158,6 +158,7 @@ const VendorList = ({ initialVendors, initialPagination }) => {
     // Override handlers to use dialogs instead of navigation
     onView: handleOpenViewDialog,
     onEdit: handleOpenEditDialog,
+    onLedger: handleOpenLedgerDialog,
   });
 
   // Column management
@@ -208,6 +209,7 @@ const VendorList = ({ initialVendors, initialPagination }) => {
       handleDelete: handlers.handleDelete,
       handleView: handlers.handleView,
       handleEdit: handlers.handleEdit,
+      handleLedger: handlers.handleLedger,
       permissions,
       ledgerPermissions,
       pagination: handlers.pagination,

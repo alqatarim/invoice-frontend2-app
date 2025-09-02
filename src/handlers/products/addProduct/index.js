@@ -1,0 +1,1 @@
+export { useAddProductHandlers } from './useAddProductHandlers';

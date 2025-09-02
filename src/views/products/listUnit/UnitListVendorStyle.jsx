@@ -1,0 +1,313 @@
+import React, { useState, useMemo, useCallback, memo } from 'react';
+import Link from 'next/link';
+import { Icon } from '@iconify/react';
+import {
+  Card,
+  Button,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControlLabel,
+  Checkbox,
+  FormGroup,
+  Grid,
+} from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { useSession } from 'next-auth/react';
+import { usePermission } from '@/Auth/usePermission';
+import { useRouter } from 'next/navigation';
+
+import UnitHead from '@/views/products/listUnit/UnitHead';
+import UnitFilter from '@/views/products/listUnit/UnitFilter';
+import CustomListTable from '@/components/custom-components/CustomListTable';
+import { useUnitListHandlers } from '@/handlers/products/unit/useUnitListHandlersVendorStyle';
+import { getUnitColumns } from './unitColumns';
+import { addUnit, updateUnit } from '@/app/(dashboard)/products/actions';
+import AddUnitDialog from '@/views/products/addUnit/AddUnitDialog';
+import EditUnitDialog from '@/views/products/editUnit/EditUnitDialog';
+
+/**
+ * UnitList Component - Following vendors design pattern exactly
+ */
+const UnitList = ({ initialUnits, initialPagination }) => {
+  const theme = useTheme();
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  // Permissions
+  const permissions = {
+    canCreate: usePermission('product', 'create'),
+    canUpdate: usePermission('product', 'update'),
+    canView: usePermission('product', 'view'),
+    canDelete: usePermission('product', 'delete'),
+  };
+
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+
+  // Dialog states
+  const [dialogStates, setDialogStates] = useState({
+    add: false,
+    edit: false,
+    editUnitId: null,
+  });
+
+  // Notification handlers
+  const onError = useCallback(msg => {
+    setSnackbar({ open: true, message: msg, severity: 'error' });
+  }, []);
+
+  const onSuccess = useCallback(msg => {
+    setSnackbar({ open: true, message: msg, severity: 'success' });
+  }, []);
+
+  // Dialog handlers
+  const handleOpenAddDialog = useCallback(() => {
+    setDialogStates(prev => ({ ...prev, add: true }));
+  }, []);
+
+  const handleCloseAddDialog = useCallback(() => {
+    setDialogStates(prev => ({ ...prev, add: false }));
+  }, []);
+
+  const handleOpenEditDialog = useCallback((unitId) => {
+    setDialogStates(prev => ({ ...prev, edit: true, editUnitId: unitId }));
+  }, []);
+
+  const handleCloseEditDialog = useCallback(() => {
+    setDialogStates(prev => ({ ...prev, edit: false, editUnitId: null }));
+  }, []);
+
+  // CRUD operation handlers
+  const handleAddUnit = useCallback(async (formData) => {
+    try {
+      onSuccess('Adding unit...');
+      
+      const response = await addUnit(formData);
+      
+      if (!response.success) {
+        const errorMessage = response.error?.message || response.message || 'Failed to add unit';
+        onError(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+
+      onSuccess('Unit added successfully!');
+      return response;
+    } catch (error) {
+      const errorMessage = error.message || 'An unexpected error occurred';
+      onError(errorMessage);
+      return { success: false, message: errorMessage };
+    }
+  }, [onSuccess, onError]);
+
+  const handleUpdateUnit = useCallback(async (unitId, formData) => {
+    try {
+      onSuccess('Updating unit...');
+      
+      const response = await updateUnit(unitId, formData);
+      
+      if (!response.success) {
+        const errorMessage = response.error?.message || response.message || 'Failed to update unit';
+        onError(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+
+      onSuccess('Unit updated successfully!');
+      return response;
+    } catch (error) {
+      const errorMessage = error.message || 'An unexpected error occurred';
+      onError(errorMessage);
+      return { success: false, message: errorMessage };
+    }
+  }, [onSuccess, onError]);
+
+  // Initialize simplified handlers
+  const handlers = useUnitListHandlers({
+    initialUnits,
+    initialPagination,
+    onError,
+    onSuccess,
+    // Override handlers to use dialogs instead of navigation
+    onView: handleOpenEditDialog, // Units don't have view, use edit
+    onEdit: handleOpenEditDialog,
+  });
+
+  // Column management
+  const columns = useMemo(() => {
+    if (!theme || !permissions) return [];
+    return getUnitColumns({ theme, permissions });
+  }, [theme, permissions]);
+
+  const [columnsState, setColumns] = useState(() => {
+    if (typeof window !== 'undefined' && columns.length > 0) {
+      const saved = localStorage.getItem('unitVisibleColumns');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return Array.isArray(parsed) ? parsed : columns;
+        } catch (e) {
+          console.warn('Failed to parse saved column preferences:', e);
+        }
+      }
+    }
+    return columns;
+  });
+
+  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (columns.length > 0 && columnsState.length === 0) {
+      setColumns(columns);
+    }
+  }, [columns, columnsState.length]);
+
+  const handleColumnCheckboxChange = useCallback((columnKey, checked) => {
+    setColumns(prev => prev.map(col =>
+      col.key === columnKey ? { ...col, visible: checked } : col
+    ));
+  }, []);
+
+  const handleSaveColumns = useCallback(() => {
+    setManageColumnsOpen(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('unitVisibleColumns', JSON.stringify(columnsState));
+    }
+  }, [columnsState]);
+
+  // Table columns
+  const tableColumns = useMemo(() => {
+    const cellHandlers = {
+      handleDelete: handlers.handleDelete,
+      handleView: handlers.handleView,
+      handleEdit: handlers.handleEdit,
+      permissions,
+      pagination: handlers.pagination,
+    };
+
+    return columnsState
+      .filter(col => col.visible)
+      .map(col => ({
+        ...col,
+        renderCell: col.renderCell ? (row, index) => col.renderCell(row, cellHandlers, index) : undefined
+      }));
+  }, [columnsState, handlers, permissions]);
+
+  const tablePagination = useMemo(() => ({
+    page: handlers.pagination.current - 1,
+    pageSize: handlers.pagination.pageSize,
+    total: handlers.pagination.total
+  }), [handlers.pagination]);
+
+  return (
+    <div className='flex flex-col gap-5'>
+      <UnitHead
+        unitListData={handlers.units}
+        isLoading={handlers.loading}
+      />
+
+      <Grid container spacing={3}>
+        <Grid size={{xs:12}}>
+          <CustomListTable
+            columns={tableColumns}
+            rows={handlers.units}
+            loading={handlers.loading}
+            pagination={tablePagination}
+            onPageChange={(page) => handlers.handlePageChange(page)}
+            onRowsPerPageChange={(size) => handlers.handlePageSizeChange(size)}
+            onSort={(key, direction) => handlers.handleSortRequest(key, direction)}
+            sortBy={handlers.sortBy}
+            sortDirection={handlers.sortDirection}
+            noDataText="No units found"
+            rowKey={(row) => row._id || row.id}
+            showSearch={true}
+            searchValue={handlers.searchTerm || ''}
+            onSearchChange={handlers.handleSearchInputChange}
+            headerActions={
+              permissions.canCreate && (
+                <Button
+                  onClick={handleOpenAddDialog}
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                >
+                  New Unit
+                </Button>
+              )
+            }
+          />
+        </Grid>
+      </Grid>
+
+      <Dialog
+        open={manageColumnsOpen}
+        onClose={() => setManageColumnsOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Manage Columns</DialogTitle>
+        <DialogContent>
+          <FormGroup>
+            {columnsState.map((column) => (
+              <FormControlLabel
+                key={column.key}
+                control={
+                  <Checkbox
+                    checked={column.visible}
+                    onChange={(e) => handleColumnCheckboxChange(column.key, e.target.checked)}
+                  />
+                }
+                label={column.label}
+              />
+            ))}
+          </FormGroup>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setManageColumnsOpen(false)} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleSaveColumns} color="primary" variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      {/* Unit Dialogs */}
+      <AddUnitDialog
+        open={dialogStates.add}
+        onClose={handleCloseAddDialog}
+        onSave={handleAddUnit}
+      />
+
+      <EditUnitDialog
+        open={dialogStates.edit}
+        unitId={dialogStates.editUnitId}
+        onClose={handleCloseEditDialog}
+        onSave={handleUpdateUnit}
+      />
+    </div>
+  );
+};
+
+export default memo(UnitList);

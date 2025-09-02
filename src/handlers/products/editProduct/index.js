@@ -1,0 +1,1 @@
+export { useEditProductHandlers } from './useEditProductHandlers';

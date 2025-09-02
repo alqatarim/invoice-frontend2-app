@@ -100,6 +100,28 @@ export const vendorStatusOptions = [
   { value: false, label: 'Inactive', color: 'error' }
 ]
 
+// Product related constants
+export const productTypes = [
+  { value: 'product', label: 'Product' },
+  { value: 'service', label: 'Service' }
+]
+
+export const discountTypes = [
+  { value: 'Percentage', label: 'Percentage' },
+  { value: 'Fixed', label: 'Fixed' }
+]
+
+export const productTabs = [
+  { value: 'PRODUCT', label: 'Products' },
+  { value: 'CATEGORY', label: 'Categories' },
+  { value: 'UNIT', label: 'Units' }
+]
+
+export const productStatusOptions = [
+  { value: true, label: 'Active', color: 'success' },
+  { value: false, label: 'Inactive', color: 'error' }
+]
+
 export const ledgerModes = [
   { value: 'Credit', label: 'Credit', color: 'success' },
   { value: 'Debit', label: 'Debit', color: 'error' }
