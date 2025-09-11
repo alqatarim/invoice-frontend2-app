@@ -1,4 +1,4 @@
 'use client';
 
 // Re-export the dialog component
-export { default } from './EditProduct';
+export { default } from './EditProductDialog';

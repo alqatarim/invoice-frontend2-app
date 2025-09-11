@@ -17,14 +17,15 @@ import {
 import { Icon } from '@iconify/react';
 import { useTheme } from '@mui/material/styles';
 import moment from 'moment';
-
-import { getProductDetails, getDropdownData } from '@/app/(dashboard)/products/actions';
+import { taxTypes, formIcons } from '@/data/dataSets';
+import { getProductById } from '@/app/(dashboard)/products/actions';
 
 const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSuccess }) => {
   const theme = useTheme();
   const [product, setProduct] = useState(null);
-  const [dropdownData, setDropdownData] = useState({});
+  const [dropdownData, setDropdownData] = useState({ units: [], categories: [], taxes: [] });
   const [loading, setLoading] = useState(false);
+
 
   // Fetch product data when dialog opens
   useEffect(() => {
@@ -32,17 +33,12 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
       if (open && productId) {
         setLoading(true);
         try {
-          const [productResponse, dropdownResponse] = await Promise.all([
-            getProductDetails(productId),
-            getDropdownData()
+          const [productData, dropdown] = await Promise.all([
+            getProductById(productId),
+
           ]);
-          
-          if (productResponse.success) {
-            setProduct(productResponse.data);
-            setDropdownData(dropdownResponse.data || {});
-          } else {
-            throw new Error(productResponse.error || 'Failed to fetch product');
-          }
+          setProduct(productData);
+
         } catch (error) {
           onError?.(error.message || 'Failed to fetch product data');
         } finally {
@@ -56,7 +52,6 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
 
   const handleClose = () => {
     setProduct(null);
-    setDropdownData({});
     onClose();
   };
 
@@ -66,20 +61,9 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
     }
   };
 
-  const getCategoryName = (categoryId) => {
-    const category = dropdownData.category?.find(cat => cat._id === categoryId);
-    return category?.category_name || 'N/A';
-  };
+ 
 
-  const getUnitName = (unitId) => {
-    const unit = dropdownData.unit_types?.find(u => u._id === unitId);
-    return unit?.unit || 'N/A';
-  };
 
-  const getTaxName = (taxId) => {
-    const tax = dropdownData.tax?.find(t => t._id === taxId);
-    return tax ? `${tax.name} (${tax.taxRate}%)` : 'N/A';
-  };
 
   if (!open) return null;
 
@@ -113,21 +97,21 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
         ) : product ? (
           <Box className="p-6">
             {/* Product Image */}
-            <Box className="flex justify-center mb-6">
-              <Box
-                sx={{
-                  width: 150,
-                  height: 150,
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: 'background.default',
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider'
-                }}
-              >
-                {product.images ? (
+            {product.images && product.images[0] && (
+              <Box className="flex justify-center mb-6">
+                <Box
+                  sx={{
+                    width: 150,
+                    height: 150,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: 'background.default',
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider'
+                  }}
+                >
                   <img
                     src={product.images}
                     alt={product.name || 'Product'}
@@ -137,11 +121,9 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                       objectFit: 'contain'
                     }}
                   />
-                ) : (
-                  <Icon icon="mdi:image-outline" fontSize={60} color={theme?.palette?.text?.disabled} />
-                )}
+                </Box>
               </Box>
-            </Box>
+            )}
 
             <Grid container spacing={4}>
               {/* Product Name */}
@@ -152,6 +134,16 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                   value={product.name || ''}
                   InputProps={{
                     readOnly: true,
+                    startAdornment: (
+
+                        <Icon
+                        style={{ marginRight: '5px' }}
+                          icon={'mdi:alphabetical-variant'}
+                          width={25}
+                          color={theme.palette.secondary.light} 
+                        />
+       
+                    ),
                   }}
                   variant="outlined"
                 />
@@ -175,17 +167,16 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                 <TextField
                   fullWidth
                   label="Type"
-                  value={product.type === 'service' ? 'Service' : 'Product'}
+                  value={product.type}
                   InputProps={{
                     readOnly: true,
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Chip
-                          label={product.type === 'service' ? 'Service' : 'Product'}
-                          color={product.type === 'service' ? 'secondary' : 'primary'}
-                          size="small"
+                    startAdornment: (
+                        <Icon 
+                        style={{ marginRight: '5px' }}
+                          icon={ formIcons.find(icon => icon.value === product.type)?.icon || ''}
+                          width={25}
+                          color={theme.palette.secondary.light}
                         />
-                      </InputAdornment>
                     ),
                   }}
                   variant="outlined"
@@ -197,9 +188,19 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                 <TextField
                   fullWidth
                   label="Category"
-                  value={getCategoryName(product.category)}
+                  value={product.category.name || 'N/A'}
                   InputProps={{
                     readOnly: true,
+                    
+                    startAdornment: (
+                    
+                        <Icon
+                        style={{ marginRight: '5px' }}
+                        icon={ formIcons.find(icon => icon.value === 'category')?.icon || ''}
+                        width={25}
+                        color={theme.palette.secondary.light} />
+                 
+                    ),
                   }}
                   variant="outlined"
                 />
@@ -210,9 +211,18 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                 <TextField
                   fullWidth
                   label="Unit"
-                  value={getUnitName(product.units)}
+                  value={product.units.name || 'N/A'}
                   InputProps={{
                     readOnly: true,
+                    startAdornment: (
+
+                        <Icon
+                        style={{ marginRight: '5px' }}
+                        icon={ formIcons.find(icon => icon.value === 'unit')?.icon || ''}
+                        width={25}
+                        color={theme.palette.secondary.light} />
+ 
+                    ),
                   }}
                   variant="outlined"
                 />
@@ -227,18 +237,17 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                   InputProps={{
                     readOnly: true,
                     startAdornment: (
-                      <InputAdornment position="start">
-                        <Icon icon='lucide:saudi-riyal' color={theme.palette.secondary.light} />
-                      </InputAdornment>
+
+                        <Icon
+                        style={{ marginRight: '5px' }}
+                        icon={ formIcons.find(icon => icon.value === 'currency')?.icon || ''}
+                        width={23}
+                        color={theme.palette.secondary.light} />
+
                     ),
                   }}
                   variant="outlined"
-                  sx={{
-                    '& .MuiInputBase-input': {
-                      color: 'success.dark',
-                      fontWeight: 'medium'
-                    }
-                  }}
+             
                 />
               </Grid>
 
@@ -251,9 +260,13 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                   InputProps={{
                     readOnly: true,
                     startAdornment: (
-                      <InputAdornment position="start">
-                        <Icon icon='lucide:saudi-riyal' color={theme.palette.secondary.light} />
-                      </InputAdornment>
+
+                        <Icon
+                        style={{ marginRight: '5px' }}
+                        icon={ formIcons.find(icon => icon.value === 'currency')?.icon || ''}
+                        width={23}
+                        color={theme.palette.secondary.light} />
+
                     ),
                   }}
                   variant="outlined"
@@ -268,12 +281,21 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                   value={product.alertQuantity || '0'}
                   InputProps={{
                     readOnly: true,
+                    startAdornment: (
+
+                        <Icon
+                        style={{ marginRight: '5px' }}
+                        icon={ formIcons.find(icon => icon.value === 'alertQuantity')?.icon || ''}
+                        width={25}
+                        color={theme.palette.secondary.light} />
+
+                    ),
                   }}
                   variant="outlined"
                   sx={product.alertQuantity <= 10 ? {
                     '& .MuiInputBase-input': {
                       color: 'error.main',
-                      fontWeight: 'medium'
+                      // fontWeight: 'medium'
                     }
                   } : {}}
                 />
@@ -287,75 +309,70 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                   value={product.barcode || 'N/A'}
                   InputProps={{
                     readOnly: true,
+                    startAdornment: (
+
+                        <Icon
+                        style={{ marginRight: '5px' }}
+                        icon={ formIcons.find(icon => icon.value === 'barcode')?.icon || ''}
+                        width={25}
+                        color={theme.palette.secondary.light} />
+
+                    ),
                   }}
                   variant="outlined"
                 />
               </Grid>
 
               {/* Discount */}
-              {product.discountValue > 0 && (
-                <>
                   <Grid size={{xs:12, md:6}}>
                     <TextField
                       fullWidth
                       label="Discount"
-                      value={`${product.discountValue} ${product.discountType === 'Percentage' ? '%' : ' (Fixed)'}`}
+                      value={product.discountValue || '0'}
                       InputProps={{
                         readOnly: true,
+                        startAdornment: (
+                          <Icon
+                            style={{ marginRight: '5px' }}
+                            icon={formIcons.find(icon => icon.value === product.discountType)?.icon || ''}
+                            width={25}
+                            color={theme.palette.secondary.light}
+                          />
+                        ),
                       }}
                       variant="outlined"
                     />
                   </Grid>
-                </>
-              )}
+            
+       
 
               {/* Tax */}
               <Grid size={{xs:12, md:6}}>
                 <TextField
                   fullWidth
                   label="Tax"
-                  value={getTaxName(product.tax)}
+                  value={product.tax.taxRate || 'N/A'}
                   InputProps={{
                     readOnly: true,
-                  }}
-                  variant="outlined"
-                />
-              </Grid>
-
-              {/* Created Date */}
-              <Grid size={{xs:12, md:6}}>
-                <TextField
-                  fullWidth
-                  label="Created Date"
-                  value={product.createdAt ? moment(product.createdAt).format('DD MMM YYYY') : 'N/A'}
-                  InputProps={{
-                    readOnly: true,
-                  }}
-                  variant="outlined"
-                />
-              </Grid>
-
-              {/* Status */}
-              <Grid size={{xs:12, md:6}}>
-                <TextField
-                  fullWidth
-                  label="Status"
-                  value={product.isDeleted ? 'Inactive' : 'Active'}
-                  InputProps={{
-                    readOnly: true,
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Chip
-                          label={product.isDeleted ? 'Inactive' : 'Active'}
-                          color={product.isDeleted ? 'error' : 'success'}
-                          size="small"
-                        />
-                      </InputAdornment>
+             
+                    startAdornment: (
+                    product.tax.type && (
+                          <Icon
+                          style={{ marginRight: '5px' }}
+                          width={22}
+                            icon={taxTypes.find(t => t.value === String(product.tax.type))?.icon || ''}
+                            color={theme.palette.secondary.light}
+                          />
+                        )
+     
                     ),
                   }}
                   variant="outlined"
                 />
               </Grid>
+
+
+
 
               {/* Description */}
               {product.productDescription && (
@@ -377,7 +394,7 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
           </Box>
         ) : (
           <Box className="flex justify-center items-center h-40">
-            <Typography>Failed to load product details</Typography>
+            <Typography color="error">Product not found</Typography>
           </Box>
         )}
       </DialogContent>

@@ -220,7 +220,7 @@ const AddProductDialog = ({ open, onClose, onSave }) => {
                       <Select {...field} label='Category'>
                         {(dropdownData.categories || []).map((cat) => (
                           <MenuItem key={cat._id} value={cat._id}>
-                            {cat.category_name}
+                            {cat.name}
                           </MenuItem>
                         ))}
                       </Select>
@@ -241,7 +241,7 @@ const AddProductDialog = ({ open, onClose, onSave }) => {
                       <Select {...field} label='Unit'>
                         {(dropdownData.units || []).map((unit) => (
                           <MenuItem key={unit._id} value={unit._id}>
-                            {unit.unit}
+                            {unit.name}
                           </MenuItem>
                         ))}
                       </Select>
@@ -390,7 +390,7 @@ const AddProductDialog = ({ open, onClose, onSave }) => {
                         <MenuItem value="">None</MenuItem>
                         {(dropdownData.taxes || []).map((tax) => (
                           <MenuItem key={tax._id} value={tax._id}>
-                            {tax.name} ({tax.tax_percentage}%)
+                            {tax.name} ({tax.taxRate}%)
                           </MenuItem>
                         ))}
                       </Select>

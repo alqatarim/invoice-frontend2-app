@@ -5,6 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { useState } from 'react'
 import { productTypes, discountTypes } from '@/data/dataSets'
+import { validateProductImage } from '@/utils/fileUtils'
 
 const addProductSchema = yup.object().shape({
   type: yup.string().required('Type is required'),
@@ -25,6 +26,8 @@ const addProductSchema = yup.object().shape({
 export const useAddProductHandlers = ({ dropdownData, onSave }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imagePreview, setImagePreview] = useState(null)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [imageError, setImageError] = useState('')
 
   const {
     control,
@@ -54,15 +57,27 @@ export const useAddProductHandlers = ({ dropdownData, onSave }) => {
     }
   })
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result)
-      }
-      reader.readAsDataURL(file)
+  // Image validation and handling using extracted utility
+  const handleImageChange = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const validation = await validateProductImage(file)
+
+    if (validation.isValid) {
+      setImagePreview(validation.preview)
+      setSelectedFile(file)
+      setImageError('')
+    } else {
+      setImageError(validation.error)
+      setImagePreview(null)
+      setSelectedFile(null)
     }
+  }
+
+  const handleImageError = () => {
+    setImagePreview(null)
+    setImageError('')
   }
 
   const handleFormSubmit = async (data) => {
@@ -70,18 +85,18 @@ export const useAddProductHandlers = ({ dropdownData, onSave }) => {
     try {
       let preparedImage = null;
       
-      // Handle image if provided
-      if (data.images && data.images instanceof File) {
+      // Handle image if a new file was selected
+      if (selectedFile) {
         const reader = new FileReader();
         const base64 = await new Promise((resolve) => {
           reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(data.images);
+          reader.readAsDataURL(selectedFile);
         });
         
         preparedImage = {
           base64,
-          type: data.images.type,
-          name: data.images.name
+          type: selectedFile.type,
+          name: selectedFile.name
         };
       }
 
@@ -101,6 +116,8 @@ export const useAddProductHandlers = ({ dropdownData, onSave }) => {
   const resetForm = () => {
     reset()
     setImagePreview(null)
+    setSelectedFile(null)
+    setImageError('')
   }
 
   return {
@@ -114,7 +131,10 @@ export const useAddProductHandlers = ({ dropdownData, onSave }) => {
     productTypes,
     discountTypes,
     imagePreview,
+    selectedFile,
+    imageError,
     handleImageChange,
+    handleImageError,
     setValue,
   }
 }

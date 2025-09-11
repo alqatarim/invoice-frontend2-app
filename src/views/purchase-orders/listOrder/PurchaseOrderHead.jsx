@@ -5,7 +5,6 @@ import { Grid, Avatar, Typography } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { amountFormat } from '@/utils/numberUtils';
-import { getInitialPurchaseOrderData } from '@/app/(dashboard)/purchase-orders/actions';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
 /**
@@ -13,45 +12,60 @@ import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBord
  */
 const PurchaseOrderHead = ({ purchaseOrderListData }) => {
   const theme = useTheme();
-  const [cardCounts, setCardCounts] = useState({
-    totalCancelled: {},
-    totalPending: {},
-    totalApproved: {},
-    totalPurchaseOrder: {},
-    totalDrafted: {},
-    totalConverted: {}
+  const [purchaseOrderStats, setPurchaseOrderStats] = useState({
+    totalOrders: 0,
+    totalAmount: 0,
+    avgOrderValue: 0,
+    activeOrders: 0,
   });
 
   useEffect(() => {
-    const fetchCardCounts = async () => {
-      try {
-        const response = await getInitialPurchaseOrderData();
-        if (response.cardCounts) {
-          setCardCounts({
-            totalCancelled: response.cardCounts.total_cancelled?.[0] || {},
-            totalPending: response.cardCounts.total_pending?.[0] || {},
-            totalApproved: response.cardCounts.total_approved?.[0] || {},
-            totalPurchaseOrder: response.cardCounts.total_purchase_order?.[0] || {},
-            totalDrafted: response.cardCounts.total_drafted?.[0] || {},
-            totalConverted: response.cardCounts.total_converted?.[0] || {}
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching purchase order card counts:', error);
+    const calculateStats = () => {
+      if (purchaseOrderListData && purchaseOrderListData.length > 0) {
+        const stats = purchaseOrderListData.reduce((acc, order) => {
+          // Count total orders
+          acc.totalOrders++;
+          
+          // Calculate total amount
+          const amount = Number(order.TotalAmount) || 0;
+          acc.totalAmount += amount;
+          
+          // Count active orders (assume all are active for now)
+          acc.activeOrders++;
+          
+          return acc;
+        }, {
+          totalOrders: 0,
+          totalAmount: 0,
+          activeOrders: 0,
+        });
+        
+        // Calculate average order value
+        stats.avgOrderValue = stats.totalOrders > 0 ? stats.totalAmount / stats.totalOrders : 0;
+        
+        setPurchaseOrderStats(stats);
+      } else {
+        // Reset stats when no data
+        setPurchaseOrderStats({
+          totalOrders: 0,
+          totalAmount: 0,
+          avgOrderValue: 0,
+          activeOrders: 0,
+        });
       }
     };
 
-    fetchCardCounts();
+    calculateStats();
   }, [purchaseOrderListData]);
 
-  const currencySymbol = purchaseOrderListData.currencySymbol || '$';
+  const currencySymbol = '﷼'; // Saudi Riyal symbol
 
   return (
     <>
       {/* Header Section */}
       <div className="flex justify-start items-center mb-5">
         <div className="flex items-center gap-2">
-          <Avatar className='bg-primary/12 text-primary bg-primaryLight  w-12 h-12'>
+          <Avatar className='bg-primary/12 text-primary bg-primaryLight w-12 h-12'>
             <Icon icon="tabler:file-invoice" fontSize={26} />
           </Avatar>
           <Typography variant="h5" className="font-semibold text-primary">
@@ -63,47 +77,31 @@ const PurchaseOrderHead = ({ purchaseOrderListData }) => {
       {/* Statistics Cards */}
       <div className="mb-2">
         <Grid container spacing={4}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{xs:12, sm:6, md:3}}>
             <HorizontalWithBorder
               title="Total Orders"
-              subtitle="No of Orders"
+              subtitle="All Orders"
               titleVariant='h5'
               subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalPurchaseOrder?.total_sum)}`}
+              stats={purchaseOrderStats.totalOrders.toString()}
               statsVariant='h4'
-              trendNumber={cardCounts.totalPurchaseOrder?.count || 0}
+              trendNumber={`${purchaseOrderStats.activeOrders} Active`}
               trendNumberVariant='body1'
-              avatarIcon='iconamoon:invoice'
+              avatarIcon='tabler:file-invoice'
               color="primary"
               iconSize='30px'
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{xs:12, sm:6, md:3}}>
             <HorizontalWithBorder
-              title="Pending"
-              subtitle="No of Pending"
+              title="Active Orders"
+              subtitle="Currently Active"
               titleVariant='h5'
               subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalPending?.total_sum)}`}
+              stats={purchaseOrderStats.activeOrders.toString()}
               statsVariant='h4'
-              trendNumber={cardCounts.totalPending?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='mdi:access-time'
-              color="warning"
-              iconSize='35px'
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <HorizontalWithBorder
-              title="Approved"
-              subtitle="No of Approved"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalApproved?.total_sum)}`}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalApproved?.count || 0}
+              trendNumber={`${Math.round((purchaseOrderStats.activeOrders / Math.max(purchaseOrderStats.totalOrders, 1)) * 100)}%`}
               trendNumberVariant='body1'
               avatarIcon='mdi:check-circle-outline'
               color="success"
@@ -111,18 +109,34 @@ const PurchaseOrderHead = ({ purchaseOrderListData }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{xs:12, sm:6, md:3}}>
             <HorizontalWithBorder
-              title="Drafts"
-              subtitle="No of Drafts"
+              title="Total Amount"
+              subtitle="Total Value"
               titleVariant='h5'
               subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalDrafted?.total_sum)}`}
+              stats={`${currencySymbol} ${amountFormat(purchaseOrderStats.totalAmount)}`}
               statsVariant='h4'
-              trendNumber={cardCounts.totalDrafted?.count || 0}
+              trendNumber="Total Value"
               trendNumberVariant='body1'
-              avatarIcon='mdi:draw-pen'
+              avatarIcon='mdi:currency-usd'
               color="info"
+              iconSize='35px'
+            />
+          </Grid>
+
+          <Grid size={{xs:12, sm:6, md:3}}>
+            <HorizontalWithBorder
+              title="Average Value"
+              subtitle="Per Order"
+              titleVariant='h5'
+              subtitleVariant='body2'
+              stats={`${currencySymbol} ${amountFormat(purchaseOrderStats.avgOrderValue)}`}
+              statsVariant='h4'
+              trendNumber="Avg Order"
+              trendNumberVariant='body1'
+              avatarIcon='mdi:chart-line'
+              color="warning"
               iconSize='35px'
             />
           </Grid>

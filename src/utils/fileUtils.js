@@ -142,3 +142,78 @@ export const validateProfileImage = async (file) => {
     reader.readAsDataURL(file);
   });
 };
+
+/**
+ * Validate product image file type and size
+ * @param {File} file - The image file to validate
+ * @returns {Promise<Object>} - { isValid: boolean, error: string, preview: string }
+ */
+export const validateProductImage = async (file) => {
+  if (!file) {
+    return { isValid: false, error: 'No file provided', preview: null };
+  }
+
+  // Check file type
+  if (!/\.(jpe?g|png|gif|webp)$/i.test(file.name)) {
+    return {
+      isValid: false,
+      error: 'Only PNG, JPG, JPEG, GIF, and WEBP file types are supported.',
+      preview: null
+    };
+  }
+
+  // Check file size (5MB limit)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    return {
+      isValid: false,
+      error: 'File size must be less than 5MB.',
+      preview: null
+    };
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      const img = new Image();
+
+      img.onload = () => {
+        // For products, we're more flexible with dimensions
+        if (img.width >= 100 && img.height >= 100) {
+          resolve({
+            isValid: true,
+            error: '',
+            preview: reader.result
+          });
+        } else {
+          resolve({
+            isValid: false,
+            error: 'Product image should be minimum 100 x 100 pixels',
+            preview: null
+          });
+        }
+      };
+
+      img.onerror = () => {
+        resolve({
+          isValid: false,
+          error: 'Invalid image file.',
+          preview: null
+        });
+      };
+
+      img.src = reader.result;
+    };
+
+    reader.onerror = () => {
+      resolve({
+        isValid: false,
+        error: 'Failed to read file.',
+        preview: null
+      });
+    };
+
+    reader.readAsDataURL(file);
+  });
+};

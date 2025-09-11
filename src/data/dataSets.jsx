@@ -107,8 +107,8 @@ export const productTypes = [
 ]
 
 export const discountTypes = [
-  { value: 'Percentage', label: 'Percentage' },
-  { value: 'Fixed', label: 'Fixed' }
+  { value: 2, label: 'Percentage' },
+  { value: 3, label: 'Fixed' }
 ]
 
 export const productTabs = [
@@ -357,3 +357,26 @@ export const actionButtons = [
     title: 'Deactivate Item'
   }
 ];
+
+
+
+
+
+export const taxTypes = [
+  { value: '1', label: 'Percentage', icon: 'lucide:percent' },
+  { value: '2', label: 'Fixed', icon: 'lucide:saudi-riyal' }
+]
+
+
+export const formIcons = [
+  { value: 'category', label: 'category', icon: 'mdi:category-outline' },
+  { value: 'unit', label: 'Unit', icon: 'uil:ruler' },
+  { value: 'service', label: 'service', icon: 'mdi:room-service-outline' },
+  { value: 'product', label: 'product', icon: 'mdi:shopping-outline' },
+  { value: 'barcode', label: 'barcode', icon: 'mdi:barcode-scan' },
+  { value: 'currency', label: 'currency', icon: 'lucide:saudi-riyal' },
+  { value: 'alertQuantity', label: 'alertQuantity', icon: 'mdi:alert-circle-outline' },
+  { value: 3, label: 'fixedDiscount', icon: 'lucide:saudi-riyal' },
+  { value: 2, label: 'percentageDiscount', icon: 'lucide:percent' },
+  { value: 'vat', label: 'vat', icon: 'heroicons-outline:receipt-tax' },
+]

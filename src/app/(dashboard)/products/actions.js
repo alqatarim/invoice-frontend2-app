@@ -14,9 +14,11 @@ const ENDPOINTS = {
   DROPDOWN: {
     UNIT: '/drop_down/unit',
     CATEGORY: '/drop_down/category',
-    TAX: '/drop_down/tax'
+    TAX: '/drop_down/tax',
+    PRODUCT: '/drop_down/product'
   }
 };
+
 
 /**
  * Get product details by ID.
@@ -44,7 +46,12 @@ export async function getProductById(id) {
  */
 export async function getInitialProductData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.PRODUCT.LIST}?skip=0&limit=10`);
+    const response = await fetchWithAuth(`${ENDPOINTS.PRODUCT.LIST}?skip=0&limit=10`,
+      {
+        cache: 'no-store',
+        next: { revalidate: 0 }
+      }
+    );
 
     if (response.code === 200) {
       const result = {
@@ -91,7 +98,12 @@ export async function getFilteredProducts(page, pageSize, filters = {}, sortBy =
       url += `&sortBy=${encodeURIComponent(sortBy)}&sortDirection=${encodeURIComponent(sortDirection)}`;
     }
 
-    const response = await fetchWithAuth(url);
+    const response = await fetchWithAuth(url,
+      {
+        cache: 'no-store',
+        next: { revalidate: 0 }
+      }
+    );
 
     if (response.code === 200) {
       return {
@@ -144,10 +156,24 @@ export async function addProduct(productData, preparedImage) {
   try {
     const formData = new FormData();
 
-    // Add all product data to formData
-    Object.keys(productData).forEach(key => {
-      formData.append(key, productData[key]);
-    });
+    // Add fields in the exact order and format expected by backend (following old ReactJS app)
+    formData.append("type", productData.type || 'product');
+    formData.append("name", productData.name || '');
+    formData.append("sku", productData.sku || '');
+    formData.append("discountValue", productData.discountValue || 0);
+    formData.append("barcode", productData.barcode || '');
+    formData.append("units", productData.units || ''); // First append - should be the _id
+    formData.append("category", productData.category || ''); // This should be the _id
+    formData.append("sellingPrice", productData.sellingPrice || '');
+    formData.append("purchasePrice", productData.purchasePrice || '');
+    formData.append("units", productData.units || ''); // Second append (duplicate from old app)
+    
+    // discountType is already a numeric ID (2 for Percentage, 3 for Fixed)
+    formData.append("discountType", productData.discountType || '');
+    
+    formData.append("alertQuantity", productData.alertQuantity || '');
+    formData.append("tax", productData.tax || ''); // This should be the _id, empty string if none
+    formData.append("productDescription", productData.productDescription || '');
 
     // Add image if provided
     if (preparedImage) {
@@ -173,6 +199,8 @@ export async function addProduct(productData, preparedImage) {
       const file = new File([blob], fileName, { type: mimeType });
 
       formData.append('images', file);
+    } else {
+      formData.append('images', '');
     }
 
     const response = await fetchWithAuth(ENDPOINTS.PRODUCT.ADD, {
@@ -202,15 +230,24 @@ export async function updateProduct(id, productData, preparedImage) {
   try {
     const formData = new FormData();
 
-    // Append all product data
-    for (const key in productData) {
-      // Handle nested objects (like category, units, tax)
-      if (typeof productData[key] === 'object' && productData[key] !== null) {
-        formData.append(key, productData[key]._id || JSON.stringify(productData[key]));
-      } else {
-        formData.append(key, productData[key]);
-      }
-    }
+    // Add fields in the exact order and format expected by backend (following old ReactJS app)
+    formData.append("name", productData.name || '');
+    formData.append("type", productData.type || 'product');
+    formData.append("sku", productData.sku || '');
+    formData.append("discountValue", productData.discountValue || 0);
+    formData.append("barcode", productData.barcode || '');
+    formData.append("units", productData.units || ''); // This should be the _id
+    formData.append("category", productData.category || ''); // This should be the _id
+    formData.append("sellingPrice", productData.sellingPrice || '');
+    formData.append("purchasePrice", productData.purchasePrice || '');
+    
+    // discountType is already a numeric ID (2 for Percentage, 3 for Fixed)
+    formData.append("discountType", productData.discountType || '');
+    
+    formData.append("alertQuantity", productData.alertQuantity || '');
+    formData.append("tax", productData.tax || ''); // This should be the _id, empty string if none
+    formData.append("productDescription", productData.productDescription || '');
+    formData.append("_id", id); // Add the product ID as expected by backend
 
     // Handle image upload
     if (preparedImage) {
@@ -235,6 +272,8 @@ export async function updateProduct(id, productData, preparedImage) {
       const blob = new Blob(byteArrays, { type: mimeType });
       const file = new File([blob], fileName, { type: mimeType });
       formData.append('images', file);
+    } else {
+      formData.append('images', '');
     }
 
     const response = await fetchWithAuth(`${ENDPOINTS.PRODUCT.UPDATE}/${id}`, {
@@ -301,9 +340,9 @@ export async function getDropdownData() {
     return {
       success: true,
       data: {
-        units: Array.isArray(units?.data) ? units.data : [],
-        categories: Array.isArray(categories?.data) ? categories.data : [],
-        taxes: Array.isArray(taxes?.data) ? taxes.data : [],
+        units: Array.isArray(units?.data) ? units.data : (Array.isArray(units) ? units : []),
+        categories: Array.isArray(categories?.data) ? categories.data : (Array.isArray(categories) ? categories : []),
+        taxes: Array.isArray(taxes?.data) ? taxes.data : (Array.isArray(taxes) ? taxes : []),
       },
     };
   } catch (error) {

@@ -12,6 +12,11 @@ const ENDPOINTS = {
   }
 };
 
+
+const DROPDOWN = {
+  UNIT: '/drop_down/unit',
+}
+
 /**
  * Get unit details by ID.
  */
@@ -204,5 +209,35 @@ export async function deleteUnit(id) {
   } catch (error) {
     console.error('Error deleting unit:', error);
     return { success: false, message: error.message || 'Failed to delete unit' };
+  }
+}
+
+/**
+ * Fetch dropdown data for unit forms.
+ */
+export async function getUnitDropdownData() {
+  try {
+    const response = await fetchWithAuth(DROPDOWN.UNIT);
+
+    // Check for authentication errors
+    if (response?.error) {
+      throw new Error(response.error || 'Authentication failed');
+    }
+
+    return {
+      success: true,
+      data: {
+        units: Array.isArray(response?.data) ? response.data : [],
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching unit dropdown data:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to fetch unit dropdown data',
+      data: {
+        units: []
+      }
+    };
   }
 }

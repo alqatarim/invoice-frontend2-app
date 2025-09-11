@@ -30,18 +30,9 @@ import { formatCurrency } from '@/utils/currencyUtils';
 import { getPurchaseOrderColumns } from './purchaseOrderColumns';
 
 /**
- * PurchaseOrderList Component
+ * Simplified PurchaseOrderList Component - matches vendor list structure
  */
-const PurchaseOrderList = ({
-  initialPurchaseOrders = [],
-  pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
-  cardCounts: initialCardCounts = {},
-  tab: initialTab = 'ALL',
-  filters: initialFilters = {},
-  sortBy: initialSortBy = '',
-  sortDirection: initialSortDirection = 'asc',
-  initialVendors = [],
-}) => {
+const PurchaseOrderList = ({ initialPurchaseOrders, initialPagination }) => {
   const theme = useTheme();
   const { data: session } = useSession();
   const searchParams = useSearchParams();
@@ -61,131 +52,157 @@ const PurchaseOrderList = ({
     severity: 'success',
   });
 
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
-
   // Notification handlers
-  const onError = msg => setSnackbar({ open: true, message: msg, severity: 'error' });
-  const onSuccess = msg => setSnackbar({ open: true, message: msg, severity: 'success' });
+  const onError = React.useCallback(msg => {
+    setSnackbar({ open: true, message: msg, severity: 'error' });
+  }, []);
 
-  // Initialize handlers with column definitions
-  const columns = useMemo(() => getPurchaseOrderColumns({ theme, permissions }), [theme, permissions]);
+  const onSuccess = React.useCallback(msg => {
+    setSnackbar({ open: true, message: msg, severity: 'success' });
+  }, []);
 
+  // Initialize simplified handlers
   const handlers = usePurchaseOrderListHandlers({
     initialPurchaseOrders,
     initialPagination,
-    initialTab,
-    initialFilters,
-    initialSortBy,
-    initialSortDirection,
-    initialColumns: columns,
-    initialVendors,
     onError,
     onSuccess,
   });
 
-  // Column state management
-  const [columnsState, setColumns] = useState(columns);
+  // Column management
+  const columns = useMemo(() => {
+    if (!theme || !permissions) return [];
+    return getPurchaseOrderColumns({ theme, permissions });
+  }, [theme, permissions]);
 
-  // Column actions
-  const columnActions = {
-    open: () => handlers.handleManageColumnsOpen(),
-    close: () => handlers.handleManageColumnsClose(),
-    save: () => handlers.handleManageColumnsSave(setColumns),
-  };
+  const [columnsState, setColumns] = useState(() => {
+    if (typeof window !== 'undefined' && columns.length > 0) {
+      const saved = localStorage.getItem('purchaseOrderVisibleColumns');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return Array.isArray(parsed) ? parsed : columns;
+        } catch (e) {
+          console.warn('Failed to parse saved column preferences:', e);
+        }
+      }
+    }
+    return columns;
+  });
 
-  // Build table columns with action handlers
-  const tableColumns = useMemo(() =>
-    columnsState.map(col => ({
-      ...col,
-      renderCell: col.renderCell ?
-        (row) => col.renderCell(row, {
-          ...handlers,
-          permissions,
-        }) : undefined
-    })),
-    [columnsState, handlers, permissions]
-  );
+  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (columns.length > 0 && columnsState.length === 0) {
+      setColumns(columns);
+    }
+  }, [columns, columnsState.length]);
+
+  const handleColumnCheckboxChange = React.useCallback((columnKey, checked) => {
+    setColumns(prev => prev.map(col =>
+      col.key === columnKey ? { ...col, visible: checked } : col
+    ));
+  }, []);
+
+  const handleSaveColumns = React.useCallback(() => {
+    setManageColumnsOpen(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('purchaseOrderVisibleColumns', JSON.stringify(columnsState));
+    }
+  }, [columnsState]);
+
+  // Table columns
+  const tableColumns = useMemo(() => {
+    const cellHandlers = {
+      handleDelete: handlers.handleDelete,
+      handleView: handlers.handleView,
+      handleEdit: handlers.handleEdit,
+      handleClone: handlers.handleClone,
+      handleSend: handlers.handleSend,
+      handlePrintDownload: handlers.handlePrintDownload,
+      openConvertDialog: handlers.openConvertDialog,
+      permissions,
+      pagination: handlers.pagination,
+    };
+
+    return columnsState
+      .filter(col => col.visible)
+      .map(col => ({
+        ...col,
+        renderCell: col.renderCell ? (row, index) => col.renderCell(row, cellHandlers, index) : undefined
+      }));
+  }, [columnsState, handlers, permissions]);
+
+  const tablePagination = useMemo(() => ({
+    page: handlers.pagination.current - 1,
+    pageSize: handlers.pagination.pageSize,
+    total: handlers.pagination.total
+  }), [handlers.pagination]);
 
   return (
     <div className='flex flex-col gap-5'>
-      {/* Header and Stats */}
       <PurchaseOrderHead
-        purchaseOrderListData={initialCardCounts}
-        currencyData={formatCurrency(0).replace(/\d|\.|,/g, '').trim()}
+        purchaseOrderListData={handlers.purchaseOrders}
         isLoading={handlers.loading}
       />
 
       <Grid container spacing={3}>
-        {/* New Purchase Order Button */}
-        {permissions.canCreate && (
-          <Grid item xs={12}>
-            <div className="flex justify-end">
-              <Button
-                component={Link}
-                href="/purchase-orders/order-add"
-                variant="contained"
-                startIcon={<Icon icon="tabler:plus" />}
-              >
-                New Purchase Order
-              </Button>
-            </div>
-          </Grid>
-        )}
-
-        {/* Filter Component */}
-        <Grid item xs={12}>
+        {/* Simplified Filter - commented out for now to match vendors 
+        <Grid size={{xs:12}}>
           <PurchaseOrderFilter
-            onChange={handlers.handleFilterValueChange}
-            onApply={handlers.handleFilterApply}
-            onReset={handlers.handleFilterReset}
-            vendorOptions={handlers.vendorOptions}
-            purchaseOrderOptions={handlers.purchaseOrderOptions}
-            values={handlers.filterValues}
-            tab={handlers.filterValues.status || []}
-            onTabChange={handlers.handleTabChange}
-            onManageColumns={columnActions.open}
+            onApplyFilters={handlers.handleFilterApply}
+            onResetFilters={handlers.handleFilterReset}
           />
-        </Grid>
+        </Grid> */}
 
-        {/* Purchase Order Table */}
-        <Grid item xs={12}>
-          <Card>
-            <CustomListTable
-              columns={tableColumns}
-              rows={handlers.purchaseOrders}
-              loading={handlers.loading}
-              pagination={{
-                page: handlers.pagination.current - 1,
-                pageSize: handlers.pagination.pageSize,
-                total: handlers.pagination.total
-              }}
-              onPageChange={handlers.handlePageChange}
-              onRowsPerPageChange={handlers.handlePageSizeChange}
-              onSort={handlers.handleSortRequest}
-              sortBy={handlers.sortBy}
-              sortDirection={handlers.sortDirection}
-              noDataText="No purchase orders found."
-              rowKey={(row) => row._id || row.id}
-            />
-          </Card>
+        <Grid size={{xs:12}}>
+          <CustomListTable
+            columns={tableColumns}
+            rows={handlers.purchaseOrders}
+            loading={handlers.loading}
+            pagination={tablePagination}
+            onPageChange={(page) => handlers.handlePageChange(page)}
+            onRowsPerPageChange={(size) => handlers.handlePageSizeChange(size)}
+            onSort={(key, direction) => handlers.handleSortRequest(key, direction)}
+            sortBy={handlers.sortBy}
+            sortDirection={handlers.sortDirection}
+            noDataText="No purchase orders found"
+            rowKey={(row) => row._id || row.id}
+            showSearch={true}
+            searchValue={handlers.searchTerm || ''}
+            onSearchChange={handlers.handleSearchInputChange}
+            headerActions={
+              permissions.canCreate && (
+                <Button
+                  component={Link}
+                  href="/purchase-orders/order-add"
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                >
+                  New Purchase Order
+                </Button>
+              )
+            }
+          />
         </Grid>
       </Grid>
 
-      {/* Manage Columns Dialog */}
-      <Dialog open={handlers.manageColumnsOpen} onClose={columnActions.close}>
-        <DialogTitle>Select Columns</DialogTitle>
+      <Dialog
+        open={manageColumnsOpen}
+        onClose={() => setManageColumnsOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Manage Columns</DialogTitle>
         <DialogContent>
           <FormGroup>
-            {handlers.availableColumns.map((column) => (
+            {columnsState.map((column) => (
               <FormControlLabel
                 key={column.key}
                 control={
                   <Checkbox
                     checked={column.visible}
-                    onChange={(e) => handlers.handleColumnCheckboxChange(column.key, e.target.checked)}
+                    onChange={(e) => handleColumnCheckboxChange(column.key, e.target.checked)}
                   />
                 }
                 label={column.label}
@@ -194,21 +211,27 @@ const PurchaseOrderList = ({
           </FormGroup>
         </DialogContent>
         <DialogActions>
-          <Button onClick={columnActions.close}>Cancel</Button>
-          <Button onClick={columnActions.save} color="primary">
+          <Button onClick={() => setManageColumnsOpen(false)} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handleSaveColumns} color="primary" variant="contained">
             Save
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

@@ -246,7 +246,7 @@ const EditInvoice = (props) => {
                 size="small"
                 className="min-w-[90px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
                 InputProps={{
-                  sx: { paddingLeft: '8px' },
+                  sx: { paddingLeft: '8px'},
                   startAdornment: (
                     <Icon icon="lucide:saudi-riyal" width={22} color={theme.palette.secondary.main}/>
                   ),

@@ -5,6 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { useEffect, useState } from 'react'
 import { productTypes, discountTypes } from '@/data/dataSets'
+import { validateProductImage } from '@/utils/fileUtils'
 
 const editProductSchema = yup.object().shape({
   type: yup.string().required('Type is required'),
@@ -13,7 +14,7 @@ const editProductSchema = yup.object().shape({
   sellingPrice: yup.number().required('Selling price is required').positive('Selling price must be positive'),
   purchasePrice: yup.number().required('Purchase price is required').positive('Purchase price must be positive'),
   discountValue: yup.number().min(0, 'Discount value must be non-negative'),
-  discountType: yup.string(),
+  discountType: yup.number(),
   units: yup.string().required('Unit is required'),
   barcode: yup.string(),
   alertQuantity: yup.number().min(0, 'Alert quantity must be non-negative'),
@@ -24,6 +25,9 @@ const editProductSchema = yup.object().shape({
 
 export const useEditProductHandlers = ({ productData, dropdownData, onSave }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [imageError, setImageError] = useState('')
 
   const {
     control,
@@ -40,8 +44,8 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
       category: '',
       sellingPrice: '',
       purchasePrice: '',
-      discountValue: '',
-      discountType: 'Percentage',
+      discountValue: 0,
+      discountType: 2,
       units: '',
       barcode: '',
       alertQuantity: '',
@@ -54,6 +58,11 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
   // Reset form when product data changes
   useEffect(() => {
     if (productData && typeof productData === 'object') {
+      // Set image preview if product has existing image
+      setImagePreview(productData.images || null)
+      setSelectedFile(null)
+      setImageError('')
+      
       reset({
         type: productData.type || 'product',
         name: productData.name || '',
@@ -61,8 +70,8 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
         category: productData.category?._id || productData.category || '',
         sellingPrice: productData.sellingPrice || '',
         purchasePrice: productData.purchasePrice || '',
-        discountValue: productData.discountValue || '',
-        discountType: productData.discountType || 'Percentage',
+        discountValue: productData.discountValue || 0,
+        discountType: productData.discountType || 2,
         units: productData.units?._id || productData.units || '',
         barcode: productData.barcode || '',
         alertQuantity: productData.alertQuantity || '',
@@ -73,23 +82,46 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
     }
   }, [productData, reset])
 
+  // Image validation and handling using extracted utility
+  const handleImageChange = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const validation = await validateProductImage(file)
+
+    if (validation.isValid) {
+      setImagePreview(validation.preview)
+      setSelectedFile(file)
+      setImageError('')
+    } else {
+      setImageError(validation.error)
+      setImagePreview(productData?.images || null) // Fallback to existing image
+      setSelectedFile(null)
+    }
+  }
+
+  const handleImageError = () => {
+    setImagePreview(null)
+    setImageError('')
+  }
+
   const handleFormSubmit = async (data) => {
     setIsSubmitting(true)
     try {
       let preparedImage = null;
       
-      // Handle image if provided
-      if (data.images && data.images instanceof File) {
+      // Handle image if a new file was selected
+      if (selectedFile) {
         const reader = new FileReader();
         const base64 = await new Promise((resolve) => {
           reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(data.images);
+          reader.readAsDataURL(selectedFile);
         });
         
         preparedImage = {
           base64,
-          type: data.images.type,
-          name: data.images.name
+          type: selectedFile.type,
+          name: selectedFile.name
         };
       }
 
@@ -116,5 +148,10 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
     reset,
     productTypes,
     discountTypes,
+    imagePreview,
+    selectedFile,
+    imageError,
+    handleImageChange,
+    handleImageError,
   }
 }

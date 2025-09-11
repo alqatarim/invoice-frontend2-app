@@ -12,6 +12,12 @@ const ENDPOINTS = {
   }
 };
 
+
+const DROPDOWN = {
+  CATEGORY: '/drop_down/category',
+}
+
+
 /**
  * Get category details by ID.
  */
@@ -201,5 +207,35 @@ export async function deleteCategory(id) {
   } catch (error) {
     console.error('Error deleting category:', error);
     return { success: false, message: error.message || 'Failed to delete category' };
+  }
+}
+
+/**
+ * Fetch dropdown data for category forms.
+ */
+export async function getCategoryDropdownData() {
+  try {
+    const response = await fetchWithAuth(DROPDOWN.CATEGORY);
+
+    // Check for authentication errors
+    if (response?.error) {
+      throw new Error(response.error || 'Authentication failed');
+    }
+
+    return {
+      success: true,
+      data: {
+        categories: Array.isArray(response?.data) ? response.data : [],
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching category dropdown data:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to fetch category dropdown data',
+      data: {
+        categories: []
+      }
+    };
   }
 }

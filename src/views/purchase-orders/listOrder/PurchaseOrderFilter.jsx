@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTheme, alpha } from '@mui/material/styles';
 import {
   Button,
@@ -10,222 +10,109 @@ import {
   Chip,
   Collapse,
   Divider,
-  FormControl,
   Grid,
   IconButton,
-  InputLabel,
-  MenuItem,
-  OutlinedInput,
-  Select,
+  TextField,
   Typography,
-  ToggleButton,
-  ToggleButtonGroup,
+  Autocomplete,
+  Checkbox,
+  CircularProgress,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
 import { Icon } from '@iconify/react';
-import { purchaseOrderTabs } from '@/data/dataSets';
+import { searchVendors } from '@/app/(dashboard)/vendors/actions';
 
 /**
- * Reusable multi-select dropdown component
+ * PurchaseOrderFilter - Simplified to match vendor filter UI/UX
  */
-const MultiSelectDropdown = ({
-  label,
-  value = [],
-  onChange,
-  options = [],
-  id
-}) => (
-  <FormControl fullWidth size="small">
-    <InputLabel id={`${id}-label`}>{label}</InputLabel>
-    <Select
-      labelId={`${id}-label`}
-      id={id}
-      multiple
-      value={value}
-      onChange={onChange}
-      input={<OutlinedInput label={label} />}
-      renderValue={(selected) => (
-        <div className="flex flex-row flex-wrap gap-1">
-          {selected.map((val) => {
-            const option = options.find(opt => opt.value === val);
-            return (
-              <Chip
-                key={val}
-                label={option?.label || val}
-                size="small"
-                variant="tonal"
-                color="primary"
-                className="rounded-md"
-              />
-            );
-          })}
-        </div>
-      )}
-      MenuProps={{
-        PaperProps: {
-          style: { maxHeight: 224, width: 280 }
-        }
-      }}
-      sx={{
-        '& .MuiOutlinedInput-root': {
-          borderRadius: '12px',
-        }
-      }}
-    >
-      {options.map((option) => (
-        <MenuItem key={option.value} value={option.value}>
-          {option.label}
-        </MenuItem>
-      ))}
-    </Select>
-  </FormControl>
-);
 
-/**
- * Date range picker component
- */
-const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange }) => (
-  <Grid container spacing={2}>
-    <Grid item xs={6}>
-      <DatePicker
-        slotProps={{
-          textField: {
-            size: 'small',
-            fullWidth: true,
-            label: 'From Date',
-            sx: {
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-              }
-            }
-          }
-        }}
-        value={startDate}
-        onChange={onStartChange}
-        format="DD/MM/YYYY"
-      />
-    </Grid>
-    <Grid item xs={6}>
-      <DatePicker
-        slotProps={{
-          textField: {
-            size: 'small',
-            fullWidth: true,
-            label: 'To Date',
-            sx: {
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-              }
-            }
-          }
-        }}
-        value={endDate}
-        onChange={onEndChange}
-        format="DD/MM/YYYY"
-        minDate={startDate || undefined}
-      />
-    </Grid>
-  </Grid>
-);
-
-// Enhanced PurchaseOrderFilter with status button group and filters
-
-const PurchaseOrderFilter = ({
-  onChange,
-  onApply,
-  onReset,
-  vendorOptions = [],
-  purchaseOrderOptions = [],
-  values = {},
-  tab = [],
-  onTabChange,
-  onManageColumns
-}) => {
+const PurchaseOrderFilter = ({ onApplyFilters, onResetFilters }) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
-  const [localFilters, setLocalFilters] = useState({
-    vendor: values.vendor || [],
-    purchaseOrderNumber: values.purchaseOrderNumber || [],
-    startDate: values.fromDate ? dayjs(values.fromDate) : null,
-    endDate: values.toDate ? dayjs(values.toDate) : null,
-  });
+  const [selectedVendors, setSelectedVendors] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [vendorOptions, setVendorOptions] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Sync local state with external values
+  // Persistent timeout reference to avoid race conditions
+  const searchTimeoutRef = useRef(null);
+
+  // Cleanup timeout on unmount
   useEffect(() => {
-    setLocalFilters({
-      vendor: values.vendor || [],
-      purchaseOrderNumber: values.purchaseOrderNumber || [],
-      startDate: values.fromDate ? dayjs(values.fromDate) : null,
-      endDate: values.toDate ? dayjs(values.toDate) : null,
-    });
-  }, [values]);
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  // Handlers
-  const handleLocalFilterChange = (field, value) => {
-    setLocalFilters(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (event, newInputValue, reason) => {
+    setInputValue(newInputValue);
 
-    // Map date fields to expected format
-    if (field === 'startDate') {
-      onChange('fromDate', value ? dayjs(value).format('YYYY-MM-DD') : '');
-    } else if (field === 'endDate') {
-      onChange('toDate', value ? dayjs(value).format('YYYY-MM-DD') : '');
-    } else {
-      onChange(field, value);
+    if (reason === 'input') {
+      // Always clear any pending timeout first
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = null;
+      }
+
+      // Clear options immediately if input becomes empty
+      if (!newInputValue?.trim()) {
+        setVendorOptions([]);
+        setIsSearching(false);
+        return;
+      }
+
+      // Debounced search for non-empty input
+      searchTimeoutRef.current = setTimeout(async () => {
+        setIsSearching(true);
+        try {
+          const vendors = await searchVendors(newInputValue.trim());
+          setVendorOptions(vendors || []);
+        } catch (error) {
+          console.error('Search error:', error);
+          setVendorOptions([]);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 200);
     }
   };
 
-  const handleSelectChange = (field) => (event) => {
-    const value = typeof event.target.value === 'string'
-      ? event.target.value.split(',')
-      : event.target.value;
-    handleLocalFilterChange(field, value);
+  const handleVendorChange = (event, newValue) => {
+    setSelectedVendors(newValue);
   };
 
-  const applyFilters = () => {
-    const currentFilterValues = {
-      vendor: localFilters.vendor,
-      purchaseOrderNumber: localFilters.purchaseOrderNumber,
-      fromDate: localFilters.startDate ? dayjs(localFilters.startDate).format('YYYY-MM-DD') : '',
-      toDate: localFilters.endDate ? dayjs(localFilters.endDate).format('YYYY-MM-DD') : '',
-      status: tab || []
+  const handleApplyFilter = () => {
+    if (selectedVendors.length === 0) return;
+
+    const filterValues = {
+      vendor: selectedVendors.map(vendor => vendor._id)
     };
-    onApply(currentFilterValues);
+
+    onApplyFilters(filterValues);
+    setOpen(false);
   };
 
-  const resetFilters = () => {
-    setLocalFilters({
-      vendor: [],
-      purchaseOrderNumber: [],
-      startDate: null,
-      endDate: null,
-    });
-    onReset();
+  const handleFilterClear = () => {
+    setSelectedVendors([]);
+    setVendorOptions([]);
+    setInputValue('');
+    onResetFilters();
+    setOpen(false);
   };
 
-  // Calculate active filter count
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (localFilters.vendor.length > 0) count++;
-    if (localFilters.purchaseOrderNumber.length > 0) count++;
-    if (localFilters.startDate) count++;
-    if (localFilters.endDate) count++;
-    if (tab?.length > 0 && !tab.includes('ALL')) count++;
-    return count;
-  }, [localFilters, tab]);
+  // Calculate active filters
+  const activeFilterCount = selectedVendors.length > 0 ? 1 : 0;
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Card
-        elevation={0}
-        sx={{
-          border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-          boxShadow: theme => `0 4px 12px ${alpha(theme.palette.common.black, 0.04)}`,
-          borderRadius: '16px'
-        }}
-      >
+    <Card
+      elevation={0}
+      sx={{
+        border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+        boxShadow: theme => `0 4px 12px ${alpha(theme.palette.common.black, 0.04)}`,
+        borderRadius: '16px'
+      }}
+    >
       {/* Filter Header */}
       <div
         className="flex justify-between items-center p-3 cursor-pointer"
@@ -272,77 +159,98 @@ const PurchaseOrderFilter = ({
         <Divider />
         <div className="p-6">
           <Grid container spacing={4}>
-            {/* Status Filter Section */}
-            <Grid item xs={12}>
-              <ToggleButtonGroup
-                color="primary"
-                value={tab}
-                exclusive={false}
-                onChange={onTabChange}
-                aria-label="purchase order status filter"
-              >
-                {purchaseOrderTabs.map((tabObj) => (
-                  <ToggleButton
-                    key={tabObj.value}
-                    value={tabObj.value}
-                    aria-label={tabObj.label}
-                    size="medium"
-                  >
-                    {tabObj.label}
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-            </Grid>
-
-            {/* Vendor Filter */}
+            {/* Vendor Autocomplete */}
             <Grid item xs={12} sm={6} md={4}>
-              <MultiSelectDropdown
-                id="vendor-select"
-                label="Vendors"
-                value={localFilters.vendor}
-                onChange={handleSelectChange('vendor')}
+              <Autocomplete
+                multiple
+                id="vendor-autocomplete"
                 options={vendorOptions}
+                getOptionLabel={(option) => option.vendor_name || ''}
+                value={selectedVendors}
+                onChange={handleVendorChange}
+                inputValue={inputValue}
+                onInputChange={handleInputChange}
+                loading={isSearching}
+                filterOptions={(options) => options} // Disable client-side filtering since we do server-side
+                isOptionEqualToValue={(option, value) => option._id === value._id}
+                clearOnBlur={false}
+                selectOnFocus={true}
+                handleHomeEndKeys={true}
+                freeSolo={false}
+                renderOption={(props, option, { selected }) => (
+                  <li {...props} key={option._id}>
+                    <Checkbox
+                      icon={<Icon icon="mdi:checkbox-blank-outline" />}
+                      checkedIcon={<Icon icon="mdi:checkbox-marked" />}
+                      style={{ marginRight: 8 }}
+                      checked={selected}
+                    />
+                    {option.vendor_name}
+                  </li>
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      {...getTagProps({ index })}
+                      key={option._id}
+                      label={option.vendor_name}
+                      size="small"
+                      variant="tonal"
+                      color="primary"
+                    />
+                  ))
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    label="Search Vendors"
+                    placeholder="Type to search vendors..."
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <Icon icon="mdi:magnify" style={{ marginRight: 8, color: 'text.secondary' }} />
+                          {params.InputProps.startAdornment}
+                        </>
+                      ),
+                      endAdornment: (
+                        <>
+                          {isSearching ? <CircularProgress size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '12px',
+                      }
+                    }}
+                  />
+                )}
+                sx={{
+                  '& .MuiAutocomplete-popupIndicator': {
+                    display: 'none' // Hide default dropdown arrow
+                  }
+                }}
               />
             </Grid>
 
-            {/* Purchase Order Number Filter */}
+            {/* Empty grid items to maintain layout consistency */}
             <Grid item xs={12} sm={6} md={4}>
-              <MultiSelectDropdown
-                id="purchase-order-select"
-                label="Purchase Order Numbers"
-                value={localFilters.purchaseOrderNumber}
-                onChange={handleSelectChange('purchaseOrderNumber')}
-                options={purchaseOrderOptions}
-              />
+              {/* Placeholder for future filters */}
             </Grid>
 
-            {/* Date Range Filter */}
             <Grid item xs={12} sm={6} md={4}>
-              <DateRangePicker
-                startDate={localFilters.startDate}
-                endDate={localFilters.endDate}
-                onStartChange={(newValue) => handleLocalFilterChange('startDate', newValue)}
-                onEndChange={(newValue) => handleLocalFilterChange('endDate', newValue)}
-              />
+              {/* Placeholder for future filters */}
             </Grid>
           </Grid>
 
+          {/* Action Buttons - matches vendor filter layout exactly */}
           <div className='flex justify-end gap-3 mt-6'>
             <Button
-              variant="text"
-              size="medium"
-              startIcon={<Icon icon="material-symbols:view-column-2" width={22} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onManageColumns();
-              }}
-            >
-              Columns
-            </Button>
-
-            <Button
               variant="outlined"
-              onClick={resetFilters}
+              onClick={handleFilterClear}
               size="medium"
               startIcon={<Icon icon="tabler:refresh" />}
             >
@@ -351,7 +259,8 @@ const PurchaseOrderFilter = ({
 
             <Button
               variant="contained"
-              onClick={applyFilters}
+              onClick={handleApplyFilter}
+              disabled={selectedVendors.length === 0}
               size="medium"
               startIcon={<Icon icon="tabler:check" />}
             >
@@ -361,7 +270,6 @@ const PurchaseOrderFilter = ({
         </div>
       </Collapse>
     </Card>
-    </LocalizationProvider>
   );
 };
 

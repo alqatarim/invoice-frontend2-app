@@ -193,13 +193,15 @@ function CustomListTable({
                     ...(col.minWidth && { minWidth: col.minWidth }),
                     ...(col.width && { width: col.width })
                   }}
-                  className={col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : ''}
                 >
                   {col.sortable && onSort ? (
                     <div
                       className={classnames({
                         'flex items-center': sortBy === col.key,
-                        'cursor-pointer select-none': true
+                        'cursor-pointer select-none': true,
+                        'justify-center': col.align === 'center',
+                        'justify-end': col.align === 'right',
+                        'justify-start': col.align === 'left' || !col.align
                       })}
                       onClick={() => {
                         let newDirection = 'asc';
@@ -218,7 +220,13 @@ function CustomListTable({
                       )}
                     </div>
                   ) : (
-                    col.label
+                    <div className={classnames({
+                      'text-center': col.align === 'center',
+                      'text-right': col.align === 'right',
+                      'text-left': col.align === 'left' || !col.align
+                    })}>
+                      {col.label}
+                    </div>
                   )}
                 </TableCell>
               ))}

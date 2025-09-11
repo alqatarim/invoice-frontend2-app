@@ -40,6 +40,10 @@ const AddProductDialog = ({ open, onClose, onSave }) => {
     handleFormSubmit,
     reset,
     imagePreview,
+    selectedFile,
+    imageError,
+    handleImageChange,
+    handleImageError,
     setValue,
   } = useAddProductHandlers({
     dropdownData,
@@ -196,7 +200,7 @@ const AddProductDialog = ({ open, onClose, onSave }) => {
                       <Select {...field} label="Category" disabled={isSubmitting}>
                         {dropdownData.categories && dropdownData.categories.map((category) => (
                           <MenuItem key={category._id} value={category._id}>
-                            {category.category_name}
+                            {category.name}
                           </MenuItem>
                         ))}
                       </Select>
@@ -273,7 +277,7 @@ const AddProductDialog = ({ open, onClose, onSave }) => {
                       <Select {...field} label="Unit" disabled={isSubmitting}>
                         {dropdownData.units && dropdownData.units.map((unit) => (
                           <MenuItem key={unit._id} value={unit._id}>
-                            {unit.unit}
+                            {unit.name}
                           </MenuItem>
                         ))}
                       </Select>
@@ -315,7 +319,7 @@ const AddProductDialog = ({ open, onClose, onSave }) => {
                         <MenuItem value="">None</MenuItem>
                         {dropdownData.taxes && dropdownData.taxes.map((tax) => (
                           <MenuItem key={tax._id} value={tax._id}>
-                            {tax.name} ({tax.tax_percentage}%)
+                            {tax.name} ({tax.taxRate}%)
                           </MenuItem>
                         ))}
                       </Select>
@@ -424,6 +428,7 @@ const AddProductDialog = ({ open, onClose, onSave }) => {
                         component="label"
                         startIcon={<Icon icon="mdi:upload" />}
                         disabled={isSubmitting}
+                        sx={{ mb: 2 }}
                       >
                         Upload Image
                         <input
@@ -431,20 +436,31 @@ const AddProductDialog = ({ open, onClose, onSave }) => {
                           hidden
                           accept="image/*"
                           onChange={(e) => {
+                            handleImageChange(e);
                             const file = e.target.files[0];
                             if (file) {
                               onChange(file);
-                              // Preview logic handled in handler
                             }
                           }}
                         />
                       </Button>
+                      {imageError && (
+                        <Typography variant="caption" color="error" className='block mt-2'>
+                          {imageError}
+                        </Typography>
+                      )}
+                      {selectedFile && (
+                        <Typography variant="caption" color="success.main" className='block mt-2'>
+                          Image selected: {selectedFile.name}
+                        </Typography>
+                      )}
                       {imagePreview && (
                         <Box mt={2}>
                           <Avatar
                             src={imagePreview}
                             variant="rounded"
                             sx={{ width: 100, height: 100 }}
+                            onError={handleImageError}
                           />
                         </Box>
                       )}

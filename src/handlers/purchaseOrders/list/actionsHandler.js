@@ -2,7 +2,7 @@
 
 import {
   clonePurchaseOrder,
-  sendPurchaseOrder,
+  addPurchaseOrder,
   convertToPurchase,
   printDownloadPurchaseOrder,
 } from '@/app/(dashboard)/purchase-orders/actions';
@@ -38,7 +38,7 @@ export function actionsHandler({ onSuccess, onError, fetchData, pagination, filt
 
     handleSend: (id) =>
       executeAction(
-        () => sendPurchaseOrder(id),
+        () => addPurchaseOrder(id),
         'Purchase order sent successfully!'
       ),
 

@@ -51,38 +51,22 @@ const ActionCell = ({ row, handlers, permissions }) => {
  * Product table column definitions
  */
 export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
-  {
-    key: 'serial',
-    visible: true,
-    label: '#',
-    align: 'center',
-    renderCell: (row, handlers, index) => {
-      const currentPage = Number(handlers?.pagination?.current || handlers?.pagination?.page || 1);
-      const pageSize = Number(handlers?.pagination?.pageSize || handlers?.pagination?.limit || 10);
-      const rowIndex = Number(index >= 0 ? index : 0);
 
-      const serialNumber = (currentPage - 1) * pageSize + rowIndex + 1;
-
-      return (
-        <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-          {!isNaN(serialNumber) ? serialNumber : rowIndex + 1}
-        </Typography>
-      );
-    },
-  },
   {
     key: 'image',
     label: 'Image',
     visible: true,
     align: 'center',
     renderCell: (row) => (
+      <Box>
       <Avatar
-        src={row.images?.[0] || ''}
+        src={row.images || ''}
         variant="rounded"
         sx={{ width: 40, height: 40 }}
       >
         <Icon icon="mdi:package-variant-closed" />
       </Avatar>
+      </Box>
     ),
   },
   {
@@ -113,7 +97,7 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     sortable: true,
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
-        {row.category?.category_name || 'N/A'}
+        {row.category?.name || 'N/A'}
       </Typography>
     ),
   },
@@ -121,12 +105,12 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     key: 'sellingPrice',
     label: 'Selling Price',
     visible: true,
-    align: 'right',
+    align: 'left',
     sortable: true,
     renderCell: (row) => {
       const price = parseFloat(row.sellingPrice) || 0;
       return (
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex items-center justify-start gap-1">
           <Icon
             icon="lucide:saudi-riyal"
             width="1rem"
@@ -146,12 +130,12 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     key: 'purchasePrice',
     label: 'Purchase Price',
     visible: true,
-    align: 'right',
+    align: 'left',
     sortable: true,
     renderCell: (row) => {
       const price = parseFloat(row.purchasePrice) || 0;
       return (
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex items-center justify-start gap-1">
           <Icon
             icon="lucide:saudi-riyal"
             width="1rem"
@@ -171,7 +155,7 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     key: 'alertQuantity',
     label: 'Alert Quantity',
     visible: true,
-    align: 'center',
+    align: 'left',
     sortable: true,
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
@@ -184,7 +168,7 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     label: 'Status',
     visible: true,
     align: 'center',
-    sortable: true,
+    // sortable: true,
     renderCell: (row) => (
       <Chip
         className='mx-0'
