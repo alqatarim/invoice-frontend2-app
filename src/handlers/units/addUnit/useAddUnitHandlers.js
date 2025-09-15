@@ -6,8 +6,8 @@ import * as yup from 'yup'
 import { useState } from 'react'
 
 const addUnitSchema = yup.object().shape({
-  unit: yup.string().required('Unit name is required').min(2, 'Unit name must be at least 2 characters'),
-  status: yup.boolean()
+  name: yup.string().required('Unit name is required').min(2, 'Unit name must be at least 2 characters'),
+  symbol: yup.string().required('Unit symbol is required').min(1, 'Unit symbol must be at least 2 characters')
 })
 
 export const useAddUnitHandlers = ({ onSave }) => {
@@ -22,8 +22,8 @@ export const useAddUnitHandlers = ({ onSave }) => {
   } = useForm({
     resolver: yupResolver(addUnitSchema),
     defaultValues: {
-      unit: '',
-      status: true
+      name: '',
+      symbol: ''
     }
   })
 

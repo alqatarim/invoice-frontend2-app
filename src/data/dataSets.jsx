@@ -107,8 +107,8 @@ export const productTypes = [
 ]
 
 export const discountTypes = [
-  { value: 2, label: 'Percentage' },
-  { value: 3, label: 'Fixed' }
+  { value: '2', label: 'Percentage' },
+  { value: '3', label: 'Fixed' }
 ]
 
 export const productTabs = [
@@ -375,8 +375,8 @@ export const formIcons = [
   { value: 'product', label: 'product', icon: 'mdi:shopping-outline' },
   { value: 'barcode', label: 'barcode', icon: 'mdi:barcode-scan' },
   { value: 'currency', label: 'currency', icon: 'lucide:saudi-riyal' },
-  { value: 'alertQuantity', label: 'alertQuantity', icon: 'mdi:alert-circle-outline' },
-  { value: 3, label: 'fixedDiscount', icon: 'lucide:saudi-riyal' },
-  { value: 2, label: 'percentageDiscount', icon: 'lucide:percent' },
+  { value: 'alertQuantity', label: 'alertQuantity', icon: 'mdi:gauge-low' },
+  { value: '3', label: 'fixedDiscount', icon: 'lucide:saudi-riyal' },
+  { value: '2', label: 'percentageDiscount', icon: 'lucide:percent' },
   { value: 'vat', label: 'vat', icon: 'heroicons-outline:receipt-tax' },
 ]

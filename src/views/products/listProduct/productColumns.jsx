@@ -75,9 +75,9 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     label: 'Product Name',
     sortable: true,
     renderCell: (row, handlers) => (
-      <Box>
+      <Box className='flex flex-col gap-1'>
         <Typography
-          className="cursor-pointer text-primary hover:underline font-medium"
+          className="cursor-pointer text-primary text-[1rem] hover:underline font-medium"
           onClick={() => handlers?.handleView?.(row._id)}
         >
           {row.name || 'N/A'}
@@ -153,7 +153,7 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
   },
   {
     key: 'alertQuantity',
-    label: 'Alert Quantity',
+    label: 'Alert Qty',
     visible: true,
     align: 'left',
     sortable: true,

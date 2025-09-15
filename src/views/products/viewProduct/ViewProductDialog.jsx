@@ -13,6 +13,7 @@ import {
   CircularProgress,
   TextField,
   InputAdornment,
+  Skeleton,
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { useTheme } from '@mui/material/styles';
@@ -75,11 +76,18 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
       maxWidth='md'
       scroll='body'
       sx={{ '& .MuiDialog-container': { alignItems: 'flex-start' } }}
-      PaperProps={{ sx: { mt: { xs: 4, sm: 6 }, width: '100%' } }}
+      PaperProps={{ 
+        sx: { 
+          mt: { xs: 4, sm: 6 }, 
+          width: '100%',
+          minWidth: { xs: '90vw', sm: '600px', md: '800px' },
+          minHeight: { xs: '70vh', sm: '600px' }
+        } 
+      }}
     >
       <DialogTitle
         variant='h4'
-        className='flex gap-2 flex-col text-center pbs-10 pbe-6 pli-10 sm:pbs-16 sm:pbe-6 sm:pli-16'
+        className='flex gap-2 flex-col text-center pbs-10 pbe-6 pli-10 sm:pbs-8 sm:pbe-0 sm:pli-16'
       >
         View Product
       </DialogTitle>
@@ -90,9 +98,81 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
         </IconButton>
 
         {loading ? (
-          <Box className="flex justify-center items-center h-40">
-            <CircularProgress />
-            <Typography className="ml-3">Loading product details...</Typography>
+          <Box className="p-6">
+            {/* Image Skeleton */}
+            <Box className="flex justify-center mb-6">
+              <Skeleton 
+                variant="rectangular" 
+                sx={{ 
+                  width: '200px',
+                  height: '200px',
+                  borderRadius: 2 
+                }} 
+              />
+            </Box>
+
+            {/* Form Skeleton */}
+            <Grid container spacing={4}>
+              {/* Product Name */}
+              <Grid size={{xs:12, sm:12, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Product Type */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Category */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Unit */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Purchase Price */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Selling Price */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Discount Value */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Discount Type */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Tax */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Alert Quantity */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* SKU */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Barcode */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+            </Grid>
           </Box>
         ) : product ? (
           <Box className="p-6">
@@ -101,24 +181,26 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
               <Box className="flex justify-center mb-6">
                 <Box
                   sx={{
-                    width: 150,
-                    height: 150,
+                    width: { xs: '280px', sm: '320px', md: '350px' },
+                    height: '200px',
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    backgroundColor: 'background.default',
+                    backgroundColor: 'grey.50',
                     borderRadius: 2,
                     border: '1px solid',
-                    borderColor: 'divider'
+                    borderColor: 'divider',
+                    overflow: 'hidden'
                   }}
                 >
                   <img
                     src={product.images}
                     alt={product.name || 'Product'}
                     style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain'
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      objectPosition: 'center'
                     }}
                   />
                 </Box>
@@ -126,8 +208,9 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
             )}
 
             <Grid container spacing={4}>
+
               {/* Product Name */}
-              <Grid size={{xs:12, md:6}}>
+              <Grid size={{xs:12, sm:12, md:4}}>
                 <TextField
                   fullWidth
                   label="Product Name"
@@ -149,8 +232,8 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                 />
               </Grid>
 
-              {/* SKU */}
-              <Grid size={{xs:12, md:6}}>
+              {/* Product Type */}
+              <Grid size={{xs:12, sm:6, md:4}}>
                 <TextField
                   fullWidth
                   label="SKU"
@@ -162,8 +245,8 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                 />
               </Grid>
 
-              {/* Product Type */}
-              <Grid size={{xs:12, md:6}}>
+              {/* Category */}
+              <Grid size={{xs:12, sm:6, md:4}}>
                 <TextField
                   fullWidth
                   label="Type"
@@ -183,8 +266,8 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                 />
               </Grid>
 
-              {/* Category */}
-              <Grid size={{xs:12, md:6}}>
+              {/* Unit */}
+              <Grid size={{xs:12, sm:6, md:4}}>
                 <TextField
                   fullWidth
                   label="Category"
@@ -206,8 +289,8 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                 />
               </Grid>
 
-              {/* Unit */}
-              <Grid size={{xs:12, md:6}}>
+              {/* Purchase Price */}
+              <Grid size={{xs:12, sm:6, md:4}}>
                 <TextField
                   fullWidth
                   label="Unit"
@@ -229,7 +312,7 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
               </Grid>
 
               {/* Selling Price */}
-              <Grid size={{xs:12, md:6}}>
+              <Grid size={{xs:12, sm:6, md:4}}>
                 <TextField
                   fullWidth
                   label="Selling Price"
@@ -251,22 +334,63 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                 />
               </Grid>
 
-              {/* Purchase Price */}
-              <Grid size={{xs:12, md:6}}>
+              {/* Discount Value */}
+              <Grid size={{xs:12, sm:6, md:4}}>
                 <TextField
                   fullWidth
-                  label="Purchase Price"
-                  value={product.purchasePrice || '0'}
+                  label="Discount Value"
+                  value={product.discountValue || '0'}
                   InputProps={{
                     readOnly: true,
                     startAdornment: (
-
-                        <Icon
+                      <Icon
                         style={{ marginRight: '5px' }}
-                        icon={ formIcons.find(icon => icon.value === 'currency')?.icon || ''}
-                        width={23}
-                        color={theme.palette.secondary.light} />
+                        icon={formIcons.find(icon => icon.value === product.discountType)?.icon || ''}
+                        width={21}
+                        color={theme.palette.secondary.light}
+                      />
+                    ),
+                  }}
+                  variant="outlined"
+                />
+              </Grid>
 
+              {/* Discount Type */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <TextField
+                  fullWidth
+                  label="Discount Type"
+                  value={product.discountType || 'None'}
+                  InputProps={{
+                    readOnly: true,
+                    startAdornment: (
+                      <Icon
+                        style={{ marginRight: '5px' }}
+                        icon={formIcons.find(icon => icon.value === product.discountType)?.icon || ''}
+                        width={21}
+                        color={theme.palette.secondary.light}
+                      />
+                    ),
+                  }}
+                  variant="outlined"
+                />
+              </Grid>
+
+              {/* Tax */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <TextField
+                  fullWidth
+                  label="Tax"
+                  value={product.tax.name ? `${product.tax.name} (${product.tax.taxRate}%)` : 'N/A'}
+                  InputProps={{
+                    readOnly: true,
+                    startAdornment: (
+                      <Icon
+                        style={{ marginRight: '5px' }}
+                        icon={formIcons.find(icon => icon.value === 'vat')?.icon || ''}
+                        width={25}
+                        color={theme.palette.secondary.light}
+                      />
                     ),
                   }}
                   variant="outlined"
@@ -274,7 +398,7 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
               </Grid>
 
               {/* Alert Quantity */}
-              <Grid size={{xs:12, md:6}}>
+              <Grid size={{xs:12, sm:6, md:4}}>
                 <TextField
                   fullWidth
                   label="Alert Quantity"
@@ -282,27 +406,38 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                   InputProps={{
                     readOnly: true,
                     startAdornment: (
-
-                        <Icon
+                      <Icon
                         style={{ marginRight: '5px' }}
                         icon={ formIcons.find(icon => icon.value === 'alertQuantity')?.icon || ''}
-                        width={25}
-                        color={theme.palette.secondary.light} />
-
+                        width={23}
+                        color={theme.palette.secondary.light}
+                      />
                     ),
                   }}
                   variant="outlined"
                   sx={product.alertQuantity <= 10 ? {
                     '& .MuiInputBase-input': {
                       color: 'error.main',
-                      // fontWeight: 'medium'
                     }
                   } : {}}
                 />
               </Grid>
+                
+              {/* SKU */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <TextField
+                  fullWidth
+                  label="SKU"
+                  value={product.sku || ''}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  variant="outlined"
+                />
+              </Grid>
 
               {/* Barcode */}
-              <Grid size={{xs:12, md:6}}>
+              <Grid size={{xs:12, sm:6, md:4}}>
                 <TextField
                   fullWidth
                   label="Barcode"
@@ -310,61 +445,12 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
                   InputProps={{
                     readOnly: true,
                     startAdornment: (
-
-                        <Icon
+                      <Icon
                         style={{ marginRight: '5px' }}
                         icon={ formIcons.find(icon => icon.value === 'barcode')?.icon || ''}
-                        width={25}
-                        color={theme.palette.secondary.light} />
-
-                    ),
-                  }}
-                  variant="outlined"
-                />
-              </Grid>
-
-              {/* Discount */}
-                  <Grid size={{xs:12, md:6}}>
-                    <TextField
-                      fullWidth
-                      label="Discount"
-                      value={product.discountValue || '0'}
-                      InputProps={{
-                        readOnly: true,
-                        startAdornment: (
-                          <Icon
-                            style={{ marginRight: '5px' }}
-                            icon={formIcons.find(icon => icon.value === product.discountType)?.icon || ''}
-                            width={25}
-                            color={theme.palette.secondary.light}
-                          />
-                        ),
-                      }}
-                      variant="outlined"
-                    />
-                  </Grid>
-            
-       
-
-              {/* Tax */}
-              <Grid size={{xs:12, md:6}}>
-                <TextField
-                  fullWidth
-                  label="Tax"
-                  value={product.tax.taxRate || 'N/A'}
-                  InputProps={{
-                    readOnly: true,
-             
-                    startAdornment: (
-                    product.tax.type && (
-                          <Icon
-                          style={{ marginRight: '5px' }}
-                          width={22}
-                            icon={taxTypes.find(t => t.value === String(product.tax.type))?.icon || ''}
-                            color={theme.palette.secondary.light}
-                          />
-                        )
-     
+                        width={23}
+                        color={theme.palette.secondary.light}
+                      />
                     ),
                   }}
                   variant="outlined"
@@ -399,7 +485,7 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
         )}
       </DialogContent>
 
-      <DialogActions className='flex justify-center pbs-0 pbe-10 pli-10 sm:pbe-16 sm:pli-16'>
+      <DialogActions className='flex justify-center pbs-0 pbe-10 pli-10 sm:pbe-12 sm:pli-16'>
         <Button color='secondary' variant='outlined' onClick={handleClose}>
           Close
         </Button>

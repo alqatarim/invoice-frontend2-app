@@ -64,34 +64,30 @@ export const getCategoryColumns = ({ theme = {}, permissions = {} } = {}) => [
     label: 'Category Name',
     sortable: true,
     renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-        {row.category_name || 'N/A'}
-      </Typography>
+      <Box className='flex flex-col gap-1'>
+        <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
+          {row.category_name || row.name || 'N/A'}
+        </Typography>
+        {row.description && (
+          <Typography variant="caption" color="text.secondary">
+            {row.description.length > 50 ? row.description.substring(0, 50) + '...' : row.description}
+          </Typography>
+        )}
+      </Box>
     ),
   },
   {
-    key: 'createdAt',
-    label: 'Created Date',
+    key: 'slug',
+    label: 'Slug',  
     visible: true,
     align: 'center',
     sortable: true,
-    renderCell: (row) => {
-      const createdDate = row.createdAt;
-      let formattedDate = 'N/A';
-
-      if (createdDate) {
-        const momentDate = moment(createdDate);
-        if (momentDate.isValid()) {
-          formattedDate = momentDate.format('DD MMM YYYY');
-        }
-      }
-
-      return (
-        <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-          {formattedDate}
+    renderCell: (row) => (
+  
+        <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap text-start'>
+          {row.slug}
         </Typography>
-      );
-    },
+     ),
   },
   {
     key: 'status',

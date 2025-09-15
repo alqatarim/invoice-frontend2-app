@@ -217,3 +217,47 @@ export const validateProductImage = async (file) => {
     reader.readAsDataURL(file);
   });
 };
+
+
+
+export const getNameFromPath = (imageSource, selectedFile) => {
+  if (selectedFile) {
+    return selectedFile.name;
+  }
+  
+  if (typeof imageSource === 'string') {
+    // Handle URLs, local paths, and mixed formats
+    let pathToProcess = imageSource;
+    
+    // If it's a full URL, extract the pathname
+    try {
+      if (imageSource.startsWith('http://') || imageSource.startsWith('https://')) {
+        const url = new URL(imageSource);
+        pathToProcess = url.pathname;
+      }
+    } catch (e) {
+      // Not a valid URL, continue with original string
+      pathToProcess = imageSource;
+    }
+    
+    // Handle both forward slashes and backslashes
+    const urlParts = pathToProcess.split(/[\/\\]/);
+    const filename = urlParts[urlParts.length - 1];
+    
+    // Remove query parameters if present
+    const cleanFilename = filename.split('?')[0];
+    
+    // If it's a long filename, truncate it
+    if (cleanFilename.length > 30) {
+      const extension = cleanFilename.split('.').pop();
+      const name = cleanFilename.substring(0, 25);
+      return `${name}...${extension ? `.${extension}` : ''}`;
+    }
+    
+    return cleanFilename || 'product-image';
+  }
+  
+  return 'product-image';
+};
+
+

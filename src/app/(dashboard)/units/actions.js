@@ -43,7 +43,12 @@ export async function getUnitById(id) {
  */
 export async function getInitialUnitData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.UNIT.LIST}?skip=0&limit=10`);
+    const response = await fetchWithAuth(`${ENDPOINTS.UNIT.LIST}?skip=0&limit=10`,
+      {
+        cache: 'no-store',
+        next: { revalidate: 0 }
+      }
+    );
 
     if (response.code === 200) {
       const result = {
@@ -171,10 +176,11 @@ export async function updateUnit(id, unitData) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.UNIT.UPDATE}/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(unitData),
+      // headers: {
+      //   'Content-Type': 'application/json',
+      // },
+      // body: JSON.stringify(unitData),
+      body: unitData,
     });
 
     if (response.code !== 200) {

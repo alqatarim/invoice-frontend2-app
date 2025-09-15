@@ -19,8 +19,7 @@ const editProductSchema = yup.object().shape({
   barcode: yup.string(),
   alertQuantity: yup.number().min(0, 'Alert quantity must be non-negative'),
   tax: yup.string(),
-  productDescription: yup.string(),
-  status: yup.boolean()
+  productDescription: yup.string()
 })
 
 export const useEditProductHandlers = ({ productData, dropdownData, onSave }) => {
@@ -28,6 +27,7 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
   const [imagePreview, setImagePreview] = useState(null)
   const [selectedFile, setSelectedFile] = useState(null)
   const [imageError, setImageError] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
 
   const {
     control,
@@ -50,8 +50,7 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
       barcode: '',
       alertQuantity: '',
       tax: '',
-      productDescription: '',
-      status: true
+      productDescription: ''
     }
   })
 
@@ -76,8 +75,8 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
         barcode: productData.barcode || '',
         alertQuantity: productData.alertQuantity || '',
         tax: productData.tax?._id || productData.tax || '',
-        productDescription: productData.productDescription || '',
-        status: productData.isDeleted !== undefined ? !productData.isDeleted : true
+        productDescription: productData.productDescription || ''
+   
       })
     }
   }, [productData, reset])
@@ -103,6 +102,56 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
   const handleImageError = () => {
     setImagePreview(null)
     setImageError('')
+  }
+
+  const handleImageDelete = () => {
+    setImagePreview(null)
+    setSelectedFile(null)
+    setImageError('')
+  }
+
+  // Drag and drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (files && files[0]) {
+      const file = files[0]
+      if (file.type.startsWith('image/')) {
+        const validation = await validateProductImage(file)
+
+        if (validation.isValid) {
+          setImagePreview(validation.preview)
+          setSelectedFile(file)
+          setImageError('')
+        } else {
+          setImageError(validation.error)
+          setImagePreview(productData?.images || null)
+          setSelectedFile(null)
+        }
+      } else {
+        setImageError('Please drop an image file (PNG, JPG, etc.)')
+      }
+    }
   }
 
   const handleFormSubmit = async (data) => {
@@ -153,5 +202,11 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
     imageError,
     handleImageChange,
     handleImageError,
+    handleImageDelete,
+    isDragging,
+    handleDragEnter,
+    handleDragLeave,
+    handleDragOver,
+    handleDrop,
   }
 }

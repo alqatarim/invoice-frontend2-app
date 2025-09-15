@@ -16,7 +16,6 @@ import {
   FormLabel,
   Switch,
   Box,
-  IconButton,
   CircularProgress,
   Typography,
   Select,
@@ -24,12 +23,18 @@ import {
   FormControl,
   InputLabel,
   Avatar,
+  Chip,
+  Skeleton,
 } from '@mui/material';
+import  IconButton  from '@core/components/mui/CustomOriginalIconButton';
 import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { getProductById, getDropdownData } from '@/app/(dashboard)/products/actions';
 import { formIcons, taxTypes } from '@/data/dataSets';
 import { useEditProductHandlers } from '@/handlers/products/editProduct';
+import { getNameFromPath } from '@/utils/fileUtils';
+
+
 
 const EditProductDialog = ({ open, productId, onClose, onSave }) => {
   const theme = useTheme();
@@ -52,6 +57,12 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
     imageError,
     handleImageChange,
     handleImageError,
+    handleImageDelete,
+    isDragging,
+    handleDragEnter,
+    handleDragLeave,
+    handleDragOver,
+    handleDrop,
   } = useEditProductHandlers({
     productData: productData || null,
     dropdownData,
@@ -67,11 +78,6 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
   const watchDiscountType = watch('discountType');
   const watchType = watch('type');
 
-  // Helper function to get icon for the current type
-  const getTypeIcon = (typeValue) => {
-    const iconData = formIcons.find(icon => icon.value === typeValue);
-    return iconData ? iconData.icon : null;
-  };
 
 
   // Fetch product and dropdown data when dialog opens
@@ -124,24 +130,103 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
       maxWidth='md'
       scroll='body'
       sx={{ '& .MuiDialog-container': { alignItems: 'flex-start' } }}
-      PaperProps={{ sx: { mt: { xs: 4, sm: 6 }, width: '100%' } }}
+      PaperProps={{ 
+        sx: { 
+          mt: { xs: 4, sm: 6 }, 
+          width: '100%',
+          minWidth: { xs: '90vw', sm: '600px', md: '800px' },
+          minHeight: { xs: '70vh', sm: '600px' }
+        } 
+      }}
     >
       <DialogTitle
         variant='h4'
-        className='flex gap-2 flex-col text-center pbs-10 pbe-6 pli-10 sm:pbs-16 sm:pbe-6 sm:pli-16'
+        className='flex gap-2 flex-col text-center pbs-10 pbe-6 pli-10 sm:pbs-8 sm:pbe-0 sm:pli-16'
       >
         Edit Product
       </DialogTitle>
 
-      <DialogContent className='overflow-visible pbs-0 pbe-6 pli-0' sx={{ p: 0 }}>
+      <DialogContent className='overflow-visible pbs-0 pbe-3 pli-0' sx={{ p: 0 }}>
         <IconButton onClick={handleClose} className='absolute block-start-4 inline-end-4' disabled={isSubmitting}>
           <i className='ri-close-line text-textSecondary' />
         </IconButton>
 
         {loading ? (
-          <Box className="flex justify-center items-center h-40">
-            <CircularProgress />
-            <Typography className="ml-3">Loading product data...</Typography>
+          <Box className="p-6">
+            {/* Image Skeleton */}
+            <Box className="flex justify-center mb-6">
+              <Skeleton 
+                variant="rectangular" 
+                sx={{ 
+                  width:'200px',
+                  height: '200px',
+                  borderRadius: 2 
+                }} 
+              />
+            </Box>
+
+            {/* Form Skeleton */}
+            <Grid container spacing={4}>
+              {/* Product Name */}
+              <Grid size={{xs:12, sm:12, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Product Type */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Category */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Unit */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Purchase Price */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Selling Price */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Discount Value */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Discount Type */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Tax */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Alert Quantity */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* SKU */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+
+              {/* Barcode */}
+              <Grid size={{xs:12, sm:6, md:4}}>
+                <Skeleton variant="rounded" height={56} />
+              </Grid>
+            </Grid>
           </Box>
         ) : error ? (
           <Box className="flex flex-col justify-center items-center h-40 gap-4">
@@ -189,77 +274,234 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
           </Box>
         ) : productData ? (
           <Box className="p-6">
-            {/* Current Product Image */}
-            {imagePreview && (
-              <Box className="flex justify-center mb-6">
-                <Box
-                  sx={{
-                    width: 150,
-                    height: 150,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: 'background.default',
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <img
-                    src={imagePreview}
-                    alt={productData?.name || 'Product'}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain'
-                    }}
-                    onError={handleImageError}
-                  />
-                </Box>
-              </Box>
-            )}
+            {/* Image Upload - Social Media Style - Top Center */}
+            <Box className="flex justify-center mb-6">
+              <Controller
+                name="images"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Box>
+                 
+                    
+                    {imagePreview ? (
+                      // Image Preview with Social Media Style Controls
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          display: 'inline-block',
+                          borderRadius: 2,
+                          overflow: 'hidden',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          backgroundColor: 'background.paper',
+                          width: { xs: '280px', sm: '320px', md: '350px' },
+                          height: '200px'
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            position: 'relative',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backgroundColor: 'grey.50',
+                            width: '100%',
+                            height: '100%'
+                          }}
+                        >
+                          <img
+                            src={imagePreview}
+                            alt={productData?.name || 'Product'}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              objectPosition: 'center',
+                              borderRadius: 'inherit',
+                              display: 'block'
+                            }}
+                            onError={handleImageError}
+                          />
+                          
+                          {/* Filename Overlay at Bottom */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              bottom: 8,
+                              left: 8,
+                              right: 8,
+                              display: 'flex',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <Chip
+                              label={getNameFromPath(imagePreview, selectedFile)}
+                              size="small"
+                              color="info"
+                              variant="filled"
+                             
+                            />
+                          </Box>
+                          
+                          {/* Overlay Actions */}
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 8,
+                              display: 'flex',
+                              gap: 1,
+                              opacity: 1
+                            }}
+                          >
+
+                             {/* Replace Button */}
+                             <IconButton
+                              variant="contained"
+                              size="small"
+                              color="primary"
+                              // skin="light"
+                              disabled={isSubmitting}
+                              onClick={() => {
+                                // Trigger the file input click
+                                const fileInput = document.querySelector('#replace-image-input');
+                                if (fileInput) {
+                                  fileInput.click();
+                                }
+                              }}
+                            >
+                              <Icon icon="mdi:cloud-upload-outline" />
+                              <input
+                                id="replace-image-input"
+                                type="file"
+                                hidden
+                                accept="image/*"
+                                onChange={(e) => {
+                                  handleImageChange(e);
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    onChange(file);
+                                  }
+                                }}
+                              />
+                            </IconButton>
+
+                            {/* Delete Button */}
+                            <IconButton
+                              size="small"
+                              onClick={handleImageDelete}
+                              disabled={isSubmitting}
+                              color="error"
+                              variant="contained"
+                             
+                            >
+                              <Icon icon="mdi:delete-outline" />
+                            </IconButton>
+                            
+                           
+                          </Box>
+                        </Box>
+                        
+                        {/* Image Info */}
+                        {/* <Box className="p-3">
+                          <Typography variant="caption" color="text.secondary">
+                            {selectedFile ? `New: ${selectedFile.name}` : ''}
+                          </Typography>
+                        </Box> */}
+                      </Box>
+                    ) 
+                    
+                    : (
+                      // Upload Area - Social Media Style with Drag & Drop
+                      <Box
+                        component="label"
+                        onDragEnter={handleDragEnter}
+                        onDragLeave={handleDragLeave}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => {
+                          handleDrop(e);
+                          const file = e.dataTransfer.files[0];
+                          if (file) {
+                            onChange(file);
+                          }
+                        }}
+
+                        sx={{
+                          width: { xs: '200px', sm: '200px', md: '200px' },
+                          height: '200px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          border: '2px dashed',
+                          borderColor: isDragging ? 'primary.main' : 'secondary.light',
+                          borderRadius: 2,
+                          backgroundColor: isDragging ? 'primary.lighter' : '',
+                          transition: 'all 0.2s ease-in-out',
+                          transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+                          '&:hover': {
+                            borderColor: 'primary.main',
+                            backgroundColor: theme.palette.primary.lightOpacity,
+                            transform: 'scale(1.04)'
+                          }
+                        }}
+                      >
+                        <Icon 
+                          icon={isDragging ? "mdi:download" : "mdi:cloud-upload-outline"} 
+                          width={48} 
+                          color={isDragging ? theme.palette.primary.main : theme.palette.text.secondary}
+                          style={{ marginBottom: 12, pointerEvents: 'none' }}
+                        />
+                        <Typography 
+                          variant="body2" 
+                          color={isDragging ? "primary" : "text.primary"} 
+                          fontWeight={500}
+                          sx={{ pointerEvents: 'none' }}
+                        >
+                          {isDragging ? "Drop image here" : "Click or drag to Upload Image"}
+                        </Typography>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary" 
+                          className="text-center mt-1"
+                          sx={{ pointerEvents: 'none' }}
+                        >
+                          PNG, JPG up to 5MB
+                        </Typography>
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*"
+                          onChange={(e) => {
+                            handleImageChange(e);
+                            const file = e.target.files[0];
+                            if (file) {
+                              onChange(file);
+                            }
+                          }}
+                        />
+                      </Box>
+                    )
+                    }
+                    
+                    {/* Error Message */}
+                    {imageError && (
+                      <Typography variant="caption" color="error" className='block mt-2 text-center'>
+                        <Icon icon="mdi:alert-circle" width={16} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                        {imageError}
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              />
+            </Box>
 
             <form onSubmit={handleSubmit(handleFormSubmit)} id="edit-product-form">
               <Grid container spacing={4}>
-                {/* Product Type */}
-                <Grid size={{xs:12, md:6}}>
-                  <Controller
-                    name="type"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl fullWidth error={!!errors.type}>
-                        <InputLabel>Type</InputLabel>
-                        <Select 
-                          {...field} 
-                          label="Type" 
-                          disabled={isSubmitting}
-                          startAdornment={
-                            watchType && getTypeIcon(watchType) && (
-                      
-                                <Icon
-                                style={{ marginRight: '5px' }}
-                                icon={getTypeIcon(watchType)}
-                                width={25}
-                                color={theme.palette.secondary.light}
-                              />
-                             
-                            )
-                          }
-                        >
-                          {productTypes.map((type) => (
-                            <MenuItem key={type.value} value={type.value}>
-                              {type.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {errors.type && <FormHelperText>{errors.type.message}</FormHelperText>}
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
 
                 {/* Product Name */}
-                <Grid size={{xs:12, md:6}}>
+                <Grid size={{xs:12, sm:12, md:4}}>
                   <Controller
                     name="name"
                     control={control}
@@ -292,28 +534,43 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
                   />
                 </Grid>
 
-                {/* SKU */}
-                <Grid size={{xs:12, md:6}}>
+                {/* Product Type */}
+                <Grid size={{xs:12, sm:6, md:4}}>
                   <Controller
-                    name="sku"
+                    name="type"
                     control={control}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        label="SKU"
-                        placeholder="Enter SKU"
-                        error={!!errors.sku}
-                        helperText={errors.sku?.message}
-                        disabled={isSubmitting}
-                        variant="outlined"
-                      />
+                      <FormControl fullWidth error={!!errors.type}>
+                        <InputLabel>Type</InputLabel>
+                        <Select 
+                          {...field} 
+                          label="Type" 
+                          disabled={isSubmitting}
+                          startAdornment={
+                            watchType && formIcons.find(icon => icon.value === watchType)?.icon && (
+                              <Icon
+                                style={{ marginRight: '5px' }}
+                                icon={formIcons.find(icon => icon.value === watchType)?.icon}
+                                width={25}
+                                color={theme.palette.secondary.light}
+                              />
+                            )
+                          }
+                        >
+                          {productTypes.map((type) => (
+                            <MenuItem key={type.value} value={type.value}>
+                              {type.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {errors.type && <FormHelperText>{errors.type.message}</FormHelperText>}
+                      </FormControl>
                     )}
                   />
                 </Grid>
 
                 {/* Category */}
-                <Grid size={{xs:12, md:6}}>
+                <Grid size={{xs:12, sm:6, md:4}}>
                   <Controller
                     name="category"
                     control={control}
@@ -350,7 +607,7 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
                 </Grid>
 
                 {/* Unit */}
-                <Grid size={{xs:12, md:6}}>
+                <Grid size={{xs:12, sm:6, md:4}}>
                   <Controller
                     name="units"
                     control={control}
@@ -388,42 +645,8 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
                   />
                 </Grid>
 
-                {/* Selling Price */}
-                <Grid size={{xs:12, md:6}}>
-                  <Controller
-                    name="sellingPrice"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        type="number"
-                        label="Selling Price"
-                        placeholder="0.00"
-                        error={!!errors.sellingPrice}
-                        helperText={errors.sellingPrice?.message}
-                        disabled={isSubmitting}
-                        required
-                        InputProps={{
-                          startAdornment: (
-                            
-                              <Icon
-                               style={{ marginRight: '5px' }}
-                                icon={formIcons.find(icon => icon.value === 'currency')?.icon || 'lucide:saudi-riyal'}
-                                width={21}
-                                color={theme.palette.secondary.light}
-                              />
-                          
-                          ),
-                        }}
-                        variant="outlined"
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Purchase Price */}
-                <Grid size={{xs:12, md:6}}>
+                  {/* Purchase Price */}
+                  <Grid size={{xs:12, sm:6, md:4}}>
                   <Controller
                     name="purchasePrice"
                     control={control}
@@ -456,8 +679,42 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
                   />
                 </Grid>
 
+                {/* Selling Price */}
+                <Grid size={{xs:12, sm:6, md:4}}>
+                  <Controller
+                    name="sellingPrice"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        type="number"
+                        label="Selling Price"
+                        placeholder="0.00"
+                        error={!!errors.sellingPrice}
+                        helperText={errors.sellingPrice?.message}
+                        disabled={isSubmitting}
+                        required
+                        InputProps={{
+                          startAdornment: (
+                            
+                              <Icon
+                               style={{ marginRight: '5px' }}
+                                icon={formIcons.find(icon => icon.value === 'currency')?.icon || 'lucide:saudi-riyal'}
+                                width={21}
+                                color={theme.palette.secondary.light}
+                              />
+                          
+                          ),
+                        }}
+                        variant="outlined"
+                      />
+                    )}
+                  />
+                </Grid>
+
                 {/* Discount Value */}
-                <Grid size={{xs:12, md:6}}>
+                <Grid size={{xs:12, sm:6, md:4}}>
                   <Controller
                     name="discountValue"
                     control={control}
@@ -491,10 +748,10 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
                   />
                     )}
                   />
-                </Grid>
+                </Grid>            
 
                 {/* Discount Type */}
-                <Grid size={{xs:12, md:6}}>
+                <Grid size={{xs:12, sm:6, md:4}}>
                   <Controller
                     name="discountType"
                     control={control}
@@ -522,79 +779,8 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
                   />
                 </Grid>
 
-                {/* Alert Quantity */}
-                <Grid size={{xs:12, md:6}}>
-                  <Controller
-                    name="alertQuantity"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        type="number"
-                        label="Alert Quantity"
-                        placeholder="0"
-                        error={!!errors.alertQuantity}
-                        helperText={errors.alertQuantity?.message}
-                        disabled={isSubmitting}
-                        InputProps={{
-                          startAdornment: (
-                         
-                              
-                              <Icon
-                              style={{ marginRight: '5px' }}
-                                icon={formIcons.find(icon => icon.value === 'alertQuantity')?.icon || 'mdi:alert-circle-outline'}
-                                width={23}
-                                color={theme.palette.secondary.light}
-                              />
-                          ),
-                        }}
-                        variant="outlined"
-                        sx={field.value <= 10 ? {
-                          '& .MuiInputBase-input': {
-                            color: 'error.main',
-                          }
-                        } : {}}
-                      />
-                    )}
-                  />
-                </Grid>
-
-                {/* Barcode */}
-                <Grid size={{xs:12, md:6}}>
-                  <Controller
-                    name="barcode"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        label="Barcode"
-                        placeholder="Enter barcode"
-                        error={!!errors.barcode}
-                        helperText={errors.barcode?.message}
-                        disabled={isSubmitting}
-                        InputProps={{
-                          startAdornment: (
-                          
-                              
-                              <Icon
-                              style={{ marginRight: '5px' }}
-                                icon={formIcons.find(icon => icon.value === 'barcode')?.icon || 'mdi:barcode'}
-                                width={23}
-                                color={theme.palette.secondary.light}
-                              />
-                         
-                          ),
-                        }}
-                        variant="outlined"
-                      />
-                    )}
-                  />
-                </Grid>
-
                 {/* Tax */}
-                <Grid size={{xs:12, md:6}}>
+                <Grid size={{xs:12, sm:6, md:4}}>
                   <Controller
                     name="tax"
                     control={control}
@@ -637,21 +823,57 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
                   />
                 </Grid>
 
-                {/* Description */}
-                <Grid size={{xs:12}}>
+                {/* Alert Quantity */}
+                <Grid size={{xs:12, sm:6, md:4}}>
                   <Controller
-                    name="productDescription"
+                    name="alertQuantity"
                     control={control}
                     render={({ field }) => (
                       <TextField
                         {...field}
                         fullWidth
-                        multiline
-                        rows={3}
-                        label="Description"
-                        placeholder="Enter product description"
-                        error={!!errors.productDescription}
-                        helperText={errors.productDescription?.message}
+                        type="number"
+                        label="Alert Quantity"
+                        placeholder="0"
+                        error={!!errors.alertQuantity}
+                        helperText={errors.alertQuantity?.message}
+                        disabled={isSubmitting}
+                        InputProps={{
+                          startAdornment: (
+                         
+                              
+                              <Icon
+                              style={{ marginRight: '5px' }}
+                                icon={formIcons.find(icon => icon.value === 'alertQuantity')?.icon || 'mdi:alert-circle-outline'}
+                                width={23}
+                                color={theme.palette.secondary.light}
+                              />
+                          ),
+                        }}
+                        variant="outlined"
+                        sx={field.value <= 10 ? {
+                          '& .MuiInputBase-input': {
+                            color: 'error.main',
+                          }
+                        } : {}}
+                      />
+                    )}
+                  />
+                </Grid>
+                
+                {/* SKU */}
+                <Grid size={{xs:12, sm:6, md:4}}>
+                  <Controller
+                    name="sku"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="SKU"
+                        placeholder="Enter SKU"
+                        error={!!errors.sku}
+                        helperText={errors.sku?.message}
                         disabled={isSubmitting}
                         variant="outlined"
                       />
@@ -659,63 +881,45 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
                   />
                 </Grid>
 
-                {/* Image Upload */}
-                <Grid size={{xs:12}}>
+                {/* Barcode */}
+                <Grid size={{xs:12, sm:6, md:4}}>
                   <Controller
-                    name="images"
-                    control={control}
-                    render={({ field: { onChange, value } }) => (
-                      <Box>
-                        <Button
-                          variant="outlined"
-                          component="label"
-                          startIcon={<Icon icon="mdi:upload" />}
-                          disabled={isSubmitting}
-                          sx={{ mb: 2 }}
-                        >
-                          Upload New Image
-                          <input
-                            type="file"
-                            hidden
-                            accept="image/*"
-                            onChange={(e) => {
-                              handleImageChange(e);
-                              const file = e.target.files[0];
-                              if (file) {
-                                onChange(file);
-                              }
-                            }}
-                          />
-                        </Button>
-                        {imageError && (
-                          <Typography variant="caption" color="error" className='block mt-2'>
-                            {imageError}
-                          </Typography>
-                        )}
-                        {selectedFile && (
-                          <Typography variant="caption" color="success.main" className='block mt-2'>
-                            New image selected: {selectedFile.name}
-                          </Typography>
-                        )}
-                      </Box>
-                    )}
-                  />
-                </Grid>
-
-                {/* Status */}
-                <Grid size={{xs:12}}>
-                  <Controller
-                    name="status"
+                    name="barcode"
                     control={control}
                     render={({ field }) => (
-                      <FormControlLabel
-                        control={<Switch {...field} checked={field.value} />}
-                        label="Active Status"
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Barcode"
+                        placeholder="Enter barcode"
+                        error={!!errors.barcode}
+                        helperText={errors.barcode?.message}
                         disabled={isSubmitting}
+                        InputProps={{
+                          startAdornment: (
+                          
+                              
+                              <Icon
+                              style={{ marginRight: '5px' }}
+                                icon={formIcons.find(icon => icon.value === 'barcode')?.icon || 'mdi:barcode'}
+                                width={23}
+                                color={theme.palette.secondary.light}
+                              />
+                         
+                          ),
+                        }}
+                        variant="outlined"
                       />
                     )}
                   />
                 </Grid>
+
+
+
+
+              
+
+
               </Grid>
             </form>
           </Box>
@@ -726,7 +930,7 @@ const EditProductDialog = ({ open, productId, onClose, onSave }) => {
         )}
       </DialogContent>
 
-      <DialogActions className='gap-2 justify-center pbs-0 pbe-10 pli-10 sm:pbe-16 sm:pli-16'>
+      <DialogActions className='gap-2 justify-center pbs-0 pbe-10 pli-10 sm:pbe-12 sm:pli-16'>
         <Button
           variant='outlined'
           color='secondary'

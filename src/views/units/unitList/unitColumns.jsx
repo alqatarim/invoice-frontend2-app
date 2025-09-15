@@ -43,7 +43,7 @@ export const getUnitColumns = ({ theme = {}, permissions = {} } = {}) => [
     key: 'serial',
     visible: true,
     label: '#',
-    align: 'center',
+    align: 'middle',
     renderCell: (row, handlers, index) => {
       const currentPage = Number(handlers?.pagination?.current || handlers?.pagination?.page || 1);
       const pageSize = Number(handlers?.pagination?.pageSize || handlers?.pagination?.limit || 10);
@@ -64,40 +64,31 @@ export const getUnitColumns = ({ theme = {}, permissions = {} } = {}) => [
     label: 'Unit Name',
     sortable: true,
     renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-        {row.unit || 'N/A'}
-      </Typography>
+    
+        <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
+          {row.name || 'N/A'}
+        </Typography>
+    
     ),
   },
   {
-    key: 'createdAt',
-    label: 'Created Date',
+    key: 'symbol',
+    label: 'Symbol',
     visible: true,
-    align: 'center',
+    align: 'middle',
     sortable: true,
-    renderCell: (row) => {
-      const createdDate = row.createdAt;
-      let formattedDate = 'N/A';
-
-      if (createdDate) {
-        const momentDate = moment(createdDate);
-        if (momentDate.isValid()) {
-          formattedDate = momentDate.format('DD MMM YYYY');
-        }
-      }
-
-      return (
-        <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-          {formattedDate}
+    renderCell: (row) => (
+      <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
+          {row.symbol}
         </Typography>
-      );
-    },
+      )
+
   },
   {
     key: 'status',
     label: 'Status',
     visible: true,
-    align: 'center',
+    align: 'middle',
     sortable: true,
     renderCell: (row) => (
       <Chip
