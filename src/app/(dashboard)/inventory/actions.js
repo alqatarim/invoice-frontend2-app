@@ -98,11 +98,17 @@ export async function removeStock(stockData) {
  * @param {Object} filters Filter criteria
  * @param {string} sortBy Sort field
  * @param {string} sortDirection Sort direction
+ * @param {string} searchTerm Search term for inventory items
  * @returns {Promise<Object>} Filtered inventory data
  */
-export const getFilteredInventory = async (page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc') => {
+export const getFilteredInventory = async (page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc', searchTerm = '') => {
   const skip = (page - 1) * pageSize;
   let url = `/inventory/inventoryList?limit=${pageSize}&skip=${skip}`;
+
+  // Apply search
+  if (searchTerm) {
+    url += `&search_product=${encodeURIComponent(searchTerm)}`;
+  }
 
   // Apply filters
   if (filters.product && Array.isArray(filters.product)) {

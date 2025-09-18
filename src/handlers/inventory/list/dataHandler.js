@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {  getFilteredInventory } from '@/app/(dashboard)/inventory/actions';
 import { filterHandler } from '@/handlers/inventory/list/filterHandler';
 
@@ -15,8 +15,6 @@ export function dataHandler({
   initialSortDirection = 'asc',
   onError,
   onSuccess,
-  setProductOptions,
-  handleProductSearch,
 }) {
   const [inventory, setInventory] = useState(initialInventory);
   const [pagination, setPagination] = useState(initialPagination);
@@ -26,31 +24,55 @@ export function dataHandler({
     sortDirection: initialSortDirection
   });
 
+  // Search state management
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searching, setSearching] = useState(false);
+  const loadingRef = useRef(false);
+
   // Use simplified filterHandler
   const filter = filterHandler(initialFilters);
 
-  // Initialize filter options on mount
+  // Use refs to access latest state values without causing re-renders
+  const stateRef = useRef({
+    searchTerm,
+    pagination,
+    sorting,
+    filterValues: filter.filterValues
+  });
+
+  // Update refs when state changes
   useEffect(() => {
-    if (setProductOptions && initialInventory.length > 0) {
-      setProductOptions(initialInventory.map(item => ({ value: item._id, label: item.name })));
-    }
-  }, []);
+    stateRef.current = {
+      searchTerm,
+      pagination,
+      sorting,
+      filterValues: filter.filterValues
+    };
+  }, [searchTerm, pagination, sorting, filter.filterValues]);
 
-  // Fetch inventory with current or provided parameters
+
+  // Fetch inventory with current or provided parameters - using refs to avoid dependency issues
   const fetchData = useCallback(async (params = {}) => {
-    const {
-      page = pagination.current,
-      pageSize = pagination.pageSize,
-      filters = filter.filterValues,
-      sortBy = sorting.sortBy,
-      sortDirection = sorting.sortDirection
-    } = params;
-
+    if (loadingRef.current) return; // Prevent multiple simultaneous calls
+    
+    loadingRef.current = true;
     setLoading(true);
+    
     try {
+      const currentState = stateRef.current;
+      
+      const {
+        page = currentState.pagination.current,
+        pageSize = currentState.pagination.pageSize,
+        filters = currentState.filterValues,
+        sortBy = currentState.sorting.sortBy,
+        sortDirection = currentState.sorting.sortDirection,
+        search = currentState.searchTerm
+      } = params;
+
       // Always use getFilteredInventory for consistency
       // It handles empty filters by returning all inventory items
-      const response = await getFilteredInventory(page, pageSize, filters, sortBy, sortDirection);
+      const response = await getFilteredInventory(page, pageSize, filters, sortBy, sortDirection, search);
 
       const newInventory = response?.inventory || [];
       const newPagination = {
@@ -63,12 +85,6 @@ export function dataHandler({
       setPagination(newPagination);
       setSorting({ sortBy, sortDirection });
 
-      // Update filter options with new data
-      if (setProductOptions && newInventory.length > 0) {
-        setProductOptions(
-          newInventory.map(item => ({ value: item._id, label: item.name }))
-        );
-      }
 
       return { inventory: newInventory, pagination: newPagination };
     } catch (error) {
@@ -77,8 +93,9 @@ export function dataHandler({
       throw error;
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
-  }, [pagination, filter.filterValues, sorting, onError, setProductOptions]);
+  }, [onError]);
 
   const handlePageChange = useCallback((event, newPage) =>
     fetchData({ page: newPage + 1 }), [fetchData]);
@@ -87,10 +104,11 @@ export function dataHandler({
     fetchData({ page: 1, pageSize: parseInt(event.target.value, 10) }), [fetchData]);
 
   const handleSortRequest = useCallback(columnKey => {
-    const newDirection = sorting.sortBy === columnKey && sorting.sortDirection === 'asc' ? 'desc' : 'asc';
+    const currentSorting = stateRef.current.sorting;
+    const newDirection = currentSorting.sortBy === columnKey && currentSorting.sortDirection === 'asc' ? 'desc' : 'asc';
     fetchData({ page: 1, sortBy: columnKey, sortDirection: newDirection });
     return { sortBy: columnKey, sortDirection: newDirection };
-  }, [sorting, fetchData]);
+  }, [fetchData]);
 
   const handleFilterValueChange = useCallback((filters) => {
     // Update the filter state with the new filters object
@@ -98,16 +116,66 @@ export function dataHandler({
   }, [filter]);
 
   const handleFilterApply = useCallback((currentFilters = null) => {
-    const filtersToApply = currentFilters || filter.filterValues;
+    const filtersToApply = currentFilters || stateRef.current.filterValues;
     fetchData({ page: 1, filters: filtersToApply });
-  }, [filter, fetchData]);
+  }, [fetchData]);
 
   const handleFilterReset = useCallback(() => {
     filter.resetFilters();
-    setProductOptions?.([]);
-    fetchData({ page: 1, filters: {}, sortBy: '', sortDirection: 'asc' });
+    setSearchTerm('');
+    fetchData({ page: 1, filters: {}, sortBy: '', sortDirection: 'asc', search: '' });
     filter.setFilterOpen(false);
-  }, [filter, fetchData, setProductOptions]);
+  }, [filter, fetchData]);
+
+  // Search handlers - similar to customer handlers
+  const handleSearchInputChange = useCallback(async (value) => {
+    // Don't do anything if the value hasn't actually changed
+    if (value === stateRef.current.searchTerm) return;
+    
+    setSearching(true);
+    setSearchTerm(value);
+    
+    try {
+      // Fetch inventory with the new search value
+      await fetchData({ 
+        search: value, 
+        page: 1
+      });
+    } catch (error) {
+      console.error('Error searching inventory:', error);
+      onError?.(error.message || 'Search failed');
+    } finally {
+      setSearching(false);
+    }
+  }, [fetchData, onError]);
+
+  const handleSearchSubmit = useCallback(async (event) => {
+    event.preventDefault();
+    setSearching(true);
+
+    try {
+      await fetchData({ search: stateRef.current.searchTerm, page: 1 });
+    } catch (error) {
+      console.error('Error submitting search:', error);
+      onError?.(error.message || 'Search failed');
+    } finally {
+      setSearching(false);
+    }
+  }, [fetchData, onError]);
+
+  const handleSearchClear = useCallback(async () => {
+    setSearchTerm('');
+    setSearching(true);
+
+    try {
+      await fetchData({ search: '', page: 1 });
+    } catch (error) {
+      console.error('Error clearing search:', error);
+      onError?.(error.message || 'Failed to clear search');
+    } finally {
+      setSearching(false);
+    }
+  }, [fetchData, onError]);
 
   // Initial data fetch
   useEffect(() => {
@@ -121,6 +189,10 @@ export function dataHandler({
     loading,
     ...sorting,
 
+    // Search state
+    searchTerm,
+    searching,
+
     // Handlers
     fetchData,
     handlePageChange,
@@ -129,6 +201,11 @@ export function dataHandler({
     handleFilterValueChange,
     handleFilterApply,
     handleFilterReset,
+
+    // Search handlers
+    handleSearchInputChange,
+    handleSearchSubmit,
+    handleSearchClear,
 
     // Filter state and methods
     ...filter,

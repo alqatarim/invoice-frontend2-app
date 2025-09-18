@@ -41,6 +41,7 @@ export function useProductListHandlers(options = {}) {
     handleSortRequest: data.handleSort,
     handleSort: data.handleSort,
     handleSearchInputChange: data.handleSearchInputChange,
+    refreshData: data.fetchData, // Expose refresh functionality
 
     // Filter handlers
     handleFilterApply: data.applyFilters,

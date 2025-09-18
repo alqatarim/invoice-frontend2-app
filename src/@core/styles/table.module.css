@@ -12,6 +12,10 @@
     text-align: center;
   }
 
+  [align='left']>* {
+    text-align: start;
+  }
+
   thead {
     text-transform: uppercase;
     color: var(--mui-palette-text-primary);
@@ -45,6 +49,30 @@
         padding-block: 0.5rem;
         padding-inline: 1rem 1.25rem;
       }
+    }
+
+    th[align='right'] {
+      text-align: end;
+    }
+
+    th[align='center'] {
+      text-align: center;
+    }
+
+    th[align='left'] {
+      text-align: start;
+    }
+
+    :global(th.MuiTableCell-alignRight) {
+      text-align: end;
+    }
+
+    :global(th.MuiTableCell-alignCenter) {
+      text-align: center;
+    }
+
+    :global(th.MuiTableCell-alignLeft) {
+      text-align: start;
     }
   }
 

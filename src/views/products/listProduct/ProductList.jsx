@@ -108,13 +108,20 @@ const ProductList = ({ initialProducts, initialPagination }) => {
       }
 
       onSuccess('Product added successfully!');
+      // Refresh the list to show the new product
+      try {
+        await handlers.refreshData();
+      } catch (refreshError) {
+        console.warn('Failed to refresh product list after add:', refreshError);
+        // Continue anyway - the operation was successful
+      }
       return response;
     } catch (error) {
       const errorMessage = error.message || 'An unexpected error occurred';
       onError(errorMessage);
       return { success: false, message: errorMessage };
     }
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, handlers]);
 
   const handleUpdateProduct = useCallback(async (productId, formData, preparedImage) => {
     try {
@@ -129,13 +136,20 @@ const ProductList = ({ initialProducts, initialPagination }) => {
       }
 
       onSuccess('Product updated successfully!');
+      // Refresh the list to show the updated product
+      try {
+        await handlers.refreshData();
+      } catch (refreshError) {
+        console.warn('Failed to refresh product list after update:', refreshError);
+        // Continue anyway - the operation was successful
+      }
       return response;
     } catch (error) {
       const errorMessage = error.message || 'An unexpected error occurred';
       onError(errorMessage);
       return { success: false, message: errorMessage };
     }
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, handlers]);
 
   // Initialize simplified handlers
   const handlers = useProductListHandlers({

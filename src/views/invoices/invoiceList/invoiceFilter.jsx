@@ -89,7 +89,7 @@ const MultiSelectDropdown = ({
  */
 const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange }) => (
   <Grid container spacing={2}>
-    <Grid item xs={6}>
+    <Grid size={{ xs: 6 }}>
       <DatePicker
         slotProps={{
           textField: {
@@ -108,7 +108,7 @@ const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange }) => 
         format="DD/MM/YYYY"
       />
     </Grid>
-    <Grid item xs={6}>
+    <Grid size={{ xs: 6 }}>
       <DatePicker
         slotProps={{
           textField: {
@@ -273,7 +273,7 @@ const InvoiceFilter = ({
         <div className="p-6">
           <Grid container spacing={4}>
             {/* Status Filter Section */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <ToggleButtonGroup
                 color="primary"
                 value={tab}
@@ -295,7 +295,7 @@ const InvoiceFilter = ({
             </Grid>
 
             {/* Customer Filter */}
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <MultiSelectDropdown
                 id="customer-select"
                 label="Customers"
@@ -306,7 +306,7 @@ const InvoiceFilter = ({
             </Grid>
 
             {/* Invoice Number Filter */}
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <MultiSelectDropdown
                 id="invoice-select"
                 label="Invoice Numbers"
@@ -317,7 +317,7 @@ const InvoiceFilter = ({
             </Grid>
 
             {/* Date Range Filter */}
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <DateRangePicker
                 startDate={localFilters.startDate}
                 endDate={localFilters.endDate}

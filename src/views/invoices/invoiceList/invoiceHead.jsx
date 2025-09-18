@@ -63,7 +63,7 @@ const InvoiceHead = ({ invoiceListData }) => {
       {/* Statistics Cards */}
       <div className="mb-2">
         <Grid container spacing={4}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <HorizontalWithBorder
               title="Total Invoiced"
               subtitle="No of Invoices"
@@ -79,7 +79,7 @@ const InvoiceHead = ({ invoiceListData }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <HorizontalWithBorder
               title="Outstanding"
               subtitle="No of Outstandings"
@@ -95,7 +95,7 @@ const InvoiceHead = ({ invoiceListData }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <HorizontalWithBorder
               title="Total Overdue"
               subtitle="No of Overdue"
@@ -111,7 +111,7 @@ const InvoiceHead = ({ invoiceListData }) => {
             />
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <HorizontalWithBorder
               title="Drafts"
               subtitle="No of Drafts"

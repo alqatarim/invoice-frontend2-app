@@ -97,13 +97,20 @@ const UnitList = ({ initialUnits, initialPagination }) => {
       }
 
       onSuccess('Unit added successfully!');
+      // Refresh the list to show the new unit
+      try {
+        await handlers.refreshData();
+      } catch (refreshError) {
+        console.warn('Failed to refresh unit list after add:', refreshError);
+        // Continue anyway - the operation was successful
+      }
       return response;
     } catch (error) {
       const errorMessage = error.message || 'An unexpected error occurred';
       onError(errorMessage);
       return { success: false, message: errorMessage };
     }
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, handlers]);
 
   const handleUpdateUnit = useCallback(async (unitId, formData) => {
     try {
@@ -118,13 +125,20 @@ const UnitList = ({ initialUnits, initialPagination }) => {
       }
 
       onSuccess('Unit updated successfully!');
+      // Refresh the list to show the updated unit
+      try {
+        await handlers.refreshData();
+      } catch (refreshError) {
+        console.warn('Failed to refresh unit list after update:', refreshError);
+        // Continue anyway - the operation was successful
+      }
       return response;
     } catch (error) {
       const errorMessage = error.message || 'An unexpected error occurred';
       onError(errorMessage);
       return { success: false, message: errorMessage };
     }
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, handlers]);
 
   // Initialize simplified handlers
   const handlers = useUnitListHandlers({

@@ -44,7 +44,12 @@ export async function getCategoryById(id) {
  */
 export async function getInitialCategoryData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.CATEGORY.LIST}?skip=0&limit=10`);
+    const response = await fetchWithAuth(`${ENDPOINTS.CATEGORY.LIST}?skip=0&limit=10`,
+      {
+        cache: 'no-store',
+        next: { revalidate: 0 }
+      }
+    );
 
     if (response.code === 200) {
       const result = {
@@ -140,12 +145,46 @@ export async function searchCategories(searchTerm = '') {
 /**
  * Add a new category.
  */
-export async function addCategory(categoryData) {
+export async function addCategory(categoryData, preparedImage = null) {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.CATEGORY.ADD, {
+    let requestBody;
+    let requestOptions = {
       method: 'POST',
-      body: categoryData, // FormData will be sent directly
-    });
+    };
+
+    if (preparedImage) {
+      // If there's an image, use FormData
+      const formData = new FormData();
+      
+      // Add category fields to FormData
+      Object.keys(categoryData).forEach(key => {
+        if (categoryData[key] !== null && categoryData[key] !== undefined) {
+          formData.append(key, categoryData[key]);
+        }
+      });
+
+      // Convert base64 to blob and add to FormData
+      const base64Data = preparedImage.base64.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: preparedImage.type });
+      
+      formData.append('image', blob, preparedImage.name);
+      
+      requestOptions.body = formData;
+    } else {
+      // No image, send JSON
+      requestOptions.headers = {
+        'Content-Type': 'application/json',
+      };
+      requestOptions.body = JSON.stringify(categoryData);
+    }
+
+    const response = await fetchWithAuth(ENDPOINTS.CATEGORY.ADD, requestOptions);
 
     if (response.code !== 200) {
       throw new Error(response.message || 'Failed to add category');
@@ -161,19 +200,50 @@ export async function addCategory(categoryData) {
 /**
  * Update an existing category.
  */
-export async function updateCategory(id, categoryData) {
+export async function updateCategory(id, categoryData, preparedImage = null) {
   if (!id || typeof id !== 'string') {
     throw new Error('Invalid category ID');
   }
 
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.CATEGORY.UPDATE}/${id}`, {
+    let requestBody;
+    let requestOptions = {
       method: 'PUT',
-      headers: {
+    };
+
+    if (preparedImage) {
+      // If there's an image, use FormData
+      const formData = new FormData();
+      
+      // Add category fields to FormData
+      Object.keys(categoryData).forEach(key => {
+        if (categoryData[key] !== null && categoryData[key] !== undefined) {
+          formData.append(key, categoryData[key]);
+        }
+      });
+
+      // Convert base64 to blob and add to FormData
+      const base64Data = preparedImage.base64.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: preparedImage.type });
+      
+      formData.append('image', blob, preparedImage.name);
+      
+      requestOptions.body = formData;
+    } else {
+      // No image, send JSON
+      requestOptions.headers = {
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(categoryData),
-    });
+      };
+      requestOptions.body = JSON.stringify(categoryData);
+    }
+
+    const response = await fetchWithAuth(`${ENDPOINTS.CATEGORY.UPDATE}/${id}`, requestOptions);
 
     if (response.code !== 200) {
       throw new Error(response.message || 'Failed to update category');

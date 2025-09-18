@@ -169,7 +169,7 @@ const EditUnitDialog = ({ open, unitId, onClose, onSave }) => {
                 {/* Unit Name */}
                 <Grid size={{xs:12, sm:6, md:6}}>
                   <Controller
-                    name="unit"
+                    name="name"
                     control={control}
                     render={({ field }) => (
                       <TextField
@@ -177,8 +177,8 @@ const EditUnitDialog = ({ open, unitId, onClose, onSave }) => {
                         fullWidth
                         label="Unit Name"
                         placeholder="Enter unit name"
-                        error={!!errors.unit}
-                        helperText={errors.unit?.message}
+                        error={!!errors.name}
+                        helperText={errors.name?.message}
                         disabled={isSubmitting}
                         required
                         InputProps={{

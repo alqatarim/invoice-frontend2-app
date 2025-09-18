@@ -18,7 +18,6 @@ const InventoryListIndex = ({ initialData }) => {
       initialInventory={initialInventory}
       pagination={pagination}
       cardCounts={cardCounts}
-      // Pass other initial data if needed
     />
   );
 };

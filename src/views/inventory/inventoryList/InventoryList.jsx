@@ -1,20 +1,12 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import {
   Card,
   Button,
   Snackbar,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControlLabel,
-  Checkbox,
-  FormGroup,
   Grid,
   Box,
   TextField,
@@ -22,15 +14,12 @@ import {
   IconButton,
   Popover,
   Paper,
-  Divider,
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 
 import InventoryHead from '@/views/inventory/inventoryList/inventoryHead';
-import InventoryFilter from '@/views/inventory/inventoryList/inventoryFilter';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { useInventoryListHandlers } from '@/handlers/inventory/useInventoryListHandlers';
 import { getInventoryColumns } from './inventoryColumns';
@@ -47,7 +36,6 @@ const InventoryList = ({
   sortDirection: initialSortDirection = 'asc',
 }) => {
   const theme = useTheme();
-  const { data: session } = useSession();
 
   // Permissions
   const permissions = {
@@ -99,15 +87,6 @@ const InventoryList = ({
     onSuccess,
   });
 
-  // Column state management
-  const [columnsState, setColumns] = useState(columns);
-
-  // Column actions
-  const columnActions = {
-    open: () => handlers.handleManageColumnsOpen(),
-    close: () => handlers.handleManageColumnsClose(),
-    save: () => handlers.handleManageColumnsSave(setColumns),
-  };
 
   // Stock dialog handlers
   const openStockDialog = (type, item, anchorEl) => {
@@ -165,7 +144,7 @@ const InventoryList = ({
 
   // Build table columns with action handlers
   const tableColumns = useMemo(() =>
-    columnsState.map(col => ({
+    columns.map(col => ({
       ...col,
       renderCell: col.renderCell ?
         (row, rowIndex) => col.renderCell(row, rowIndex, {
@@ -175,7 +154,7 @@ const InventoryList = ({
           stockLoading: handlers.stockLoading,
         }) : undefined
     })),
-    [columnsState, handlers, permissions]
+    [columns, handlers, permissions]
   );
 
   return (
@@ -186,68 +165,32 @@ const InventoryList = ({
       />
 
       <Grid container spacing={3}>
- 
-
-        {/* Filter Component */}
-        <Grid size={12}>
-          <InventoryFilter
-            onFilterChange={handlers.handleFilterValueChange}
-            onFilterApply={handlers.handleFilterApply}
-            filters={handlers.filterValues}
-            onManageColumns={columnActions.open}
-          />
-        </Grid>
-
         {/* Inventory Table */}
         <Grid size={12}>
-          <Card>
-            <CustomListTable
-              columns={tableColumns}
-              rows={handlers.inventory}
-              loading={handlers.loading}
-              pagination={{
-                page: handlers.pagination.current - 1,
-                pageSize: handlers.pagination.pageSize,
-                total: handlers.pagination.total
-              }}
-              onPageChange={handlers.handlePageChange}
-              onRowsPerPageChange={handlers.handlePageSizeChange}
-              onSort={handlers.handleSortRequest}
-              sortBy={handlers.sortBy}
-              sortDirection={handlers.sortDirection}
-              noDataText="No inventory items found."
-              rowKey={(row) => row._id || row.id}
-            />
-          </Card>
+          <CustomListTable
+            columns={tableColumns}
+            rows={handlers.inventory}
+            loading={handlers.loading}
+            showSearch={true}
+            searchValue={handlers.searchTerm || ''}
+            onSearchChange={handlers.handleSearchInputChange}
+            searchPlaceholder="Search inventory..."
+            pagination={{
+              page: handlers.pagination.current - 1,
+              pageSize: handlers.pagination.pageSize,
+              total: handlers.pagination.total,
+            }}
+            onPageChange={(newPage) => handlers.handlePageChange(null, newPage)}
+            onRowsPerPageChange={handlers.handlePageSizeChange}
+            onSort={handlers.handleSortRequest}
+            sortBy={handlers.sortBy}
+            sortDirection={handlers.sortDirection}
+            noDataText="No inventory items found."
+            rowKey={(row) => row._id || row.id}
+          />
         </Grid>
       </Grid>
 
-      {/* Manage Columns Dialog */}
-      <Dialog open={handlers.manageColumnsOpen} onClose={columnActions.close}>
-        <DialogTitle>Select Columns</DialogTitle>
-        <DialogContent>
-          <FormGroup>
-            {handlers.availableColumns.map((column) => (
-              <FormControlLabel
-                key={column.key}
-                control={
-                  <Checkbox
-                    checked={column.visible}
-                    onChange={(e) => handlers.handleColumnCheckboxChange(column.key, e.target.checked)}
-                  />
-                }
-                label={column.label}
-              />
-            ))}
-          </FormGroup>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={columnActions.close}>Cancel</Button>
-          <Button onClick={columnActions.save} color="primary">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Stock Management Popover */}
       <Popover

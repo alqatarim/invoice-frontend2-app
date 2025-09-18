@@ -5,9 +5,9 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { useEffect, useState } from 'react'
 
-const editUnitSchema = yup.object().shape({
-  unit: yup.string().required('Unit name is required').min(2, 'Unit name must be at least 2 characters'),
-  status: yup.boolean()
+const editUnitSchema= yup.object().shape({
+  name: yup.string().required('Unit name is required').min(2, 'Unit name must be at least 2 characters'),
+  symbol: yup.string().required('Unit symbol is required').min(1, 'Unit symbol must be at least 2 characters')
 })
 
 export const useEditUnitHandlers = ({ unitData, onSave }) => {
@@ -22,17 +22,17 @@ export const useEditUnitHandlers = ({ unitData, onSave }) => {
   } = useForm({
     resolver: yupResolver(editUnitSchema),
     defaultValues: {
-      unit: '',
-      status: true
+      name: '',
+      symbol: ''
     }
   })
 
   // Reset form when unit data changes
   useEffect(() => {
-    if (unitData) {
+    if (unitData && typeof unitData === 'object') {
       reset({
-        unit: unitData.unit || '',
-        status: !unitData.isDeleted
+        name: unitData.name || '',
+        symbol: unitData.symbol || ''
       })
     }
   }, [unitData, reset])

@@ -84,11 +84,11 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
   }, []);
 
   // CRUD operation handlers
-  const handleAddCategory = useCallback(async (formData) => {
+  const handleAddCategory = useCallback(async (formData, preparedImage) => {
     try {
       onSuccess('Adding category...');
       
-      const response = await addCategory(formData);
+      const response = await addCategory(formData, preparedImage);
       
       if (!response.success) {
         const errorMessage = response.error?.message || response.message || 'Failed to add category';
@@ -97,19 +97,26 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
       }
 
       onSuccess('Category added successfully!');
+      // Refresh the list to show the new category
+      try {
+        await handlers.refreshData();
+      } catch (refreshError) {
+        console.warn('Failed to refresh category list after add:', refreshError);
+        // Continue anyway - the operation was successful
+      }
       return response;
     } catch (error) {
       const errorMessage = error.message || 'An unexpected error occurred';
       onError(errorMessage);
       return { success: false, message: errorMessage };
     }
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, handlers]);
 
-  const handleUpdateCategory = useCallback(async (categoryId, formData) => {
+  const handleUpdateCategory = useCallback(async (categoryId, formData, preparedImage) => {
     try {
       onSuccess('Updating category...');
       
-      const response = await updateCategory(categoryId, formData);
+      const response = await updateCategory(categoryId, formData, preparedImage);
       
       if (!response.success) {
         const errorMessage = response.error?.message || response.message || 'Failed to update category';
@@ -118,13 +125,20 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
       }
 
       onSuccess('Category updated successfully!');
+      // Refresh the list to show the updated category
+      try {
+        await handlers.refreshData();
+      } catch (refreshError) {
+        console.warn('Failed to refresh category list after update:', refreshError);
+        // Continue anyway - the operation was successful
+      }
       return response;
     } catch (error) {
       const errorMessage = error.message || 'An unexpected error occurred';
       onError(errorMessage);
       return { success: false, message: errorMessage };
     }
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, handlers]);
 
   // Initialize simplified handlers
   const handlers = useCategoryListHandlers({

@@ -1,12 +1,15 @@
-import { Typography, ButtonGroup, Button } from '@mui/material';
+import { Typography, ButtonGroup, Button, Box } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import CustomButton from '@core/components/mui/CustomIconButton';
 import { amountFormat } from '@/utils/numberUtils';
-
+import { Icon } from '@iconify/react';
+import { useTheme } from '@mui/material/styles';
 /**
  * Inventory table column definitions
  */
-export const getInventoryColumns = ({ permissions }) => [
+export const getInventoryColumns = ({ permissions }) => {
+  const theme = useTheme();
+  return [
   {
     key: 'index',
     visible: true,
@@ -38,14 +41,20 @@ export const getInventoryColumns = ({ permissions }) => [
   {
     key: 'sku',
     visible: true,
-    label: 'Code',
+    label: 'SKU',
     sortable: true,
-    align: 'center',
-    renderCell: (row) => (
+    align: 'left',
+    renderCell: (row) => 
+      {
+        return (
+      <Box className='flex items-start gap-1'>  
       <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
         {row.sku || 'N/A'}
       </Typography>
-    ),
+        </Box>
+      )}
+    
+    
   },
   {
     key: 'units',
@@ -54,9 +63,11 @@ export const getInventoryColumns = ({ permissions }) => [
     sortable: false,
     align: 'center',
     renderCell: (row) => (
+      <Box className='flex items-center justify-center gap-1'>
       <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
         {row.unitInfo?.[0]?.name || 'N/A'}
       </Typography>
+      </Box>
     ),
   },
   {
@@ -76,24 +87,54 @@ export const getInventoryColumns = ({ permissions }) => [
     visible: true,
     label: 'Sales Price',
     sortable: true,
-    align: 'center',
-    renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
-        ${amountFormat(row.sellingPrice)}
-      </Typography>
-    ),
+    align: 'left',
+    renderCell: (row) => {
+      return (
+
+
+      <div className="flex items-center justify-start gap-1">
+          <Icon
+            icon="lucide:saudi-riyal"
+            width="1rem"
+            color={theme.palette.secondary.light}
+          />
+          <Typography
+            color="text.primary"
+            className='text-[0.9rem] font-medium'
+          >
+            {row.sellingPrice.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}
+          </Typography>
+        </div>
+      )
+    }
   },
   {
     key: 'purchasePrice',
     visible: true,
     label: 'Purchase Price',
     sortable: true,
-    align: 'center',
-    renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
-        ${amountFormat(row.purchasePrice)}
-      </Typography>
-    ),
+    align: 'left',
+    renderCell: (row) => {
+      return (
+        <div className="flex items-center justify-start gap-1">
+          <Icon
+            icon="lucide:saudi-riyal"
+            width="1rem"
+            color={theme.palette.secondary.light}
+          />
+          <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
+          {row.purchasePrice.toLocaleString('en-IN', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })}
+          </Typography>
+        </div>
+      )
+    
+    }
   },
   {
     key: 'stock',
@@ -135,4 +176,4 @@ export const getInventoryColumns = ({ permissions }) => [
       );
     },
   },
-];
+]}

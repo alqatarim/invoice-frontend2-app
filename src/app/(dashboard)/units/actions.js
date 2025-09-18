@@ -176,11 +176,11 @@ export async function updateUnit(id, unitData) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.UNIT.UPDATE}/${id}`, {
       method: 'PUT',
-      // headers: {
-      //   'Content-Type': 'application/json',
-      // },
-      // body: JSON.stringify(unitData),
-      body: unitData,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(unitData),
+      // body: unitData,
     });
 
     if (response.code !== 200) {

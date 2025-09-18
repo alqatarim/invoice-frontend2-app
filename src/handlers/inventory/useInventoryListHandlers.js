@@ -3,23 +3,15 @@
 import { useMemo } from 'react';
 import { dataHandler } from './list/dataHandler';
 import { actionsHandler } from './list/actionsHandler';
-import { searchHandler } from './list/searchHandler';
-import { columnsHandler } from './list/columnsHandler';
 
 /**
  * Composite hook for inventory list functionality.
- * Combines data management, actions, search, and UI handlers.
+ * Combines data management, actions, and search handlers.
  */
 export function useInventoryListHandlers(options = {}) {
-  // Initialize all handlers
-  const columns = columnsHandler(options.initialColumns || []);
-  const search = searchHandler();
-
-  // Initialize data handler with search integration
+  // Initialize data handler
   const data = dataHandler({
     ...options,
-    setProductOptions: search.setProductOptions,
-    handleProductSearch: search.handleProductSearch,
   });
 
   const actions = actionsHandler({
@@ -39,40 +31,18 @@ export function useInventoryListHandlers(options = {}) {
     sortBy: data.sortBy,
     sortDirection: data.sortDirection,
 
-    // Filter state
-    filterValues: data.filterValues,
-    filterOpen: data.filterOpen,
-    filters: data.filterValues, // Alias for backward compatibility
+    // Search state and handlers
+    searchTerm: data.searchTerm,
+    handleSearchInputChange: data.handleSearchInputChange,
 
     // Data handlers
-    fetchData: data.fetchData,
     handlePageChange: data.handlePageChange,
     handlePageSizeChange: data.handlePageSizeChange,
     handleSortRequest: data.handleSortRequest,
-
-    // Filter handlers
-    handleFilterValueChange: data.handleFilterValueChange,
-    handleFilterApply: data.handleFilterApply,
-    handleFilterReset: data.handleFilterReset,
-    handleFilterToggle: data.toggleFilter,
-    isFilterApplied: data.hasActiveFilters,
-    getFilterCount: data.getActiveFilterCount,
-
-    // Search functionality
-    productOptions: search.productOptions,
-    handleProductSearch: search.handleProductSearch,
 
     // Actions
     handleAddStock: actions.handleAddStock,
     handleRemoveStock: actions.handleRemoveStock,
     stockLoading: actions.loading, // Expose stock operation loading states
-
-    // Column management
-    availableColumns: columns.availableColumns,
-    manageColumnsOpen: columns.manageColumnsOpen,
-    handleManageColumnsOpen: columns.handleManageColumnsOpen,
-    handleManageColumnsClose: columns.handleManageColumnsClose,
-    handleColumnCheckboxChange: columns.handleColumnCheckboxChange,
-    handleManageColumnsSave: columns.handleManageColumnsSave,
-  }), [data, search, actions, columns]);
+  }), [data, actions]);
 }

@@ -16,6 +16,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     visible: true,
     label: 'Invoice No',
     sortable: true,
+    align: 'center',
     renderCell: (row) => (
       <Link href={`/invoices/invoice-view/${row._id}`} passHref>
         <Typography
@@ -32,6 +33,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     visible: true,
     label: 'Created',
     sortable: true,
+    align: 'center',
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
         {row.invoiceDate ? moment(row.invoiceDate).format('DD MMM YY') : 'N/A'}
@@ -43,6 +45,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     visible: true,
     label: 'Invoice To',
     sortable: true,
+    align: 'center',
     renderCell: (row) => (
       <Link href={`/invoices/invoice-list/invoice-view/${row.customerId?._id}`} passHref>
         <Typography
@@ -66,15 +69,15 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
 
       return (
         <div className="flex flex-col min-w-[130px] w-full">
-          <div className="flex flex-row justify-between items-center mb-0.5 w-full">
-            <Typography color="text.primary" className='text-[0.9rem]'>{paid}</Typography>
-            <div className="flex items-center gap-1 min-w-[48px] justify-end">
+          <div className="flex flex-row justify-between items-center mb-0 w-full">
+            <Typography color="text.primary" className='text-[0.9rem] ml-2'>{paid}</Typography>
+            <div className="flex items-center gap-1 min-w-[48px] justify-end mr-2">
               <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
-              <Typography color="text.primary" className='text-[0.9rem] font-medium'>{total}</Typography>
+              <Typography color="text.primary" className='text-[1.1rem] font-medium'>{total}</Typography>
             </div>
           </div>
           <div className="flex-1 w-full">
-            <LinearProgress variant="determinate" color='info' value={percentPaid} />
+            <LinearProgress variant="determinate" color='info' value={percentPaid} sx={{ height: 3 }} />
           </div>
         </div>
       );
@@ -173,9 +176,9 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
       }
 
       return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box className='flex items-center justify-end gap-1' >
           {/* Direct action buttons */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box className='flex gap-1' sx={{ display: 'flex', gap: 1 }}>
             {permissions.canView && (
               <IconButton
                 size="small"

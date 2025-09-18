@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
-import { Typography, Chip, IconButton, Box } from '@mui/material';
+import { Typography, Chip, IconButton, Box, Avatar } from '@mui/material';
 import moment from 'moment';
 import { useTheme } from '@mui/material/styles';
 
@@ -59,14 +59,49 @@ export const getCategoryColumns = ({ theme = {}, permissions = {} } = {}) => [
     },
   },
   {
-    key: 'category_name',
+    key: 'image',
+    visible: true,
+    label: 'Image',
+    align: 'center',
+    renderCell: (row) => (
+      <Box className='flex justify-center'>
+        <Avatar
+          src={row.image || ''}
+          alt={row.name || 'Category'}
+          // className='w-12 h-12'
+          variant='rounded'
+          // sx={{
+          //   width: 48,
+          //   height: 48,
+          //   border: '2px solid',
+          //   borderColor: 'divider',
+          //   backgroundColor: 'grey.100',
+          // }}
+        >
+          {!row.image && (
+            <Icon
+              icon="mdi:image-outline"
+              width={24}
+              height={24}
+              style={{ color: theme?.palette?.text?.secondary || '#666' }}
+            />
+          )}
+        </Avatar>
+
+
+                        
+      </Box>
+    ),
+  },
+  {
+    key: 'name',
     visible: true,
     label: 'Category Name',
     sortable: true,
     renderCell: (row) => (
       <Box className='flex flex-col gap-1'>
         <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-          {row.category_name || row.name || 'N/A'}
+          { row.name || 'N/A'}
         </Typography>
         {row.description && (
           <Typography variant="caption" color="text.secondary">

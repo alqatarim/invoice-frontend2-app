@@ -173,7 +173,9 @@ function CustomListTable({
           }}
           stickyHeader // Works with TableContainer for sticky headers
         >
-          <TableHead>
+          <TableHead
+          align={'end'}
+          >
             <TableRow>
               {onRowSelect && (
                 <TableCell sx={{ minWidth: 50 }}>
@@ -188,46 +190,17 @@ function CustomListTable({
               {columns.map((col) => (
                 <TableCell 
                   key={col.key} 
-                  align={col.align || 'left'}
-                  sx={{
-                    ...(col.minWidth && { minWidth: col.minWidth }),
-                    ...(col.width && { width: col.width })
-                  }}
+                  align={col.align}
+                  // sx={{
+                  //   ...(col.minWidth && { minWidth: col.minWidth }),
+                  //   ...(col.width && { width: col.width })
+                  // }}
+                  // className={tableCellClassName}
+                  
                 >
-                  {col.sortable && onSort ? (
-                    <div
-                      className={classnames({
-                        'flex items-center': sortBy === col.key,
-                        'cursor-pointer select-none': true,
-                        'justify-center': col.align === 'center',
-                        'justify-end': col.align === 'right',
-                        'justify-start': col.align === 'left' || !col.align
-                      })}
-                      onClick={() => {
-                        let newDirection = 'asc';
-                        if (sortBy === col.key) {
-                          // Toggle direction if clicking the same column
-                          newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                        }
-                        onSort(col.key, newDirection);
-                      }}
-                    >
-                      {col.label}
-                      {sortBy === col.key && (
-                        sortDirection === 'asc' ? 
-                          <i className='ri-arrow-up-s-line text-xl' /> :
-                          <i className='ri-arrow-down-s-line text-xl' />
-                      )}
-                    </div>
-                  ) : (
-                    <div className={classnames({
-                      'text-center': col.align === 'center',
-                      'text-right': col.align === 'right',
-                      'text-left': col.align === 'left' || !col.align
-                    })}>
-                      {col.label}
-                    </div>
-                  )}
+           
+
+{col.label}
                 </TableCell>
               ))}
             </TableRow>
