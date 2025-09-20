@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
-import { Typography, Chip } from '@mui/material';
+import { Typography, Chip, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
 import OptionMenu from '@core/components/option-menu';
-
+import { formatDate } from '@/utils/dateUtils';
+import { statusOptions } from '@/data/dataSets';
+import { paymentMethodIcons } from '@/data/dataSets';
 /**
  * Sales Return table column definitions
  */
@@ -32,7 +34,7 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
     sortable: true,
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-        {row.createdAt ? moment(row.createdAt).format('DD MMM YY') : 'N/A'}
+        {row.createdAt ? formatDate(row.createdAt) : 'N/A'}
       </Typography>
     ),
   },
@@ -47,16 +49,16 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
           <Icon icon="tabler:user" width="1rem" color={theme.palette.warning.main} />
         </div>
         <div className="flex flex-col">
-          <Link href={`/customers/customer-view/${row.customerId?._id}`} passHref>
+          <Link href={`/customers/customer-view/${row.customerInfo?._id}`} passHref>
             <Typography
               variant="body1"
               className='text-[0.9rem] text-start cursor-pointer text-primary hover:underline font-medium'
             >
-              {row.customerId?.name || 'Deleted Customer'}
+              {row.customerInfo?.name || 'Deleted Customer'}
             </Typography>
           </Link>
           <Typography variant="caption" color="textSecondary">
-            {row.customerId?.phone || ''}
+            {row.customerInfo?.phone || ''}
           </Typography>
         </div>
       </div>
@@ -69,10 +71,10 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
     align: 'center',
     renderCell: (row) => {
       const total = Number(row.TotalAmount) || 0;
-      
+
       return (
         <div className="flex items-center justify-center gap-1 px-2 py-1 rounded-lg bg-red-50">
-          <Icon icon="tabler:minus" width="0.75rem" color={theme.palette.error.main} />
+
           <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.error.main} />
           <Typography color="error.main" className='text-[0.9rem] font-medium'>
             {total.toLocaleString('en-IN', {
@@ -90,9 +92,11 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
     label: 'Payment Mode',
     sortable: true,
     renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
-        {row.paymentMode || '-'}
-      </Typography>
+      <Box className="flex items-center gap-2">
+        <Icon icon={paymentMethodIcons.find(icon => icon.value.toUpperCase() === row.paymentMode)?.label} fontSize={23} color={theme.palette.secondary.main} />
+        <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>{row.paymentMode || '-'}</Typography>
+      </Box>
+
     ),
   },
   {
@@ -102,28 +106,14 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
     align: 'center',
     sortable: true,
     renderCell: (row) => {
-      const getStatusColor = (status) => {
-        switch (status) {
-          case 'Paid':
-            return 'success';
-          case 'Pending':
-            return 'warning';
-          case 'Cancelled':
-            return 'error';
-          case 'Refunded':
-            return 'info';
-          default:
-            return 'default';
-        }
-      };
-
+      const statusOption = statusOptions.find(opt => opt.value === row.status);
       return (
         <Chip
-          className='mx-0'
-          size='small'
+          // className='mx-0'
+          // size='small'
           variant='tonal'
-          label={row.status || 'Pending'}
-          color={getStatusColor(row.status)}
+          label={statusOption?.label || 'Pending'}
+          color={statusOption?.color || 'default'}
         />
       );
     },
@@ -184,7 +174,7 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
           icon: <Icon icon="mdi:delete-outline" />,
           menuItemProps: {
             className: 'flex items-center gap-2 text-textSecondary',
-            onClick: () => handlers.handleDelete(row._id)
+            onClick: () => handlers.handleDeleteClick(row)
           }
         });
       }

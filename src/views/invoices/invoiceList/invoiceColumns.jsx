@@ -47,14 +47,27 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     sortable: true,
     align: 'center',
     renderCell: (row) => (
-      <Link href={`/invoices/invoice-list/invoice-view/${row.customerId?._id}`} passHref>
+
+
+      <Box className="flex justify-between items-start flex-col gap-1">
+        <Link href={`/customers/customer-view/${row.customerId?._id}`} passHref>
+          <Typography
+            variant="body1"
+            className='text-[0.95rem] text-start cursor-pointer text-primary hover:underline'
+          >
+            {row.customerId?.name || 'N/A'}
+          </Typography>
+        </Link>
         <Typography
-          variant="body1"
-          className='text-[0.9rem] text-start cursor-pointer text-primary hover:underline'
+          variant="caption"
+          color="text.secondary"
+          className='text-[0.85rem] truncate select-text'
+          sx={{ userSelect: 'text', cursor: 'text' }}
         >
-          {row.customerId?.name || 'Deleted Customer'}
+          {row.customerId?.phone || 'N/A'}
         </Typography>
-      </Link>
+      </Box>
+
     ),
   },
   {
@@ -73,7 +86,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
             <Typography color="text.primary" className='text-[0.9rem] ml-2'>{paid}</Typography>
             <div className="flex items-center gap-1 min-w-[48px] justify-end mr-2">
               <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
-              <Typography color="text.primary" className='text-[1.1rem] font-medium'>{total}</Typography>
+              <Typography color="text.primary" className='text-[1rem] font-medium'>{total}</Typography>
             </div>
           </div>
           <div className="flex-1 w-full">
@@ -185,6 +198,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
                 component={Link}
                 href={`/invoices/invoice-view/${row._id}`}
                 title={actionButtons.find(action => action.id === 'view').title}
+                color={actionButtons.find(action => action.id === 'view').color}
               >
                 <Icon icon={actionButtons.find(action => action.id === 'view').icon} />
               </IconButton>
@@ -195,6 +209,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
                 component={Link}
                 href={`/invoices/edit/${row._id}`}
                 title={actionButtons.find(action => action.id === 'edit').title}
+                color={actionButtons.find(action => action.id === 'edit').color}
               >
                 <Icon icon={actionButtons.find(action => action.id === 'edit').icon} />
               </IconButton>

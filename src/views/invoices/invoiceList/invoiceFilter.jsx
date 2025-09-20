@@ -20,6 +20,11 @@ import {
   Typography,
   ToggleButton,
   ToggleButtonGroup,
+  Autocomplete,
+  TextField,
+  Box,
+  Checkbox,
+  ListItemText
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -28,61 +33,136 @@ import dayjs from 'dayjs';
 import { Icon } from '@iconify/react';
 import { invoiceTabs } from '@/data/dataSets';
 
+// Menu styling constants following Materio patterns
+const ITEM_HEIGHT = 48;
+const ITEM_PADDING_TOP = 8;
+
 /**
- * Reusable multi-select dropdown component
+ * Reusable multi-select autocomplete component with removable chips
  */
-const MultiSelectDropdown = ({
+const AutocompleteMultiSelect = ({
   label,
   value = [],
   onChange,
   options = [],
   id
-}) => (
-  <FormControl fullWidth size="small">
-    <InputLabel id={`${id}-label`}>{label}</InputLabel>
-    <Select
-      labelId={`${id}-label`}
-      id={id}
+}) => {
+  const handleChange = (event, newValue) => {
+    // Convert to array of values for compatibility with existing code
+    const values = newValue.map(item => item.value);
+    onChange({
+      target: {
+        value: values
+      }
+    });
+  };
+
+  const handleChipDelete = (valueToDelete) => {
+    const newValues = value.filter(val => val !== valueToDelete);
+    onChange({
+      target: {
+        value: newValues
+      }
+    });
+  };
+
+  // Convert current values to option objects for Autocomplete
+  const selectedOptions = value.map(val =>
+    options.find(opt => opt.value === val) || { value: val, label: val }
+  );
+
+  return (
+    <Autocomplete
       multiple
-      value={value}
-      onChange={onChange}
-      input={<OutlinedInput label={label} />}
-      renderValue={(selected) => (
-        <div className="flex flex-row flex-wrap gap-1">
-          {selected.map((val) => {
-            const option = options.find(opt => opt.value === val);
-            return (
-              <Chip
-                key={val}
-                label={option?.label || val}
-                size="small"
-                variant="tonal"
-                color="primary"
-                className="rounded-md"
-              />
-            );
-          })}
+      id={id}
+      options={options}
+      getOptionLabel={(option) => option.label}
+      value={selectedOptions}
+      onChange={handleChange}
+      disableCloseOnSelect
+      isOptionEqualToValue={(option, value) => option.value === value.value}
+      renderTags={(tagValue, getTagProps) => (
+        <div className='flex flex-wrap gap-1'>
+          {tagValue.map((option, index) => (
+            <Chip
+              {...getTagProps({ index })}
+              key={option.value}
+              label={option.label}
+              size="small"
+              variant="tonal"
+              color="primary"
+              className="rounded-md cursor-pointer"
+              onClick={() => handleChipDelete(option.value)}
+              onDelete={() => handleChipDelete(option.value)}
+              deleteIcon={<Icon icon="tabler:x" fontSize={14} />}
+              sx={{
+                margin: '1px',
+                '&:hover': {
+                  backgroundColor: theme => theme.palette.primary.main,
+                  color: theme => theme.palette.primary.contrastText,
+                  '& .MuiChip-deleteIcon': {
+                    color: theme => theme.palette.primary.contrastText,
+                  }
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            />
+          ))}
         </div>
       )}
-      MenuProps={{
-        PaperProps: {
-          style: { maxHeight: 224, width: 280 }
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label={label}
+          size="small"
+          placeholder={selectedOptions.length === 0 ? `Select ${label.toLowerCase()}...` : ''}
+        />
+      )}
+      renderOption={(props, option, { selected }) => (
+        <MenuItem
+          {...props}
+          key={option.value}
+          sx={{
+            padding: '8px 16px',
+            minHeight: 'auto',
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            }
+          }}
+        >
+          <Checkbox
+            checked={selected}
+            size="small"
+            sx={{
+              padding: '4px',
+              marginRight: '8px'
+            }}
+          />
+          <ListItemText
+            primary={option.label}
+            sx={{
+              margin: 0,
+              '& .MuiListItemText-primary': {
+                fontSize: '0.875rem'
+              }
+            }}
+          />
+        </MenuItem>
+      )}
+      ListboxProps={{
+        style: {
+          maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+          padding: 0
         }
       }}
       sx={{
-        '& .MuiOutlinedInput-root': {
-          borderRadius: '12px',
+        '& .MuiAutocomplete-popupIndicator': {
+          transform: 'none'
         }
       }}
-    >
-      {options.map((option) => (
-        <MenuItem key={option.value} value={option.value}>
-          {option.label}
-        </MenuItem>
-      ))}
-    </Select>
-  </FormControl>
-);
+    />
+  );
+};
 
 /**
  * Date range picker component
@@ -226,54 +306,97 @@ const InvoiceFilter = ({
           borderRadius: '16px'
         }}
       >
-      {/* Filter Header */}
-      <div
-        className="flex justify-between items-center p-3 cursor-pointer"
-        onClick={() => setOpen(!open)}
-      >
-        <div className="flex items-center gap-2">
-          <div
-            className="p-2 rounded-lg flex items-center justify-center"
+        {/* Filter Header */}
+        <div
+          className="flex justify-between items-center p-3 cursor-pointer"
+          onClick={() => setOpen(!open)}
+        >
+          <div className="flex items-center gap-2">
+            <div
+              className="p-2 rounded-lg flex items-center justify-center"
+              style={{
+                backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                color: theme.palette.primary.main
+              }}
+            >
+              <Icon icon="tabler:filter" fontSize={20} />
+            </div>
+            <Typography variant="h6" className="font-semibold">
+              Invoice Filters
+            </Typography>
+            {activeFilterCount > 0 && (
+              <Chip
+                size="small"
+                label={`${activeFilterCount} active`}
+                color="primary"
+                variant="tonal"
+                className="ml-1 font-medium"
+              />
+            )}
+          </div>
+
+          <IconButton
+            size="small"
+            className="p-2 rounded-lg transition-transform duration-300 ease-in-out"
             style={{
               backgroundColor: alpha(theme.palette.primary.main, 0.08),
-              color: theme.palette.primary.main
+              color: theme.palette.primary.main,
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)'
             }}
           >
-            <Icon icon="tabler:filter" fontSize={20} />
-          </div>
-          <Typography variant="h6" className="font-semibold">
-            Invoice Filters
-          </Typography>
-          {activeFilterCount > 0 && (
-            <Chip
-              size="small"
-              label={`${activeFilterCount} active`}
-              color="primary"
-              variant="tonal"
-              className="ml-1 font-medium"
-            />
-          )}
+            <Icon icon="tabler:chevron-down" fontSize={18} />
+          </IconButton>
         </div>
 
-        <IconButton
-          size="small"
-          className="p-2 rounded-lg transition-transform duration-300 ease-in-out"
-          style={{
-            backgroundColor: alpha(theme.palette.primary.main, 0.08),
-            color: theme.palette.primary.main,
-            transform: open ? 'rotate(180deg)' : 'rotate(0deg)'
-          }}
-        >
-          <Icon icon="tabler:chevron-down" fontSize={18} />
-        </IconButton>
-      </div>
+        <Collapse in={open}>
+          <Divider />
+          <div className="p-6 flex flex-col gap-3 ">
 
-      <Collapse in={open}>
-        <Divider />
-        <div className="p-6">
-          <Grid container spacing={4}>
-            {/* Status Filter Section */}
-            <Grid size={{ xs: 12 }}>
+
+
+            <Grid container spacing={4}>
+
+
+              {/* Customer Filter */}
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <AutocompleteMultiSelect
+                  id="customer-select"
+                  label="Customers"
+                  value={localFilters.customer}
+                  onChange={handleSelectChange('customer')}
+                  options={customerOptions}
+                />
+              </Grid>
+
+              {/* Invoice Number Filter */}
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <AutocompleteMultiSelect
+                  id="invoice-select"
+                  label="Invoice Numbers"
+                  value={localFilters.invoiceNumber}
+                  onChange={handleSelectChange('invoiceNumber')}
+                  options={invoiceOptions}
+                />
+              </Grid>
+
+              {/* Date Range Filter */}
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <DateRangePicker
+                  startDate={localFilters.startDate}
+                  endDate={localFilters.endDate}
+                  onStartChange={(newValue) => handleLocalFilterChange('startDate', newValue)}
+                  onEndChange={(newValue) => handleLocalFilterChange('endDate', newValue)}
+                />
+              </Grid>
+
+
+
+
+            </Grid>
+
+            <Box className='flex justify-between gap-3 items-end'>
+
+
               <ToggleButtonGroup
                 color="primary"
                 value={tab}
@@ -292,75 +415,46 @@ const InvoiceFilter = ({
                   </ToggleButton>
                 ))}
               </ToggleButtonGroup>
-            </Grid>
 
-            {/* Customer Filter */}
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <MultiSelectDropdown
-                id="customer-select"
-                label="Customers"
-                value={localFilters.customer}
-                onChange={handleSelectChange('customer')}
-                options={customerOptions}
-              />
-            </Grid>
 
-            {/* Invoice Number Filter */}
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <MultiSelectDropdown
-                id="invoice-select"
-                label="Invoice Numbers"
-                value={localFilters.invoiceNumber}
-                onChange={handleSelectChange('invoiceNumber')}
-                options={invoiceOptions}
-              />
-            </Grid>
+              <div className='flex gap-3'>
+                <Button
+                  variant="text"
+                  size="small"
+                  startIcon={<Icon icon="material-symbols:view-column-2" />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onManageColumns();
+                  }}
+                >
+                  Columns
+                </Button>
 
-            {/* Date Range Filter */}
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <DateRangePicker
-                startDate={localFilters.startDate}
-                endDate={localFilters.endDate}
-                onStartChange={(newValue) => handleLocalFilterChange('startDate', newValue)}
-                onEndChange={(newValue) => handleLocalFilterChange('endDate', newValue)}
-              />
-            </Grid>
-          </Grid>
+                <Button
+                  variant="outlined"
+                  onClick={resetFilters}
+                  size="small"
+                  startIcon={<Icon icon="tabler:refresh" />}
+                >
+                  Reset Filters
+                </Button>
 
-          <div className='flex justify-end gap-3 mt-6'>
-            <Button
-              variant="text"
-              size="medium"
-              startIcon={<Icon icon="material-symbols:view-column-2" width={22} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onManageColumns();
-              }}
-            >
-              Columns
-            </Button>
+                <Button
+                  variant="contained"
+                  onClick={applyFilters}
+                  size="small"
+                  startIcon={<Icon icon="tabler:check" />}
+                >
+                  Apply Filters
+                </Button>
+              </div>
 
-            <Button
-              variant="outlined"
-              onClick={resetFilters}
-              size="medium"
-              startIcon={<Icon icon="tabler:refresh" />}
-            >
-              Reset Filters
-            </Button>
 
-            <Button
-              variant="contained"
-              onClick={applyFilters}
-              size="medium"
-              startIcon={<Icon icon="tabler:check" />}
-            >
-              Apply Filters
-            </Button>
+            </Box>
+
           </div>
-        </div>
-      </Collapse>
-    </Card>
+        </Collapse>
+      </Card>
     </LocalizationProvider>
   );
 };

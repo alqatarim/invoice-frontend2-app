@@ -67,58 +67,58 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
         renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
         menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
       >
-            <MenuSection label={'Main'}>
+        <MenuSection label={'Main'}>
 
-            <MenuItem  icon={<i className='ri-home-smile-line' />} href={`/dashboard`}>Dashboard</MenuItem>
+          <MenuItem icon={<i className='ri-home-smile-line' />} href={`/dashboard`}>Dashboard</MenuItem>
 
-            </MenuSection>
+        </MenuSection>
 
-  <MenuItem icon={<i className='ri-user-line' />} href="/profile">Profile</MenuItem>
+        <MenuItem icon={<i className='ri-user-line' />} href="/profile">Profile</MenuItem>
 
-  <MenuSection label="Customers">
-    <MenuItem icon={<i className='ri-user-3-line' />} href="/customers/customer-list">Customers</MenuItem>
-    <MenuItem icon={<i className='ri-truck-line' />} href="/vendors/vendor-list">Vendors</MenuItem>
-  </MenuSection>
-  <MenuSection label="Inventory">
-    <SubMenu label="Product / Services">
-      <MenuItem href="/products/product-list">Products</MenuItem>
-      <MenuItem href="/products/category-list">Categories</MenuItem>
-      <MenuItem href="/products/unit-list">Units</MenuItem>
-    </SubMenu>
-    <MenuItem href="/inventory">Inventory</MenuItem>
-  </MenuSection>
-  <MenuSection label="Sales">
-    <MenuItem href="/invoices/invoice-list">Invoices</MenuItem>
-    <MenuItem href="/sales-return">Sales Return</MenuItem>
-  </MenuSection>
-  <MenuSection label="Purchases">
-    <MenuItem href="/purchase-orders/order-list">Purchase Orders</MenuItem>
-    <MenuItem href="/purchases/purchase-list">Purchases</MenuItem>
-    <MenuItem href="/debitNotes/purchaseReturn-list">Purchase Return</MenuItem>
-  </MenuSection>
-  <MenuSection label="Finance & Accounts">
-    <MenuItem href="/expenses/expense-list">Expenses</MenuItem>
-    <MenuItem href="/payments/payment-list">Payments</MenuItem>
-  </MenuSection>
-  <MenuSection label="Quotations">
-    <MenuItem href="/quotations/quotation-list">Quotations</MenuItem>
-    <MenuItem href="/deliveryChallans/deliveryChallans-list">Delivery Challans</MenuItem>
-  </MenuSection>
-  <MenuSection label="Reports">
-    <MenuItem href="/payment-summary/payment-summary-list">Payment Summary</MenuItem>
-  </MenuSection>
-  <MenuSection label="Settings">
-    <MenuItem href="/settings">Settings</MenuItem>
-  </MenuSection>
-  <MenuSection label="User Management">
-    <SubMenu label="Manage Users">
-      <MenuItem href="/users">Users</MenuItem>
-    </SubMenu>
-    <MenuItem href="/roles-permission/roles-permission-list">Roles & Permission</MenuItem>
-  </MenuSection>
-  <MenuItem href="/login">Logout</MenuItem>
+        <MenuSection label="Customers">
+          <MenuItem icon={<i className='ri-user-3-line' />} href="/customers/customer-list">Customers</MenuItem>
+          <MenuItem icon={<i className='ri-truck-line' />} href="/vendors/vendor-list">Vendors</MenuItem>
+        </MenuSection>
+        <MenuSection label="Inventory">
+          <SubMenu label="Product / Services">
+            <MenuItem href="/products/product-list">Products</MenuItem>
+            <MenuItem href="/products/category-list">Categories</MenuItem>
+            <MenuItem href="/products/unit-list">Units</MenuItem>
+          </SubMenu>
+          <MenuItem href="/inventory">Inventory</MenuItem>
+        </MenuSection>
+        <MenuSection label="Sales">
+          <MenuItem href="/invoices/invoice-list">Invoices</MenuItem>
+          <MenuItem href="/sales-return/sales-return-list">Sales Return</MenuItem>
+        </MenuSection>
+        <MenuSection label="Purchases">
+          <MenuItem href="/purchase-orders/order-list">Purchase Orders</MenuItem>
+          <MenuItem href="/purchases/purchase-list">Purchases</MenuItem>
+          <MenuItem href="/debitNotes/purchaseReturn-list">Purchase Return</MenuItem>
+        </MenuSection>
+        <MenuSection label="Finance & Accounts">
+          <MenuItem href="/expenses/expense-list">Expenses</MenuItem>
+          <MenuItem href="/payments/payment-list">Payments</MenuItem>
+        </MenuSection>
+        <MenuSection label="Quotations">
+          <MenuItem href="/quotations/quotation-list">Quotations</MenuItem>
+          <MenuItem href="/deliveryChallans/deliveryChallans-list">Delivery Challans</MenuItem>
+        </MenuSection>
+        <MenuSection label="Reports">
+          <MenuItem href="/payment-summary/payment-summary-list">Payment Summary</MenuItem>
+        </MenuSection>
+        <MenuSection label="Settings">
+          <MenuItem href="/settings">Settings</MenuItem>
+        </MenuSection>
+        <MenuSection label="User Management">
+          <SubMenu label="Manage Users">
+            <MenuItem href="/users">Users</MenuItem>
+          </SubMenu>
+          <MenuItem href="/roles-permission/roles-permission-list">Roles & Permission</MenuItem>
+        </MenuSection>
+        <MenuItem href="/login">Logout</MenuItem>
 
-  </Menu>
+      </Menu>
     </ScrollWrapper>
   )
 }

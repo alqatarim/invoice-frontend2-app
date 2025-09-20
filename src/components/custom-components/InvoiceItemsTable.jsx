@@ -8,8 +8,13 @@ import {
   TableHead,
   TableRow,
   Box,
-  Typography
+  Typography,
+  TableContainer
 } from '@mui/material';
+import classnames from 'classnames';
+
+// Style Imports
+import tableStyles from '@core/styles/table.module.css';
 
 
 
@@ -31,40 +36,59 @@ function InvoiceItemsTable({
   return (
     <Box>
       {rows.length > 0 ? (
-        <Table className={tableClassName} {...rest}>
-          <TableHead className={`bg-secondaryLightest ${tableHeadClassName}`}>
+        <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+        <Table className={classnames(tableStyles.table, tableClassName)} sx={{ minWidth: 800 }} {...rest}>
+          <TableHead className={tableHeadClassName}>
             <TableRow>
               {columns.map(col => (
                 <TableCell
                   key={col.key}
-                  style={col.width ? { width: col.width } : {}}
                   align={col.align || 'left'}
-                  className={`border-b-0 ${tableCellClassName}`}
+                  sx={{
+                    ...(col.minWidth && { minWidth: col.minWidth }),
+                    ...(col.width && { width: col.width }),
+                    padding: '8px 16px',
+                    '@media (max-width: 768px)': {
+                      padding: '6px 8px',
+                      fontSize: '0.875rem'
+                    }
+                  }}
+                  className={tableCellClassName}
                 >
-                  <Typography variant="overline" fontWeight="medium" fontSize="0.8rem">
-                    {col.label}
-                  </Typography>
+                  {col.label}
                 </TableCell>
               ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row, rowIndex) => (
-              <TableRow key={rowKey(row, rowIndex)} className={tableRowClassName}>
-                {columns.map(col => (
-                  <TableCell
-                    key={col.key}
-                    style={col.width ? { width: col.width } : {}}
-                    align={col.align || 'left'}
-                    className={tableCellClassName}
-                  >
-                    {col.renderCell ? col.renderCell(row, rowIndex) : row[col.key]}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            {rows.map((row, rowIndex) => {
+              const key = rowKey ? rowKey(row, rowIndex) : rowIndex;
+              return (
+                <TableRow key={key} className={classnames(tableRowClassName)}>
+                  {columns.map(col => (
+                    <TableCell
+                      key={col.key}
+                      align={col.align || 'left'}
+                      sx={{
+                        ...(col.minWidth && { minWidth: col.minWidth }),
+                        ...(col.width && { width: col.width }),
+                        padding: '8px 16px',
+                        '@media (max-width: 768px)': {
+                          padding: '6px 8px',
+                          fontSize: '0.875rem'
+                        }
+                      }}
+                      className={tableCellClassName}
+                    >
+                      {col.renderCell ? col.renderCell(row, rowIndex) : row[col.key]}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
+        </TableContainer>
       ) : (
         emptyContent || (
           <Box className="flex flex-col items-center justify-center py-6 gap-2 text-center">

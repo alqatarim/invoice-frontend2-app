@@ -229,7 +229,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 InputProps={{
                   sx: { paddingLeft: '8px' },
                   startAdornment: (
-                    <Icon icon="lucide:saudi-riyal" width={22} color={theme.palette.secondary.main}/>
+                    <Icon icon="lucide:saudi-riyal" width={22} color={theme.palette.secondary.main} />
                   ),
                 }}
                 inputProps={{
@@ -552,10 +552,18 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
 
   return (
     <Grid container rowSpacing={4} columnSpacing={3}>
+      {/* Header Section */}
       <Grid item xs={12} md={12}>
-        <Typography variant="h5" sx={{ fontWeight: 500 }}>
-          Add Invoice
-        </Typography>
+        <div className="flex justify-start items-center mb-5">
+          <div className="flex items-center gap-2">
+            <div className='bg-primary/12 text-primary bg-primaryLight w-12 h-12 rounded-full flex items-center justify-center'>
+              <Icon icon="tabler:file-invoice" fontSize={26} />
+            </div>
+            <Typography variant="h5" className="font-semibold text-primary">
+              Add Invoice
+            </Typography>
+          </div>
+        </div>
       </Grid>
       {/* Top Section - Invoice Details */}
       <Grid item xs={12} md={12}>
@@ -683,7 +691,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                   skin='lighter'
                   onClick={() => setOpenBankModal(true)}
                 >
-                  <Icon  icon="mdi:bank-plus" width={26}/>
+                  <Icon icon="mdi:bank-plus" width={26} />
                 </CustomIconButton>
               </Grid>
               {/* Reference No */}

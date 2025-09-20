@@ -64,7 +64,7 @@ const shortcuts = [
     subtitle: 'Manage Invoices'
   },
   {
-    url: '/sales-return',
+    url: '/sales-return/sales-return-list',
     icon: 'ri-refund-line',
     title: 'Sales Return',
     subtitle: 'Manage Sales Returns'

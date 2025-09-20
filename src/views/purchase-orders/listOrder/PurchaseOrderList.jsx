@@ -147,15 +147,15 @@ const PurchaseOrderList = ({ initialPurchaseOrders, initialPagination }) => {
       />
 
       <Grid container spacing={3}>
-        {/* Simplified Filter - commented out for now to match vendors 
-        <Grid size={{xs:12}}>
+        {/* Purchase Order Filter */}
+        <Grid size={{ xs: 12 }}>
           <PurchaseOrderFilter
             onApplyFilters={handlers.handleFilterApply}
             onResetFilters={handlers.handleFilterReset}
           />
-        </Grid> */}
+        </Grid>
 
-        <Grid size={{xs:12}}>
+        <Grid size={{ xs: 12 }}>
           <CustomListTable
             columns={tableColumns}
             rows={handlers.purchaseOrders}

@@ -1,83 +1,105 @@
-'use client'
+import { useMemo } from 'react'
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useTheme } from '@mui/material/styles';
-import { getSalesReturnColumns } from '@/views/salesReturn/listSalesReturn/salesReturnColumns';
-import { columnsHandler } from './columnsHandler';
-import { actionsHandler } from './actionsHandler';
-import { usePermission } from '@/Auth/usePermission';
+// Import modular handlers
+import { useDataHandler } from './dataHandler'
+import { useActionsHandler } from './actionsHandler'
+import { useColumnsHandler } from './columnsHandler'
 
 /**
- * Main sales return list handlers - combines all handler logic
+ * Main composite hook for sales return list functionality
+ * Now uses consolidated dataHandler that includes search functionality
  */
-export function useSalesReturnListHandlers({ setPage, onListUpdate }) {
-  const theme = useTheme();
-  
-  // Permissions
-  const permissions = {
-    canView: usePermission('creditNote', 'view'),
-    canCreate: usePermission('creditNote', 'create'),
-    canUpdate: usePermission('creditNote', 'update'),
-    canDelete: usePermission('creditNote', 'delete'),
-  };
+export function useSalesReturnListHandlers({
+  initialSalesReturns,
+  initialPagination,
+  initialSortBy,
+  initialSortDirection,
+  initialColumns,
+  onError,
+  onSuccess,
+}) {
+  // Consolidated data handler - now includes search functionality
+  const dataHandler = useDataHandler({
+    initialSalesReturns,
+    initialPagination,
+    initialSortBy,
+    initialSortDirection,
+    onError,
+    onSuccess
+  })
 
-  // Get initial columns
-  const initialColumns = useMemo(() => 
-    getSalesReturnColumns({ theme, permissions }),
-    [theme, permissions]
-  );
+  // Actions handler - manages CRUD operations
+  const actionsHandler = useActionsHandler({
+    onError,
+    onSuccess,
+    fetchSalesReturns: dataHandler.fetchSalesReturns
+  })
 
-  // Column state management
-  const [columnsState, setColumnsState] = useState(initialColumns);
+  // Columns handler - manages table columns
+  const columnsHandler = useColumnsHandler({
+    initialColumns
+  })
 
-  // Initialize columns from localStorage on mount
-  useEffect(() => {
-    const savedColumns = localStorage.getItem('salesReturnVisibleColumns');
-    if (savedColumns) {
-      try {
-        const parsedColumns = JSON.parse(savedColumns);
-        // Merge with initial columns to handle new columns that might have been added
-        const mergedColumns = initialColumns.map(initialCol => {
-          const savedCol = parsedColumns.find(col => col.key === initialCol.key);
-          return savedCol ? { ...initialCol, visible: savedCol.visible } : initialCol;
-        });
-        setColumnsState(mergedColumns);
-      } catch (error) {
-        console.error('Error parsing saved columns:', error);
-        setColumnsState(initialColumns);
-      }
-    }
-  }, [initialColumns]);
+  // Customer options for filters (if needed in future)
+  const customerOptions = useMemo(() =>
+    dataHandler.salesReturns?.map(salesReturn => ({
+      _id: salesReturn.customerInfo?._id,
+      name: salesReturn.customerInfo?.name
+    })).filter(customer => customer._id && customer.name) || [], [dataHandler.salesReturns])
 
-  // Handlers
-  const columnHandlers = columnsHandler(columnsState);
-  const actionHandlers = actionsHandler({ setPage, onListUpdate });
-
-  // Table columns with handlers injected
-  const tableColumns = useMemo(() =>
-    columnsState.map(col => ({
-      ...col,
-      renderCell: col.renderCell ?
-        (row) => col.renderCell(row, {
-          ...actionHandlers,
-          permissions,
-        }) : undefined
-    })),
-    [columnsState, actionHandlers, permissions]
-  );
+  // Add index to sales returns for serial number
+  const salesReturnsWithIndex = useMemo(() =>
+    dataHandler.salesReturns.map((salesReturn, index) => ({
+      ...salesReturn,
+      _index: index
+    })), [dataHandler.salesReturns])
 
   return {
-    // Column management
-    ...columnHandlers,
-    columnsState,
-    setColumnsState,
-    tableColumns,
-    
-    // Actions
-    ...actionHandlers,
-    
-    // Utils
-    permissions,
-    theme,
-  };
+    // Data state
+    salesReturns: salesReturnsWithIndex,
+    pagination: dataHandler.pagination,
+    loading: dataHandler.loading,
+    sortBy: dataHandler.sortBy,
+    sortDirection: dataHandler.sortDirection,
+
+    // Customer options
+    customerOptions,
+
+    // Data handlers
+    fetchSalesReturns: dataHandler.fetchSalesReturns,
+    handlePageChange: dataHandler.handlePageChange,
+    handlePageSizeChange: dataHandler.handlePageSizeChange,
+    handleSortChange: dataHandler.handleSortChange,
+
+    // Search handlers
+    searchTerm: dataHandler.searchTerm,
+    searching: dataHandler.searching,
+    handleSearchInputChange: dataHandler.handleSearchInputChange,
+    handleSearchSubmit: dataHandler.handleSearchSubmit,
+    handleSearchClear: dataHandler.handleSearchClear,
+    handleSearchFocus: dataHandler.handleSearchFocus,
+    handleSearchBlur: dataHandler.handleSearchBlur,
+
+    // Action handlers
+    selectedSalesReturn: actionsHandler.selectedSalesReturn,
+    deleteDialogOpen: actionsHandler.deleteDialogOpen,
+    handleView: actionsHandler.handleView,
+    handleEdit: actionsHandler.handleEdit,
+    handleDeleteClick: actionsHandler.handleDeleteClick,
+    handleDeleteConfirm: actionsHandler.handleDeleteConfirm,
+    handleDeleteCancel: actionsHandler.handleDeleteCancel,
+    handlePrintDownload: actionsHandler.handlePrintDownload,
+    handleProcessRefund: actionsHandler.handleProcessRefund,
+
+    // Column handlers
+    manageColumnsOpen: columnsHandler.manageColumnsOpen,
+    tempColumns: columnsHandler.tempColumns,
+    handleManageColumnsOpen: columnsHandler.handleManageColumnsOpen,
+    handleManageColumnsClose: columnsHandler.handleManageColumnsClose,
+    handleColumnToggle: columnsHandler.handleColumnToggle,
+    handleManageColumnsSave: columnsHandler.handleManageColumnsSave,
+    handleResetColumns: columnsHandler.handleResetColumns,
+    loadSavedColumns: columnsHandler.loadSavedColumns,
+    getVisibleColumns: columnsHandler.getVisibleColumns
+  }
 }

@@ -1,59 +1,85 @@
-'use client'
-
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react'
 
 /**
- * Column visibility management for sales return list.
+ * Columns handler for managing sales return list table columns
  */
-export function columnsHandler(initialColumns = []) {
-  const [availableColumns, setAvailableColumns] = useState(initialColumns);
-  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
+export const useColumnsHandler = ({ initialColumns }) => {
+  const [manageColumnsOpen, setManageColumnsOpen] = useState(false)
+  const [tempColumns, setTempColumns] = useState(initialColumns || [])
 
+  // Handle manage columns dialog open
   const handleManageColumnsOpen = useCallback(() => {
-    setAvailableColumns(initialColumns);
-    setManageColumnsOpen(true);
-  }, [initialColumns]);
+    setManageColumnsOpen(true)
+  }, [])
 
+  // Handle manage columns dialog close
   const handleManageColumnsClose = useCallback(() => {
-    setManageColumnsOpen(false);
-  }, []);
+    setManageColumnsOpen(false)
+    setTempColumns(initialColumns || [])
+  }, [initialColumns])
 
-  const handleColumnToggle = useCallback((columnKey) => {
-    setAvailableColumns(prev =>
+  // Handle column toggle
+  const handleColumnToggle = useCallback((columnId) => {
+    setTempColumns(prev =>
       prev.map(col =>
-        col.key === columnKey ? { ...col, visible: !col.visible } : col
+        col.id === columnId
+          ? { ...col, visible: !col.visible }
+          : col
       )
-    );
-  }, []);
+    )
+  }, [])
 
+  // Handle manage columns save
   const handleManageColumnsSave = useCallback((setColumns) => {
-    setColumns(availableColumns);
-    setManageColumnsOpen(false);
-    localStorage.setItem('salesReturnVisibleColumns', JSON.stringify(availableColumns));
-  }, [availableColumns]);
+    setColumns(tempColumns)
+    setManageColumnsOpen(false)
 
-  const handleColumnCheckboxChange = useCallback((columnKey, checked) => {
-    setAvailableColumns(prev =>
-      prev.map(col =>
-        col.key === columnKey ? { ...col, visible: checked } : col
-      )
-    );
-  }, []);
+    // Save to localStorage for persistence
+    try {
+      localStorage.setItem('salesReturnListColumns', JSON.stringify(tempColumns))
+    } catch (error) {
+      console.warn('Failed to save column preferences:', error)
+    }
+  }, [tempColumns])
 
-  // Memoize visible columns count
-  const visibleColumnsCount = useMemo(() =>
-    availableColumns.filter(col => col.visible).length,
-    [availableColumns]
-  );
+  // Reset columns to default
+  const handleResetColumns = useCallback(() => {
+    setTempColumns(initialColumns || [])
+  }, [initialColumns])
+
+  // Load saved column preferences
+  const loadSavedColumns = useCallback(() => {
+    try {
+      const saved = localStorage.getItem('salesReturnListColumns')
+      if (saved) {
+        const savedColumns = JSON.parse(saved)
+        setTempColumns(savedColumns)
+        return savedColumns
+      }
+    } catch (error) {
+      console.warn('Failed to load saved column preferences:', error)
+    }
+    return initialColumns || []
+  }, [initialColumns])
+
+  // Get visible columns
+  const getVisibleColumns = useCallback((columns) => {
+    return columns.filter(col => col.visible !== false)
+  }, [])
 
   return {
-    availableColumns,
+    // State
     manageColumnsOpen,
-    visibleColumnsCount,
+    tempColumns,
+
+    // Actions
     handleManageColumnsOpen,
     handleManageColumnsClose,
     handleColumnToggle,
     handleManageColumnsSave,
-    handleColumnCheckboxChange,
-  };
+    handleResetColumns,
+    loadSavedColumns,
+    getVisibleColumns,
+    setTempColumns
+  }
 }

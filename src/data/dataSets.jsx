@@ -304,14 +304,14 @@ export const actionButtons = [
     id: 'view',
     label: 'View',
     icon: 'line-md:watch',
-    color: 'default',
+    color: 'primary',
     title: 'View Details'
   },
   {
     id: 'edit',
     label: 'Edit',
     icon: 'line-md:edit',
-    color: 'default',
+    color: 'primary',
     title: 'Edit Item'
   },
   {

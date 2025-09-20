@@ -23,10 +23,10 @@ const InvoiceTotals = ({
     <Card>
       <CardContent className='px-4 py-3'>
         <Grid container spacing={1}>
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <Typography variant="body1">Amount:</Typography>
           </Grid>
-          <Grid item xs={6} sx={{ textAlign: 'right' }}>
+          <Grid size={{ xs: 6 }} sx={{ textAlign: 'right' }}>
             <Controller
               name="taxableAmount"
               control={control}
@@ -38,10 +38,10 @@ const InvoiceTotals = ({
             />
           </Grid>
 
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <Typography variant="body1">Discount:</Typography>
           </Grid>
-          <Grid item xs={6} sx={{ textAlign: 'right' }}>
+          <Grid size={{ xs: 6 }} sx={{ textAlign: 'right' }}>
             <Controller
               name="totalDiscount"
               control={control}
@@ -53,10 +53,10 @@ const InvoiceTotals = ({
             />
           </Grid>
 
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <Typography variant="body1">VAT:</Typography>
           </Grid>
-          <Grid item xs={6} sx={{ textAlign: 'right' }}>
+          <Grid size={{ xs: 6 }} sx={{ textAlign: 'right' }}>
             <Controller
               name="vat"
               control={control}
@@ -68,14 +68,14 @@ const InvoiceTotals = ({
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Divider sx={{ my: 1 }} />
           </Grid>
 
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <Typography variant="h6">Total:</Typography>
           </Grid>
-          <Grid item xs={6} sx={{ textAlign: 'right' }}>
+          <Grid size={{ xs: 6 }} sx={{ textAlign: 'right' }}>
             <Controller
               name="TotalAmount"
               control={control}

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { SnackbarProvider, useSnackbar, closeSnackbar } from 'notistack';
 import EditSalesReturn from '@/views/salesReturn/editSalesReturn/EditSalesReturn';
-import { getSalesReturnDetails, getCustomers, getProducts, getTaxRates, getBanks, getSignatures, updateSalesReturn } from '@/app/(dashboard)/sales-return/actions';
+import { updateSalesReturn } from '@/app/(dashboard)/sales-return/actions';
 import { IconButton } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { styled } from '@mui/material/styles';
@@ -24,7 +24,7 @@ const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) =>
     gap: '8px',
 
     '& .go703367398': {
-      margin:'0px',
+      margin: '0px',
       padding: '0px'
     },
 
@@ -56,7 +56,15 @@ const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) =>
   },
 }));
 
-const EditSalesReturnContent = ({ salesReturnId, salesReturnData, customers, products, taxRates, banks, signatures }) => {
+const EditSalesReturnContent = ({
+  id,
+  salesReturnData,
+  customersData,
+  productData,
+  taxRates,
+  initialBanks,
+  signatures
+}) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
   const handleSave = async (data) => {
@@ -71,7 +79,7 @@ const EditSalesReturnContent = ({ salesReturnId, salesReturnData, customers, pro
 
       const response = await updateSalesReturn({
         ...data,
-        id: salesReturnId,
+        id: id,
         credit_note_id: salesReturnData._id
       });
 
@@ -108,10 +116,10 @@ const EditSalesReturnContent = ({ salesReturnId, salesReturnData, customers, pro
   return (
     <EditSalesReturn
       salesReturnData={salesReturnData}
-      customers={customers}
-      products={products}
+      customersData={customersData}
+      productData={productData}
       taxRates={taxRates}
-      banks={banks}
+      initialBanks={initialBanks}
       signatures={signatures}
       onSave={handleSave}
       enqueueSnackbar={enqueueSnackbar}
@@ -120,50 +128,7 @@ const EditSalesReturnContent = ({ salesReturnId, salesReturnData, customers, pro
   );
 };
 
-const EditSalesReturnIndex = ({ id }) => {
-  const [salesReturnData, setSalesReturnData] = useState(null);
-  const [customers, setCustomers] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [taxRates, setTaxRates] = useState([]);
-  const [banks, setBanks] = useState([]);
-  const [signatures, setSignatures] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [salesReturn, customersData, productsData, taxRatesData, banksData, signaturesData] = await Promise.all([
-          getSalesReturnDetails(id),
-          getCustomers(),
-          getProducts(),
-          getTaxRates(),
-          getBanks(),
-          getSignatures()
-        ]);
-
-        setSalesReturnData(salesReturn);
-        setCustomers(customersData);
-        setProducts(productsData);
-        setTaxRates(taxRatesData);
-        setBanks(banksData);
-        setSignatures(signaturesData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!salesReturnData) {
-    return <div>Sales return not found</div>;
-  }
+const EditSalesReturnIndex = (props) => {
 
   return (
     <SnackbarProvider
@@ -190,15 +155,7 @@ const EditSalesReturnIndex = ({ id }) => {
         </IconButton>
       )}
     >
-      <EditSalesReturnContent
-        salesReturnId={id}
-        salesReturnData={salesReturnData}
-        customers={customers}
-        products={products}
-        taxRates={taxRates}
-        banks={banks}
-        signatures={signatures}
-      />
+      <EditSalesReturnContent {...props} />
     </SnackbarProvider>
   );
 };
