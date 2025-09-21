@@ -8,7 +8,7 @@ export const NextAuthProvider = ({ children, ...rest }) => {
   return (
     <SessionProvider {...rest}>
 
-        {children}
+      {children}
 
     </SessionProvider>
   )

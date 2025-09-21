@@ -1,5 +1,5 @@
 // src/hooks/usePermission.js
-import { usePermissions } from '@/contexts/PermissionsContext'
+import { usePermissions } from '@/Auth/PermissionsContext'
 
 export const usePermission = (module, action) => {
   const permissions = usePermissions()

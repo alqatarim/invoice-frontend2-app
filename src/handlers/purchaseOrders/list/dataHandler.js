@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getFilteredPurchaseOrders } from '@/app/(dashboard)/purchase-orders/actions';
-import { filterHandler } from '@/handlers/purchaseOrders/list/filterHandler';
 
 /**
  * Data handler for purchase order list
@@ -10,63 +9,64 @@ import { filterHandler } from '@/handlers/purchaseOrders/list/filterHandler';
 export function dataHandler({
   initialPurchaseOrders = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
-  initialTab = 'ALL',
-  initialFilters = {},
   initialSortBy = '',
   initialSortDirection = 'asc',
-  initialVendors = [],
   onError,
   onSuccess,
-  setVendorOptions,
-  setPurchaseOrderOptions,
-  handleVendorSearch,
-  handlePurchaseOrderSearch,
 }) {
   const [purchaseOrders, setPurchaseOrders] = useState(initialPurchaseOrders);
-  const [pagination, setPagination] = useState(initialPagination);
+  const [pagination, setPagination] = useState(() => {
+    // Ensure total matches initial data length if provided
+    const basePagination = initialPagination || { current: 1, pageSize: 10, total: 0 };
+    if (initialPurchaseOrders && initialPurchaseOrders.length > 0 && basePagination.total === 0) {
+      return { ...basePagination, total: initialPurchaseOrders.length };
+    }
+    return basePagination;
+  });
   const [loading, setLoading] = useState(false);
   const [sorting, setSorting] = useState({
     sortBy: initialSortBy,
     sortDirection: initialSortDirection
   });
 
-  // Use simplified filterHandler
-  const filter = filterHandler(initialFilters, initialTab);
+  // Search state management
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searching, setSearching] = useState(false);
 
-  // Initialize filter options on mount
+  // Use refs to access latest state values without causing re-renders
+  const stateRef = useRef({
+    searchTerm,
+    pagination,
+    sortBy: sorting.sortBy,
+    sortDirection: sorting.sortDirection
+  });
+
+  // Update refs when state changes
   useEffect(() => {
-    if (setVendorOptions && initialVendors.length > 0) {
-      setVendorOptions(initialVendors.map(v => ({ value: v._id, label: v.vendor })));
-    }
-    if (setPurchaseOrderOptions && initialPurchaseOrders.length > 0) {
-      setPurchaseOrderOptions(
-        initialPurchaseOrders
-          .filter(po => po.purchaseOrderId)
-          .map(po => ({ value: po.purchaseOrderId, label: po.purchaseOrderId }))
-      );
-    }
-  }, []);
+    stateRef.current = {
+      searchTerm,
+      pagination,
+      sortBy: sorting.sortBy,
+      sortDirection: sorting.sortDirection
+    };
+  }, [searchTerm, pagination, sorting.sortBy, sorting.sortDirection]);
 
   // Fetch purchase orders with current or provided parameters
   const fetchData = useCallback(async (params = {}) => {
     const {
       page = pagination.current,
       pageSize = pagination.pageSize,
-      filters = filter.filterValues,
       sortBy = sorting.sortBy,
       sortDirection = sorting.sortDirection
     } = params;
 
     setLoading(true);
     try {
-      // Determine tab value based on status filters
-      const tabValue = !filters.status?.length || filters.status.length > 1 ? 'ALL' : filters.status[0];
-
       const { purchaseOrders: newPurchaseOrders, pagination: newPagination } = await getFilteredPurchaseOrders(
-        tabValue,
+        'ALL', // Default to ALL tab since we removed filtering
         page,
         pageSize,
-        filters,
+        {}, // Empty filters
         sortBy,
         sortDirection
       );
@@ -75,27 +75,8 @@ export function dataHandler({
       setPagination(newPagination);
       setSorting({ sortBy, sortDirection });
 
-      // Update filter options with new data
-      if (setVendorOptions && newPurchaseOrders.length > 0) {
-        const vendorMap = new Map();
-        newPurchaseOrders.forEach(po => {
-          if (po.vendorId && !vendorMap.has(po.vendorId._id)) {
-            vendorMap.set(po.vendorId._id, {
-              value: po.vendorId._id,
-              label: po.vendorId.vendor
-            });
-          }
-        });
-        setVendorOptions(Array.from(vendorMap.values()));
-      }
-      
-      if (setPurchaseOrderOptions && newPurchaseOrders.length > 0) {
-        setPurchaseOrderOptions(
-          newPurchaseOrders
-            .filter(po => po.purchaseOrderId)
-            .map(po => ({ value: po.purchaseOrderId, label: po.purchaseOrderId }))
-        );
-      }
+      // Update full dataset for search functionality
+      setFullDataset(newPurchaseOrders);
 
       return { purchaseOrders: newPurchaseOrders, pagination: newPagination };
     } catch (error) {
@@ -105,47 +86,75 @@ export function dataHandler({
     } finally {
       setLoading(false);
     }
-  }, [pagination, filter.filterValues, sorting, onError, setVendorOptions, setPurchaseOrderOptions]);
+  }, [pagination, sorting, onError]);
 
-  const handlePageChange = useCallback((event, newPage) => 
+  const handlePageChange = useCallback((event, newPage) =>
     fetchData({ page: newPage + 1 }), [fetchData]);
 
-  const handlePageSizeChange = useCallback(event => 
+  const handlePageSizeChange = useCallback(event =>
     fetchData({ page: 1, pageSize: parseInt(event.target.value, 10) }), [fetchData]);
 
-  const handleSortRequest = useCallback(columnKey => {
-    const newDirection = sorting.sortBy === columnKey && sorting.sortDirection === 'asc' ? 'desc' : 'asc';
+  const handleSortRequest = useCallback((columnKey, direction) => {
+    const newDirection = direction || (sorting.sortBy === columnKey && sorting.sortDirection === 'asc' ? 'desc' : 'asc');
     fetchData({ page: 1, sortBy: columnKey, sortDirection: newDirection });
     return { sortBy: columnKey, sortDirection: newDirection };
   }, [sorting, fetchData]);
 
-  const handleFilterValueChange = useCallback((field, value) => {
-    filter.updateFilter(field, value);
-    if (field === 'vendorSearchText' && handleVendorSearch) handleVendorSearch(value);
-    if (field === 'purchaseOrderSearchText' && handlePurchaseOrderSearch) handlePurchaseOrderSearch(value);
-  }, [filter, handleVendorSearch, handlePurchaseOrderSearch]);
+  // Keep a reference to the full dataset for search functionality
+  const [fullDataset, setFullDataset] = useState(initialPurchaseOrders);
 
-  const handleFilterApply = useCallback((currentFilters = null) => {
-    fetchData({ page: 1, filters: currentFilters || filter.filterValues });
-    filter.setFilterOpen(false);
-  }, [filter, fetchData]);
+  // Search handlers - works with current dataset for local filtering
+  const handleSearchInputChange = useCallback(async (value) => {
+    // Don't do anything if the value hasn't actually changed
+    if (value === stateRef.current.searchTerm) return;
 
-  const handleFilterReset = useCallback(() => {
-    filter.resetFilters();
-    setVendorOptions?.([]);
-    setPurchaseOrderOptions?.([]);
-    fetchData({ page: 1, filters: {}, sortBy: '', sortDirection: 'asc' });
-    filter.setFilterOpen(false);
-  }, [filter, fetchData, setVendorOptions, setPurchaseOrderOptions]);
+    setSearching(true);
+    setSearchTerm(value);
 
-  const handleTabChange = useCallback((event, newStatuses) => {
-    const updatedStatuses = filter.updateStatus(newStatuses);
-    fetchData({ page: 1, filters: { ...filter.filterValues, status: updatedStatuses } });
-  }, [filter, fetchData]);
+    try {
+      // Use the full dataset for filtering
+      const dataToFilter = fullDataset.length > 0 ? fullDataset : purchaseOrders;
 
-  // Initial data fetch
+      if (value.trim() === '') {
+        // Reset to full dataset when search is cleared
+        setPurchaseOrders(dataToFilter);
+        setPagination(prev => ({
+          ...prev,
+          current: 1,
+          total: dataToFilter.length
+        }));
+      } else {
+        // Filter current dataset locally
+        const filtered = dataToFilter.filter(item =>
+          item.purchaseOrderId?.toLowerCase().includes(value.toLowerCase()) ||
+          item.vendorInfo?.vendor_name?.toLowerCase().includes(value.toLowerCase()) ||
+          item.vendorInfo?.phone?.includes(value) ||
+          item.notes?.toLowerCase().includes(value.toLowerCase())
+        );
+        setPurchaseOrders(filtered);
+        setPagination(prev => ({ ...prev, current: 1, total: filtered.length }));
+      }
+    } catch (error) {
+      console.error('Error searching purchase orders:', error);
+      onError?.(error.message || 'Search failed');
+    } finally {
+      setSearching(false);
+    }
+  }, [onError, fullDataset, purchaseOrders]);
+
+  const handleSearchSubmit = useCallback((value) => {
+    handleSearchInputChange(value);
+  }, [handleSearchInputChange]);
+
+  const handleSearchClear = useCallback(() => {
+    handleSearchInputChange('');
+  }, [handleSearchInputChange]);
+
+  // Initial data fetch on mount
   useEffect(() => {
-    fetchData();
+    if (initialPurchaseOrders.length === 0) {
+      fetchData();
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
@@ -155,23 +164,19 @@ export function dataHandler({
     loading,
     ...sorting,
 
+    // Search state
+    searchTerm,
+    searching,
+
     // Handlers
     fetchData,
     handlePageChange,
     handlePageSizeChange,
     handleSortRequest,
-    handleFilterValueChange,
-    handleFilterApply,
-    handleFilterReset,
-    handleTabChange,
 
-    // Filter state and methods
-    ...filter,
-
-    // Computed values
-    getCurrentTab: () => {
-      const status = filter.filterValues.status;
-      return !status?.length || status.length > 1 ? 'ALL' : status[0];
-    }
+    // Search handlers
+    handleSearchInputChange,
+    handleSearchSubmit,
+    handleSearchClear,
   };
 }

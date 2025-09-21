@@ -70,10 +70,10 @@ const AddPurchaseOrderIndex = ({ vendors, products, taxRates, banks, signatures,
     <>
       <AddPurchaseOrder
         onSave={handleSave}
-        vendors={vendors}
-        products={products}
+        vendorsData={vendors}
+        productData={products}
         taxRates={taxRates}
-        banks={banks}
+        initialBanks={banks}
         signatures={signatures}
         purchaseOrderNumber={purchaseOrderNumber}
       />

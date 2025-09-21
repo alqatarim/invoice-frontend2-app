@@ -412,7 +412,7 @@ const EditSalesReturn = (props) => {
                                              render={({ field }) => (
                                                   <TextField
                                                        className='overflow-auto scrollbar-thin scrollbar-thumb-primary 
-                                                       scrollbar-thumb-opacity-20 scrollbar-thumb-rounded '
+                                                       scrollbar-thumb-opacity-20 scrollbar-thumb-rounded  '
                                                        {...field}
                                                        multiline
                                                        rows={notesExpanded ? 4 : 1}
@@ -422,7 +422,7 @@ const EditSalesReturn = (props) => {
                                                        fullWidth
                                                        InputProps={{
                                                             endAdornment: (
-                                                                 <InputAdornment position="end" size="small" className='max-h-[15px]'>
+                                                                 <InputAdornment position="end" size="amall" className='max-h-[13px]'>
 
                                                                       <CustomOriginalIconButton
                                                                            size="small"
@@ -430,7 +430,7 @@ const EditSalesReturn = (props) => {
                                                                            color='primary'
                                                                            skin='light'
                                                                       >
-                                                                           {notesExpanded ? <Icon icon="mdi:keyboard-arrow-up" color={theme.palette.primary.main} /> : <Icon icon="mdi:keyboard-arrow-down" color={theme.palette.primary.main} />}
+                                                                           {notesExpanded ? <Icon icon="mdi:keyboard-arrow-up" color={theme.palette.primary.main} /> : <Icon size={14} icon="mdi:keyboard-arrow-down" color={theme.palette.primary.main} />}
                                                                       </CustomOriginalIconButton>
                                                                       {/* <CustomOriginalIconButton
                                                                            size="xs"
@@ -448,11 +448,6 @@ const EditSalesReturn = (props) => {
                                         />
                                    </Grid>
 
-                                   {/* Customer */}
-                                   <Grid size={{ xs: 12, sm: 6, md: 8, lg: 6 }}>
-                                        <CustomerAutocomplete control={control} errors={errors} customersData={customersData} />
-                                   </Grid>
-
                                    {/* Terms & Conditions */}
                                    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                                         {/* Terms & Conditions CustomIconButton */}
@@ -464,6 +459,13 @@ const EditSalesReturn = (props) => {
                                              Terms & Conditions
                                         </Button>
                                    </Grid>
+
+                                   {/* Customer */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 8, lg: 6 }}>
+                                        <CustomerAutocomplete control={control} errors={errors} customersData={customersData} />
+                                   </Grid>
+
+
                               </Grid>
                          </CardContent>
                     </Card>

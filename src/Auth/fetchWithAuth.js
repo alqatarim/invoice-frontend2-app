@@ -1,10 +1,10 @@
 // '@/utils/fetchWithAuth.js'
 
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/libs/auth';
+import { authOptions } from '@/Auth/auth';
 
 
-   const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 // Add session caching
 let cachedSession = null;
@@ -23,8 +23,8 @@ export async function fetchWithAuth(endpoint, options = {}) {
       options: { ...options },
       body: options.body ? (
         typeof options.body === 'string' ? JSON.parse(options.body) :
-        options.body instanceof FormData ? { formData: Object.fromEntries(options.body.entries()) } :
-        { json: options.body }
+          options.body instanceof FormData ? { formData: Object.fromEntries(options.body.entries()) } :
+            { json: options.body }
       ) : undefined
     },
     response: null
@@ -32,7 +32,7 @@ export async function fetchWithAuth(endpoint, options = {}) {
 
 
 
-    // Use cached session if available and not expired
+  // Use cached session if available and not expired
   if (!cachedSession || Date.now() > sessionExpiry) {
     cachedSession = await getServerSession(authOptions);
     sessionExpiry = Date.now() + SESSION_CACHE_DURATION;
@@ -55,28 +55,28 @@ export async function fetchWithAuth(endpoint, options = {}) {
       credentials: 'include',
     });
 
-      // Clone response for logging (since response can only be consumed once)
-      const responseClone = response.clone();
-      const responseData = await responseClone.json();
+    // Clone response for logging (since response can only be consumed once)
+    const responseClone = response.clone();
+    const responseData = await responseClone.json();
 
-  //  console.log(`=== Request to ${endpoint} [${requestId}] ===`);
+    //  console.log(`=== Request to ${endpoint} [${requestId}] ===`);
 
-     //  ============         ===============
-     //  ============         ===============
-  //  console.log('Request Details:', JSON.stringify(logData.request, null, 2));
+    //  ============         ===============
+    //  ============         ===============
+    //  console.log('Request Details:', JSON.stringify(logData.request, null, 2));
 
 
-   console.log(`=== Response Data from ${endpoint} [${requestId}] ===`);
+    console.log(`=== Response Data from ${endpoint} [${requestId}] ===`);
 
-     //  ============         ===============
-     //  ============         ===============
-   console.log(JSON.stringify(responseData, null, 2));
+    //  ============         ===============
+    //  ============         ===============
+    console.log(JSON.stringify(responseData, null, 2));
 
-      // Update log object with response
-      logData.response = {
-        status: response.status,
-         data: responseData
-      };
+    // Update log object with response
+    logData.response = {
+      status: response.status,
+      data: responseData
+    };
 
     if (!response.ok) {
       const error = await response.clone().json();
@@ -102,7 +102,7 @@ export async function fetchWithAuth(endpoint, options = {}) {
 
     return await response.json();
   } catch (error) {
-     console.error('Error in fetchWithAuth:', error.message);
+    console.error('Error in fetchWithAuth:', error.message);
     // Update log object with error
     logData.response = {
       error: error.message

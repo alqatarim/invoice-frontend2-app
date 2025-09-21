@@ -1,43 +1,18 @@
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
-import { Typography, Chip } from '@mui/material';
+import { Typography, Chip, Box, IconButton } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
-import { statusOptions } from '@/data/dataSets';
+import { statusOptions, actionButtons } from '@/data/dataSets';
 import OptionMenu from '@core/components/option-menu';
+import { formatDate } from '@/utils/dateUtils';
 
 // Action cell extracted into its own component so hooks are used at the top level
 const ActionCell = ({ row, handlers, permissions }) => {
-  const viewAction = { icon: 'mdi:eye-outline', title: 'View' };
-  const editAction = { icon: 'mdi:edit-outline', title: 'Edit' };
-  const deleteAction = { icon: 'mdi:delete-outline', title: 'Delete' };
-
-  const options = [];
-
-  if (permissions?.canView) {
-    options.push({
-      text: 'View',
-      icon: <Icon icon={viewAction.icon} />,
-      href: `/purchase-orders/order-view/${row._id}`,
-      linkProps: {
-        className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
-      }
-    });
-  }
-
-  if (permissions?.canUpdate) {
-    options.push({
-      text: 'Edit',
-      icon: <Icon icon={editAction.icon} />,
-      href: `/purchase-orders/order-edit/${row._id}`,
-      linkProps: {
-        className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
-      }
-    });
-  }
+  const menuOptions = [];
 
   if (permissions?.canCreate) {
-    options.push({
+    menuOptions.push({
       text: 'Clone',
       icon: <Icon icon="mdi:content-duplicate" />,
       menuItemProps: {
@@ -46,7 +21,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
       }
     });
 
-    options.push({
+    menuOptions.push({
       text: 'Send',
       icon: <Icon icon="mdi:invoice-send-outline" />,
       menuItemProps: {
@@ -57,7 +32,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
   }
 
   if (permissions?.canUpdate) {
-    options.push({
+    menuOptions.push({
       text: 'Convert to Purchase',
       icon: <Icon icon="mdi:invoice-export-outline" style={{ transform: 'scaleX(-1)' }} />,
       menuItemProps: {
@@ -66,7 +41,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
       }
     });
 
-    options.push({
+    menuOptions.push({
       text: 'Print & Download',
       icon: <Icon icon="mdi:printer-outline" />,
       menuItemProps: {
@@ -77,11 +52,42 @@ const ActionCell = ({ row, handlers, permissions }) => {
   }
 
   return (
-    <OptionMenu
-      icon={<MoreVertIcon />}
-      iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
-      options={options}
-    />
+    <Box className='flex items-center justify-end gap-1'>
+      {/* Direct action buttons */}
+      <Box className='flex gap-1' sx={{ display: 'flex', gap: 1 }}>
+        {permissions?.canView && (
+          <IconButton
+            size="small"
+            component={Link}
+            href={`/purchase-orders/order-view/${row._id}`}
+            title={actionButtons.find(action => action.id === 'view')?.title || 'View'}
+            color={actionButtons.find(action => action.id === 'view')?.color || 'primary'}
+          >
+            <Icon icon={actionButtons.find(action => action.id === 'view')?.icon || 'mdi:eye-outline'} />
+          </IconButton>
+        )}
+        {permissions?.canUpdate && (
+          <IconButton
+            size="small"
+            component={Link}
+            href={`/purchase-orders/order-edit/${row._id}`}
+            title={actionButtons.find(action => action.id === 'edit')?.title || 'Edit'}
+            color={actionButtons.find(action => action.id === 'edit')?.color || 'primary'}
+          >
+            <Icon icon={actionButtons.find(action => action.id === 'edit')?.icon || 'mdi:edit-outline'} />
+          </IconButton>
+        )}
+      </Box>
+
+      {/* Menu for additional actions */}
+      {menuOptions.length > 0 && (
+        <OptionMenu
+          icon={<MoreVertIcon />}
+          iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
+          options={menuOptions}
+        />
+      )}
+    </Box>
   );
 };
 
@@ -89,27 +95,27 @@ const ActionCell = ({ row, handlers, permissions }) => {
  * Purchase Order table column definitions
  */
 export const getPurchaseOrderColumns = ({ theme = {}, permissions = {} } = {}) => [
-  {
-    key: 'serial',
-    visible: true,
-    label: '#',
-    align: 'center',
-    renderCell: (row, handlers, index) => {
-      // Add proper fallbacks and validation
-      const currentPage = Number(handlers?.pagination?.current || handlers?.pagination?.page || 1);
-      const pageSize = Number(handlers?.pagination?.pageSize || handlers?.pagination?.limit || 10);
-      const rowIndex = Number(index >= 0 ? index : 0);
+  // {
+  //   key: 'serial',
+  //   visible: true,
+  //   label: '#',
+  //   align: 'center',
+  //   renderCell: (row, handlers, index) => {
+  //     // Add proper fallbacks and validation
+  //     const currentPage = Number(handlers?.pagination?.current || handlers?.pagination?.page || 1);
+  //     const pageSize = Number(handlers?.pagination?.pageSize || handlers?.pagination?.limit || 10);
+  //     const rowIndex = Number(index >= 0 ? index : 0);
 
-      // Calculate serial number with proper validation
-      const serialNumber = (currentPage - 1) * pageSize + rowIndex + 1;
+  //     // Calculate serial number with proper validation
+  //     const serialNumber = (currentPage - 1) * pageSize + rowIndex + 1;
 
-      return (
-        <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-          {!isNaN(serialNumber) ? serialNumber : rowIndex + 1}
-        </Typography>
-      );
-    },
-  },
+  //     return (
+  //       <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
+  //         {!isNaN(serialNumber) ? serialNumber : rowIndex + 1}
+  //       </Typography>
+  //     );
+  //   },
+  // },
   {
     key: 'purchaseOrderId',
     visible: true,
@@ -131,28 +137,11 @@ export const getPurchaseOrderColumns = ({ theme = {}, permissions = {} } = {}) =
     align: 'center',
     sortable: true,
     renderCell: (row) => {
-      // Ensure proper date parsing and validation
-      const orderDate = row.purchaseOrderDate;
-      let formattedDate = 'N/A';
-
-      if (orderDate) {
-        const momentDate = moment(orderDate, 'DD-MM-YYYY', true); // strict parsing for DD-MM-YYYY
-        if (momentDate.isValid()) {
-          formattedDate = momentDate.format('DD MMM YYYY');
-        } else {
-          // Try ISO format as fallback
-          const isoDate = moment(orderDate);
-          if (isoDate.isValid()) {
-            formattedDate = isoDate.format('DD MMM YYYY');
-          }
-        }
-      }
-
       return (
         <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-          {formattedDate}
+          {formatDate(row.purchaseOrderDate)}
         </Typography>
-      );
+      )
     },
   },
   {
@@ -161,12 +150,18 @@ export const getPurchaseOrderColumns = ({ theme = {}, permissions = {} } = {}) =
     label: 'Vendor',
     sortable: true,
     renderCell: (row, handlers) => (
-      <Typography
-        className="cursor-pointer text-primary hover:underline font-medium"
-        onClick={() => window.open(`/vendors/vendor-view/${row.vendorId}`, '_blank')}
-      >
-        {row.vendorInfo?.vendor_name || 'Deleted Vendor'}
-      </Typography>
+
+      <Box className='flex flex-col'>
+        <Typography
+          className="cursor-pointer text-primary hover:underline font-medium"
+          onClick={() => window.open(`/vendors/vendor-view/${row.vendorId}`, '_blank')}
+        >
+          {row.vendorInfo?.vendor_name || 'Deleted Vendor'}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" className='text-[0.85rem]'>
+          {row.vendorInfo?.vendor_phone || 'N/A'}
+        </Typography>
+      </Box>
     ),
   },
   {
@@ -215,28 +210,13 @@ export const getPurchaseOrderColumns = ({ theme = {}, permissions = {} } = {}) =
     align: 'center',
     sortable: true,
     renderCell: (row) => {
-      // Ensure proper date parsing and validation
-      const dueDate = row.dueDate;
-      let formattedDate = 'N/A';
-
-      if (dueDate) {
-        const momentDate = moment(dueDate, 'DD-MM-YYYY', true); // strict parsing for DD-MM-YYYY
-        if (momentDate.isValid()) {
-          formattedDate = momentDate.format('DD MMM YYYY');
-        } else {
-          // Try ISO format as fallback
-          const isoDate = moment(dueDate);
-          if (isoDate.isValid()) {
-            formattedDate = isoDate.format('DD MMM YYYY');
-          }
-        }
-      }
 
       return (
         <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-          {formattedDate}
+          {formatDate(row.dueDate)}
         </Typography>
-      );
+      )
+
     },
   },
   // {
@@ -262,7 +242,7 @@ export const getPurchaseOrderColumns = ({ theme = {}, permissions = {} } = {}) =
   //           return { color: 'default', label: 'N/A' };
   //       }
   //     };
-      
+
   //     const statusConfig = getStatusConfig(row.status);
   //     return (
   //       <Chip
@@ -281,10 +261,10 @@ export const getPurchaseOrderColumns = ({ theme = {}, permissions = {} } = {}) =
     visible: true,
     align: 'right',
     renderCell: (row, handlers) => (
-      <ActionCell 
-        row={row} 
-        handlers={handlers} 
-        permissions={permissions} 
+      <ActionCell
+        row={row}
+        handlers={handlers}
+        permissions={permissions}
       />
     ),
   },

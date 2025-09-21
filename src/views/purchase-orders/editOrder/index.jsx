@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Snackbar, Alert, CircularProgress, Box, Typography } from '@mui/material';
 import EditPurchaseOrder from '@/views/purchase-orders/editOrder/EditPurchaseOrder';
-import {updatePurchaseOrder} from '@/app/(dashboard)/purchase-orders/actions';
+import { updatePurchaseOrder } from '@/app/(dashboard)/purchase-orders/actions';
 
 
 
@@ -66,9 +66,6 @@ const EditPurchaseOrderIndex = ({ orderId, purchaseOrderData, vendorsData, produ
     }
   };
 
-
-console.log('signatures!!!!!!!');
-console.log(signatures);
 
 
 

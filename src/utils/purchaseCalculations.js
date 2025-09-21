@@ -1,6 +1,6 @@
 export const purchaseCalculations = {
   calculateItemValues: (item) => {
-    if (!item) return { rate: 0, discount: 0, discountType: 2, tax: 0, amount: 0, taxableAmount: 0  };
+    if (!item) return { rate: 0, discount: 0, discountType: 2, tax: 0, amount: 0, taxableAmount: 0 };
     const quantity = Number(item.quantity) || 0;
     const baseRate = (item.isRateFormUpadted === true || item.isRateFormUpadted === "true")
       ? Number(item.form_updated_rate)
@@ -73,3 +73,49 @@ export const purchaseCalculations = {
     };
   }
 };
+
+/**
+ * Calculate purchase totals with rounding option - matches invoice totals signature
+ * @param {Array} items - Array of purchase order items
+ * @param {Boolean} shouldRoundOff - Whether to round the total amount
+ * @returns {Object} Calculated totals in format expected by components
+ */
+export function calculatePurchaseTotals(items, shouldRoundOff) {
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return {
+      taxableAmount: 0,
+      totalDiscount: 0,
+      vat: 0,
+      TotalAmount: 0,
+      roundOffValue: 0,
+    };
+  }
+
+  const { taxableAmount, totalDiscount, vat } = items.reduce(
+    (acc, item) => {
+      const { rate, discount, tax } = purchaseCalculations.calculateItemValues(item);
+      return {
+        taxableAmount: acc.taxableAmount + rate,
+        totalDiscount: acc.totalDiscount + discount,
+        vat: acc.vat + tax
+      };
+    },
+    { taxableAmount: 0, totalDiscount: 0, vat: 0 }
+  );
+
+  let TotalAmount = taxableAmount - totalDiscount + vat;
+  let roundOffValue = 0;
+
+  if (shouldRoundOff) {
+    roundOffValue = Math.round(TotalAmount) - TotalAmount;
+    TotalAmount = Math.round(TotalAmount);
+  }
+
+  return {
+    taxableAmount,
+    totalDiscount,
+    vat,
+    TotalAmount,
+    roundOffValue,
+  };
+}

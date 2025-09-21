@@ -23,7 +23,6 @@ import { usePermission } from '@/Auth/usePermission';
 import { useSearchParams } from 'next/navigation';
 
 import PurchaseOrderHead from '@/views/purchase-orders/listOrder/PurchaseOrderHead';
-import PurchaseOrderFilter from '@/views/purchase-orders/listOrder/PurchaseOrderFilter';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { usePurchaseOrderListHandlers } from '@/handlers/purchaseOrders/usePurchaseOrderListHandlers';
 import { formatCurrency } from '@/utils/currencyUtils';
@@ -147,14 +146,6 @@ const PurchaseOrderList = ({ initialPurchaseOrders, initialPagination }) => {
       />
 
       <Grid container spacing={3}>
-        {/* Purchase Order Filter */}
-        <Grid size={{ xs: 12 }}>
-          <PurchaseOrderFilter
-            onApplyFilters={handlers.handleFilterApply}
-            onResetFilters={handlers.handleFilterReset}
-          />
-        </Grid>
-
         <Grid size={{ xs: 12 }}>
           <CustomListTable
             columns={tableColumns}

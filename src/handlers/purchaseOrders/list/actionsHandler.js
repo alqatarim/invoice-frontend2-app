@@ -10,7 +10,7 @@ import {
 /**
  * Purchase order actions handler - manages all purchase order-related actions.
  */
-export function actionsHandler({ onSuccess, onError, fetchData, pagination, filters }) {
+export function actionsHandler({ onSuccess, onError, fetchData, pagination }) {
   /**
    * Execute an action with standard error handling and optional data refresh.
    */
@@ -19,7 +19,7 @@ export function actionsHandler({ onSuccess, onError, fetchData, pagination, filt
       const result = await actionFn();
       onSuccess?.(successMessage);
       if (shouldRefresh && fetchData) {
-        await fetchData({ page: pagination?.current, filters });
+        await fetchData({ page: pagination?.current });
       }
       return result;
     } catch (error) {

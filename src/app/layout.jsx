@@ -1,9 +1,9 @@
 import { Inter } from 'next/font/google'
 import { i18n } from '@configs/i18n'
 
-import AuthWrapper from '@/components/AuthWrapper'
+import AuthWrapper from '@/Auth/AuthWrapper'
 import Providers from '@components/Providers'
-import { NextAuthProvider } from '@/contexts/nextAuthProvider'
+import { NextAuthProvider } from '@/Auth/nextAuthProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 

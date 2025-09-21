@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import AuthRedirect from '@/components/AuthRedirect'
+import AuthRedirect from '@/Auth/AuthRedirect'
 
 const AuthWrapper = ({ children }) => {
   const { data: session, status } = useSession()

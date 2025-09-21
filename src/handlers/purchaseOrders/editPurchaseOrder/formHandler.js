@@ -1,6 +1,6 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { purchaseOrderSchema } from '@/views/purchase-orders/PurchaseOrderSchema';
+import { purchaseOrderSchema } from '@/views/purchase-orders/addOrder/PurchaseOrderSchema';
 
 export function useFormHandler({ purchaseOrderData }) {
   const defaultValues = {

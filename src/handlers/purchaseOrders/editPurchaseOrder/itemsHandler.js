@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { calculateItemTotals } from '@/utils/itemCalculations';
+import { formatNewBuyItem } from '@/utils/formatNewBuyItem';
 
 export function useItemsHandler({
   control,
@@ -18,7 +19,7 @@ export function useItemsHandler({
 
   const updateCalculatedFields = (index, item, setValue) => {
     const calculated = calculateItemTotals(item);
-    
+
     setValue(`items.${index}.discount`, calculated.discount);
     setValue(`items.${index}.tax`, calculated.tax);
     setValue(`items.${index}.amount`, calculated.amount);
@@ -26,7 +27,7 @@ export function useItemsHandler({
 
   const handleUpdateItemProduct = (index, productId, previousProductId) => {
     const product = productData.find(p => p._id === productId);
-    
+
     if (!product) {
       setValue(`items.${index}.productId`, '');
       return;
@@ -79,36 +80,20 @@ export function useItemsHandler({
   };
 
   const handleAddEmptyRow = () => {
-    append({
-      productId: '',
-      name: '',
-      quantity: 1,
-      units: '',
-      rate: 0,
-      form_updated_rate: 0,
-      discount: 0,
-      form_updated_discount: 0,
-      discountType: 3,
-      form_updated_discounttype: 3,
-      tax: 0,
-      form_updated_tax: 0,
-      taxInfo: { taxRate: 0 },
-      amount: 0,
-      isRateFormUpadted: false
-    });
+    append(formatNewBuyItem());
   };
 
   const handleMenuItemClick = (index, discountType) => {
     setValue(`items.${index}.discountType`, discountType);
     setValue(`items.${index}.form_updated_discounttype`, discountType);
     setValue(`items.${index}.isRateFormUpadted`, true);
-    
+
     if (discountType === 2) {
       setValue(`items.${index}.form_updated_discount`, 0);
     } else {
       setValue(`items.${index}.discount`, 0);
     }
-    
+
     const item = getValues(`items.${index}`);
     updateCalculatedFields(index, item, setValue);
   };
@@ -125,7 +110,7 @@ export function useItemsHandler({
     setValue(`items.${index}.taxInfo`, tax);
     setValue(`items.${index}.form_updated_tax`, tax.taxRate);
     setValue(`items.${index}.isRateFormUpadted`, true);
-    
+
     const item = getValues(`items.${index}`);
     updateCalculatedFields(index, item, setValue);
     handleTaxClose();

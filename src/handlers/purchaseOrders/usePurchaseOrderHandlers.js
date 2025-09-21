@@ -1,10 +1,11 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useState, useEffect } from 'react';
-import { editPurchaseOrderSchema } from '@/views/purchaseOrders/PurchaseOrderSchema';
+import { editPurchaseOrderSchema } from '@/views/purchase-orders/addOrder/PurchaseOrderSchema';
 import { paymentMethods } from '@/data/dataSets';
 import { calculateItemTotals } from '@/utils/itemCalculations';
 import { formatDateForInput } from '@/utils/dateUtils';
+import { formatNewBuyItem } from '@/utils/formatNewBuyItem';
 import { useRouter } from 'next/navigation';
 
 export default function usePurchaseOrderHandlers({
@@ -99,7 +100,7 @@ export default function usePurchaseOrderHandlers({
   // Initialize available products
   useEffect(() => {
     if (productData && purchaseOrderData?.items) {
-      const usedProductIds = purchaseOrderData.items.map(item => 
+      const usedProductIds = purchaseOrderData.items.map(item =>
         item.productId?._id || item.productId
       );
       const availableProducts = productData.filter(
@@ -114,7 +115,7 @@ export default function usePurchaseOrderHandlers({
   // Item handlers
   const updateCalculatedFields = (index, item, setValue) => {
     const calculated = calculateItemTotals(item);
-    
+
     setValue(`items.${index}.discount`, calculated.discount);
     setValue(`items.${index}.tax`, calculated.tax);
     setValue(`items.${index}.amount`, calculated.amount);
@@ -122,7 +123,7 @@ export default function usePurchaseOrderHandlers({
 
   const handleUpdateItemProduct = (index, productId, previousProductId) => {
     const product = productData.find(p => p._id === productId);
-    
+
     if (!product) {
       setValue(`items.${index}.productId`, '');
       return;
@@ -175,36 +176,20 @@ export default function usePurchaseOrderHandlers({
   };
 
   const handleAddEmptyRow = () => {
-    append({
-      productId: '',
-      name: '',
-      quantity: 1,
-      units: '',
-      rate: 0,
-      form_updated_rate: 0,
-      discount: 0,
-      form_updated_discount: 0,
-      discountType: 3,
-      form_updated_discounttype: 3,
-      tax: 0,
-      form_updated_tax: 0,
-      taxInfo: { taxRate: 0 },
-      amount: 0,
-      isRateFormUpadted: false
-    });
+    append(formatNewBuyItem());
   };
 
   const handleMenuItemClick = (index, discountType) => {
     setValue(`items.${index}.discountType`, discountType);
     setValue(`items.${index}.form_updated_discounttype`, discountType);
     setValue(`items.${index}.isRateFormUpadted`, true);
-    
+
     if (discountType === 2) {
       setValue(`items.${index}.form_updated_discount`, 0);
     } else {
       setValue(`items.${index}.discount`, 0);
     }
-    
+
     const item = getValues(`items.${index}`);
     updateCalculatedFields(index, item, setValue);
   };
@@ -221,7 +206,7 @@ export default function usePurchaseOrderHandlers({
     setValue(`items.${index}.taxInfo`, tax);
     setValue(`items.${index}.form_updated_tax`, tax.taxRate);
     setValue(`items.${index}.isRateFormUpadted`, true);
-    
+
     const item = getValues(`items.${index}`);
     updateCalculatedFields(index, item, setValue);
     handleTaxClose();
@@ -317,9 +302,9 @@ export default function usePurchaseOrderHandlers({
 
   const handleError = (errors) => {
     console.error('Form validation errors:', errors);
-    
+
     let firstError = 'Please check all required fields';
-    
+
     if (errors.vendorId) {
       firstError = 'Please select a vendor';
     } else if (errors.items && errors.items.length > 0) {
