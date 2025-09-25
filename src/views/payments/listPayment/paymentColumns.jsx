@@ -26,19 +26,20 @@ const getPaymentModeIcon = (mode) => {
 export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
   const theme = useTheme();
 
+  const handlers = { handleView, handleEdit, handleDelete };
+
   return [
     {
       key: 'payment_number',
       label: 'Payment No',
       visible: true,
       sortable: true,
-      renderCell: (row) => (
+      renderCell: (row, handlers) => (
         <Typography
-          component={Link}
-          href={`/payments/payment-view/${row._id}`}
           variant="h6"
           color="primary"
-          sx={{ textDecoration: 'none' }}
+          sx={{ cursor: 'pointer', textDecoration: 'none' }}
+          onClick={() => handlers?.handleView?.(row._id)}
         >
           {row.payment_number}
         </Typography>
@@ -100,10 +101,10 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
       sortable: true,
       renderCell: (row) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Icon 
-            icon={getPaymentModeIcon(row.payment_method)} 
-            fontSize={23} 
-            color={theme.palette.secondary.main} 
+          <Icon
+            icon={getPaymentModeIcon(row.payment_method)}
+            fontSize={23}
+            color={theme.palette.secondary.main}
           />
           <Typography variant="body1">{row.payment_method}</Typography>
         </Box>
@@ -120,12 +121,12 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
             row.status === 'Success'
               ? 'success'
               : row.status === 'Processing'
-              ? 'primary'
-              : row.status === 'Pending'
-              ? 'warning'
-              : row.status === 'Failed'
-              ? 'error'
-              : 'secondary'
+                ? 'primary'
+                : row.status === 'Pending'
+                  ? 'warning'
+                  : row.status === 'Failed'
+                    ? 'error'
+                    : 'secondary'
           }
           variant="tonal"
           size="medium"
@@ -140,21 +141,21 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
       label: 'Actions',
       visible: true,
       sortable: false,
-      renderCell: (row) => {
+      renderCell: (row, cellHandlers) => {
         const menuOptions = actionButtons.filter(action => action.id !== 'view' && action.id !== 'edit');
 
         return (
           <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton
               size="small"
-              onClick={() => handleView(row._id)}
+              onClick={() => cellHandlers?.handleView?.(row._id)}
               title={actionButtons.find(action => action.id === 'view').title}
             >
               <Icon icon={actionButtons.find(action => action.id === 'view').icon} />
             </IconButton>
             <IconButton
               size="small"
-              onClick={() => handleEdit(row._id)}
+              onClick={() => cellHandlers?.handleEdit?.(row._id)}
               title={actionButtons.find(action => action.id === 'edit').title}
             >
               <Icon icon={actionButtons.find(action => action.id === 'edit').icon} />
@@ -162,7 +163,7 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
             {row.status !== 'Cancelled' && (
               <IconButton
                 size="small"
-                onClick={() => handleDelete(row._id)}
+                onClick={() => cellHandlers?.handleDelete?.(row._id)}
                 title={actionButtons.find(action => action.id === 'delete').title}
                 color={actionButtons.find(action => action.id === 'delete').color}
               >

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Controller } from 'react-hook-form';
 import {
   TextField,
@@ -25,39 +25,36 @@ import {
   Divider,
 } from '@mui/material';
 import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
-import { Clear} from '@mui/icons-material';
-import { alpha } from '@mui/material/styles';
-import Link from 'next/link';
-import { useTheme } from '@mui/material/styles'
-import { invoiceTotals } from '@/utils/invoiceTotals';
-import { formatDateForInput } from '@/utils/dateUtils';
+import { Clear } from '@mui/icons-material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
 import VendorAutocomplete from '@/components/custom-components/VendorAutocomplete';
-import useDebitNoteHandlers from '@/handlers/debitNotes/useDebitNoteHandlers';
+import useEditDebitNoteHandlers from '@/handlers/debitNotes/editDebitNote/useEditDebitNoteHandlers';
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
+import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
+import { calculateDebitNoteTotals } from '@/utils/debitNoteTotals';
+import { formatDateForInput } from '@/utils/dateUtils';
+import { getEditDebitNoteColumns } from './EditDebitNoteColumns';
+import Link from 'next/link';
 
-/**
- * Deprecated EditPurchaseReturn Component
- * This component has been replaced by EditDebitNote.jsx
- * Redirects users to use the modern component
- */
-const EditPurchaseReturn = (props) => {
-  // Destructure props for clarity
-  const {
+const EditPurchaseReturn = ({ vendorsData, productData, taxRates, initialBanks, signatures, onSave, enqueueSnackbar, closeSnackbar, debitNoteData }) => {
+  const theme = useTheme();
+  const [openBankModal, setOpenBankModal] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  const handlers = useEditDebitNoteHandlers({
     debitNoteData,
-    vendorsData,
     productData,
-    taxRates,
     initialBanks,
     signatures,
     onSave,
     enqueueSnackbar,
     closeSnackbar,
-  } = props;
+    addBank: null,
+  });
 
-  // Use new composing hook for all handlers and state
   const {
     control,
     handleSubmit,
@@ -73,24 +70,22 @@ const EditPurchaseReturn = (props) => {
     setNewBank,
     signOptions,
     paymentMethods,
-    // UI states and handlers
     notesExpanded,
     termsDialogOpen,
     tempTerms,
+    setTempTerms,
     discountMenu,
     setDiscountMenu,
     taxMenu,
     setTaxMenu,
-    // Functions
     updateCalculatedFields,
     handleUpdateItemProduct,
     handleDeleteItem,
     handleAddEmptyRow,
     handleAddBank,
     handleSignatureSelection,
-    handleFormSubmit,
+    handleFormSubmit: originalHandleFormSubmit,
     handleError,
-    // UI action handlers
     handleMenuItemClick,
     handleTaxClick,
     handleTaxClose,
@@ -99,23 +94,19 @@ const EditPurchaseReturn = (props) => {
     handleOpenTermsDialog,
     handleCloseTermsDialog,
     handleSaveTerms,
-  } = useDebitNoteHandlers({
-    debitNoteData,
-    productData,
-    initialBanks,
-    signatures,
-    onSave,
-    enqueueSnackbar,
-    closeSnackbar
-  });
+  } = handlers;
 
-  const [openBankModal, setOpenBankModal] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const theme = useTheme();
+  // Wrap handleFormSubmit to ensure debitNoteId is included
+  const handleFormSubmit = (data) => {
+    if (!data.id) {
+      data.id = debitNoteData._id;
+    }
+    return originalHandleFormSubmit(data);
+  };
 
   useEffect(() => {
     if (watchItems) {
-      const { taxableAmount, totalDiscount, vat, TotalAmount, roundOffValue } = invoiceTotals(
+      const { taxableAmount, totalDiscount, vat, TotalAmount, roundOffValue } = calculateDebitNoteTotals(
         watchItems,
         watchRoundOff
       );
@@ -125,407 +116,30 @@ const EditPurchaseReturn = (props) => {
       setValue('TotalAmount', TotalAmount);
       setValue('roundOffValue', roundOffValue);
     }
-  }, [watchItems, watchRoundOff]);
+  }, [watchItems, watchRoundOff, setValue]);
 
-  // Define columns for InvoiceItemsTable (adapted from InvoiceItemsTable)
-  const columns = [
-    {
-      key: 'product',
-      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Product/Service</Typography>,
-      width: '24%',
-      align: 'center',
-      renderCell: (item, index) => (
-        <Controller
-          name={`items.${index}.productId`}
-          control={control}
-          render={({ field }) => (
-            <FormControl fullWidth size="small" error={!!errors.items?.[index]?.productId}>
-              <Select
-                className={`py-0.5 min-h-[0] [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&.MuiOutlinedInput-input]:py-0.3 px-2.5`}
-                size='small'
-                sx={{ '& .MuiOutlinedInput-input': { py: 0.3, pl: 2.5 } }}
-                {...field}
-                displayEmpty
-                value={field.value || ''}
-                onChange={(e) => {
-                  const productId = e.target.value;
-                  const previousProductId = field.value;
-                  handleUpdateItemProduct(index, productId, previousProductId);
-                }}
-                renderValue={(selected) => {
-                  if (!selected) {
-                    return (
-                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Select Product
-                      </Typography>
-                    );
-                  }
-                  return (
-                    <Box className='flex flex-col gap-0' sx={{ overflow: 'hidden' }}>
-                      <Typography variant="body1" color="text.primary" className='whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px]'>
-                        {watchItems[index]?.name}
-                      </Typography>
-                      <Typography variant="caption" fontSize={12} color='text.secondary'>
-                        Unit: {watchItems[index]?.units}
-                      </Typography>
-                    </Box>
-                  );
-                }}
-              >
-                <MenuItem value="" disabled>
-                  Select Product
-                </MenuItem>
-                {productsCloneData.map((product) => (
-                  <MenuItem key={product._id} value={product._id}>
-                    {product.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-        />
-      )
-    },
-    {
-      key: 'quantity',
-      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Quantity</Typography>,
-      width: '12%',
-      align: 'center',
-      renderCell: (item, index) => (
-        <Controller
-          name={`items.${index}.quantity`}
-          control={control}
-          render={({ field }) => (
-            <FormControl error={!!errors.items?.[index]?.quantity} fullWidth>
-              <TextField
-                {...field}
-                type="number"
-                variant="outlined"
-                size="small"
-                placeholder="Quantity"
-                className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
-                inputProps={{
-                  min: 1,
-                  step: 1,
-                  onKeyDown: (e) => { if (e.key === '.') e.preventDefault(); }
-                }}
-                onChange={e => {
-                  const raw = e.target.value;
-                  const quantity = Math.max(0, Math.floor(Number(raw)));
-                  setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
-                  const item = getValues(`items.${index}`);
-                  updateCalculatedFields(index, { ...item, quantity }, setValue);
-                }}
-                error={!!errors.items?.[index]?.quantity}
-              />
-            </FormControl>
-          )}
-        />
-      )
-    },
-    {
-      key: 'rate',
-      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Rate</Typography>,
-      width: '19%',
-      align: 'center',
-      renderCell: (item, index) => (
-        <Controller
-          name={`items.${index}.rate`}
-          control={control}
-          render={({ field }) => (
-            <FormControl error={!!errors.items?.[index]?.rate} size="small" fullWidth>
-              <TextField
-                {...field}
-                type="number"
-                variant="outlined"
-                placeholder="Rate"
-                size="small"
-                className="min-w-[90px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
-                InputProps={{
-                  sx: { paddingLeft: '8px' },
-                  startAdornment: (
-                    <Icon icon="lucide:saudi-riyal" width={22} color={theme.palette.secondary.main}/>
-                  ),
-                }}
-                inputProps={{
-                  sx: { paddingLeft: '4px' },
-                  min: 0,
-                  step: 1,
-                  onKeyDown: (e) => { if (e.key === '.') e.preventDefault(); }
-                }}
-                onChange={e => {
-                  const rate = Number(e.target.value);
-                  setValue(`items.${index}.rate`, rate);
-                  setValue(`items.${index}.form_updated_rate`, (Number(rate) / Number(watchItems[index]?.quantity || 1)).toFixed(4))
-                  setValue(`items.${index}.form_updated_discount`, Number(watchItems[index]?.discount))
-                  setValue(`items.${index}.form_updated_discounttype`, Number(watchItems[index]?.discountType))
-                  setValue(`items.${index}.isRateFormUpadted`, 'true')
-                  const item = getValues(`items.${index}`);
-                  updateCalculatedFields(index, item, setValue);
-                }}
-                error={!!errors.items?.[index]?.rate}
-              />
-            </FormControl>
-          )}
-        />
-      )
-    },
-    {
-      key: 'discount',
-      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Discount</Typography>,
-      width: '19%',
-      align: 'center',
-      renderCell: (item, index) => {
-        const watched = watchItems[index] || {};
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CustomIconButton
-              variant="tonal"
-              onClick={e => setDiscountMenu({ anchorEl: e.currentTarget, rowIndex: index })}
-              color="primary"
-              skin="lightest"
-              size="small"
-              className="min-w-[32px] min-h-[36px] px-2 py-0"
-            >
-              {Number(watched.discountType) === 2 ? (
-                <Icon icon="lucide:percent" color={theme.palette.primary.light} width={19} />
-              ) : Number(watched.discountType) === 3 ? (
-                <Icon icon="lucide:saudi-riyal" color={theme.palette.primary.light} width={30} />
-              ) : ''}
-            </CustomIconButton>
-
-            {Number(watched.discountType) === 2 ? (
-              <Controller
-                name={`items.${index}.form_updated_discount`}
-                control={control}
-                render={({ field }) => {
-                  const handleChange = (e) => {
-                    let value = Number(e.target.value);
-                    value = Math.min(100, value);
-                    field.onChange(value);
-                    setValue(`items.${index}.isRateFormUpadted`, true);
-                    const item = getValues(`items.${index}`);
-                    updateCalculatedFields(index, item, setValue)
-                  };
-                  return (
-                    <TextField
-                      {...field}
-                      value={field.value}
-                      type="number"
-                      variant="outlined"
-                      size="small"
-                      placeholder="Discount (%)"
-                      aria-label="Discount Percentage"
-                      tabIndex={0}
-                      className="min-w-[110px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
-                      inputProps={{
-                        min: 0,
-                        max: 100,
-                        step: 1,
-                        sx: { paddingLeft: '8px' },
-                      }}
-                      InputProps={{
-                        sx: { paddingRight: '8px' },
-                        endAdornment: Number(watched.discount) > 0 ? (
-                          <Box className='flex flex-row items-center gap-0'>
-                            <Icon icon="lucide:saudi-riyal" width={14} color={theme.palette.secondary.main} />
-                            <Typography variant="subtitle2" color="secondary.main">
-                              {Number(watched.discount).toFixed(2)}
-                            </Typography>
-                          </Box>
-                        ) : null
-                      }}
-                      onChange={handleChange}
-                      error={!!errors.items?.[index]?.form_updated_discount}
-                    />
-                  );
-                }}
-              />
-            ) : (
-              <Controller
-                name={`items.${index}.discount`}
-                control={control}
-                render={({ field }) => {
-                  const handleChange = (e) => {
-                    let value = Number(e.target.value);
-                    field.onChange(value);
-                    setValue(`items.${index}.form_updated_discount`, value);
-                    setValue(`items.${index}.isRateFormUpadted`, true);
-                    setValue(`items.${index}.discount`, value);
-                    const item = getValues(`items.${index}`);
-                    updateCalculatedFields(index, item, setValue);
-                  };
-                  return (
-                    <TextField
-                      {...field}
-                      value={field.value}
-                      type="number"
-                      variant="outlined"
-                      size="small"
-                      placeholder="Discount"
-                      aria-label="Discount Fixed Amount"
-                      tabIndex={0}
-                      className="min-w-[110px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
-                      inputProps={{
-                        min: 0,
-                        step: 1,
-                        sx: { paddingLeft: '8px' },
-                      }}
-                      onChange={handleChange}
-                      error={!!errors.items?.[index]?.discount}
-                    />
-                  );
-                }}
-              />
-            )}
-
-            <Menu
-              anchorEl={discountMenu.anchorEl}
-              open={discountMenu.rowIndex === index && Boolean(discountMenu.anchorEl)}
-              onClose={() => setDiscountMenu({ anchorEl: null, rowIndex: null })}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              PaperProps={{ sx: { borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } }}
-              className='[&_.MuiMenuItem-root]:py-1'
-            >
-              <MenuItem
-                onClick={() => {
-                  handleMenuItemClick(index, 2);
-                  setDiscountMenu({ anchorEl: null, rowIndex: null });
-                }}
-                className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
-              >
-                <Typography variant="overline">Percentage</Typography>
-                <Box className='flex flex-row items-center gap-1'>
-                  <Icon icon="material-symbols:percent-rounded" width="20" color={theme.palette.primary.main} />
-                </Box>
-              </MenuItem>
-              <MenuItem
-                className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
-                onClick={() => {
-                  handleMenuItemClick(index, 3);
-                  setDiscountMenu({ anchorEl: null, rowIndex: null });
-                }}
-              >
-                <Typography variant="overline">Fixed Amount</Typography>
-                <Box className='flex flex-row items-center gap-1'>
-                  <Icon icon="lucide:saudi-riyal" width="20" color={theme.palette.primary.main} />
-                </Box>
-              </MenuItem>
-            </Menu>
-          </Box>
-        );
-      }
-    },
-    {
-      key: 'vat',
-      label: <Typography variant="overline" fontWeight={500} color="text.secondary">VAT</Typography>,
-      width: '16%',
-      align: 'center',
-      renderCell: (item, index) => {
-        const watched = watchItems[index] || {};
-        return (
-          <Box className='flex flex-row items-center gap-2 h-[36px]'>
-            <CustomIconButton
-              variant="tonal"
-              onClick={(e) => handleTaxClick(e, index)}
-              color="primary"
-              skin="lightest"
-              size="small"
-              className='flex flex-row items-center gap-0.5 px-1'
-            >
-              <Typography variant="button" fontSize={13} color="primary.light">
-                {watched.taxInfo && typeof watched.taxInfo === 'object' ? (watched.taxInfo.taxRate || 0) : 0}%
-              </Typography>
-              <Icon icon="garden:chevron-down-fill-12" color={theme.palette.primary.light} width={11} />
-            </CustomIconButton>
-            <Box className='flex flex-row items-center gap-0.5'>
-              <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={18} />
-              <Typography variant='body1'>
-                {isNaN(Number(watched.tax)) ? '0.00' : Number(watched.tax).toFixed(2)}
-              </Typography>
-            </Box>
-            <Menu
-              anchorEl={taxMenu.anchorEl}
-              open={taxMenu.rowIndex === index && Boolean(taxMenu.anchorEl)}
-              onClose={handleTaxClose}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-              {taxRates.map((tax) => (
-                <MenuItem
-                  key={tax._id}
-                  onClick={() => handleTaxMenuItemClick(index, tax)}
-                  sx={{
-                    py: 1,
-                    '&:hover': {
-                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08)
-                    }
-                  }}
-                >
-                  <Box className='flex flex-row items-center justify-between w-[8em]'>
-                    <Typography variant="body2">{tax.name}</Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: 600,
-                        color: 'primary.main',
-                        backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                        px: 1,
-                        py: 0.5,
-                        borderRadius: '4px'
-                      }}
-                    >
-                      {tax.taxRate}%
-                    </Typography>
-                  </Box>
-                </MenuItem>
-              ))}
-            </Menu>
-          </Box>
-        );
-      }
-    },
-    {
-      key: 'amount',
-      label: <Typography variant="overline" fontWeight={500} color="text.secondary">Amount</Typography>,
-      width: '13%',
-      align: 'center',
-      renderCell: (item, index) => {
-        const watched = watchItems[index] || {};
-        return (
-          <Box className='flex flex-row items-center gap-0.5'>
-            <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={18} />
-            <Typography variant="body1" className='font-medium whitespace-nowrap'>
-              {isNaN(Number(watched.amount)) ? '0.00' : Number(watched.amount).toFixed(2)}
-            </Typography>
-          </Box>
-        );
-      }
-    },
-    {
-      key: 'actions',
-      label: '',
-      width: '4%',
-      align: 'center',
-      renderCell: (item, index) => (
-        <IconButton
-          size="small"
-          color="error"
-          onClick={() => handleDeleteItem(index)}
-          onKeyDown={(e) => {
-            if (e.key === 'Tab' && !e.shiftKey && index === fields.length - 1) {
-              e.preventDefault();
-              handleAddEmptyRow();
-            }
-          }}
-          tabIndex={0}
-        >
-          <Icon icon="ic:twotone-delete" width={20} color={theme.palette.error.main} />
-        </IconButton>
-      )
-    },
-  ];
+  // Get columns configuration for InvoiceItemsTable
+  const columns = getEditDebitNoteColumns({
+    control,
+    errors,
+    fields,
+    watchItems,
+    productsCloneData,
+    taxRates,
+    setValue,
+    getValues,
+    updateCalculatedFields,
+    handleUpdateItemProduct,
+    handleDeleteItem,
+    handleAddEmptyRow,
+    discountMenu,
+    setDiscountMenu,
+    taxMenu,
+    handleMenuItemClick,
+    handleTaxClick,
+    handleTaxClose,
+    handleTaxMenuItemClick,
+  });
 
   const addRowButton = (
     <CustomIconButton
@@ -565,137 +179,45 @@ const EditPurchaseReturn = (props) => {
     </Box>
   );
 
-  // Debit Note specific totals component (adapted from InvoiceTotals)
-  const DebitNoteTotalsCard = () => (
-    <Card>
-      <CardContent className='px-4 py-3'>
-        <Grid container spacing={1}>
-          <Grid item xs={6}>
-            <Typography variant="body1">Amount:</Typography>
-          </Grid>
-          <Grid item xs={6} sx={{ textAlign: 'right' }}>
-            <Controller
-              name="taxableAmount"
-              control={control}
-              render={({ field }) => (
-                <Typography variant="body1" fontWeight="medium">
-                  {isNaN(Number(field.value)) ? '0.00' : Number(field.value).toFixed(2)}
-                </Typography>
-              )}
-            />
-          </Grid>
 
-          <Grid item xs={6}>
-            <Typography variant="body1">Discount:</Typography>
-          </Grid>
-          <Grid item xs={6} sx={{ textAlign: 'right' }}>
-            <Controller
-              name="totalDiscount"
-              control={control}
-              render={({ field }) => (
-                <Typography variant="body1" fontWeight="medium">
-                  {isNaN(Number(field.value)) ? '0.00' : Number(field.value).toFixed(2)}
-                </Typography>
-              )}
-            />
-          </Grid>
-
-          <Grid item xs={6}>
-            <Typography variant="body1">VAT:</Typography>
-          </Grid>
-          <Grid item xs={6} sx={{ textAlign: 'right' }}>
-            <Controller
-              name="vat"
-              control={control}
-              render={({ field }) => (
-                <Typography variant="body1" fontWeight="medium">
-                  {isNaN(Number(field.value)) ? '0.00' : Number(field.value).toFixed(2)}
-                </Typography>
-              )}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Divider sx={{ my: 1 }} />
-          </Grid>
-
-          <Grid item xs={6}>
-            <Typography variant="h6">Total:</Typography>
-          </Grid>
-          <Grid item xs={6} sx={{ textAlign: 'right' }}>
-            <Controller
-              name="TotalAmount"
-              control={control}
-              render={({ field }) => (
-                <Typography variant="h6" color="primary.main">
-                  {field.value ? Number(field.value).toFixed(2) : '0.00'}
-                </Typography>
-              )}
-            />
-          </Grid>
-        </Grid>
-
-        {/* Action Buttons */}
-        <Box className='flex flex-row gap-3 justify-between mt-3'>
-          <Button
-            variant="outlined"
-            color="secondary"
-            component={Link}
-            href="/debitNotes/debit-notes-list"
-          >
-            Cancel
-          </Button>
-          <Button
-            className='flex-1'
-            variant="contained"
-            onClick={handleSubmit(handleFormSubmit, handleError)}
-            color="primary"
-          >
-            Save
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
-  );
 
   return (
     <Grid container rowSpacing={4} columnSpacing={3}>
-      {/* Header */}
-      <Grid item xs={12} md={12}>
+      <Grid size={{ xs: 12, md: 12 }}>
         <Typography variant="h5" sx={{ fontWeight: 500 }}>
           Edit Debit Note
         </Typography>
       </Grid>
-
       {/* Top Section - Debit Note Details */}
-      <Grid item xs={12} md={12}>
+      <Grid size={{ xs: 12, md: 12 }}>
         <Card>
           <CardContent className='py-3.5'>
             <Grid container columnSpacing={3} rowSpacing={4}>
               {/* Debit Note Details Header */}
-              <Grid item xs={12} className='flex flex-col gap-2'>
+              <Grid size={{ xs: 12 }} className='flex flex-col gap-2'>
                 <Box className='flex flex-row gap-1.5 items-center'>
                   <Box className='w-2 h-8 bg-secondaryLight rounded-md' />
                   <Typography variant="caption" fontWeight={500} fontSize='1rem'>
                     Debit Note Details
                   </Typography>
                 </Box>
+                <Divider light textAlign='left' width='400px' />
               </Grid>
 
               {/* Debit Note Number */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Box className="flex flex-row items-center px-3 justify-between bg-tableHeader rounded-md w-full h-full">
                   <Typography variant="caption" className='text-[0.9rem]' color="text.secondary">
-                    Debit Note Number
+                    Debit Note No
                   </Typography>
-                  <Typography variant="h6" className='text-[1.1rem] font-medium'>
+                  <Typography variant="h6" className='text-[1rem] font-medium'>
                     {getValues('debitNoteNumber') || ''}
                   </Typography>
                 </Box>
               </Grid>
 
               {/* Date */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="purchaseOrderDate"
                   control={control}
@@ -709,7 +231,7 @@ const EditPurchaseReturn = (props) => {
                       size="small"
                       error={!!errors.purchaseOrderDate}
                       inputProps={{
-                        max: formatDateForInput(new Date()),
+                        max: new Date().toISOString().split('T')[0],
                       }}
                     />
                   )}
@@ -717,7 +239,7 @@ const EditPurchaseReturn = (props) => {
               </Grid>
 
               {/* Due Date */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="dueDate"
                   control={control}
@@ -731,7 +253,7 @@ const EditPurchaseReturn = (props) => {
                       size="small"
                       error={!!errors.dueDate}
                       inputProps={{
-                        min: formatDateForInput(getValues('purchaseOrderDate')),
+                        min: getValues('purchaseOrderDate'),
                       }}
                     />
                   )}
@@ -739,7 +261,7 @@ const EditPurchaseReturn = (props) => {
               </Grid>
 
               {/* Payment Method */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="payment_method"
                   control={control}
@@ -762,12 +284,12 @@ const EditPurchaseReturn = (props) => {
               </Grid>
 
               {/* Bank Selection */}
-              <Grid item xs={12} sm={6} md={4} lg={3} className="flex flex-row gap-1 justify-between">
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} className="flex flex-row gap-1 justify-between">
                 <Controller
-                  name="bankId"
+                  name="bank"
                   control={control}
                   render={({ field }) => (
-                    <FormControl size='small' fullWidth variant="outlined" error={!!errors.bankId}>
+                    <FormControl size='small' fullWidth variant="outlined" error={!!errors.bank}>
                       <InputLabel size="small">Select Bank</InputLabel>
                       <Select
                         {...field}
@@ -784,8 +306,8 @@ const EditPurchaseReturn = (props) => {
                           </MenuItem>
                         ))}
                       </Select>
-                      {errors.bankId && (
-                        <FormHelperText error>{errors.bankId.message}</FormHelperText>
+                      {errors.bank && (
+                        <FormHelperText error>{errors.bank.message}</FormHelperText>
                       )}
                     </FormControl>
                   )}
@@ -797,12 +319,12 @@ const EditPurchaseReturn = (props) => {
                   skin='lighter'
                   onClick={() => setOpenBankModal(true)}
                 >
-                  <Icon icon="mdi:bank-plus" width={26}/>
+                  <Icon icon="mdi:bank-plus" width={26} />
                 </CustomIconButton>
               </Grid>
 
               {/* Reference No */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="referenceNo"
                   control={control}
@@ -821,7 +343,7 @@ const EditPurchaseReturn = (props) => {
               </Grid>
 
               {/* Signature Section */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Controller
                     name="signatureId"
@@ -854,7 +376,7 @@ const EditPurchaseReturn = (props) => {
               </Grid>
 
               {/* Notes TextField */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="notes"
                   control={control}
@@ -886,13 +408,13 @@ const EditPurchaseReturn = (props) => {
                 />
               </Grid>
 
-              {/* Vendor Autocomplete */}
-              <Grid item xs={12} sm={6} md={8} lg={6}>
+              {/* Vendor */}
+              <Grid size={{ xs: 12, sm: 6, md: 8, lg: 6 }}>
                 <VendorAutocomplete control={control} errors={errors} vendorsData={vendorsData} />
               </Grid>
 
               {/* Terms & Conditions */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Button
                   fullWidth className="flex flex-row items-center gap-0 justify-center" variant="text" color="primary" size="small"
                   startIcon={<Icon icon="mdi:file-document-outline" width={24} color={theme.palette.primary.main} />}
@@ -906,12 +428,11 @@ const EditPurchaseReturn = (props) => {
         </Card>
       </Grid>
 
-      {/* Middle Section - Items Table */}
-      <Grid item xs={12} md={9.5}>
+      {/* Middle Section - Products Table */}
+      <Grid size={{ xs: 12, md: 9.5 }}>
         <form onSubmit={handleSubmit(handleFormSubmit, handleError)}>
           <Card>
             <CardContent spacing={12} className='flex flex-col gap-2 px-0 pt-0'>
-              {/* Products Table */}
               <Box>
                 <InvoiceItemsTable
                   columns={columns}
@@ -926,9 +447,14 @@ const EditPurchaseReturn = (props) => {
         </form>
       </Grid>
 
-      {/* Right Section - Totals */}
-      <Grid item xs={12} md={2.5}>
-        <DebitNoteTotalsCard />
+      {/* Left side totals card */}
+      <Grid size={{ xs: 12, md: 2.5 }}>
+        <InvoiceTotals
+          control={control}
+          handleSubmit={handleSubmit}
+          handleFormSubmit={handleFormSubmit}
+          handleError={handleError}
+        />
       </Grid>
 
       {/* Add Bank Modal */}

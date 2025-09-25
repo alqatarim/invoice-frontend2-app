@@ -5,131 +5,145 @@ import { Grid, Avatar, Typography } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { amountFormat } from '@/utils/numberUtils';
-import { getInitialDebitNoteData } from '@/app/(dashboard)/debitNotes/actions';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
 /**
  * DebitNoteHead Component - Displays debit note statistics header
  */
 const DebitNoteHead = ({ debitNoteListData }) => {
-  const theme = useTheme();
-  const [cardCounts, setCardCounts] = useState({
-    totalCancelled: {},
-    totalOutstanding: {},
-    totalOverdue: {},
-    totalDebitNote: {},
-    totalDrafted: {},
-    recurringTotal: {}
-  });
+     const theme = useTheme();
+     const [debitNoteStats, setDebitNoteStats] = useState({
+          totalDebitNotes: 0,
+          totalAmount: 0,
+          avgDebitNoteValue: 0,
+          activeDebitNotes: 0,
+     });
 
-  useEffect(() => {
-    const fetchCardCounts = async () => {
-      try {
-        const response = await getInitialDebitNoteData();
-        if (response.cardCounts) {
-          setCardCounts({
-            totalCancelled: response.cardCounts.total_cancelled?.[0] || {},
-            totalOutstanding: response.cardCounts.total_outstanding?.[0] || {},
-            totalOverdue: response.cardCounts.total_overdue?.[0] || {},
-            totalDebitNote: response.cardCounts.total_debit_note?.[0] || {},
-            totalDrafted: response.cardCounts.total_drafted?.[0] || {},
-            recurringTotal: response.cardCounts.recurring_total?.[0] || {}
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching debit note card counts:', error);
-      }
-    };
+     useEffect(() => {
+          const calculateStats = () => {
+               if (debitNoteListData && debitNoteListData.length > 0) {
+                    const stats = debitNoteListData.reduce((acc, debitNote) => {
+                         // Count total debit notes
+                         acc.totalDebitNotes++;
 
-    fetchCardCounts();
-  }, [debitNoteListData]);
+                         // Calculate total amount
+                         const amount = Number(debitNote.TotalAmount) || 0;
+                         acc.totalAmount += amount;
 
-  const currencySymbol = debitNoteListData.currencySymbol || '$';
+                         // Count active debit notes (assume all are active for now)
+                         acc.activeDebitNotes++;
 
-  return (
-    <>
-      {/* Header Section */}
-      <div className="flex justify-start items-center mb-5">
-        <div className="flex items-center gap-2">
-          <Avatar className='bg-primary/12 text-primary bg-primaryLight  w-12 h-12'>
-            <Icon icon="tabler:file-minus" fontSize={26} />
-          </Avatar>
-          <Typography variant="h5" className="font-semibold text-primary">
-            Debit Notes
-          </Typography>
-        </div>
-      </div>
+                         return acc;
+                    }, {
+                         totalDebitNotes: 0,
+                         totalAmount: 0,
+                         activeDebitNotes: 0,
+                    });
 
-      {/* Statistics Cards */}
-      <div className="mb-2">
-        <Grid container spacing={4}>
-          <Grid item xs={12} sm={6} md={3}>
-            <HorizontalWithBorder
-              title="Total Debit Notes"
-              subtitle="No of Debit Notes"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalDebitNote?.total_sum)}`}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalDebitNote?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='tabler:file-minus'
-              color="primary"
-              iconSize='30px'
-            />
-          </Grid>
+                    // Calculate average debit note value
+                    stats.avgDebitNoteValue = stats.totalDebitNotes > 0 ? stats.totalAmount / stats.totalDebitNotes : 0;
 
-          <Grid item xs={12} sm={6} md={3}>
-            <HorizontalWithBorder
-              title="Outstanding"
-              subtitle="No of Outstandings"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalOutstanding?.total_sum)}`}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalOutstanding?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='mdi:access-time'
-              color="warning"
-              iconSize='35px'
-            />
-          </Grid>
+                    setDebitNoteStats(stats);
+               } else {
+                    // Reset stats when no data
+                    setDebitNoteStats({
+                         totalDebitNotes: 0,
+                         totalAmount: 0,
+                         avgDebitNoteValue: 0,
+                         activeDebitNotes: 0,
+                    });
+               }
+          };
 
-          <Grid item xs={12} sm={6} md={3}>
-            <HorizontalWithBorder
-              title="Total Overdue"
-              subtitle="No of Overdue"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalOverdue?.total_sum)}`}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalOverdue?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='mdi:clock-alert-outline'
-              color="error"
-              iconSize='35px'
-            />
-          </Grid>
+          calculateStats();
+     }, [debitNoteListData]);
 
-          <Grid item xs={12} sm={6} md={3}>
-            <HorizontalWithBorder
-              title="Drafts"
-              subtitle="No of Drafts"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalDrafted?.total_sum)}`}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalDrafted?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='mdi:draw-pen'
-              color="info"
-              iconSize='35px'
-            />
-          </Grid>
-        </Grid>
-      </div>
-    </>
-  );
+     const currencySymbol = '﷼'; // Saudi Riyal symbol
+
+     return (
+          <>
+               {/* Header Section */}
+               <div className="flex justify-start items-center mb-5">
+                    <div className="flex items-center gap-2">
+                         <Avatar className='bg-primary/12 text-primary bg-primaryLight w-12 h-12'>
+                              <Icon icon="tabler:receipt" fontSize={26} />
+                         </Avatar>
+                         <Typography variant="h5" className="font-semibold text-primary">
+                              Debit Notes
+                         </Typography>
+                    </div>
+               </div>
+
+               {/* Statistics Cards */}
+               <div className="mb-2">
+                    <Grid container spacing={4}>
+                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <HorizontalWithBorder
+                                   title="Total Debit Notes"
+                                   subtitle="All Debit Notes"
+                                   titleVariant='h5'
+                                   subtitleVariant='body2'
+                                   stats={debitNoteStats.totalDebitNotes.toString()}
+                                   statsVariant='h4'
+                                   trendNumber={`${debitNoteStats.activeDebitNotes} Active`}
+                                   trendNumberVariant='body1'
+                                   avatarIcon='tabler:receipt'
+                                   color="primary"
+                                   iconSize='30px'
+                              />
+                         </Grid>
+
+                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <HorizontalWithBorder
+                                   title="Active Debit Notes"
+                                   subtitle="Currently Active"
+                                   titleVariant='h5'
+                                   subtitleVariant='body2'
+                                   stats={debitNoteStats.activeDebitNotes.toString()}
+                                   statsVariant='h4'
+                                   trendNumber={`${Math.round((debitNoteStats.activeDebitNotes / Math.max(debitNoteStats.totalDebitNotes, 1)) * 100)}%`}
+                                   trendNumberVariant='body1'
+                                   avatarIcon='mdi:check-circle-outline'
+                                   color="success"
+                                   iconSize='35px'
+                              />
+                         </Grid>
+
+                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <HorizontalWithBorder
+                                   title="Total Amount"
+                                   subtitle="Total Value"
+                                   titleVariant='h5'
+                                   subtitleVariant='body2'
+                                   stats={`${currencySymbol} ${amountFormat(debitNoteStats.totalAmount)}`}
+                                   statsVariant='h4'
+                                   trendNumber="Total Value"
+                                   trendNumberVariant='body1'
+                                   avatarIcon='mdi:currency-usd'
+                                   color="info"
+                                   iconSize='35px'
+                              />
+                         </Grid>
+
+                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <HorizontalWithBorder
+                                   title="Average Value"
+                                   subtitle="Per Debit Note"
+                                   titleVariant='h5'
+                                   subtitleVariant='body2'
+                                   stats={`${currencySymbol} ${amountFormat(debitNoteStats.avgDebitNoteValue)}`}
+                                   statsVariant='h4'
+                                   trendNumber="Avg Debit Note"
+                                   trendNumberVariant='body1'
+                                   avatarIcon='mdi:chart-line'
+                                   color="warning"
+                                   iconSize='35px'
+                              />
+                         </Grid>
+                    </Grid>
+               </div>
+          </>
+     );
 };
 
 export default DebitNoteHead;

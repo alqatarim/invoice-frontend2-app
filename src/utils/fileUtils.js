@@ -11,12 +11,12 @@ export const dataURLtoBlob = (dataURL) => {
   return new Blob([arrayBuffer], { type: mimeString });
 };
 
-export function isImageFile (url)  {
+export function isImageFile(url) {
   if (!url || typeof url !== 'string') return false;
   return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
 };
 
-export function getFileName (url)  {
+export function getFileName(url) {
   if (!url || typeof url !== 'string') return '';
   return url.split('/').pop() || '';
 };
@@ -220,15 +220,101 @@ export const validateProductImage = async (file) => {
 
 
 
+/**
+ * Validate expense attachment file type and size
+ * @param {File} file - The attachment file to validate
+ * @returns {Promise<Object>} - { isValid: boolean, error: string, preview: string }
+ */
+export const validateExpenseAttachment = async (file) => {
+  if (!file) {
+    return { isValid: false, error: 'No file provided', preview: null };
+  }
+
+  // Check file size (5MB limit)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    return {
+      isValid: false,
+      error: 'File size must be less than 5MB.',
+      preview: null
+    };
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      resolve({
+        isValid: true,
+        error: '',
+        preview: reader.result
+      });
+    };
+
+    reader.onerror = () => {
+      resolve({
+        isValid: false,
+        error: 'Failed to read file.',
+        preview: null
+      });
+    };
+
+    reader.readAsDataURL(file);
+  });
+};
+
+/**
+ * Validate payment attachment file type and size
+ * @param {File} file - The attachment file to validate
+ * @returns {Promise<Object>} - { isValid: boolean, error: string, preview: string }
+ */
+export const validatePaymentAttachment = async (file) => {
+  if (!file) {
+    return { isValid: false, error: 'No file provided', preview: null };
+  }
+
+  // Check file size (5MB limit)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    return {
+      isValid: false,
+      error: 'File size must be less than 5MB.',
+      preview: null
+    };
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      resolve({
+        isValid: true,
+        error: '',
+        preview: reader.result
+      });
+    };
+
+    reader.onerror = () => {
+      resolve({
+        isValid: false,
+        error: 'Failed to read file.',
+        preview: null
+      });
+    };
+
+    reader.readAsDataURL(file);
+  });
+};
+
 export const getNameFromPath = (imageSource, selectedFile) => {
   if (selectedFile) {
     return selectedFile.name;
   }
-  
+
   if (typeof imageSource === 'string') {
     // Handle URLs, local paths, and mixed formats
     let pathToProcess = imageSource;
-    
+
     // If it's a full URL, extract the pathname
     try {
       if (imageSource.startsWith('http://') || imageSource.startsWith('https://')) {
@@ -239,25 +325,25 @@ export const getNameFromPath = (imageSource, selectedFile) => {
       // Not a valid URL, continue with original string
       pathToProcess = imageSource;
     }
-    
+
     // Handle both forward slashes and backslashes
     const urlParts = pathToProcess.split(/[\/\\]/);
     const filename = urlParts[urlParts.length - 1];
-    
+
     // Remove query parameters if present
     const cleanFilename = filename.split('?')[0];
-    
+
     // If it's a long filename, truncate it
     if (cleanFilename.length > 30) {
       const extension = cleanFilename.split('.').pop();
       const name = cleanFilename.substring(0, 25);
       return `${name}...${extension ? `.${extension}` : ''}`;
     }
-    
-    return cleanFilename || 'product-image';
+
+    return cleanFilename || 'attachment';
   }
-  
-  return 'product-image';
+
+  return 'attachment';
 };
 
 

@@ -1,193 +1,189 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { getFilteredPayments, searchCustomers } from '@/app/(dashboard)/payments/actions';
-import { filterHandler } from '@/handlers/payments/list/filterHandler';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { getPaymentsList } from '@/app/(dashboard)/payments/actions';
+import { filterHandler } from './filterHandler';
 
 /**
- * Data handler for payment list - matches payment summary functionality
+ * Data handler for payment list
  */
 export function dataHandler({
-  initialPayments = [],
-  initialPagination = { current: 1, pageSize: 10, total: 0 },
-  initialFilters = {},
-  initialSortBy = '',
-  initialSortDirection = 'asc',
-  initialCustomerOptions = [],
-  onError,
-  onSuccess,
-  setCustomerOptions,
-  handleCustomerSearch,
+     initialPayments = [],
+     initialPagination = { current: 1, pageSize: 10, total: 0 },
+     initialSortBy = '',
+     initialSortDirection = 'asc',
+     initialCustomerOptions = [],
+     setCustomerOptions,
+     handleCustomerSearch,
+     onError,
+     onSuccess,
 }) {
-  const [payments, setPayments] = useState(initialPayments);
-  const [pagination, setPagination] = useState(initialPagination);
-  const [loading, setLoading] = useState(false);
-  const [sorting, setSorting] = useState({
-    sortBy: initialSortBy,
-    sortDirection: initialSortDirection
-  });
+     // Initialize filter handler
+     const filters = filterHandler();
+     const [payments, setPayments] = useState(initialPayments);
+     const [pagination, setPagination] = useState(() => {
+          // Ensure total matches initial data length if provided
+          const basePagination = initialPagination || { current: 1, pageSize: 10, total: 0 };
+          if (initialPayments && initialPayments.length > 0 && basePagination.total === 0) {
+               return { ...basePagination, total: initialPayments.length };
+          }
+          return basePagination;
+     });
+     const [loading, setLoading] = useState(false);
+     const [sorting, setSorting] = useState({
+          sortBy: initialSortBy,
+          sortDirection: initialSortDirection
+     });
 
-  // Use filter handler that matches payment summary functionality
-  const filter = filterHandler(initialFilters);
+     // Search state management
+     const [searchTerm, setSearchTerm] = useState('');
+     const [searching, setSearching] = useState(false);
 
-  // Initialize filter options on mount
-  useEffect(() => {
-    if (setCustomerOptions && initialCustomerOptions.length > 0) {
-      setCustomerOptions(initialCustomerOptions.map(c => ({ 
-        value: c._id, 
-        label: c.name || c.customer_name || 'Unknown Customer',
-        customer: {
-          _id: c._id,
-          name: c.name || c.customer_name,
-          phone: c.phone,
-          image: c.image
-        }
-      })));
-    }
-  }, []);
+     // Use refs to access latest state values without causing re-renders
+     const stateRef = useRef({
+          searchTerm,
+          pagination,
+          sortBy: sorting.sortBy,
+          sortDirection: sorting.sortDirection
+     });
 
-  // Fetch payments with current or provided parameters
-  const fetchData = useCallback(async (params = {}) => {
-    const {
-      page = pagination.current,
-      pageSize = pagination.pageSize,
-      filters = filter.filterValues,
-      sortBy = sorting.sortBy,
-      sortDirection = sorting.sortDirection
-    } = params;
+     // Update refs when state changes
+     useEffect(() => {
+          stateRef.current = {
+               searchTerm,
+               pagination,
+               sortBy: sorting.sortBy,
+               sortDirection: sorting.sortDirection
+          };
+     }, [searchTerm, pagination, sorting.sortBy, sorting.sortDirection]);
 
-    setLoading(true);
-    try {
-      const { payments: newPayments, pagination: newPagination } = await getFilteredPayments(
-        page,
-        pageSize,
-        filters,
-        sortBy,
-        sortDirection
-      );
+     // Fetch payments with current or provided parameters
+     const fetchData = useCallback(async (params = {}) => {
+          const {
+               page = pagination.current,
+               pageSize = pagination.pageSize,
+          } = params;
 
-      setPayments(newPayments);
-      setPagination(newPagination);
-      setSorting({ sortBy, sortDirection });
+          setLoading(true);
+          try {
+               const response = await getPaymentsList(page, pageSize);
 
-      // Update filter state to match current filters
-      if (filters && Object.keys(filters).length > 0) {
-        filter.setFilterValues(prev => ({ ...prev, ...filters }));
-      }
+               if (response.success) {
+                    setPayments(response.data);
+                    setPagination({
+                         current: page,
+                         pageSize,
+                         total: response.totalRecords
+                    });
 
-      return { payments: newPayments, pagination: newPagination };
-    } catch (error) {
-      console.error('fetchData error:', error);
-      onError?.(error.message || 'Failed to fetch payments');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination, filter.filterValues, sorting, onError, filter]);
+                    // Update full dataset for search functionality
+                    setFullDataset(response.data);
 
-  // Handle pagination
-  const handlePageChange = useCallback((event, newPage) =>
-    fetchData({ page: newPage + 1 }), [fetchData]);
+                    return { payments: response.data, pagination: { current: page, pageSize, total: response.totalRecords } };
+               } else {
+                    throw new Error(response.message);
+               }
+          } catch (error) {
+               console.error('fetchData error:', error);
+               onError?.(error.message || 'Failed to fetch payments');
+               throw error;
+          } finally {
+               setLoading(false);
+          }
+     }, [pagination, onError]);
 
-  const handlePageSizeChange = useCallback(event =>
-    fetchData({ page: 1, pageSize: parseInt(event.target.value, 10) }), [fetchData]);
+     const handlePageChange = useCallback((event, newPage) =>
+          fetchData({ page: newPage + 1 }), [fetchData]);
 
-  // Handle sorting
-  const handleSortRequest = useCallback(columnKey => {
-    const newDirection = sorting.sortBy === columnKey && sorting.sortDirection === 'asc' ? 'desc' : 'asc';
-    fetchData({ page: 1, sortBy: columnKey, sortDirection: newDirection });
-    return { sortBy: columnKey, sortDirection: newDirection };
-  }, [sorting, fetchData]);
+     const handlePageSizeChange = useCallback(event =>
+          fetchData({ page: 1, pageSize: parseInt(event.target.value, 10) }), [fetchData]);
 
-  // Handle filter value changes
-  const handleFilterValueChange = useCallback((field, value) => {
-    filter.updateFilter(field, value);
+     const handleSortRequest = useCallback((columnKey, direction) => {
+          const newDirection = direction || (sorting.sortBy === columnKey && sorting.sortDirection === 'asc' ? 'desc' : 'asc');
+          fetchData({ page: 1, sortBy: columnKey, sortDirection: newDirection });
+          return { sortBy: columnKey, sortDirection: newDirection };
+     }, [sorting, fetchData]);
 
-    // Handle customer search separately
-    if (field === 'search_customer' && handleCustomerSearch) {
-      handleCustomerSearch(value);
-    }
-  }, [filter, handleCustomerSearch]);
+     // Keep a reference to the full dataset for search functionality
+     const [fullDataset, setFullDataset] = useState(initialPayments);
 
-  // Apply filters
-  const handleFilterApply = useCallback((currentFilters = null) => {
-    const filtersToApply = currentFilters || filter.filterValues;
+     // Search handlers - works with current dataset for local filtering
+     const handleSearchInputChange = useCallback(async (value) => {
+          // Don't do anything if the value hasn't actually changed
+          if (value === stateRef.current.searchTerm) return;
 
-    // Only apply if there are selected customers
-    if (!filtersToApply.customer || filtersToApply.customer.length === 0) {
-      console.log('No customers selected for filtering');
-      return;
-    }
+          setSearching(true);
+          setSearchTerm(value);
 
-    // Always start from page 1 when applying filters
-    fetchData({
-      page: 1,
-      pageSize: pagination.pageSize,
-      filters: filtersToApply
-    });
+          try {
+               // Use the full dataset for filtering
+               const dataToFilter = fullDataset.length > 0 ? fullDataset : payments;
 
-    filter.setFilterOpen(false);
-  }, [filter, fetchData, pagination.pageSize]);
+               if (value.trim() === '') {
+                    // Reset to full dataset when search is cleared
+                    setPayments(dataToFilter);
+                    setPagination(prev => ({
+                         ...prev,
+                         current: 1,
+                         total: dataToFilter.length
+                    }));
+               } else {
+                    // Filter current dataset locally
+                    const filtered = dataToFilter.filter(item =>
+                         item.paymentNumber?.toLowerCase().includes(value.toLowerCase()) ||
+                         item.customerInfo?.name?.toLowerCase().includes(value.toLowerCase()) ||
+                         item.payment_method?.toLowerCase().includes(value.toLowerCase()) ||
+                         item.notes?.toLowerCase().includes(value.toLowerCase())
+                    );
+                    setPayments(filtered);
+                    setPagination(prev => ({ ...prev, current: 1, total: filtered.length }));
+               }
+          } catch (error) {
+               console.error('Error searching payments:', error);
+               onError?.(error.message || 'Search failed');
+          } finally {
+               setSearching(false);
+          }
+     }, [onError, fullDataset, payments]);
 
-  // Reset filters
-  const handleFilterReset = useCallback(async () => {
-    filter.resetFilters();
+     const handleSearchSubmit = useCallback((value) => {
+          handleSearchInputChange(value);
+     }, [handleSearchInputChange]);
 
-    // Reset to initial state
-    try {
-      const { payments: resetPayments, pagination: resetPagination } = await getFilteredPayments(
-        1,
-        pagination.pageSize,
-        {}, // Empty filters
-        '', // No sorting
-        'asc'
-      );
+     const handleSearchClear = useCallback(() => {
+          handleSearchInputChange('');
+     }, [handleSearchInputChange]);
 
-      setPayments(resetPayments);
-      setPagination(resetPagination);
-      setSorting({ sortBy: '', sortDirection: 'asc' });
+     // Initial data fetch on mount
+     useEffect(() => {
+          if (initialPayments.length === 0) {
+               fetchData();
+          }
+     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-      filter.setFilterOpen(false);
-    } catch (error) {
-      console.error('Error resetting filters:', error);
-      onError?.(error.message || 'Failed to reset filters');
-    }
-  }, [filter, fetchData, pagination.pageSize, onError]);
+     return {
+          // State
+          payments,
+          pagination,
+          loading,
+          ...sorting,
 
-  // Search customers function - for dynamic customer search
-  const searchCustomersForFilter = useCallback(async (searchTerm) => {
-    try {
-      const response = await searchCustomers(searchTerm);
-      return response.data || [];
-    } catch (error) {
-      console.error('Error searching customers:', error);
-      return [];
-    }
-  }, []);
+          // Search state
+          searchTerm,
+          searching,
 
-  // Initial data fetch
-  useEffect(() => {
-    fetchData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+          // Filter state and handlers
+          ...filters,
 
-  return {
-    // State
-    payments,
-    pagination,
-    loading,
-    ...sorting,
+          // Handlers
+          fetchData,
+          handlePageChange,
+          handlePageSizeChange,
+          handleSortRequest,
 
-    // Handlers
-    fetchData,
-    handlePageChange,
-    handlePageSizeChange,
-    handleSortRequest,
-    handleFilterValueChange,
-    handleFilterApply,
-    handleFilterReset,
-    searchCustomersForFilter,
-
-    // Filter state and methods
-    ...filter,
-  };
+          // Search handlers
+          handleSearchInputChange,
+          handleSearchSubmit,
+          handleSearchClear,
+     };
 }

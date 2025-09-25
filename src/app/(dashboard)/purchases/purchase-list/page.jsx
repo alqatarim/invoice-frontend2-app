@@ -16,8 +16,8 @@ async function PurchaseListPage() {
 
     return (
       <ProtectedComponent>
-        <PurchaseListIndex 
-          initialData={initialData} 
+        <PurchaseListIndex
+          initialData={initialData}
           vendors={vendors}
         />
       </ProtectedComponent>

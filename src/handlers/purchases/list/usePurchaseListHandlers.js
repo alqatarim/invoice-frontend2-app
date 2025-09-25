@@ -1,103 +1,67 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useTheme } from '@mui/material/styles';
-import { getPurchaseColumns } from '@/views/purchases/listPurchase/purchaseColumns';
-import { columnsHandler } from './columnsHandler';
+import { useMemo } from 'react';
+import { dataHandler } from './dataHandler';
 import { actionsHandler } from './actionsHandler';
-import { usePermission } from '@/Auth/usePermission';
+import { convertDialogHandler } from './convertDialogHandler';
+import { columnsHandler } from './columnsHandler';
 
 /**
- * Main purchase list handlers - combines all handler logic
+ * Composite hook for purchase list functionality.
+ * Combines data management, actions, search, and UI handlers.
  */
-export function usePurchaseListHandlers({ setPage, onListUpdate }) {
-  const theme = useTheme();
-  
-  // Permissions
-  const permissions = {
-    canView: usePermission('purchase', 'view'),
-    canCreate: usePermission('purchase', 'create'),
-    canUpdate: usePermission('purchase', 'update'),
-    canDelete: usePermission('purchase', 'delete'),
-  };
+export function usePurchaseListHandlers(options = {}) {
+  // Initialize all handlers
+  const columns = columnsHandler(options.initialColumns || []);
 
-  // Get initial columns - only compute once based on stable values
-  const initialColumns = useMemo(() => 
-    getPurchaseColumns({ theme, permissions }),
-    [theme.palette?.mode, permissions.canView, permissions.canCreate, permissions.canUpdate, permissions.canDelete]
-  );
+  // Initialize data handler
+  const data = dataHandler(options);
 
-  // Column state management
-  const [columnsState, setColumnsState] = useState(() => {
-    // Initialize with localStorage data on first render only
-    const savedColumns = localStorage.getItem('purchaseVisibleColumns');
-    if (savedColumns) {
-      try {
-        const parsedColumns = JSON.parse(savedColumns);
-        const baseColumns = getPurchaseColumns({ theme, permissions });
-        // Merge with initial columns to handle new columns that might have been added
-        return baseColumns.map(initialCol => {
-          const savedCol = parsedColumns.find(col => col.key === initialCol.key);
-          return savedCol ? { ...initialCol, visible: savedCol.visible } : initialCol;
-        });
-      } catch (error) {
-        console.error('Error parsing saved columns:', error);
-        return getPurchaseColumns({ theme, permissions });
-      }
-    }
-    return getPurchaseColumns({ theme, permissions });
+  const actions = actionsHandler({
+    onSuccess: options.onSuccess,
+    onError: options.onError,
+    fetchData: data.fetchData,
+    pagination: data.pagination,
   });
 
-  // Only update columns when permissions actually change (not on every render)
-  useEffect(() => {
-    const savedColumns = localStorage.getItem('purchaseVisibleColumns');
-    if (savedColumns) {
-      try {
-        const parsedColumns = JSON.parse(savedColumns);
-        // Merge with current columns to handle permission changes
-        const mergedColumns = initialColumns.map(initialCol => {
-          const savedCol = parsedColumns.find(col => col.key === initialCol.key);
-          return savedCol ? { ...initialCol, visible: savedCol.visible } : initialCol;
-        });
-        setColumnsState(mergedColumns);
-      } catch (error) {
-        console.error('Error parsing saved columns:', error);
-        setColumnsState(initialColumns);
-      }
-    } else {
-      setColumnsState(initialColumns);
-    }
-  }, [permissions.canView, permissions.canCreate, permissions.canUpdate, permissions.canDelete]);
+  // Note: Convert functionality not available with current backend
 
-  // Handlers
-  const columnHandlers = columnsHandler(columnsState);
-  const actionHandlers = actionsHandler({ setPage, onListUpdate });
+  // Combine all handlers into a single object
+  return useMemo(() => {
+    return {
+      // Data state
+      purchases: data.purchases,
+      pagination: data.pagination,
+      loading: data.loading,
+      sortBy: data.sortBy,
+      sortDirection: data.sortDirection,
 
-  // Table columns with handlers injected
-  const tableColumns = useMemo(() =>
-    columnsState.map(col => ({
-      ...col,
-      renderCell: col.renderCell ?
-        (row) => col.renderCell(row, {
-          ...actionHandlers,
-          permissions,
-        }) : undefined
-    })),
-    [columnsState, actionHandlers, permissions]
-  );
+      // Search state
+      searchTerm: data.searchTerm,
+      searching: data.searching,
 
-  return {
-    // Column management
-    ...columnHandlers,
-    columnsState,
-    setColumnsState,
-    tableColumns,
-    
-    // Actions
-    ...actionHandlers,
-    
-    // Utils
-    permissions,
-    theme,
-  };
+      // Data handlers
+      fetchData: data.fetchData,
+      handlePageChange: data.handlePageChange,
+      handlePageSizeChange: data.handlePageSizeChange,
+      handleSortRequest: data.handleSortRequest,
+
+      // Search handlers
+      handleSearchInputChange: data.handleSearchInputChange,
+      handleSearchSubmit: data.handleSearchSubmit,
+      handleSearchClear: data.handleSearchClear,
+
+      // Actions
+      handleDelete: actions.handleDelete,
+      handlePrintDownload: actions.handlePrintDownload,
+
+      // Column management
+      availableColumns: columns.availableColumns,
+      manageColumnsOpen: columns.manageColumnsOpen,
+      handleManageColumnsOpen: columns.handleManageColumnsOpen,
+      handleManageColumnsClose: columns.handleManageColumnsClose,
+      handleColumnCheckboxChange: columns.handleColumnCheckboxChange,
+      handleManageColumnsSave: columns.handleManageColumnsSave,
+    };
+  }, [data, actions, columns]);
 }

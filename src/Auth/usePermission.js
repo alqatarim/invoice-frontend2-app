@@ -1,4 +1,4 @@
-// src/hooks/usePermission.js
+// Permission checking hook
 import { usePermissions } from '@/Auth/PermissionsContext'
 
 export const usePermission = (module, action) => {

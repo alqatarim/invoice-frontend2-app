@@ -1,24 +1,35 @@
 import React from 'react';
-import { notFound } from 'next/navigation';
-import PurchaseViewIndex from '@/views/purchases/viewPurchase/index';
+import ViewPurchaseIndex from '@/views/purchases/viewPurchase/index';
 import ProtectedComponent from '@/components/ProtectedComponent';
+import { getPurchaseDetails } from '@/app/(dashboard)/purchases/actions';
+import { notFound } from 'next/navigation';
 
 export const metadata = {
-  title: 'View Purchase | Kanakku',
+  title: 'View Purchase',
+  description: 'View purchase details'
 };
 
-async function PurchaseViewPage({ params }) {
-  const { id } = params;
+const ViewPurchasePage = async ({ params }) => {
+  try {
+    // Fetch purchase data on the server
+    const response = await getPurchaseDetails(params.id);
 
-  if (!id) {
+    if (!response.success || !response.data) {
+      notFound();
+    }
+
+    return (
+      <ProtectedComponent>
+        <ViewPurchaseIndex
+          purchaseId={params.id}
+          initialData={response.data}
+        />
+      </ProtectedComponent>
+    );
+  } catch (error) {
+    console.error('Error fetching purchase:', error);
     notFound();
   }
+};
 
-  return (
-    <ProtectedComponent>
-      <PurchaseViewIndex id={id} />
-    </ProtectedComponent>
-  );
-}
-
-export default PurchaseViewPage;
+export default ViewPurchasePage;

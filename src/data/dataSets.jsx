@@ -37,7 +37,7 @@ export const statusOptions = [
   { value: 'OVERDUE', label: 'Overdue', color: 'error', icon: 'mdi:invoice-text-clock-outline' },
   { value: 'PAID', label: 'Paid', color: 'success', icon: 'mdi:invoice-text-check-outline' },
   { value: 'DRAFTED', label: 'Drafted', color: 'secondary', icon: 'mdi:invoice-text-edit-outline' },
-    { value: 'Active', label: 'Active', color: 'info', icon: 'ri:check-double-line' },
+  { value: 'Active', label: 'Active', color: 'info', icon: 'ri:check-double-line' },
 ]
 
 export const paymentSummaryStatus = [
@@ -49,9 +49,9 @@ export const paymentSummaryStatus = [
   { value: 'OVERDUE', label: 'Overdue', color: 'error' },
   { value: 'PAID', label: 'Paid', color: 'success' },
   { value: 'DRAFTED', label: 'Drafted', color: 'secondary' },
-    { value: 'Success', label: 'Success', color: 'success' },
-    { value: 'Failed', label: 'Failed', color: 'error' },
-        { value: 'Active', label: 'Active', color: 'info' },
+  { value: 'Success', label: 'Success', color: 'success' },
+  { value: 'Failed', label: 'Failed', color: 'error' },
+  { value: 'Active', label: 'Active', color: 'info' },
 
 ]
 
@@ -136,11 +136,11 @@ export const ledgerModes = [
 // ]
 
 
-  // Gender options matching old implementation
-  export const genderOptions = [
-    { id: 2, text: "Male" },
-    { id: 3, text: "Female" },
-  ]
+// Gender options matching old implementation
+export const genderOptions = [
+  { id: 2, text: "Male" },
+  { id: 3, text: "Female" },
+]
 
 
 
@@ -154,7 +154,7 @@ export const profileTabs = [
 
 // Role options with icon for user roles
 export const roleOptions = [
-    { value: 'Super Admin', label: 'Super Admin', icon: 'mdi:shield-user-outline' },
+  { value: 'Super Admin', label: 'Super Admin', icon: 'mdi:shield-user-outline' },
   { value: 'admin', label: 'Admin', icon: 'mdi:user-star-outline' },
   { value: 'manager', label: 'Manager', icon: 'mdi:user-star-outline' },
   { value: 'user', label: 'User', icon: 'mdi:user-outline' },
@@ -379,4 +379,12 @@ export const formIcons = [
   { value: '3', label: 'fixedDiscount', icon: 'lucide:saudi-riyal' },
   { value: '2', label: 'percentageDiscount', icon: 'lucide:percent' },
   { value: 'vat', label: 'vat', icon: 'heroicons-outline:receipt-tax' },
+  // Additional icons for expenses and payments
+  { value: 'id', label: 'id', icon: 'mdi:identifier' },
+  { value: 'reference', label: 'reference', icon: 'mdi:text-box-outline' },
+  { value: 'payment', label: 'payment', icon: 'mdi:credit-card-outline' },
+  { value: 'date', label: 'date', icon: 'mdi:calendar-outline' },
+  { value: 'status', label: 'status', icon: 'mdi:check-circle-outline' },
+  { value: 'customer', label: 'customer', icon: 'mdi:account-outline' },
+  { value: 'invoice', label: 'invoice', icon: 'mdi:file-document-outline' },
 ]

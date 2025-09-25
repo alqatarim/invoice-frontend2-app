@@ -6,8 +6,6 @@ import AuthRedirect from '@/Auth/AuthRedirect'
 const AuthWrapper = ({ children }) => {
   const { data: session, status } = useSession()
 
-
-
   if (!session) {
     return <AuthRedirect />
   }

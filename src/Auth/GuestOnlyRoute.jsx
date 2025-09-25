@@ -14,8 +14,6 @@ const GuestOnlyRoute = async ({ children, lang }) => {
   const session = await getServerSession()
 
   if (session) {
-    // redirect(getLocalizedUrl(themeConfig.homePageUrl, lang))
-
     redirect(themeConfig.homePageUrl)
   }
 

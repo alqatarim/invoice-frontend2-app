@@ -5,7 +5,6 @@ import { Grid, Avatar, Typography } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { amountFormat } from '@/utils/numberUtils';
-import { getPurchaseList } from '@/app/(dashboard)/purchases/actions';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
 /**
@@ -13,59 +12,53 @@ import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBord
  */
 const PurchaseHead = ({ purchaseListData }) => {
   const theme = useTheme();
-  const [cardCounts, setCardCounts] = useState({
-    totalPurchases: { total_sum: 0, count: 0 },
-    totalPaid: { total_sum: 0, count: 0 },
-    totalPending: { total_sum: 0, count: 0 },
-    totalOverdue: { total_sum: 0, count: 0 }
+  const [purchaseStats, setPurchaseStats] = useState({
+    totalPurchases: 0,
+    totalAmount: 0,
+    avgPurchaseValue: 0,
+    activePurchases: 0,
   });
 
   useEffect(() => {
-    const fetchCardCounts = async () => {
-      try {
-        const response = await getPurchaseList(1, 1000); // Get all purchases for stats
-        if (response.success && response.data) {
-          const purchases = response.data;
+    const calculateStats = () => {
+      if (purchaseListData && purchaseListData.length > 0) {
+        const stats = purchaseListData.reduce((acc, purchase) => {
+          // Count total purchases
+          acc.totalPurchases++;
 
-          const totalPurchases = {
-            total_sum: purchases.reduce((sum, p) => sum + (Number(p.TotalAmount) || 0), 0),
-            count: purchases.length
-          };
+          // Calculate total amount
+          const amount = Number(purchase.TotalAmount) || 0;
+          acc.totalAmount += amount;
 
-          const paidPurchases = purchases.filter(p => p.status === 'PAID');
-          const totalPaid = {
-            total_sum: paidPurchases.reduce((sum, p) => sum + (Number(p.TotalAmount) || 0), 0),
-            count: paidPurchases.length
-          };
+          // Count active purchases (assume all are active for now)
+          acc.activePurchases++;
 
-          const pendingPurchases = purchases.filter(p => p.status === 'Pending');
-          const totalPending = {
-            total_sum: pendingPurchases.reduce((sum, p) => sum + (Number(p.TotalAmount) || 0), 0),
-            count: pendingPurchases.length
-          };
+          return acc;
+        }, {
+          totalPurchases: 0,
+          totalAmount: 0,
+          activePurchases: 0,
+        });
 
-          const overduePurchases = purchases.filter(p => p.status === 'Overdue');
-          const totalOverdue = {
-            total_sum: overduePurchases.reduce((sum, p) => sum + (Number(p.TotalAmount) || 0), 0),
-            count: overduePurchases.length
-          };
+        // Calculate average purchase value
+        stats.avgPurchaseValue = stats.totalPurchases > 0 ? stats.totalAmount / stats.totalPurchases : 0;
 
-          setCardCounts({
-            totalPurchases,
-            totalPaid,
-            totalPending,
-            totalOverdue
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching purchase card counts:', error);
+        setPurchaseStats(stats);
+      } else {
+        // Reset stats when no data
+        setPurchaseStats({
+          totalPurchases: 0,
+          totalAmount: 0,
+          avgPurchaseValue: 0,
+          activePurchases: 0,
+        });
       }
     };
 
-    fetchCardCounts();
+    calculateStats();
   }, [purchaseListData]);
 
-  const currencySymbol = 'SAR';
+  const currencySymbol = '﷼'; // Saudi Riyal symbol
 
   return (
     <>
@@ -84,64 +77,67 @@ const PurchaseHead = ({ purchaseListData }) => {
       {/* Statistics Cards */}
       <div className="mb-2">
         <Grid container spacing={4}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <HorizontalWithBorder
               title="Total Purchases"
-              subtitle="No of Purchases"
+              subtitle="All Purchases"
               titleVariant='h5'
               subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalPurchases?.total_sum)}`}
-              statsVariant='h5'
-              trendNumber={cardCounts.totalPurchases?.count || 0}
+              stats={purchaseStats.totalPurchases.toString()}
+              statsVariant='h4'
+              trendNumber={`${purchaseStats.activePurchases} Active`}
               trendNumberVariant='body1'
               avatarIcon='tabler:shopping-cart'
               color="primary"
-              iconSize='26px'
+              iconSize='30px'
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <HorizontalWithBorder
-              title="Paid"
-              subtitle="Completed Purchases"
+              title="Active Purchases"
+              subtitle="Currently Active"
               titleVariant='h5'
               subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalPaid?.total_sum)}`}
-              statsVariant='h5'
-              trendNumber={cardCounts.totalPaid?.count || 0}
+              stats={purchaseStats.activePurchases.toString()}
+              statsVariant='h4'
+              trendNumber={`${Math.round((purchaseStats.activePurchases / Math.max(purchaseStats.totalPurchases, 1)) * 100)}%`}
               trendNumberVariant='body1'
-              avatarIcon='tabler:check'
+              avatarIcon='mdi:check-circle-outline'
               color="success"
-              iconSize='26px'
+              iconSize='35px'
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <HorizontalWithBorder
-              title="Pending"
-              subtitle="Awaiting Payment"
+              title="Total Amount"
+              subtitle="Total Value"
               titleVariant='h5'
               subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalPending?.total_sum)}`}
-              statsVariant='h5'
-              trendNumber={cardCounts.totalPending?.count || 0}
+              stats={`${currencySymbol} ${amountFormat(purchaseStats.totalAmount)}`}
+              statsVariant='h4'
+              trendNumber="Total Value"
               trendNumberVariant='body1'
-              avatarIcon='tabler:clock'
+              avatarIcon='mdi:currency-usd'
+              color="info"
+              iconSize='35px'
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <HorizontalWithBorder
+              title="Average Value"
+              subtitle="Per Purchase"
+              titleVariant='h5'
+              subtitleVariant='body2'
+              stats={`${currencySymbol} ${amountFormat(purchaseStats.avgPurchaseValue)}`}
+              statsVariant='h4'
+              trendNumber="Avg Purchase"
+              trendNumberVariant='body1'
+              avatarIcon='mdi:chart-line'
               color="warning"
-              iconSize='26px'
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <HorizontalWithBorder
-              title="Overdue"
-              subtitle="Payment Overdue"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalOverdue?.total_sum)}`}
-              statsVariant='h5'
-              trendNumber={cardCounts.totalOverdue?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='tabler:alert-triangle'
-              color="error"
-              iconSize='26px'
+              iconSize='35px'
             />
           </Grid>
         </Grid>

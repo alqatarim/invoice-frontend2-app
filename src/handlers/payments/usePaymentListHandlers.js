@@ -28,6 +28,8 @@ export function usePaymentListHandlers(options = {}) {
     fetchData: data.fetchData,
     pagination: data.pagination,
     filters: data.filterValues,
+    onView: options.onView,
+    onEdit: options.onEdit,
   });
 
   // Combine all handlers into a single object
@@ -46,6 +48,7 @@ export function usePaymentListHandlers(options = {}) {
 
     // Data handlers
     fetchData: data.fetchData,
+    refreshData: data.fetchData, // Expose refresh functionality
     handlePageChange: data.handlePageChange,
     handlePageSizeChange: data.handlePageSizeChange,
     handleSortRequest: data.handleSortRequest,

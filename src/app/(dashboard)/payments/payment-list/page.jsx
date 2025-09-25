@@ -1,25 +1,30 @@
+import React from 'react';
+import { getPaymentsList, getCustomers } from '../actions';
 import PaymentListIndex from '@/views/payments/listPayment/index';
-import { getInitialPaymentData, getCustomers } from '../actions';
+import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
-  title: 'Payments List | Invoices'
+  title: 'Payment List | Kanakku',
 };
 
 async function PaymentListPage() {
   try {
-    // Fetch initial data in parallel
-    const [initialData, customersData] = await Promise.all([
-      getInitialPaymentData(),
+    const [initialData, customers] = await Promise.all([
+      getPaymentsList(),
       getCustomers()
     ]);
 
-    return <PaymentListIndex 
-      initialData={initialData} 
-      initialCustomerOptions={customersData || []}
-    />;
+    return (
+      <ProtectedComponent>
+        <PaymentListIndex
+          initialData={initialData}
+          customers={customers}
+        />
+      </ProtectedComponent>
+    );
   } catch (error) {
-    console.error('Error fetching payments list:', error);
-    return <div>Error loading payments list</div>;
+    console.error('Error loading payment list data:', error);
+    return <div className="text-red-600 p-8">Failed to load payment list.</div>;
   }
 }
 

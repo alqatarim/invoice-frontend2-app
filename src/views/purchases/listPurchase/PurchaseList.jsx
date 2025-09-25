@@ -1,431 +1,234 @@
-'use client';
-
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Chip,
-  Snackbar,
-  Alert,
-  Skeleton,
-  ListItemIcon,
-  ListItemText
-} from '@mui/material';
-import {
-  Add as AddIcon,
-  MoreVert as MoreVertIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  FilterList as FilterIcon
-} from '@mui/icons-material';
-import { deletePurchase } from '@/app/(dashboard)/purchases/actions';
-import { usePermission } from '@/Auth/usePermission';
-import PurchaseFilter from './PurchaseFilter';
-import dayjs from 'dayjs';
 import { Icon } from '@iconify/react';
+import {
+     Card,
+     Button,
+     Snackbar,
+     Alert,
+     Dialog,
+     DialogTitle,
+     DialogContent,
+     DialogActions,
+     FormControlLabel,
+     Checkbox,
+     FormGroup,
+     Grid,
+} from '@mui/material';
+
 import { useTheme } from '@mui/material/styles';
+import { useSession } from 'next-auth/react';
+import { usePermission } from '@/Auth/usePermission';
+import { useSearchParams } from 'next/navigation';
 
-// Define default columns outside component to prevent re-creation
-const DEFAULT_COLUMNS = [
-  { key: 'purchaseId', label: 'Purchase ID', visible: true },
-  { key: 'vendor', label: 'Vendor', visible: true },
-  { key: 'amount', label: 'Total Amount', visible: true },
-  { key: 'paymentMode', label: 'Payment Mode', visible: true },
-  { key: 'date', label: 'Date', visible: true },
-  { key: 'status', label: 'Status', visible: true },
-  { key: 'action', label: 'Actions', visible: true }
-];
+import PurchaseHead from '@/views/purchases/listPurchase/purchaseHead';
+import CustomListTable from '@/components/custom-components/CustomListTable';
+import { usePurchaseListHandlers } from '@/handlers/purchases/list/usePurchaseListHandlers';
+import { formatCurrency } from '@/utils/currencyUtils';
+import { getPurchaseColumns } from './purchaseColumns';
 
-const PurchaseList = ({
-  purchaseList,
-  totalCount,
-  page,
-  setPage,
-  pageSize,
-  setPageSize,
-  loading,
-  setFilterCriteria,
-  vendors,
-  resetAllFilters
-}) => {
-  const theme = useTheme();
+/**
+ * Simplified PurchaseList Component - matches purchase order list structure
+ */
+const PurchaseList = ({ initialPurchases, initialPagination, vendors = [] }) => {
+     const theme = useTheme();
+     const { data: session } = useSession();
+     const searchParams = useSearchParams();
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedPurchase, setSelectedPurchase] = useState(null);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [openFilter, setOpenFilter] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
+     // Permissions
+     const permissions = {
+          canCreate: usePermission('purchase', 'create'),
+          canUpdate: usePermission('purchase', 'update'),
+          canView: usePermission('purchase', 'view'),
+          canDelete: usePermission('purchase', 'delete'),
+     };
 
-  const canUpdate = usePermission('purchase', 'update');
-  const canDelete = usePermission('purchase', 'delete');
-  const isAdmin = usePermission('purchase', 'isAdmin');
+     // Snackbar state
+     const [snackbar, setSnackbar] = useState({
+          open: false,
+          message: '',
+          severity: 'success',
+     });
 
-  // Memoize columns to prevent re-creation on every render
-  const [columns, setColumns] = useState(() => DEFAULT_COLUMNS);
+     // Notification handlers
+     const onError = React.useCallback(msg => {
+          setSnackbar({ open: true, message: msg, severity: 'error' });
+     }, []);
 
-  const handleMenuOpen = (event, purchase) => {
-    event.preventDefault();
-    event.stopPropagation();
+     const onSuccess = React.useCallback(msg => {
+          setSnackbar({ open: true, message: msg, severity: 'success' });
+     }, []);
 
-    setAnchorEl(event.currentTarget);
-    setSelectedPurchase(purchase);
-  };
+     // Initialize simplified handlers
+     const handlers = usePurchaseListHandlers({
+          initialPurchases,
+          initialPagination,
+          onError,
+          onSuccess,
+     });
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedPurchase(null);
-  };
+     // Column management
+     const columns = useMemo(() => {
+          if (!theme || !permissions) return [];
+          return getPurchaseColumns({ theme, permissions });
+     }, [theme, permissions]);
 
-  const handlePageChange = (event, newPage) => {
-    setPage(newPage + 1);
-  };
+     const [columnsState, setColumns] = useState(() => {
+          if (typeof window !== 'undefined' && columns.length > 0) {
+               const saved = localStorage.getItem('purchaseVisibleColumns');
+               if (saved) {
+                    try {
+                         const parsed = JSON.parse(saved);
+                         return Array.isArray(parsed) ? parsed : columns;
+                    } catch (e) {
+                         console.warn('Failed to parse saved column preferences:', e);
+                    }
+               }
+          }
+          return columns;
+     });
 
-  const handlePageSizeChange = (event) => {
-    setPageSize(parseInt(event.target.value, 10));
-    setPage(1);
-  };
+     const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
 
-  const handleDelete = async () => {
-    if (!selectedPurchase || !selectedPurchase._id) {
-      console.error('No selected purchase to delete.');
-      return;
-    }
-    try {
-      const response = await deletePurchase(selectedPurchase._id);
-      if (response.success) {
-        setSnackbar({
-          open: true,
-          message: 'Purchase deleted successfully',
-          severity: 'success'
-        });
-        // Optionally refresh the purchase list here
-      } else {
-        setSnackbar({
-          open: true,
-          message: response.message || 'Error deleting purchase',
-          severity: 'error'
-        });
-      }
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Error deleting purchase',
-        severity: 'error'
-      });
-    }
-    setOpenDeleteDialog(false);
-    handleMenuClose();
-  };
+     React.useEffect(() => {
+          if (columns.length > 0 && columnsState.length === 0) {
+               setColumns(columns);
+          }
+     }, [columns, columnsState.length]);
 
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
+     const handleColumnCheckboxChange = React.useCallback((columnKey, checked) => {
+          setColumns(prev => prev.map(col =>
+               col.key === columnKey ? { ...col, visible: checked } : col
+          ));
+     }, []);
 
-  return (
-    <Box className="flex flex-col gap-4 p-4">
-      <Box className="flex justify-between items-center">
-        <Typography variant="h5" color="primary">
-          Purchases
-        </Typography>
-      </Box>
+     const handleSaveColumns = React.useCallback(() => {
+          setManageColumnsOpen(false);
+          if (typeof window !== 'undefined') {
+               localStorage.setItem('purchaseVisibleColumns', JSON.stringify(columnsState));
+          }
+     }, [columnsState]);
 
-      <Box className="flex justify-end items-center">
-        {(canUpdate || isAdmin) && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            component={Link}
-            href="/purchases/purchase-add"
-          >
-            Add Purchase
-          </Button>
-        )}
-      </Box>
+     // Table columns
+     const tableColumns = useMemo(() => {
+          const cellHandlers = {
+               handleDelete: handlers.handleDelete,
+               handleView: handlers.handleView,
+               handleEdit: handlers.handleEdit,
+               handleClone: handlers.handleClone,
+               handleSend: handlers.handleSend,
+               handlePrintDownload: handlers.handlePrintDownload,
+               openConvertDialog: handlers.openConvertDialog,
+               permissions,
+               pagination: handlers.pagination,
+          };
 
-      <Box className="flex justify-end items-center">
-        <Box className="flex gap-2">
-          <Button
-            variant="text"
-            color="secondary"
-            onClick={resetAllFilters}
-            startIcon={<Icon icon='mdi:refresh' fontSize={20} />}
-            sx={{ minWidth: 100 }}
-          >
-            Clear Filter
-          </Button>
-          <Button
-            variant="text"
-            startIcon={<FilterIcon />}
-            onClick={() => setOpenFilter(true)}
-          >
-            Filter
-          </Button>
-        </Box>
-      </Box>
+          return columnsState
+               .filter(col => col.visible)
+               .map(col => ({
+                    ...col,
+                    renderCell: col.renderCell ? (row, index) => col.renderCell(row, cellHandlers, index) : undefined
+               }));
+     }, [columnsState, handlers, permissions]);
 
-      <Card>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                {columns.map(column =>
-                  column.visible && (
-                    <TableCell
-                      key={column.key}
-                      sx={{
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                      }}
+     const tablePagination = useMemo(() => ({
+          page: handlers.pagination.current - 1,
+          pageSize: handlers.pagination.pageSize,
+          total: handlers.pagination.total
+     }), [handlers.pagination]);
+
+     return (
+          <div className='flex flex-col gap-5'>
+               <PurchaseHead
+                    purchaseListData={handlers.purchases}
+                    isLoading={handlers.loading}
+               />
+
+               <Grid container spacing={3}>
+                    <Grid size={{ xs: 12 }}>
+                         <CustomListTable
+                              columns={tableColumns}
+                              rows={handlers.purchases}
+                              loading={handlers.loading}
+                              pagination={tablePagination}
+                              onPageChange={(page) => handlers.handlePageChange(page)}
+                              onRowsPerPageChange={(size) => handlers.handlePageSizeChange(size)}
+                              onSort={(key, direction) => handlers.handleSortRequest(key, direction)}
+                              sortBy={handlers.sortBy}
+                              sortDirection={handlers.sortDirection}
+                              noDataText="No purchases found"
+                              rowKey={(row) => row._id || row.id}
+                              showSearch={true}
+                              searchValue={handlers.searchTerm || ''}
+                              onSearchChange={handlers.handleSearchInputChange}
+                              headerActions={
+                                   permissions.canCreate && (
+                                        <Button
+                                             component={Link}
+                                             href="/purchases/purchase-add"
+                                             variant="contained"
+                                             startIcon={<Icon icon="tabler:plus" />}
+                                        >
+                                             New Purchase
+                                        </Button>
+                                   )
+                              }
+                         />
+                    </Grid>
+               </Grid>
+
+               <Dialog
+                    open={manageColumnsOpen}
+                    onClose={() => setManageColumnsOpen(false)}
+                    maxWidth="sm"
+                    fullWidth
+               >
+                    <DialogTitle>Manage Columns</DialogTitle>
+                    <DialogContent>
+                         <FormGroup>
+                              {columnsState.map((column) => (
+                                   <FormControlLabel
+                                        key={column.key}
+                                        control={
+                                             <Checkbox
+                                                  checked={column.visible}
+                                                  onChange={(e) => handleColumnCheckboxChange(column.key, e.target.checked)}
+                                             />
+                                        }
+                                        label={column.label}
+                                   />
+                              ))}
+                         </FormGroup>
+                    </DialogContent>
+                    <DialogActions>
+                         <Button onClick={() => setManageColumnsOpen(false)} color="secondary">
+                              Cancel
+                         </Button>
+                         <Button onClick={handleSaveColumns} color="primary" variant="contained">
+                              Save
+                         </Button>
+                    </DialogActions>
+               </Dialog>
+
+               <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={6000}
+                    onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
+                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+               >
+                    <Alert
+                         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+                         severity={snackbar.severity}
+                         variant="filled"
+                         sx={{ width: '100%' }}
                     >
-                      {column.label}
-                    </TableCell>
-                  )
-                )}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                // Show loading skeleton
-                Array.from(new Array(5)).map((_, index) => (
-                  <TableRow key={index}>
-                    {columns.map(column =>
-                      column.visible && (
-                        <TableCell key={column.key}>
-                          <Skeleton variant={column.key === 'vendor' ? 'rectangular' : 'text'} />
-                        </TableCell>
-                      )
-                    )}
-                  </TableRow>
-                ))
-              ) : purchaseList.length > 0 ? (
-                purchaseList.map((purchase, index) => {
-                  return (
-                    <TableRow key={purchase._id} hover>
-                      {columns.map(column =>
-                        column.visible && (
-                          <TableCell key={column.key}>
-                            {column.key === 'purchaseId' && (
-                              <Link
-                                href={`/purchases/purchase-view/${purchase._id}`}
-                                className="text-decoration-none"
-                              >
-                                <Typography
-                                  variant="h6"
-                                  sx={{
-                                    color: 'primary.main',
-                                    '&:hover': { textDecoration: 'underline' }
-                                  }}
-                                >
-                                  {purchase.purchaseId}
-                                </Typography>
-                              </Link>
-                            )}
-                            {column.key === 'vendor' && (
-                              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                <Link
-                                  href={`/vendors/vendor-view/${purchase.vendorId?._id}`}
-                                  className="text-decoration-none"
-                                >
-                                  <Typography
-                                    variant="h6"
-                                    sx={{
-                                      color: 'primary.main',
-                                      '&:hover': { textDecoration: 'underline' }
-                                    }}
-                                  >
-                                    {purchase.vendorId?.vendor_name}
-                                  </Typography>
-                                </Link>
-                                <Typography variant="caption" color="textSecondary">
-                                  {purchase.vendorId?.vendor_phone}
-                                </Typography>
-                              </Box>
-                            )}
-                            {column.key === 'amount' && (
-                              <Typography variant="body1">
-                                { Number(purchase.TotalAmount).toLocaleString('en-IN', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })} SAR
-                              </Typography>
-                            )}
-                            {column.key === 'paymentMode' && (
-                              <Chip
-                                size='medium'
-                                variant="outlined"
-                                color="secondary"
-                                label={purchase.paymentMode}
-                              />
-                            )}
-                            {column.key === 'date' && (
-                              <Typography variant="body1">
-                                {dayjs(purchase.purchaseDate).format('DD MMM YYYY')}
-                              </Typography>
-                            )}
-                            {column.key === 'status' && (
-                              <Chip
-                                label={purchase.status}
-                                variant="tonal"
-                                color={
-                                  purchase.status === 'PAID'
-                                    ? 'success'
-                                    : purchase.status === 'Pending'
-                                    ? 'warning'
-                                    : 'error'
-                                }
-                              />
-                            )}
-                            {column.key === 'action' && (canUpdate || isAdmin) && (
-                              <IconButton
-                                size="small"
-                                onClick={(e) => handleMenuOpen(e, purchase)}
-                                aria-controls={Boolean(anchorEl) ? 'purchase-menu' : undefined}
-                                aria-haspopup="true"
-                                aria-expanded={Boolean(anchorEl) ? 'true' : undefined}
-                              >
-                                <MoreVertIcon fontSize="small" />
-                              </IconButton>
-                            )}
-                          </TableCell>
-                        )
-                      )}
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} align="center">
-                    <Typography variant="body2">No purchases found.</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                         {snackbar.message}
+                    </Alert>
+               </Snackbar>
 
-        <TablePagination
-          component="div"
-          count={totalCount}
-          page={page - 1}
-          onPageChange={handlePageChange}
-          rowsPerPage={pageSize}
-          onRowsPerPageChange={handlePageSizeChange}
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          sx={{
-            borderTop: '1px solid',
-            borderColor: 'divider'
-          }}
-        />
-      </Card>
-
-      {/* Action Menu */}
-      <Menu
-        id="purchase-menu"
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right'
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right'
-        }}
-      >
-        {(canUpdate || isAdmin) && selectedPurchase && (
-          <>
-            <MenuItem
-              component={Link}
-              href={`/purchases/purchase-edit/${selectedPurchase._id}`}
-              onClick={handleMenuClose}
-              sx={{ display: 'flex', alignItems: 'center', width: '100%' }}
-            >
-              <ListItemIcon>
-                <EditIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText primary="Edit" />
-            </MenuItem>
-          </>
-        )}
-        {(canDelete || isAdmin) && selectedPurchase && (
-          <MenuItem onClick={() => setOpenDeleteDialog(true)}>
-            <ListItemIcon>
-              <DeleteIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Delete" />
-          </MenuItem>
-        )}
-      </Menu>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this purchase?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" autoFocus>
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Filter Drawer */}
-      <PurchaseFilter
-        open={openFilter}
-        onClose={() => setOpenFilter(false)}
-        setFilterCriteria={setFilterCriteria}
-        vendors={vendors}
-        resetAllFilters={resetAllFilters}
-      />
-
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
-  );
+          </div>
+     );
 };
 
 export default PurchaseList;

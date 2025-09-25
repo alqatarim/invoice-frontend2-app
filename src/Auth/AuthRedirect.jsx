@@ -14,9 +14,6 @@ const AuthRedirect = ({ lang }) => {
     const homePage = '/dashboard'
     const loginPage = '/login'
 
-    console.log('AuthRedirect: session', session)
-    console.log('AuthRedirect: status', status)
-    console.log('AuthRedirect: pathname', pathname)
 
     if (status === 'loading') return // Do nothing while loading
 

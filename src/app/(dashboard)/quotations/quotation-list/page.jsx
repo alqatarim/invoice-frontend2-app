@@ -1,38 +1,30 @@
+import React from 'react';
+import { getQuotationsList, getCustomers } from '../actions';
 import QuotationListIndex from '@/views/quotations/listQuotation/index';
-import { getQuotationsList, getCustomers } from '@/app/(dashboard)/quotations/actions';
+import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
-  title: 'Quotation List | Invoices'
+  title: 'Quotation List | Kanakku',
 };
 
 async function QuotationListPage() {
   try {
-    // Fetch data in parallel for better performance
-    const [quotationsData, customers] = await Promise.all([
+    const [initialData, customers] = await Promise.all([
       getQuotationsList(),
       getCustomers()
     ]);
 
     return (
-      <QuotationListIndex 
-        initialData={quotationsData} 
-        customers={customers} 
-      />
+      <ProtectedComponent>
+        <QuotationListIndex
+          initialData={initialData}
+          customers={customers}
+        />
+      </ProtectedComponent>
     );
   } catch (error) {
-    console.error('Error in QuotationListPage:', error);
-
-    // Return a more user-friendly error component
-    return (
-      <div className="p-4 text-center">
-        <h2 className="text-xl font-semibold text-red-500 mb-2">
-          Something went wrong
-        </h2>
-        <p className="text-gray-600">
-          Unable to load quotations. Please try again later.
-        </p>
-      </div>
-    );
+    console.error('Error loading quotation list data:', error);
+    return <div className="text-red-600 p-8">Failed to load quotation list.</div>;
   }
 }
 

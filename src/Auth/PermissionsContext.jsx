@@ -1,7 +1,7 @@
 
- 'use client'
+'use client'
 
- import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 
 const PermissionsContext = createContext();
@@ -15,8 +15,8 @@ export const PermissionsProvider = ({ children }) => {
       return null;
     }
 
-    const { role, permissionRes } = session.user;
-// console.log('session:', session)
+    const { role, permissionRes } = session.user
+
     if (permissionRes?.allModules) {
 
       return {

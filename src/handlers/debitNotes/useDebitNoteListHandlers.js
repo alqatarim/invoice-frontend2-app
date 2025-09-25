@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useCallback } from 'react';
 import { deleteDebitNote, cloneDebitNote } from '@/app/(dashboard)/debitNotes/actions';
 
 export function useDebitNoteListHandlers({
@@ -14,205 +13,154 @@ export function useDebitNoteListHandlers({
   onError,
   onSuccess,
 }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
   // State management
   const [debitNotes, setDebitNotes] = useState(initialDebitNotes || []);
-  const [pagination, setPagination] = useState(initialPagination || { current: 1, pageSize: 10, total: 0 });
   const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: initialPagination?.current || 1,
+    pageSize: initialPagination?.pageSize || 10,
+    total: initialPagination?.total || 0,
+  });
   const [sortBy, setSortBy] = useState(initialSortBy || '');
   const [sortDirection, setSortDirection] = useState(initialSortDirection || 'asc');
-  
-  // Filter state
-  const [filterValues, setFilterValues] = useState(initialFilters || {});
-  
-  // Column management
-  const [availableColumns, setAvailableColumns] = useState(initialColumns || []);
-  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
-  
-  // Dialog state
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedDebitNote, setSelectedDebitNote] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Vendor and debit note options for filters
-  const vendorOptions = useMemo(() => 
-    initialVendors?.map(vendor => ({
-      value: vendor._id,
-      label: vendor.vendor_name
-    })) || [], [initialVendors]);
+  // Update debit notes when initial data changes
+  React.useEffect(() => {
+    if (initialDebitNotes) {
+      setDebitNotes(initialDebitNotes);
+    }
+  }, [initialDebitNotes]);
 
-  const debitNoteOptions = useMemo(() => 
-    debitNotes?.map(debitNote => ({
-      value: debitNote._id,
-      label: debitNote.debit_note_id
-    })) || [], [debitNotes]);
-
-  // Pagination handlers
-  const handlePageChange = useCallback((event, newPage) => {
-    setPagination(prev => ({ ...prev, current: newPage + 1 }));
-  }, []);
-
-  const handlePageSizeChange = useCallback((event) => {
-    const newPageSize = parseInt(event.target.value, 10);
-    setPagination(prev => ({ ...prev, pageSize: newPageSize, current: 1 }));
-  }, []);
-
-  // Sort handlers
-  const handleSortRequest = useCallback((property) => {
-    const isAsc = sortBy === property && sortDirection === 'asc';
-    setSortDirection(isAsc ? 'desc' : 'asc');
-    setSortBy(property);
-  }, [sortBy, sortDirection]);
-
-  // Filter handlers
-  const handleFilterValueChange = useCallback((field, value) => {
-    setFilterValues(prev => ({ ...prev, [field]: value }));
-  }, []);
-
-  const handleFilterApply = useCallback((filters) => {
-    setFilterValues(filters);
-    setPagination(prev => ({ ...prev, current: 1 }));
-  }, []);
-
-  const handleFilterReset = useCallback(() => {
-    setFilterValues({});
-    setPagination(prev => ({ ...prev, current: 1 }));
-  }, []);
-
-  const handleTabChange = useCallback((event, newTab) => {
-    setFilterValues(prev => ({ ...prev, status: newTab }));
-    setPagination(prev => ({ ...prev, current: 1 }));
-  }, []);
-
-  // Column management handlers
-  const handleManageColumnsOpen = useCallback(() => {
-    setManageColumnsOpen(true);
-  }, []);
-
-  const handleManageColumnsClose = useCallback(() => {
-    setManageColumnsOpen(false);
-  }, []);
-
-  const handleColumnCheckboxChange = useCallback((columnKey, visible) => {
-    setAvailableColumns(prev => 
-      prev.map(col => 
-        col.key === columnKey ? { ...col, visible } : col
-      )
-    );
-  }, []);
-
-  const handleManageColumnsSave = useCallback((setColumns) => {
-    setColumns(availableColumns.filter(col => col.visible));
-    setManageColumnsOpen(false);
-  }, [availableColumns]);
+  // Update pagination when initial pagination changes
+  React.useEffect(() => {
+    if (initialPagination) {
+      setPagination({
+        current: initialPagination.current || 1,
+        pageSize: initialPagination.pageSize || 10,
+        total: initialPagination.total || 0,
+      });
+    }
+  }, [initialPagination]);
 
   // Action handlers
+  const handleView = useCallback((id) => {
+    // Navigate to view page
+    window.open(`/debitNotes/purchaseReturn-view/${id}`, '_blank');
+  }, []);
+
+  const handleEdit = useCallback((id) => {
+    // Navigate to edit page
+    window.open(`/debitNotes/purchaseReturn-edit/${id}`, '_blank');
+  }, []);
+
+  const handleDelete = useCallback(async (id) => {
+    try {
+      setLoading(true);
+      const response = await deleteDebitNote(id);
+
+      if (response.success) {
+        // Remove the deleted debit note from the list
+        setDebitNotes(prev => prev.filter(dn => dn._id !== id));
+        setPagination(prev => ({
+          ...prev,
+          total: prev.total - 1
+        }));
+        onSuccess('Debit note deleted successfully');
+      } else {
+        onError(response.message || 'Failed to delete debit note');
+      }
+    } catch (error) {
+      onError(error.message || 'Error deleting debit note');
+    } finally {
+      setLoading(false);
+    }
+  }, [onError, onSuccess]);
+
   const handleClone = useCallback(async (id) => {
     try {
       setLoading(true);
       const response = await cloneDebitNote(id);
+
       if (response.success) {
-        onSuccess?.('Debit note cloned successfully');
-        // Refresh the list
-        setDebitNotes(prev => [response.data, ...prev]);
-        setPagination(prev => ({ ...prev, total: prev.total + 1 }));
+        // Add the cloned debit note to the list
+        if (response.data) {
+          setDebitNotes(prev => [response.data, ...prev]);
+          setPagination(prev => ({
+            ...prev,
+            total: prev.total + 1
+          }));
+        }
+        onSuccess('Debit note cloned successfully');
       } else {
-        onError?.(response.message || 'Failed to clone debit note');
+        onError(response.message || 'Failed to clone debit note');
       }
     } catch (error) {
-      onError?.(error.message || 'Error cloning debit note');
+      onError(error.message || 'Error cloning debit note');
     } finally {
       setLoading(false);
     }
-  }, [onSuccess, onError]);
+  }, [onError, onSuccess]);
 
   const handleSend = useCallback(async (id) => {
-    try {
-      setLoading(true);
-      // Implement send logic here
-      onSuccess?.('Debit note sent successfully');
-    } catch (error) {
-      onError?.(error.message || 'Error sending debit note');
-    } finally {
-      setLoading(false);
-    }
-  }, [onSuccess, onError]);
+    onSuccess('Send functionality not implemented yet');
+  }, [onSuccess]);
 
   const handlePrintDownload = useCallback((id) => {
-    router.push(`/debitNotes/purchaseReturn-view/${id}`);
-  }, [router]);
-
-  const handleDelete = useCallback((id) => {
-    const debitNote = debitNotes.find(dn => dn._id === id);
-    setSelectedDebitNote(debitNote);
-    setDeleteDialogOpen(true);
-  }, [debitNotes]);
-
-  const closeDeleteDialog = useCallback(() => {
-    setDeleteDialogOpen(false);
-    setSelectedDebitNote(null);
+    // Navigate to view page for print/download
+    window.open(`/debitNotes/purchaseReturn-view/${id}`, '_blank');
   }, []);
 
-  const confirmDelete = useCallback(async () => {
-    if (!selectedDebitNote?._id) return;
+  const openConvertDialog = useCallback(() => {
+    onSuccess('Convert functionality not implemented yet');
+  }, [onSuccess]);
 
-    try {
-      setLoading(true);
-      const response = await deleteDebitNote(selectedDebitNote._id);
-      if (response.success) {
-        onSuccess?.('Debit note deleted successfully');
-        setDebitNotes(prev => prev.filter(dn => dn._id !== selectedDebitNote._id));
-        setPagination(prev => ({ ...prev, total: prev.total - 1 }));
-        closeDeleteDialog();
-      } else {
-        onError?.(response.message || 'Failed to delete debit note');
-      }
-    } catch (error) {
-      onError?.(error.message || 'Error deleting debit note');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedDebitNote, onSuccess, onError, closeDeleteDialog]);
+  // Pagination handlers
+  const handlePageChange = useCallback((page) => {
+    setPagination(prev => ({ ...prev, current: page + 1 }));
+  }, []);
+
+  const handlePageSizeChange = useCallback((pageSize) => {
+    setPagination(prev => ({ ...prev, pageSize, current: 1 }));
+  }, []);
+
+  // Sorting handler
+  const handleSortRequest = useCallback((property, direction) => {
+    setSortBy(property);
+    setSortDirection(direction);
+  }, []);
+
+  // Search handler
+  const handleSearchInputChange = useCallback((searchValue) => {
+    setSearchTerm(searchValue);
+  }, []);
 
   return {
     // Data
     debitNotes,
-    pagination,
     loading,
+    pagination,
     sortBy,
     sortDirection,
-    filterValues,
-    
-    // Options
-    vendorOptions,
-    debitNoteOptions,
-    
-    // Column management
-    availableColumns,
-    manageColumnsOpen,
-    
-    // Dialog state
-    deleteDialogOpen,
-    selectedDebitNote,
-    
-    // Handlers
-    handlePageChange,
-    handlePageSizeChange,
-    handleSortRequest,
-    handleFilterValueChange,
-    handleFilterApply,
-    handleFilterReset,
-    handleTabChange,
-    handleManageColumnsOpen,
-    handleManageColumnsClose,
-    handleColumnCheckboxChange,
-    handleManageColumnsSave,
+    searchTerm,
+
+    // Action handlers
+    handleView,
+    handleEdit,
+    handleDelete,
     handleClone,
     handleSend,
     handlePrintDownload,
-    handleDelete,
-    closeDeleteDialog,
-    confirmDelete,
+    openConvertDialog,
+
+    // Pagination handlers
+    handlePageChange,
+    handlePageSizeChange,
+
+    // Sorting handler
+    handleSortRequest,
+
+    // Search handler
+    handleSearchInputChange,
   };
 }

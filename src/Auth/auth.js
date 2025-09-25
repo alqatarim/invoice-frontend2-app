@@ -58,7 +58,7 @@ export const authOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       // Initial sign in
       if (user) {
         token.id = user.id;
@@ -67,7 +67,16 @@ export const authOptions = {
         token.role = user.role;
         token.permissionRes = user.permissionRes; // Assuming permissionRes contains permissions
         token.token = user.token;
+        token.iat = Date.now() / 1000; // Issued at time
       }
+
+      // Return previous token if the access token has not expired yet
+      if (Date.now() / 1000 < token.exp) {
+        return token;
+      }
+
+      // Token has expired, but we'll let the backend handle validation
+      // The JWT strategy will automatically use the existing token until it truly expires
       return token;
     },
     async session({ session, token }) {

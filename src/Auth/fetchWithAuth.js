@@ -6,10 +6,56 @@ import { authOptions } from '@/Auth/auth';
 
 const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+// Utility function to check if JWT token is expired
+function isTokenExpired(token) {
+  if (!token) return true;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const currentTime = Date.now() / 1000;
+    return payload.exp < currentTime;
+  } catch (error) {
+    console.error('Error parsing JWT token:', error);
+    return true;
+  }
+}
+
+// Function to refresh JWT token if needed
+async function refreshTokenIfNeeded(session) {
+  if (!session?.user?.token) return session;
+
+  if (isTokenExpired(session.user.token)) {
+    console.log('Token appears to be expired, attempting refresh...');
+
+    try {
+      const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.user.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'Success' && data.data?.token) {
+          console.log('Token refreshed successfully');
+          session.user.token = data.data.token;
+          return session;
+        }
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+    }
+  }
+
+  return session;
+}
+
 // Add session caching
 let cachedSession = null;
 let sessionExpiry = null;
-const SESSION_CACHE_DURATION = 30 * 1000; // 30 seconds
+const SESSION_CACHE_DURATION = 60 * 60 * 1000; // 1 hour (aligned with JWT strategy)
 
 export async function fetchWithAuth(endpoint, options = {}) {
   // Generate unique request ID for correlation
@@ -34,13 +80,34 @@ export async function fetchWithAuth(endpoint, options = {}) {
 
   // Use cached session if available and not expired
   if (!cachedSession || Date.now() > sessionExpiry) {
-    cachedSession = await getServerSession(authOptions);
-    sessionExpiry = Date.now() + SESSION_CACHE_DURATION;
+    try {
+      cachedSession = await getServerSession(authOptions);
+      sessionExpiry = Date.now() + SESSION_CACHE_DURATION;
+
+      // If session refresh fails, try to get a fresh session without cache
+      if (!cachedSession) {
+        console.log('Session cache refresh failed, clearing cache and retrying...');
+        cachedSession = null;
+        sessionExpiry = null;
+
+        // Clear any existing session and try again
+        cachedSession = await getServerSession(authOptions);
+        sessionExpiry = Date.now() + SESSION_CACHE_DURATION;
+      }
+    } catch (error) {
+      console.error('Error refreshing session cache:', error);
+      cachedSession = null;
+      sessionExpiry = null;
+      return { error: 'Session refresh failed' };
+    }
   }
 
   if (!cachedSession) {
     return { error: 'No authentication session found' };
   }
+
+  // Try to refresh token if expired
+  cachedSession = await refreshTokenIfNeeded(cachedSession);
 
   const headers = {
     'Authorization': `Bearer ${cachedSession.user.token}`,
@@ -80,7 +147,11 @@ export async function fetchWithAuth(endpoint, options = {}) {
 
     if (!response.ok) {
       const error = await response.clone().json();
+
       if (response.status === 401) {
+        // Clear session cache on 401 to force fresh session on next request
+        cachedSession = null;
+        sessionExpiry = null;
         throw new Error(error?.message || 'Unauthorized access - please log in again');
       } else if (response.status === 403) {
         let errRes = error?.data?.message;

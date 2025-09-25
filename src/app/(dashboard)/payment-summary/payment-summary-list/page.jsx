@@ -1,30 +1,34 @@
-import { getInitialPaymentSummaryData, getCustomers } from '../actions'
-import PaymentSummaryPage from '@/views/payment-summary/listPaymentSummary/index'
+import React from 'react';
+import { getInitialPaymentSummaryData, getCustomers } from '../actions';
+import PaymentSummaryListIndex from '@/views/payment-summary/listPaymentSummary/index';
+import ProtectedComponent from '@/components/ProtectedComponent';
 
-export default async function PaymentSummaryListPage() {
+export const metadata = {
+  title: 'Payment Summary List | Kanakku',
+};
+
+async function PaymentSummaryListPage() {
   try {
-    // Get initial data and all customers (following invoice pattern)
-    const [initialDataResponse, customersResponse] = await Promise.all([
+    const [initialData, customers] = await Promise.all([
       getInitialPaymentSummaryData(),
       getCustomers()
-    ])
+    ]);
 
     return (
-      <PaymentSummaryPage
-        initialPayments={initialDataResponse.payments}
-        initialPagination={initialDataResponse.pagination}
-        initialCustomers={customersResponse}
-      />
-    )
+      <ProtectedComponent>
+        <PaymentSummaryListIndex
+          initialData={{
+            data: initialData?.payments || [],
+            totalRecords: initialData?.pagination?.total || 0
+          }}
+          customers={customers}
+        />
+      </ProtectedComponent>
+    );
   } catch (error) {
-    console.error('Error loading payment summary page:', error)
-    // Return page with empty data on error
-    return (
-      <PaymentSummaryPage
-        initialPayments={[]}
-        initialPagination={{ current: 1, pageSize: 10, total: 0 }}
-        initialCustomers={[]}
-      />
-    )
+    console.error('Error loading payment summary list data:', error);
+    return <div className="text-red-600 p-8">Failed to load payment summary list.</div>;
   }
 }
+
+export default PaymentSummaryListPage;
