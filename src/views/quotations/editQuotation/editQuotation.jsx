@@ -1,947 +1,737 @@
-// ** React Imports
-import { useEffect, useState } from 'react'
+'use client';
 
-// ** MUI Imports
-import Box from '@mui/material/Box'
-import Grid from '@mui/material/Grid'
-import Card from '@mui/material/Card'
-import Button from '@mui/material/Button'
-import MenuItem from '@mui/material/MenuItem'
-import CardHeader from '@mui/material/CardHeader'
-import CardContent from '@mui/material/CardContent'
-import Typography from '@mui/material/Typography'
-import Divider from '@mui/material/Divider'
-import IconButton from '@mui/material/IconButton'
-import CircularProgress from '@mui/material/CircularProgress'
-import Table from '@mui/material/Table'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import TableContainer from '@mui/material/TableContainer'
-import TableHead from '@mui/material/TableHead'
-import TableRow from '@mui/material/TableRow'
-import TextField from '@mui/material/TextField'
-import Paper from '@mui/material/Paper'
-import { styled } from '@mui/material/styles'
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
-import { DatePicker } from '@mui/x-date-pickers/DatePicker'
-import Autocomplete from '@mui/material/Autocomplete'
-import Avatar from '@mui/material/Avatar'
-import { alpha } from '@mui/material/styles'
-import Link from 'next/link';
-
-// ** Third Party Imports
-import * as yup from 'yup'
-import { useForm, useFieldArray, Controller } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import { format } from 'date-fns'
-
-// ** Icon Imports
+import React, { useState, useEffect } from 'react';
+import { Controller } from 'react-hook-form';
+import {
+     TextField,
+     Button,
+     Select,
+     MenuItem,
+     InputLabel,
+     FormControl,
+     Typography,
+     IconButton,
+     Box,
+     Card,
+     CardContent,
+     Grid,
+     Snackbar,
+     Alert,
+     Dialog,
+     DialogContent,
+     FormHelperText,
+     InputAdornment,
+     Menu,
+     Divider,
+} from '@mui/material';
+import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
+import { Clear } from '@mui/icons-material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
+import CustomIconButton from '@core/components/mui/CustomIconButton';
+import CustomerAutocomplete from '@/components/custom-components/CustomerAutocomplete';
+import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
+import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
+import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
+import { calculateInvoiceTotals } from '@/utils/invoiceTotals';
+import { paymentMethods } from '@/data/dataSets';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { quotationSchema } from './QuotationSchema';
+import { formatDateForInput } from '@/utils/dateUtils';
+import { createQuotationColumns } from './quotationColumns';
 
-// ** Configs
-import themeConfig from 'src/configs/themeConfig'
-
-// ** Local Schema Import
-import { quotationSchema } from './QuotationSchema'
-
-// Styled Components
-const CustomTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiInputBase-root': {
-    borderRadius: 8
-  }
-}))
-
-const CustomDatePicker = ({ label, error, value, onChange, helperText, ...props }) => {
-  return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <DatePicker
-        value={value}
-        onChange={onChange}
-        slotProps={{
-          textField: {
-            fullWidth: true,
-            error: error,
-            helperText: helperText,
-            sx: { '& .MuiInputBase-root': { borderRadius: 8 } }
-          }
-        }}
-        label={label}
-        {...props}
-      />
-    </LocalizationProvider>
-  )
-}
-
-const CustomAutocomplete = ({ options, value, onChange, renderInput, getOptionLabel, ...props }) => {
-  return (
-    <Autocomplete
-      options={options}
-      value={value}
-      onChange={onChange}
-      getOptionLabel={getOptionLabel}
-      renderInput={renderInput}
-      {...props}
-    />
-  )
-}
-
-// ** Main Component
 const EditQuotation = ({
-  quotation = {},
-  customers = [],
-  isSubmitting = false,
-  onSubmit = () => {},
-  resetData = () => {}
+     quotation,
+     customers = [],
+     productData = [],
+     taxRates = [],
+     initialBanks = [],
+     signatures = [],
+     isSubmitting = false,
+     onSubmit,
+     resetData,
+     enqueueSnackbar,
+     closeSnackbar
 }) => {
-  // ** State for calculations
-  const [subTotal, setSubTotal] = useState(0)
-  const [totalTax, setTotalTax] = useState(0)
-  const [totalDiscount, setTotalDiscount] = useState(0)
-  const [totalAmount, setTotalAmount] = useState(0)
+     const theme = useTheme();
+     const [openBankModal, setOpenBankModal] = useState(false);
+     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  // ** React Hook Form
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors }
-  } = useForm({
-    defaultValues: {
-      quotation_id: '',
-      customerId: '',
-      quotation_date: new Date(),
-      due_date: new Date(),
-      reference_no: '',
-      items: [
-        {
-          productId: '',
+     // State for UI controls
+     const [productsCloneData, setProductsCloneData] = useState([]);
+     const [banks, setBanks] = useState(initialBanks || []);
+     const [newBank, setNewBank] = useState({
           name: '',
-          quantity: 1,
-          unit: '',
-          rate: 0,
-          tax: 0,
-          discount: 0,
-          discountValue: '0.00',
-          amount: 0
-        }
-      ],
-      subject: '',
-      notes: '',
-      termsAndCondition: '',
-      status: 'Open',
-      taxableAmount: 0,
-      totalDiscount: 0,
-      vat: 0,
-      TotalAmount: 0,
-      bank: '',
-      sign_type: 'manualSignature',
-      signatureId: null
-    },
-    resolver: yupResolver(quotationSchema)
-  })
+          bankName: '',
+          accountNumber: '',
+          branch: '',
+          ifscCode: ''
+     });
+     const [signOptions, setSignOptions] = useState(signatures || []);
+     const [notesExpanded, setNotesExpanded] = useState(false);
+     const [termsDialogOpen, setTermsDialogOpen] = useState(false);
+     const [tempTerms, setTempTerms] = useState('');
+     const [discountMenu, setDiscountMenu] = useState({ anchorEl: null, rowIndex: null });
+     const [taxMenu, setTaxMenu] = useState({ anchorEl: null, rowIndex: null });
 
-  // ** Field array for items
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'items'
-  })
+     // Form setup
+     const {
+          control,
+          handleSubmit,
+          setValue,
+          getValues,
+          watch,
+          reset,
+          formState: { errors }
+     } = useForm({
+          resolver: yupResolver(quotationSchema),
+          defaultValues: {
+               quotationNumber: '',
+               customerId: '',
+               quotationDate: '',
+               expiryDate: '',
+               payment_method: '',
+               bank: '',
+               referenceNo: '',
+               signatureId: '',
+               notes: '',
+               termsAndConditions: '',
+               items: [],
+               taxableAmount: 0,
+               totalDiscount: 0,
+               vat: 0,
+               TotalAmount: 0,
+               roundOff: false,
+               roundOffValue: 0,
+          }
+     });
 
-  // ** Watch items for calculations
-  const watchItems = watch('items')
+     // Field array for items
+     const { fields, append, remove } = useFieldArray({
+          control,
+          name: 'items'
+     });
 
-  // ** Calculate subtotal, tax, discount and total
-  useEffect(() => {
-    let subTotal = 0
-    let totalTax = 0
-    let totalDiscount = 0
+     // Watch fields
+     const watchItems = watch('items');
+     const watchRoundOff = watch('roundOff');
 
-    watchItems.forEach(item => {
-      // Calculate line amount before discount and tax
-      const lineAmount = Number(item.quantity) * Number(item.rate) || 0
+     // Initialize form with quotation data
+     useEffect(() => {
+          if (quotation) {
+               reset({
+                    quotationNumber: quotation.quotation_id || '',
+                    customerId: quotation.customerId?._id || '',
+                    quotationDate: formatDateForInput(quotation.quotation_date),
+                    expiryDate: formatDateForInput(quotation.due_date),
+                    payment_method: quotation.payment_method || '',
+                    bank: quotation.bank?._id || '',
+                    referenceNo: quotation.referenceNo || '',
+                    signatureId: quotation.signatureId?._id || '',
+                    notes: quotation.notes || '',
+                    termsAndConditions: quotation.termsAndCondition || '',
+                    items: quotation.items || [],
+                    taxableAmount: quotation.taxableAmount || 0,
+                    totalDiscount: quotation.totalDiscount || 0,
+                    vat: quotation.vat || 0,
+                    TotalAmount: quotation.TotalAmount || 0,
+                    roundOff: quotation.roundOff || false,
+                    roundOffValue: quotation.roundOffValue || 0,
+               });
 
-      // Calculate discount
-      let discountAmount = 0
-      if (item.discountType === 'flat') {
-        discountAmount = Number(item.discount) || 0
-      } else {
-        // Percentage discount
-        discountAmount = lineAmount * (Number(item.discount) / 100) || 0
-      }
+               // Initialize products clone data - exclude products already in the quotation
+               if (productData && quotation.items) {
+                    const usedProductIds = quotation.items.map(item => item.productId);
+                    setProductsCloneData(productData.filter(product => !usedProductIds.includes(product._id)));
+               } else if (productData) {
+                    setProductsCloneData([...productData]);
+               }
+          }
+     }, [quotation, productData, reset]);
 
-      // Calculate tax amount
-      const taxAmount = (lineAmount - discountAmount) * (Number(item.tax) / 100) || 0
+     // Calculate totals when items change
+     useEffect(() => {
+          if (watchItems) {
+               const { taxableAmount, totalDiscount, vat, TotalAmount, roundOffValue } = calculateInvoiceTotals(
+                    watchItems,
+                    watchRoundOff
+               );
+               setValue('taxableAmount', taxableAmount);
+               setValue('totalDiscount', totalDiscount);
+               setValue('vat', vat);
+               setValue('TotalAmount', TotalAmount);
+               setValue('roundOffValue', roundOffValue);
+          }
+     }, [watchItems, watchRoundOff, setValue]);
 
-      // Update subtotals
-      subTotal += lineAmount
-      totalDiscount += discountAmount
-      totalTax += taxAmount
+     // Utility functions
+     const updateCalculatedFields = (index, item, setValue) => {
+          const quantity = Number(item.quantity) || 0;
+          const rate = Number(item.rate) || 0;
+          const discountValue = Number(item.discount) || 0;
+          const discountType = Number(item.discountType) || 3;
+          const taxRate = Number(item.taxInfo?.taxRate) || 0;
 
-      // Update line item amount
-      const itemAmount = lineAmount - discountAmount + taxAmount
-      if (item.amount !== itemAmount) {
-        item.amount = itemAmount
-      }
-    })
+          let discountAmount = 0;
+          if (discountType === 2) {
+               discountAmount = (quantity * rate * discountValue) / 100;
+          } else {
+               discountAmount = discountValue;
+          }
 
-    // Calculate total amount
-    const calculatedTotalAmount = subTotal - totalDiscount + totalTax
+          const taxableAmount = (quantity * rate) - discountAmount;
+          const taxAmount = (taxableAmount * taxRate) / 100;
+          const totalAmount = taxableAmount + taxAmount;
 
-    // Update state and form values
-    setSubTotal(subTotal)
-    setTotalDiscount(totalDiscount)
-    setTotalTax(totalTax)
-    setTotalAmount(calculatedTotalAmount)
+          setValue(`items.${index}.amount`, totalAmount);
+          setValue(`items.${index}.tax`, taxAmount);
+          setValue(`items.${index}.discount`, discountAmount);
+     };
 
-    setValue('subTotal', subTotal)
-    setValue('totalDiscount', totalDiscount)
-    setValue('totalTax', totalTax)
-    setValue('totalAmount', calculatedTotalAmount)
-  }, [watchItems, setValue])
+     const handleUpdateItemProduct = (index, productId, previousProductId) => {
+          if (previousProductId && previousProductId !== productId) {
+               const previousProduct = productData.find(p => p._id === previousProductId);
+               if (previousProduct) {
+                    setProductsCloneData(prev => [...prev, previousProduct]);
+               }
+          }
 
-  // ** Set form data when quotation data is available
-  useEffect(() => {
-    if (quotation && Object.keys(quotation).length > 0) {
-      reset({
-        quotation_id: quotation.quotation_id || '',
-        customerId: quotation.customerId?._id || quotation.customerId || '',
-        quotation_date: quotation.quotation_date ? new Date(quotation.quotation_date) : new Date(),
-        due_date: quotation.due_date ? new Date(quotation.due_date) : new Date(),
-        reference_no: quotation.reference_no || '',
-        items: quotation.items?.length
-          ? quotation.items.map(item => ({
-              productId: item.productId || '',
-              name: item.name || '',
-              quantity: item.quantity || 1,
-              unit: item.unit || '',
-              rate: item.rate || 0,
-              tax: item.tax || 0,
-              discount: item.discount || 0,
-              discountValue: item.discountValue || '0.00',
-              amount: item.amount || 0
-            }))
-          : [
-              {
-                productId: '',
-                name: '',
-                quantity: 1,
-                unit: '',
-                rate: 0,
-                tax: 0,
-                discount: 0,
-                discountValue: '0.00',
-                amount: 0
-              }
-            ],
-        subject: quotation.subject || '',
-        notes: quotation.notes || '',
-        termsAndCondition: quotation.termsAndCondition || '',
-        status: quotation.status || 'Open',
-        taxableAmount: quotation.taxableAmount || 0,
-        totalDiscount: quotation.totalDiscount || 0,
-        vat: quotation.vat || 0,
-        TotalAmount: quotation.TotalAmount || 0,
-        bank: quotation.bank || '',
-        sign_type: quotation.sign_type || 'manualSignature',
-        signatureId: quotation.signatureId?._id || quotation.signatureId || null
-      })
-    }
-  }, [quotation, reset])
+          if (productId) {
+               const selectedProduct = productData.find(p => p._id === productId);
+               if (selectedProduct) {
+                    setValue(`items.${index}.productId`, selectedProduct._id);
+                    setValue(`items.${index}.name`, selectedProduct.name);
+                    setValue(`items.${index}.description`, selectedProduct.description || '');
+                    setValue(`items.${index}.units`, selectedProduct.units?.name || '');
+                    setValue(`items.${index}.rate`, selectedProduct.sellingPrice || 0);
+                    setValue(`items.${index}.quantity`, 1);
+                    setValue(`items.${index}.discountType`, selectedProduct.discountType || 3);
+                    setValue(`items.${index}.discount`, selectedProduct.discountValue || 0);
+                    setValue(`items.${index}.taxInfo`, selectedProduct.tax || {});
 
-  // ** Handle form submit
-  const onFormSubmit = data => {
-    // Format the data to match the expected server structure
-    const formattedData = {
-      ...data,
-      // Ensure we're sending the right field names
-      TotalAmount: data.TotalAmount || totalAmount,
-      vat: data.vat || totalTax,
-      taxableAmount: data.taxableAmount || subTotal,
-      // If customerId is an object (from the Autocomplete), extract the ID
-      customerId: typeof data.customerId === 'object' ? data.customerId._id : data.customerId
-    }
+                    setProductsCloneData(prev => prev.filter(p => p._id !== productId));
+                    const item = getValues(`items.${index}`);
+                    updateCalculatedFields(index, item, setValue);
+               }
+          }
+     };
 
-    onSubmit(formattedData)
-  }
+     const handleDeleteItem = (index) => {
+          const item = getValues(`items.${index}`);
+          if (item.productId) {
+               const product = productData.find(p => p._id === item.productId);
+               if (product) {
+                    setProductsCloneData(prev => [...prev, product]);
+               }
+          }
+          remove(index);
+     };
 
-  // ** Handle adding a new item
-  const handleAddItem = () => {
-    append({
-      productId: '',
-      name: '',
-      quantity: 1,
-      unit: '',
-      rate: 0,
-      tax: 0,
-      discount: 0,
-      discountValue: '0.00',
-      amount: 0
-    })
-  }
+     const handleAddEmptyRow = () => {
+          append({
+               productId: '',
+               name: '',
+               description: '',
+               quantity: 1,
+               units: '',
+               rate: 0,
+               discountType: 3,
+               discount: 0,
+               taxInfo: {},
+               tax: 0,
+               amount: 0,
+          });
+     };
 
-  return (
-    <form onSubmit={handleSubmit(onFormSubmit)}>
-      {/* Enhanced Header Section */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 6,
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: { xs: 3, sm: 0 }
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-          <Avatar
-            sx={{
-              width: 52,
-              height: 52,
-              backgroundColor: theme => alpha(theme.palette.primary.main, 0.15),
-              color: 'primary.main',
-              boxShadow: theme => `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}`
-            }}
+     const handleAddBank = async () => {
+          try {
+               const bankData = {
+                    ...newBank,
+                    _id: Date.now().toString(),
+               };
+               setBanks(prev => [...prev, bankData]);
+               setNewBank({
+                    name: '',
+                    bankName: '',
+                    accountNumber: '',
+                    branch: '',
+                    ifscCode: ''
+               });
+               if (enqueueSnackbar) {
+                    enqueueSnackbar('Bank added successfully', { variant: 'success' });
+               }
+          } catch (error) {
+               console.error('Error adding bank:', error);
+               if (enqueueSnackbar) {
+                    enqueueSnackbar('Failed to add bank', { variant: 'error' });
+               }
+          }
+     };
+
+     const handleSignatureSelection = (selected, field) => {
+          field.onChange(selected ? selected._id : '');
+     };
+
+     const handleFormSubmit = async (data) => {
+          try {
+               if (onSubmit) {
+                    await onSubmit(data);
+               }
+          } catch (error) {
+               console.error('Error saving quotation:', error);
+               if (enqueueSnackbar) {
+                    enqueueSnackbar(error.message || 'Failed to save quotation', { variant: 'error' });
+               }
+          }
+     };
+
+     const handleError = (errors) => {
+          console.error('Form validation errors:', errors);
+          if (enqueueSnackbar) {
+               enqueueSnackbar('Please fix the form errors', { variant: 'error' });
+          }
+     };
+
+     // Menu handlers
+     const handleMenuItemClick = (index, discountType) => {
+          setValue(`items.${index}.discountType`, discountType);
+          setValue(`items.${index}.discount`, 0);
+          setValue(`items.${index}.form_updated_discount`, 0);
+     };
+
+     const handleTaxClick = (event, index) => {
+          setTaxMenu({ anchorEl: event.currentTarget, rowIndex: index });
+     };
+
+     const handleTaxClose = () => {
+          setTaxMenu({ anchorEl: null, rowIndex: null });
+     };
+
+     const handleTaxMenuItemClick = (index, tax) => {
+          setValue(`items.${index}.taxInfo`, tax);
+          const item = getValues(`items.${index}`);
+          updateCalculatedFields(index, item, setValue);
+          handleTaxClose();
+     };
+
+     // UI handlers
+     const handleToggleNotes = () => {
+          setNotesExpanded(prev => !prev);
+     };
+
+     const handleOpenTermsDialog = () => {
+          setTempTerms(getValues('termsAndConditions') || '');
+          setTermsDialogOpen(true);
+     };
+
+     const handleCloseTermsDialog = () => {
+          setTermsDialogOpen(false);
+          setTempTerms('');
+     };
+
+     const handleSaveTerms = () => {
+          setValue('termsAndConditions', tempTerms);
+          setTermsDialogOpen(false);
+     };
+
+     // Create columns using the imported function
+     const columns = createQuotationColumns({
+          control,
+          errors,
+          watchItems,
+          productsCloneData,
+          taxRates,
+          setValue,
+          getValues,
+          handleUpdateItemProduct,
+          handleDeleteItem,
+          updateCalculatedFields,
+          discountMenu,
+          setDiscountMenu,
+          taxMenu,
+          handleTaxClick,
+          handleTaxClose,
+          handleTaxMenuItemClick,
+          handleMenuItemClick
+     });
+
+     const addRowButton = (
+          <CustomIconButton
+               className='flex flex-row items-center justify-center gap-3 w-[13rem]'
+               variant="tonal"
+               skin='lighter'
+               color="primary"
+               size="medium"
+               onClick={handleAddEmptyRow}
           >
-            <Icon icon="tabler:file-analytics" fontSize={28} />
-          </Avatar>
-          <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            Edit Quotation
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={resetData}
-          startIcon={<Icon icon="tabler:refresh" />}
-          sx={{ boxShadow: theme => `0 2px 8px ${alpha(theme.palette.secondary.main, 0.15)}` }}
-        >
-          Reset
-        </Button>
-      </Box>
+               <Icon icon="mingcute:add-fill" color={theme.palette.primary.main} width={16} />
+               <Typography variant="button" color="primary.main" fontSize={14}>
+                    Add Row
+               </Typography>
+          </CustomIconButton>
+     );
 
-      <Card sx={{ borderRadius: '14px', boxShadow: theme => `0 3px 6px ${alpha(theme.palette.common.black, 0.06)}` }}>
-        <CardContent sx={{ p: { xs: 3, md: 5 } }}>
-          <Grid container spacing={5}>
-            {/* Customer Information */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
-                  Customer Information
-                </Typography>
-                <Controller
-                  name='customerId'
-                  control={control}
-                  render={({ field: { value, onChange } }) => (
-                    <CustomAutocomplete
-                      options={customers || []}
-                      getOptionLabel={option => option.name || ''}
-                      renderInput={params => (
-                        <CustomTextField
-                          {...params}
-                          label='Customer'
-                          error={Boolean(errors.customerId)}
-                          helperText={errors.customerId?.message}
-                        />
-                      )}
-                      onChange={(_, data) => onChange(data?._id || '')}
-                      value={(customers || []).find(customer => customer._id === value) || null}
+     const emptyContent = (
+          <Box className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+               <Icon icon="mdi:cart-outline" width={36} color={theme.palette.primary.main} />
+               <Typography variant="h6" color="text.primary">
+                    No Items Added Yet
+               </Typography>
+               <Typography variant="body2" color="text.secondary" sx={{ maxWidth: '300px' }}>
+                    Click the 'Add Item' button to add items to your quotation
+               </Typography>
+               <Button
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<Icon icon="mingcute:add-fill" width={16} />}
+                    size="small"
+                    sx={{ mt: 1 }}
+                    onClick={handleAddEmptyRow}
+               >
+                    Add Item
+               </Button>
+          </Box>
+     );
+
+     return (
+          <Grid container rowSpacing={4} columnSpacing={3}>
+               <Grid size={{ xs: 12, md: 12 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 500 }}>
+                         Edit Quotation
+                    </Typography>
+               </Grid>
+               {/* Top Section - Quotation Details */}
+               <Grid size={{ xs: 12, md: 12 }}>
+                    <Card>
+                         <CardContent className='py-3.5'>
+                              <Grid container columnSpacing={3} rowSpacing={4}>
+                                   {/* Quotation Details Header */}
+                                   <Grid size={{ xs: 12 }} className='flex flex-col gap-2'>
+                                        <Box className='flex flex-row gap-1.5 items-center'>
+                                             <Box className='w-2 h-8 bg-secondaryLight rounded-md' />
+                                             <Typography variant="caption" fontWeight={500} fontSize='1rem'>
+                                                  Quotation Details
+                                             </Typography>
+                                        </Box>
+                                        <Divider light textAlign='left' width='400px' />
+                                   </Grid>
+                                   {/* Quotation Number (read-only) */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Box className="flex flex-row items-center px-3 justify-between bg-tableHeader rounded-md w-full h-full">
+                                             <Typography variant="caption" className='text-[0.9rem]' color="text.secondary">
+                                                  Quotation Number
+                                             </Typography>
+                                             <Typography variant="h6" className='text-[1rem] font-medium'>
+                                                  {quotation?.quotation_id || ''}
+                                             </Typography>
+                                        </Box>
+                                   </Grid>
+                                   {/* Quotation Date */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="quotationDate"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <TextField
+                                                       {...field}
+                                                       label="Quotation Date"
+                                                       type="date"
+                                                       variant="outlined"
+                                                       fullWidth
+                                                       size="small"
+                                                       error={!!errors.quotationDate}
+                                                       inputProps={{
+                                                            max: new Date().toISOString().split('T')[0],
+                                                       }}
+                                                  />
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Expiry Date */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="expiryDate"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <TextField
+                                                       {...field}
+                                                       label="Expiry Date"
+                                                       type="date"
+                                                       variant="outlined"
+                                                       fullWidth
+                                                       size="small"
+                                                       error={!!errors.expiryDate}
+                                                       inputProps={{
+                                                            min: getValues('quotationDate'),
+                                                       }}
+                                                  />
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Payment Method */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="payment_method"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <FormControl fullWidth variant="outlined" error={!!errors.payment_method}>
+                                                       <InputLabel size="small">Payment Method</InputLabel>
+                                                       <Select {...field} label="Payment Method" size="small">
+                                                            {paymentMethods.map((method) => (
+                                                                 <MenuItem key={method.value} value={method.value}>
+                                                                      {method.label}
+                                                                 </MenuItem>
+                                                            ))}
+                                                       </Select>
+                                                       {errors.payment_method && (
+                                                            <FormHelperText error>{errors.payment_method.message}</FormHelperText>
+                                                       )}
+                                                  </FormControl>
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Bank Selection */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} className="flex flex-row gap-1 justify-between">
+                                        <Controller
+                                             name="bank"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <FormControl size='small' fullWidth variant="outlined" error={!!errors.bank}>
+                                                       <InputLabel size="small">Select Bank</InputLabel>
+                                                       <Select
+                                                            {...field}
+                                                            label="Select Bank"
+                                                            size="small"
+                                                            value={field.value}
+                                                            onChange={(e) => {
+                                                                 field.onChange(e.target.value);
+                                                            }}
+                                                       >
+                                                            {banks.map((bank) => (
+                                                                 <MenuItem key={bank._id} value={bank._id}>
+                                                                      {bank.bankName}
+                                                                 </MenuItem>
+                                                            ))}
+                                                       </Select>
+                                                       {errors.bank && (
+                                                            <FormHelperText error>{errors.bank.message}</FormHelperText>
+                                                       )}
+                                                  </FormControl>
+                                             )}
+                                        />
+                                        <CustomIconButton
+                                             color="primary"
+                                             size='small'
+                                             variant='tonal'
+                                             skin='lighter'
+                                             onClick={() => setOpenBankModal(true)}
+                                        >
+                                             <Icon icon="mdi:bank-plus" width={26} />
+                                        </CustomIconButton>
+                                   </Grid>
+                                   {/* Reference No */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="referenceNo"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <TextField
+                                                       {...field}
+                                                       label="Reference No"
+                                                       variant="outlined"
+                                                       fullWidth
+                                                       size="small"
+                                                       error={!!errors.referenceNo}
+                                                       helperText={errors.referenceNo?.message}
+                                                  />
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Signature Section */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                             <Controller
+                                                  name="signatureId"
+                                                  control={control}
+                                                  render={({ field }) => (
+                                                       <FormControl fullWidth error={!!errors.signatureId} variant="outlined" size="small">
+                                                            <InputLabel>Select Signature Name</InputLabel>
+                                                            <Select
+                                                                 className='h-[39px]'
+                                                                 label="Select Signature Name"
+                                                                 value={field.value || ''}
+                                                                 onChange={(event) => {
+                                                                      const selected = signOptions.find(sig => sig._id === event.target.value);
+                                                                      handleSignatureSelection(selected, field);
+                                                                 }}
+                                                            >
+                                                                 {signOptions.map((option) => (
+                                                                      <MenuItem key={option._id} value={option._id}>
+                                                                           {option.signatureName}
+                                                                      </MenuItem>
+                                                                 ))}
+                                                            </Select>
+                                                            {errors.signatureId && (
+                                                                 <FormHelperText error>{errors.signatureId.message}</FormHelperText>
+                                                            )}
+                                                       </FormControl>
+                                                  )}
+                                             />
+                                        </Box>
+                                   </Grid>
+                                   {/* Notes TextField */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="notes"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <TextField
+                                                       className='overflow-auto scrollbar-thin scrollbar-thumb-primary scrollbar-thumb-opacity-20 scrollbar-thumb-rounded'
+                                                       {...field}
+                                                       multiline
+                                                       rows={notesExpanded ? 4 : 1}
+                                                       variant="outlined"
+                                                       size="small"
+                                                       placeholder="Add notes..."
+                                                       fullWidth
+                                                       InputProps={{
+                                                            endAdornment: (
+                                                                 <InputAdornment position="end" className=' max-h-[14px]'>
+                                                                      <CustomOriginalIconButton
+                                                                           onClick={handleToggleNotes}
+                                                                           color='primary'
+                                                                           skin='light'
+                                                                      >
+                                                                           {notesExpanded ? <Icon icon="mdi:keyboard-arrow-up" width={24} color={theme.palette.primary.main} /> : <Icon icon="mdi:keyboard-arrow-down" width={24} color={theme.palette.primary.main} />}
+                                                                      </CustomOriginalIconButton>
+                                                                 </InputAdornment>
+                                                            ),
+                                                       }}
+                                                  />
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Terms & Conditions */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Button
+                                             fullWidth className="flex flex-row items-center gap-0 justify-center" variant="text" color="primary" size="small"
+                                             startIcon={<Icon icon="mdi:file-document-outline" width={24} color={theme.palette.primary.main} />}
+                                             onClick={handleOpenTermsDialog}
+                                        >
+                                             Terms & Conditions
+                                        </Button>
+                                   </Grid>
+                                   {/* Customer */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 8, lg: 6 }}>
+                                        <CustomerAutocomplete control={control} errors={errors} customersData={customers} />
+                                   </Grid>
+                              </Grid>
+                         </CardContent>
+                    </Card>
+               </Grid>
+               {/* Middle Section - Products Table */}
+               <Grid size={{ xs: 12, md: 9.5 }}>
+                    <form onSubmit={handleSubmit(handleFormSubmit, handleError)}>
+                         <Card>
+                              <CardContent spacing={12} className='flex flex-col gap-2 px-0 pt-0'>
+                                   <Box>
+                                        <InvoiceItemsTable
+                                             columns={columns}
+                                             rows={fields}
+                                             rowKey={(row, idx) => row.id || idx}
+                                             addRowButton={addRowButton}
+                                             emptyContent={emptyContent}
+                                        />
+                                   </Box>
+                              </CardContent>
+                         </Card>
+                    </form>
+               </Grid>
+               {/* Left side totals card */}
+               <Grid size={{ xs: 12, md: 2.5 }}>
+                    <InvoiceTotals
+                         control={control}
+                         handleSubmit={handleSubmit}
+                         handleFormSubmit={handleFormSubmit}
+                         handleError={handleError}
+                         buttonText="Update Quotation"
+                         isSubmitting={isSubmitting}
                     />
-                  )}
-                />
-              </Box>
-            </Grid>
-
-            {/* Quotation Details */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
-                  Quotation Details
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name='quotation_id'
-                      control={control}
-                      render={({ field }) => (
-                        <CustomTextField
-                          {...field}
-                          fullWidth
-                          label='Quotation Number'
-                          placeholder='QUO-000001'
-                          error={Boolean(errors.quotation_id)}
-                          helperText={errors.quotation_id?.message}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name='status'
-                      control={control}
-                      render={({ field }) => (
-                        <CustomTextField
-                          {...field}
-                          select
-                          fullWidth
-                          label='Status'
-                          error={Boolean(errors.status)}
-                          helperText={errors.status?.message}
-                        >
-                          <MenuItem value='Open'>Open</MenuItem>
-                          <MenuItem value='Sent'>Sent</MenuItem>
-                          <MenuItem value='Accepted'>Accepted</MenuItem>
-                          <MenuItem value='Declined'>Declined</MenuItem>
-                          <MenuItem value='Expired'>Expired</MenuItem>
-                        </CustomTextField>
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-
-            {/* Dates Section */}
-            <Grid item xs={12}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
-                  Dates
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name='quotation_date'
-                      control={control}
-                      render={({ field }) => (
-                        <CustomDatePicker
-                          {...field}
-                          label='Quotation Date'
-                          error={Boolean(errors.quotation_date)}
-                          helperText={errors.quotation_date?.message}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name='due_date'
-                      control={control}
-                      render={({ field }) => (
-                        <CustomDatePicker
-                          {...field}
-                          label='Due Date'
-                          error={Boolean(errors.due_date)}
-                          helperText={errors.due_date?.message}
-                        />
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-
-            {/* Additional Details */}
-            <Grid item xs={12}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
-                  Additional Details
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name='reference_no'
-                      control={control}
-                      render={({ field }) => (
-                        <CustomTextField
-                          {...field}
-                          fullWidth
-                          label='Reference Number (optional)'
-                          placeholder='REF-0000'
-                          error={Boolean(errors.reference_no)}
-                          helperText={errors.reference_no?.message}
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name='subject'
-                      control={control}
-                      render={({ field }) => (
-                        <CustomTextField
-                          {...field}
-                          fullWidth
-                          label='Subject (optional)'
-                          placeholder='Quotation Subject'
-                          error={Boolean(errors.subject)}
-                          helperText={errors.subject?.message}
-                        />
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-
-            {/* Item List */}
-            <Grid item xs={12}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
-                  Item List
-                </Typography>
-                <TableContainer
-                  component={Paper}
-                  elevation={0}
-                  sx={{
-                    borderRadius: '14px',
-                    border: theme => `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                    mb: 3,
-                    overflow: 'hidden',
-                    transition: 'all 0.2s ease',
-                    boxShadow: theme => `0 3px 6px ${alpha(theme.palette.common.black, 0.06)}`
-                  }}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: theme => alpha(theme.palette.background.default, 0.7) }}>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Item</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Qty</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Unit</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Rate</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Tax</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Discount</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Amount</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {fields.map((item, index) => (
-                        <TableRow
-                          key={item.id}
-                          sx={{
-                            '&:last-child td, &:last-child th': { border: 0 },
-                            '&:hover': { backgroundColor: theme => alpha(theme.palette.primary.main, 0.04) }
-                          }}
-                        >
-                          {/* Item Name */}
-                          <TableCell>
-                            <Controller
-                              name={`items.${index}.name`}
-                              control={control}
-                              render={({ field }) => (
-                                <CustomTextField
-                                  {...field}
-                                  fullWidth
-                                  size='small'
-                                  placeholder='Item Name'
-                                  error={Boolean(errors.items?.[index]?.name)}
-                                  helperText={errors.items?.[index]?.name?.message}
-                                />
-                              )}
-                            />
-                            <Controller
-                              name={`items.${index}.productId`}
-                              control={control}
-                              render={({ field }) => <input type="hidden" {...field} />}
-                            />
-                          </TableCell>
-
-                          {/* Quantity */}
-                          <TableCell>
-                            <Controller
-                              name={`items.${index}.quantity`}
-                              control={control}
-                              render={({ field }) => (
-                                <CustomTextField
-                                  {...field}
-                                  type='number'
-                                  size='small'
-                                  inputProps={{ min: 1 }}
-                                  error={Boolean(errors.items?.[index]?.quantity)}
-                                  helperText={errors.items?.[index]?.quantity?.message}
-                                  onChange={e => {
-                                    field.onChange(e.target.valueAsNumber || 0)
-                                  }}
-                                />
-                              )}
-                            />
-                          </TableCell>
-
-                          {/* Unit */}
-                          <TableCell>
-                            <Controller
-                              name={`items.${index}.unit`}
-                              control={control}
-                              render={({ field }) => (
-                                <CustomTextField
-                                  {...field}
-                                  size='small'
-                                  placeholder='Unit'
-                                  error={Boolean(errors.items?.[index]?.unit)}
-                                  helperText={errors.items?.[index]?.unit?.message}
-                                />
-                              )}
-                            />
-                          </TableCell>
-
-                          {/* Rate */}
-                          <TableCell>
-                            <Controller
-                              name={`items.${index}.rate`}
-                              control={control}
-                              render={({ field }) => (
-                                <CustomTextField
-                                  {...field}
-                                  type='number'
-                                  size='small'
-                                  inputProps={{ min: 0 }}
-                                  error={Boolean(errors.items?.[index]?.rate)}
-                                  helperText={errors.items?.[index]?.rate?.message}
-                                  onChange={e => {
-                                    field.onChange(e.target.valueAsNumber || 0)
-                                  }}
-                                />
-                              )}
-                            />
-                          </TableCell>
-
-                          {/* Tax */}
-                          <TableCell>
-                            <Controller
-                              name={`items.${index}.tax`}
-                              control={control}
-                              render={({ field }) => (
-                                <CustomTextField
-                                  {...field}
-                                  type='number'
-                                  size='small'
-                                  inputProps={{ min: 0 }}
-                                  error={Boolean(errors.items?.[index]?.tax)}
-                                  helperText={errors.items?.[index]?.tax?.message}
-                                  onChange={e => {
-                                    field.onChange(e.target.valueAsNumber || 0)
-                                  }}
-                                />
-                              )}
-                            />
-                          </TableCell>
-
-                          {/* Discount */}
-                          <TableCell>
-                            <Controller
-                              name={`items.${index}.discount`}
-                              control={control}
-                              render={({ field }) => (
-                                <CustomTextField
-                                  {...field}
-                                  type='number'
-                                  size='small'
-                                  inputProps={{ min: 0 }}
-                                  error={Boolean(errors.items?.[index]?.discount)}
-                                  helperText={errors.items?.[index]?.discount?.message}
-                                  onChange={e => {
-                                    field.onChange(e.target.valueAsNumber || 0)
-                                  }}
-                                />
-                              )}
-                            />
-                            <Controller
-                              name={`items.${index}.discountValue`}
-                              control={control}
-                              render={({ field }) => <input type="hidden" {...field} />}
-                            />
-                          </TableCell>
-
-                          {/* Line Amount */}
-                          <TableCell>
-                            <Controller
-                              name={`items.${index}.amount`}
-                              control={control}
-                              render={({ field }) => (
-                                <CustomTextField
-                                  {...field}
-                                  disabled
-                                  type='text'
-                                  size='small'
-                                  value={typeof field.value === 'number' ? Number(field.value).toFixed(2) : field.value}
-                                />
-                              )}
-                            />
-                          </TableCell>
-
-                          {/* Actions */}
-                          <TableCell>
-                            <IconButton
-                              size='small'
-                              onClick={() => {
-                                if (fields.length > 1) {
-                                  remove(index)
-                                }
-                              }}
-                              disabled={fields.length <= 1}
-                              sx={{
-                                color: 'error.main',
-                                '&:hover': {
-                                  backgroundColor: theme => alpha(theme.palette.error.main, 0.1)
-                                }
-                              }}
-                            >
-                              <Icon icon='mdi:delete-outline' fontSize={20} />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-                <Button
-                  variant='contained'
-                  onClick={handleAddItem}
-                  startIcon={<Icon icon='mdi:plus' />}
-                  sx={{
-                    mt: 2,
-                    boxShadow: theme => `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}`,
-                    borderRadius: '8px'
-                  }}
-                >
-                  Add Item
-                </Button>
-              </Box>
-            </Grid>
-
-            {/* Notes & Terms */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
-                  Notes
-                </Typography>
-                <Controller
-                  name='notes'
-                  control={control}
-                  render={({ field }) => (
-                    <CustomTextField
-                      {...field}
-                      fullWidth
-                      rows={5}
-                      multiline
-                      label='Notes (optional)'
-                      placeholder='Notes for the customer'
-                      error={Boolean(errors.notes)}
-                      helperText={errors.notes?.message}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '12px',
-                          backgroundColor: theme => alpha(theme.palette.background.paper, 0.6)
-                        }
-                      }}
-                    />
-                  )}
-                />
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
-                  Terms & Conditions
-                </Typography>
-                <Controller
-                  name='termsAndCondition'
-                  control={control}
-                  render={({ field }) => (
-                    <CustomTextField
-                      {...field}
-                      fullWidth
-                      rows={5}
-                      multiline
-                      label='Terms & Conditions (optional)'
-                      placeholder='Terms and conditions for the quotation'
-                      error={Boolean(errors.termsAndCondition)}
-                      helperText={errors.termsAndCondition?.message}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '12px',
-                          backgroundColor: theme => alpha(theme.palette.background.paper, 0.6)
-                        }
-                      }}
-                    />
-                  )}
-                />
-              </Box>
-            </Grid>
-
-            {/* Signature & Bank */}
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
-                  Signature
-                </Typography>
-                <Controller
-                  name='sign_type'
-                  control={control}
-                  render={({ field }) => (
-                    <CustomTextField
-                      {...field}
-                      select
-                      fullWidth
-                      label='Signature Type'
-                      error={Boolean(errors.sign_type)}
-                      helperText={errors.sign_type?.message}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '12px'
-                        }
-                      }}
+               </Grid>
+               {/* Add Bank Modal */}
+               <BankDetailsDialog
+                    open={openBankModal}
+                    onClose={() => setOpenBankModal(false)}
+                    newBank={newBank}
+                    setNewBank={setNewBank}
+                    handleAddBank={handleAddBank}
+               />
+               {/* Snackbar */}
+               <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={3000}
+                    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+               >
+                    <Alert
+                         variant="filled"
+                         size="small"
+                         severity={snackbar.severity}
+                         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+                         className="is-full shadow-xs p-2 text-md"
                     >
-                      <MenuItem value='manualSignature'>Manual Signature</MenuItem>
-                      <MenuItem value='digitalSignature'>Digital Signature</MenuItem>
-                    </CustomTextField>
-                  )}
-                />
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}>
-                  Bank Details
-                </Typography>
-                <Controller
-                  name='bank'
-                  control={control}
-                  render={({ field }) => (
-                    <CustomTextField
-                      {...field}
-                      fullWidth
-                      label='Bank (optional)'
-                      placeholder='Bank Details'
-                      error={Boolean(errors.bank)}
-                      helperText={errors.bank?.message}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '12px'
-                        }
-                      }}
-                    />
-                  )}
-                />
-              </Box>
-            </Grid>
-
-            {/* Totals Section */}
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 4 }}>
-                <Box
-                  sx={{
-                    width: { xs: '100%', sm: '60%', md: '40%' },
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    ml: 'auto',
-                    background: theme => `
-                      linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}) padding-box,
-                      linear-gradient(to right, ${alpha(theme.palette.primary.light, 0.1)}, ${alpha(theme.palette.secondary.light, 0.1)}) border-box
-                    `,
-                    border: '1px solid transparent',
-                    '&::before': {
-                      content: '""',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '4px',
-                      height: '100%',
-                      backgroundImage: theme => `linear-gradient(to bottom, ${theme.palette.primary.light}, ${theme.palette.secondary.light})`,
-                      opacity: 0.2,
-                      borderTopLeftRadius: '12px',
-                      borderBottomLeftRadius: '12px'
-                    }
-                  }}
-                >
-                  <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Grid container>
-                      <Grid item xs={6}>
-                        <Typography sx={{ fontWeight: 500, fontSize: '14px', color: 'text.secondary' }}>
-                          Subtotal:
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                        <Typography sx={{ fontWeight: 500, fontSize: '14px' }}>
-                          {themeConfig.currency}{Number(subTotal).toFixed(2)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-
-                    <Grid container>
-                      <Grid item xs={6}>
-                        <Typography sx={{ fontWeight: 500, fontSize: '14px', color: 'text.secondary' }}>
-                          Discount:
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                        <Typography sx={{ fontWeight: 500, fontSize: '14px' }}>
-                          {themeConfig.currency}{Number(totalDiscount).toFixed(2)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-
-                    <Grid container>
-                      <Grid item xs={6}>
-                        <Typography sx={{ fontWeight: 500, fontSize: '14px', color: 'text.secondary' }}>
-                          Tax:
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                        <Typography sx={{ fontWeight: 500, fontSize: '14px' }}>
-                          {themeConfig.currency}{Number(totalTax).toFixed(2)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-
-                    <Divider />
-
-                    <Grid container>
-                      <Grid item xs={6}>
-                        <Typography sx={{ fontWeight: 600, fontSize: '15px' }}>
-                          Total:
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                        <Typography sx={{ fontWeight: 600, fontSize: '15px', color: 'primary.main' }}>
-                          {themeConfig.currency}{Number(totalAmount).toFixed(2)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Box>
-                </Box>
-              </Box>
-            </Grid>
+                         {snackbar.message}
+                    </Alert>
+               </Snackbar>
+               {/* Terms Dialog */}
+               <Dialog
+                    open={termsDialogOpen}
+                    onClose={handleCloseTermsDialog}
+                    maxWidth="sm"
+                    fullWidth
+               >
+                    <Box sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04), py: 3, px: 5 }}>
+                         <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                              Terms and Conditions
+                         </Typography>
+                    </Box>
+                    <DialogContent sx={{ py: 5, px: 5 }}>
+                         <TextField
+                              value={tempTerms}
+                              onChange={(e) => setTempTerms(e.target.value)}
+                              fullWidth
+                              multiline
+                              rows={5}
+                              variant="filled"
+                              placeholder="Enter your standard terms and conditions (payment terms, delivery terms, warranty information, etc.)"
+                              InputProps={{
+                                   endAdornment: tempTerms.trim() !== '' && (
+                                        <InputAdornment position="end">
+                                             <IconButton
+                                                  onClick={handleCloseTermsDialog}
+                                                  edge="end"
+                                                  className="transition-transform duration-200 ease-in-out hover:scale-110 active:scale-95"
+                                                  title="Clear terms and conditions"
+                                                  size="small"
+                                             >
+                                                  <Clear />
+                                             </IconButton>
+                                        </InputAdornment>
+                                   )
+                              }}
+                         />
+                    </DialogContent>
+                    <Box className='flex flex-row justify-end gap-2 px-5 pb-4 pt-1'>
+                         <Button onClick={handleCloseTermsDialog} variant="outlined" color="secondary">
+                              Cancel
+                         </Button>
+                         <Button onClick={handleSaveTerms} color="primary" variant="contained">
+                              Save Changes
+                         </Button>
+                    </Box>
+               </Dialog>
           </Grid>
-        </CardContent>
-        <Divider sx={{ my: '0 !important' }} />
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 5 }}>
-          <Button
-            variant='outlined'
-            component={Link}
-            href="/quotations/quotation-list"
-            startIcon={<Icon icon="tabler:arrow-left" />}
-          >
-            Back to List
-          </Button>
-          <Button
-            variant='contained'
-            type='submit'
-            disabled={isSubmitting}
-            endIcon={isSubmitting ? <CircularProgress size={20} /> : <Icon icon="tabler:device-floppy" />}
-            sx={{ boxShadow: theme => `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}` }}
-          >
-            {isSubmitting ? 'Updating...' : 'Update Quotation'}
-          </Button>
-        </Box>
-      </Card>
-    </form>
-  )
-}
+     );
+};
 
-export default EditQuotation
+export default EditQuotation;

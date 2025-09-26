@@ -201,6 +201,27 @@ export const settingsTabs = [
 ]
 
 // Delivery Challan tabs for filtering
+// Quotation tabs for filtering
+export const quotationTabs = [
+  { value: 'ALL', label: 'All' },
+  { value: 'ACCEPTED', label: 'Accepted' },
+  { value: 'DRAFTED', label: 'Draft' },
+  { value: 'SENT', label: 'Sent' },
+  { value: 'EXPIRED', label: 'Expired' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'CONVERTED', label: 'Converted' },
+]
+
+// Quotation status options
+export const quotationStatusOptions = [
+  { value: 'ACCEPTED', label: 'Accepted', color: 'success', icon: 'ri:check-double-line' },
+  { value: 'DRAFTED', label: 'Draft', color: 'secondary', icon: 'mdi:invoice-text-edit-outline' },
+  { value: 'SENT', label: 'Sent', color: 'info', icon: 'ri:send-plane-line' },
+  { value: 'EXPIRED', label: 'Expired', color: 'warning', icon: 'ri:time-line' },
+  { value: 'REJECTED', label: 'Rejected', color: 'error', icon: 'ri:close-circle-line' },
+  { value: 'CONVERTED', label: 'Converted', color: 'primary', icon: 'mdi:invoice-text-check-outline' },
+]
+
 export const deliveryChallanTabs = [
   { value: 'ALL', label: 'All' },
   { value: 'ACTIVE', label: 'Active' },
@@ -210,9 +231,9 @@ export const deliveryChallanTabs = [
 
 // Delivery Challan status options
 export const deliveryChallanStatusOptions = [
-  { value: 'ACTIVE', label: 'Active', color: 'success' },
-  { value: 'CONVERTED', label: 'Converted', color: 'info' },
-  { value: 'CANCELLED', label: 'Cancelled', color: 'error' },
+  { value: 'ACTIVE', label: 'Active', color: 'success', icon: 'ri:check-double-line' },
+  { value: 'CONVERTED', label: 'Converted', color: 'info', icon: 'mdi:invoice-text-check-outline' },
+  { value: 'CANCELLED', label: 'Cancelled', color: 'error', icon: 'ri:close-circle-line' },
 ]
 
 // Available icons for role selection

@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import EditQuotationIndex from 'src/views/quotations/editQuotation/index'
 
 // ** Actions Imports
-import { getQuotationDetails, getCustomers } from '@/app/(dashboard)/quotations/actions'
+import { getQuotationDetails, getDropdownData } from '@/app/(dashboard)/quotations/actions'
 
 export async function generateMetadata({ params }) {
   try {
@@ -44,11 +44,11 @@ const QuotationEditPage = async ({ params }) => {
       return notFound()
     }
 
-    // Fetch quotation details
-    const quotationResponse = await getQuotationDetails(params.id)
-
-    // Fetch all customers for the form dropdown
-    const customersResponse = await getCustomers()
+    // Fetch quotation details and all dropdown data in parallel
+    const [quotationResponse, dropdownData] = await Promise.all([
+      getQuotationDetails(params.id),
+      getDropdownData()
+    ])
 
     // If quotation is not found, show 404
     if (!quotationResponse?.success || !quotationResponse?.data) {
@@ -59,7 +59,12 @@ const QuotationEditPage = async ({ params }) => {
     return (
       <EditQuotationIndex
         quotationData={quotationResponse.data}
-        customers={customersResponse?.success && Array.isArray(customersResponse.data) ? customersResponse.data : []}
+        customers={dropdownData.customers || []}
+        products={dropdownData.products || []}
+        taxRates={dropdownData.taxRates || []}
+        banks={dropdownData.banks || []}
+        signatures={dropdownData.signatures || []}
+        units={dropdownData.units || []}
       />
     )
   } catch (error) {

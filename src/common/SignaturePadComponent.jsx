@@ -1,7 +1,7 @@
 import React, { useEffect, useContext, useState, useRef } from "react";
 import Select from "react-select";
 import SignaturePad from "react-signature-canvas";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Controller } from "react-hook-form";
 import { dataURLtoBlob } from "./helper";
 import FeatherIcon from "feather-icons-react";
@@ -243,9 +243,8 @@ const SignaturePadComponent = ({
                   control={formcontrol}
                   render={({ field: { value, onChange } }) => (
                     <input
-                      className={`form-control ${
-                        errors?.signatureName ? "error-input" : ""
-                      }`}
+                      className={`form-control ${errors?.signatureName ? "error-input" : ""
+                        }`}
                       type="text"
                       value={value ? value : "" || ""}
                       onChange={onChange}

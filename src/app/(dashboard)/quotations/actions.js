@@ -345,6 +345,58 @@ export async function getUnits() {
   }
 }
 
+export async function getBanks() {
+  try {
+    const response = await fetchWithAuth('/drop_down/bank');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching banks:', error);
+    return [];
+  }
+}
+
+export async function getSignatures() {
+  try {
+    const response = await fetchWithAuth('/drop_down/signature');
+    return response.data || [];
+  } catch (error) {
+    console.error('Error fetching signatures:', error);
+    return [];
+  }
+}
+
+export async function getDropdownData() {
+  try {
+    const [customers, products, taxRates, banks, signatures, units] = await Promise.all([
+      getCustomers(),
+      getProducts(),
+      getTaxes(),
+      getBanks(),
+      getSignatures(),
+      getUnits()
+    ]);
+
+    return {
+      customers,
+      products,
+      taxRates,
+      banks,
+      signatures,
+      units
+    };
+  } catch (error) {
+    console.error('Error fetching dropdown data:', error);
+    return {
+      customers: [],
+      products: [],
+      taxRates: [],
+      banks: [],
+      signatures: [],
+      units: []
+    };
+  }
+}
+
 export async function searchCustomers(searchText) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.LIST.CUSTOMER_LIST}?name=${searchText}`);

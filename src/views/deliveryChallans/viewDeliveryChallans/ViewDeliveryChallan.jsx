@@ -15,19 +15,22 @@ import {
   TableHead,
   TableRow,
   CircularProgress,
+  Paper,
+  TableContainer,
+  Chip,
 } from '@mui/material';
 import { Print, Download, Edit } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { Icon } from '@iconify/react';
 import dayjs from 'dayjs';
 import { formatCurrency } from '@/utils/currencyUtils';
-import { alpha } from '@mui/material/styles';
-import tableStyles from '@core/styles/table.module.css';
+import { useTheme } from '@mui/material/styles';
 import { usePermission } from '@/Auth/usePermission';
 
 const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
   const contentRef = useRef(null);
   const router = useRouter();
+  const theme = useTheme();
   const canEdit = usePermission('deliveryChallan', 'update');
 
   if (isLoading) {
@@ -40,8 +43,10 @@ const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
 
   if (!deliveryChallanData) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-        <Typography variant="h6">No delivery challan data found</Typography>
+      <Box className="flex items-center justify-center h-96">
+        <Typography variant="h6" color="text.secondary">
+          Delivery challan not found
+        </Typography>
       </Box>
     );
   }
@@ -54,255 +59,298 @@ const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
     router.push(`/deliveryChallans/deliveryChallans-edit/${deliveryChallanData._id}`);
   };
 
-  return (
-    <div>
-      {/* Action Buttons */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-        {canEdit && (
-          <Button variant="outlined" startIcon={<Edit />} onClick={handleEdit}>
-            Edit
-          </Button>
-        )}
-        <Button variant="outlined" startIcon={<Print />} onClick={handlePrint}>
-          Print
-        </Button>
-      </Box>
+  const handleDownloadPDF = () => {
+    // PDF download functionality
+    console.log('Download PDF');
+  };
 
-      <div ref={contentRef}>
-        <Card
-          className="previewCard"
-          sx={{
-            width: '210mm',
-            minHeight: '297mm',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return 'success';
+      case 'converted':
+        return 'info';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const actionButtons = (
+    <Box className='flex flex-row gap-2'>
+      {canEdit && (
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<Edit />}
+          onClick={handleEdit}
         >
-          <CardContent sx={{
-            display: 'box',
-            margin: '30px',
-            padding: '0px',
-            border: (theme) => `1px solid ${alpha(theme.palette.secondary.main, 0.075)} `,
-            borderRadius: 1,
-            height: 'calc(100% - 70px)',
-            flex: 1,
-          }}>
-            <Grid
-              container
-              sx={{
-                alignItems: 'start',
-                display: 'flex',
-                flexDirection: 'column',
-                '& > *': { width: '100%' }
-              }}
-            >
-              {/* Header Section */}
-              <Grid item
-                sx={{
-                  borderRadius: '4px 4px 0 0',
-                  backgroundColor: (theme) => alpha(theme.palette.secondary.main, 0.075),
-                }}
-              >
-                <Grid container className='flex justify-between p-4' mb={2} sx={{
-                  alignItems: 'center',
-                }}>
-                  <Grid item xs={2}>
-                    <Grid container className='flex justify-between' spacing={1}>
-                      <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center' }}>
-                        <Image
-                          src={ '/images/illustrations/objects/store-2.png'}
-                          alt="Company Logo"
-                          width='80'
-                          height='80'
-                          priority
-                        />
-                      </Grid>
-                      <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center' }}>
-                        <Typography variant='h6' color='text.secondary'>
-                          Store details
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Grid>
+          Edit
+        </Button>
+      )}
+      <Button
+        variant="outlined"
+        startIcon={<Print />}
+        onClick={handlePrint}
+      >
+        Print
+      </Button>
+      <Button
+        variant="outlined"
+        startIcon={<Download />}
+        onClick={handleDownloadPDF}
+      >
+        Download
+      </Button>
+    </Box>
+  );
 
-                  <Grid item xs={4}>
-                    <Grid container spacing={5} >
-                      <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                        <Typography variant='h6' color='text.secondary'>
-                          DELIVERY CHALLAN
-                        </Typography>
-                        <Typography variant='h6' color='text.secondary'>
-                          Challan Date
-                        </Typography>
-                        <Typography variant='h6' color='text.secondary'>
-                          Due Date
-                        </Typography>
-                      </Grid>
+  return (
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Box className='flex flex-row justify-between items-start mb-6'>
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+                  Delivery Challan
+                </Typography>
+                <Typography variant="h6" color="primary.main">
+                  #{deliveryChallanData?.deliveryChallanNumber}
+                </Typography>
+              </Box>
+              {actionButtons}
+            </Box>
 
-                      <Grid item xs={6} sx={{ textAlign: 'left' }}>
-                        <Typography variant='h6' fontWeight={500}>
-                          #{deliveryChallanData?.deliveryChallanNumber}
-                        </Typography>
-                        <Typography variant='h6' fontWeight={500}>
-                          {dayjs(deliveryChallanData?.deliveryChallanDate).format('DD MMM YYYY')}
-                        </Typography>
-                        <Typography variant='h6' fontWeight={500}>
-                          {deliveryChallanData?.dueDate ? dayjs(deliveryChallanData?.dueDate).format('DD MMM YYYY') : 'N/A'}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Grid>
-                </Grid>
-              </Grid>
+            {/* Delivery Challan Details */}
+            <Grid container spacing={4}>
+              {/* Left Column - Challan Info */}
+              <Grid item xs={12} md={6}>
+                <Box className='mb-6'>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                    Delivery Challan Details
+                  </Typography>
 
-              {/* Billing Details Section */}
-              <Grid item>
-                <Grid container
-                  borderBottom={(theme) => `1px solid ${alpha(theme.palette.secondary.main, 0.075)} `}
-                  padding={4} mb={4} className='flex justify-between'>
-                  <Grid item xs={'auto'} sx={{ textAlign: 'left' }}>
-                    <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
-                      Delivery To:
-                    </Typography>
-                    <Typography className='text-[14px]'>{deliveryChallanData?.customerId?.name}</Typography>
-                    <Typography className='text-[14px]'>{deliveryChallanData?.deliveryAddress?.addressLine1}</Typography>
-                    {deliveryChallanData?.deliveryAddress?.addressLine2 && (
-                      <Typography className='text-[14px]'>{deliveryChallanData?.deliveryAddress?.addressLine2}</Typography>
-                    )}
-                    <Typography className='text-[14px]'>
-                      {deliveryChallanData?.deliveryAddress?.city}, {deliveryChallanData?.deliveryAddress?.state} {deliveryChallanData?.deliveryAddress?.pincode}
-                    </Typography>
-                    <Typography className='text-[14px]'>{deliveryChallanData?.deliveryAddress?.country}</Typography>
-                  </Grid>
+                  <Box className='space-y-2'>
+                    <Box className='flex justify-between'>
+                      <Typography variant="body2" color="text.secondary">Challan Date:</Typography>
+                      <Typography variant="body2">{dayjs(deliveryChallanData?.deliveryChallanDate).format('DD MMM YYYY')}</Typography>
+                    </Box>
 
-                  {deliveryChallanData?.referenceNo && (
-                    <Grid item xs={'auto'} sx={{ textAlign: 'right' }}>
-                      <Typography variant="h6" color="primary" fontWeight={600} gutterBottom>
-                        Reference No:
-                      </Typography>
-                      <Typography className='text-[14px]'>{deliveryChallanData?.referenceNo}</Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              </Grid>
+                    <Box className='flex justify-between'>
+                      <Typography variant="body2" color="text.secondary">Due Date:</Typography>
+                      <Typography variant="body2">{deliveryChallanData?.dueDate ? dayjs(deliveryChallanData?.dueDate).format('DD MMM YYYY') : 'N/A'}</Typography>
+                    </Box>
 
-              {/* Items Table */}
-              <Grid item sx={{ flex: 1 }}>
-                <Box sx={{ px: 4 }}>
-                  <Table className={tableStyles.table}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>#</TableCell>
-                        <TableCell>Item & Description</TableCell>
-                        <TableCell align="center">Qty</TableCell>
-                        <TableCell align="center">Rate</TableCell>
-                        <TableCell align="center">Discount</TableCell>
-                        <TableCell align="center">Tax</TableCell>
-                        <TableCell align="right">Amount</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {deliveryChallanData?.items?.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={500}>{item.name}</Typography>
-                            {item.description && (
-                              <Typography variant="caption" color="text.secondary">{item.description}</Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="center">{item.quantity} {item.unit}</TableCell>
-                          <TableCell align="center">{formatCurrency(item.rate)}</TableCell>
-                          <TableCell align="center">
-                            {item.discount > 0 ? `${item.discount}%` : '-'}
-                          </TableCell>
-                          <TableCell align="center">{item.tax}%</TableCell>
-                          <TableCell align="right">{formatCurrency(item.amount)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                    <Box className='flex justify-between'>
+                      <Typography variant="body2" color="text.secondary">Reference No:</Typography>
+                      <Typography variant="body2">{deliveryChallanData?.referenceNo || 'N/A'}</Typography>
+                    </Box>
+
+                    <Box className='flex justify-between'>
+                      <Typography variant="body2" color="text.secondary">Status:</Typography>
+                      <Chip
+                        label={deliveryChallanData?.status || 'Active'}
+                        color={getStatusColor(deliveryChallanData?.status)}
+                        size="small"
+                      />
+                    </Box>
+                  </Box>
                 </Box>
               </Grid>
 
-              {/* Footer Section */}
-              <Grid item>
-                <Grid container spacing={2} sx={{ px: 4, py: 3 }}>
-                  <Grid item xs={6}>
-                    {deliveryChallanData?.notes && (
-                      <>
-                        <Typography variant="h6" gutterBottom>Notes</Typography>
-                        <Typography variant="body2" color="text.secondary">{deliveryChallanData.notes}</Typography>
-                      </>
-                    )}
-                    {deliveryChallanData?.termsAndCondition && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography variant="h6" gutterBottom>Terms & Conditions</Typography>
-                        <Typography variant="body2" color="text.secondary">{deliveryChallanData.termsAndCondition}</Typography>
-                      </Box>
-                    )}
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <Grid container spacing={1} sx={{ maxWidth: 300 }}>
-                        <Grid item xs={6}>
-                          <Typography variant="body2">Subtotal:</Typography>
-                        </Grid>
-                        <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                          <Typography variant="body2">{formatCurrency(deliveryChallanData?.taxableAmount || 0)}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2">Discount:</Typography>
-                        </Grid>
-                        <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                          <Typography variant="body2">-{formatCurrency(deliveryChallanData?.totalDiscount || 0)}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2">Tax:</Typography>
-                        </Grid>
-                        <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                          <Typography variant="body2">{formatCurrency(deliveryChallanData?.vat || 0)}</Typography>
-                        </Grid>
-                        <Grid item xs={12}>
-                          <Divider />
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="h6">Total:</Typography>
-                        </Grid>
-                        <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                          <Typography variant="h6" color="primary">
-                            {formatCurrency(deliveryChallanData?.TotalAmount || 0)}
-                          </Typography>
-                        </Grid>
-                      </Grid>
-                    </Box>
+              {/* Right Column - Customer Info */}
+              <Grid item xs={12} md={6}>
+                <Box className='mb-6'>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                    Delivery Information
+                  </Typography>
 
-                    {/* Signature Section */}
-                    {deliveryChallanData?.signatureImage && (
-                      <Box sx={{ mt: 4, textAlign: 'right' }}>
-                        <Typography variant="body2" gutterBottom>Authorized Signature</Typography>
-                        <Box sx={{ border: '1px solid #e0e0e0', p: 1, display: 'inline-block' }}>
-                          <img 
-                            src={deliveryChallanData.signatureImage} 
-                            alt="Signature" 
-                            style={{ maxWidth: 150, height: 'auto' }}
-                          />
-                        </Box>
-                        {deliveryChallanData?.signatureName && (
-                          <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                            {deliveryChallanData.signatureName}
-                          </Typography>
-                        )}
+                  <Box className='space-y-2'>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {deliveryChallanData?.customerId?.name || 'N/A'}
+                    </Typography>
+
+                    <Typography variant="body2" color="text.secondary">
+                      {deliveryChallanData?.customerId?.email || ''}
+                    </Typography>
+
+                    <Typography variant="body2" color="text.secondary">
+                      {deliveryChallanData?.customerId?.phone || ''}
+                    </Typography>
+
+                    {deliveryChallanData?.deliveryAddress && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          {deliveryChallanData.deliveryAddress.addressLine1 || ''}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {deliveryChallanData.deliveryAddress.city || ''} {deliveryChallanData.deliveryAddress.state || ''}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {deliveryChallanData.deliveryAddress.pincode || ''}
+                        </Typography>
                       </Box>
                     )}
-                  </Grid>
-                </Grid>
+                  </Box>
+                </Box>
               </Grid>
             </Grid>
+
+            <Divider sx={{ my: 4 }} />
+
+            {/* Items Table */}
+            <Box className='mb-6'>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                Items
+              </Typography>
+
+              <TableContainer component={Paper} variant="outlined">
+                <Table>
+                  <TableHead sx={{ backgroundColor: theme.palette.grey[50] }}>
+                    <TableRow>
+                      <TableCell>Item & Description</TableCell>
+                      <TableCell align="center">Quantity</TableCell>
+                      <TableCell align="center">Unit</TableCell>
+                      <TableCell align="right">Rate</TableCell>
+                      <TableCell align="right">Discount</TableCell>
+                      <TableCell align="right">Tax</TableCell>
+                      <TableCell align="right">Amount</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {deliveryChallanData?.items?.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {item.name}
+                          </Typography>
+                          {item.description && (
+                            <Typography variant="caption" color="text.secondary">
+                              {item.description}
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="center">{item.quantity}</TableCell>
+                        <TableCell align="center">{item.units || 'N/A'}</TableCell>
+                        <TableCell align="right">{formatCurrency(item.rate)}</TableCell>
+                        <TableCell align="right">
+                          {item.discountType === 2 ?
+                            `${item.discount}%` :
+                            formatCurrency(item.discount)
+                          }
+                        </TableCell>
+                        <TableCell align="right">{formatCurrency(item.tax)}</TableCell>
+                        <TableCell align="right">{formatCurrency(item.amount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+
+            {/* Totals Section */}
+            <Box className='flex justify-end mb-6'>
+              <Box className='w-80'>
+                <Box className='flex justify-between py-2'>
+                  <Typography variant="body2">Subtotal:</Typography>
+                  <Typography variant="body2">{formatCurrency(deliveryChallanData?.taxableAmount || 0)}</Typography>
+                </Box>
+
+                <Box className='flex justify-between py-2'>
+                  <Typography variant="body2">Discount:</Typography>
+                  <Typography variant="body2">-{formatCurrency(deliveryChallanData?.totalDiscount || 0)}</Typography>
+                </Box>
+
+                <Box className='flex justify-between py-2'>
+                  <Typography variant="body2">Tax:</Typography>
+                  <Typography variant="body2">{formatCurrency(deliveryChallanData?.vat || 0)}</Typography>
+                </Box>
+
+                <Divider sx={{ my: 1 }} />
+
+                <Box className='flex justify-between py-2'>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Total:</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                    {formatCurrency(deliveryChallanData?.TotalAmount || 0)}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Notes and Terms */}
+            {(deliveryChallanData?.notes || deliveryChallanData?.termsAndCondition) && (
+              <>
+                <Divider sx={{ my: 4 }} />
+
+                <Grid container spacing={4}>
+                  {deliveryChallanData?.notes && (
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                        Notes
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {deliveryChallanData.notes}
+                      </Typography>
+                    </Grid>
+                  )}
+
+                  {deliveryChallanData?.termsAndCondition && (
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                        Terms & Conditions
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {deliveryChallanData.termsAndCondition}
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              </>
+            )}
+
+            {/* Signature */}
+            {deliveryChallanData?.signatureImage && (
+              <>
+                <Divider sx={{ my: 4 }} />
+
+                <Box className='text-right'>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                    Authorized Signature
+                  </Typography>
+
+                  <Box className='mb-2'>
+                    <img
+                      src={deliveryChallanData.signatureImage}
+                      alt="Signature"
+                      style={{ maxHeight: '80px', maxWidth: '200px' }}
+                    />
+                  </Box>
+
+                  {deliveryChallanData?.signatureName && (
+                    <Typography variant="body2" color="text.secondary">
+                      {deliveryChallanData.signatureName}
+                    </Typography>
+                  )}
+                </Box>
+              </>
+            )}
+
+            {/* Back Button */}
+            <Box className='flex justify-start mt-6'>
+              <Button
+                variant="outlined"
+                onClick={() => router.back()}
+                startIcon={<Icon icon="tabler:arrow-left" />}
+              >
+                Back to List
+              </Button>
+            </Box>
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </Grid>
+    </Grid>
   );
 };
 

@@ -27,7 +27,7 @@ import { Icon } from '@iconify/react';
 import { formatDate } from '@/utils/dateUtils';
 import { formatNumber } from '@/utils/numberUtils';
 import dayjs from 'dayjs';
-import {updateQuotationStatus } from '@/app/(dashboard)/quotations/actions';
+import { updateQuotationStatus } from '@/app/(dashboard)/quotations/actions';
 
 
 
@@ -70,6 +70,16 @@ const ViewQuotation = ({ quotationData, unitsList, productsList, enqueueSnackbar
   const [isLoading, setIsLoading] = useState(false);
 
   const isExpired = quotationData.due_date && dayjs(quotationData.due_date).isBefore(dayjs(), 'day');
+
+  if (!quotationData) {
+    return (
+      <Box className="flex items-center justify-center h-96">
+        <Typography variant="h6" color="text.secondary">
+          Quotation not found
+        </Typography>
+      </Box>
+    );
+  }
 
   // Helper function to find product name by ID
   const getProductName = (productId) => {
@@ -122,473 +132,298 @@ const ViewQuotation = ({ quotationData, unitsList, productsList, enqueueSnackbar
 
 
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadPDF = () => {
+    // PDF download functionality
+    console.log('Download PDF');
+  };
+
+  const handleEdit = () => {
+    router.push(`/quotations/quotation-edit/${quotationData._id}`);
+  };
+
+  const actionButtons = (
+    <Box className='flex flex-row gap-2'>
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<Icon icon="tabler:edit" width={20} />}
+        onClick={handleEdit}
+      >
+        Edit
+      </Button>
+      <Button
+        variant="outlined"
+        startIcon={<Icon icon="tabler:printer" width={20} />}
+        onClick={handlePrint}
+      >
+        Print
+      </Button>
+      <Button
+        variant="outlined"
+        startIcon={<Icon icon="tabler:download" width={20} />}
+        onClick={handleDownloadPDF}
+      >
+        Download
+      </Button>
+    </Box>
+  );
+
   return (
-    <>
-      {/* Header Section - Slightly enhanced with better spacing and visual hierarchy */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 6, // Increased bottom margin for better spacing
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: { xs: 3, sm: 0 } // Increased gap on mobile
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}> {/* Increased gap */}
-          <Avatar
-            sx={{
-              width: 52, // Slightly larger
-              height: 52, // Slightly larger
-              backgroundColor: alpha(theme.palette.primary.main, 0.15), // Slightly more vibrant
-              color: 'primary.main',
-              boxShadow: theme => `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}` // Added subtle shadow
-            }}
-          >
-            <Icon icon="tabler:file-analytics" fontSize={28} /> {/* Slightly larger icon */}
-          </Avatar>
-
-            <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}> {/* Increased font weight */}
-              Quotation
-            </Typography>
-
-
-        </Box>
-
-      </Box>
-
-      {/* Main Card - Enhanced with subtle improvements */}
-      <Card
-
-      >
-        <CardContent sx={{ p: { xs: 3, md: 5 } }}>
-          {/* Header Information */}
-          <Grid container spacing={5} sx={{ mb: 6 }}>
-            <Grid item xs={12} md={6}>
-              <Box
-              className='flex items-center gap-3 mb-4'
-                            >
-                <Avatar
-                  sx={{
-                    width: 68,
-                    height: 68,
-                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                    color: 'primary.main',
-                    fontSize: '1.6rem',
-                    fontWeight: 600,
-                    boxShadow: theme => `0 2px 5px ${alpha(theme.palette.primary.main, 0.35)}`
-                  }}
-                >
-                  {quotationData.customerId?.name && quotationData.customerId.name.charAt(0).toUpperCase()}
-                </Avatar>
-                <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                    {quotationData.customerId?.name || ''}
-                  </Typography>
-                  {quotationData.customerId?.email && (
-                    <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {quotationData.customerId.phone}
-                    </Typography>
-                  )}
-                </Box>
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Box className='flex flex-row justify-between items-start mb-6'>
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+                  Quotation
+                </Typography>
+                <Typography variant="h6" color="primary.main">
+                  #{quotationData.quotation_id || ''}
+                </Typography>
               </Box>
+              {actionButtons}
+            </Box>
 
-
-                <Box className='flex flex-col gap-1 mb-4'>
-
-                 {quotationData.customerId?.billingAddress && (
-                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>
-                    {`${quotationData.customerId.billingAddress.addressLine1 || ''} ${quotationData.customerId.billingAddress.addressLine2 || ''},
-                    ${quotationData.customerId.billingAddress.city || ''}, ${quotationData.customerId.billingAddress.state || ''},
-                    ${quotationData.customerId.billingAddress.country || ''} - ${quotationData.customerId.billingAddress.pincode || ''}`}
+            {/* Quotation Details */}
+            <Grid container spacing={4}>
+              {/* Left Column - Quotation Info */}
+              <Grid item xs={12} md={6}>
+                <Box className='mb-6'>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                    Quotation Details
                   </Typography>
-                 )}
-                  {quotationData.customerId?.email && (
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>
-                      {quotationData.customerId.email}
-                    </Typography>
-                  )}
+
+                  <Box className='space-y-2'>
+                    <Box className='flex justify-between'>
+                      <Typography variant="body2" color="text.secondary">Creation Date:</Typography>
+                      <Typography variant="body2">{formatDate(quotationData.quotation_date)}</Typography>
+                    </Box>
+
+                    <Box className='flex justify-between'>
+                      <Typography variant="body2" color="text.secondary">Expiry Date:</Typography>
+                      <Typography variant="body2">{formatDate(quotationData.due_date)}</Typography>
+                    </Box>
+
+                    <Box className='flex justify-between'>
+                      <Typography variant="body2" color="text.secondary">Total Amount:</Typography>
+                      <Typography variant="body2">{formatNumber(quotationData.TotalAmount)}</Typography>
+                    </Box>
+
+                    <Box className='flex justify-between'>
+                      <Typography variant="body2" color="text.secondary">Status:</Typography>
+                      <Chip
+                        label={quotationData.status}
+                        color={getStatusColor(quotationData.status)}
+                        size="small"
+                      />
+                    </Box>
+
+                    <Box className='flex justify-between'>
+                      <Typography variant="body2" color="text.secondary">Expired:</Typography>
+                      <Chip
+                        label={isExpired ? 'Yes' : 'No'}
+                        color={isExpired ? 'error' : 'success'}
+                        size="small"
+                      />
+                    </Box>
+                  </Box>
                 </Box>
+              </Grid>
 
-            </Grid>
+              {/* Right Column - Customer Info */}
+              <Grid item xs={12} md={6}>
+                <Box className='mb-6'>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                    Customer Information
+                  </Typography>
 
-            <Grid item xs={12} md={6}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
-                  <Box
-                    sx={{
-                      p: 3,
-                      borderRadius: '12px',
-                      bgcolor: alpha(theme.palette.background.default, 0.6),
-                      height: '100%'
-                    }}
-                  >
-                    <Typography variant="caption" className='text-[14px]' color="text.secondary" gutterBottom>
-                      Quotation Number
+                  <Box className='space-y-2'>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {quotationData.customerId?.name || 'N/A'}
                     </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                      #{quotationData.quotation_id || ''}
+
+                    <Typography variant="body2" color="text.secondary">
+                      {quotationData.customerId?.email || ''}
                     </Typography>
+
+                    <Typography variant="body2" color="text.secondary">
+                      {quotationData.customerId?.phone || ''}
+                    </Typography>
+
+                    {quotationData.customerId?.billingAddress && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          {quotationData.customerId.billingAddress.addressLine1 || ''}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {quotationData.customerId.billingAddress.city || ''} {quotationData.customerId.billingAddress.state || ''}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {quotationData.customerId.billingAddress.pincode || ''}
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
-                </Grid>
-
-
-                   <Grid item xs={12} sm={6}>
-                  <Box
-                    sx={{
-                      p: 3,
-                      borderRadius: '12px',
-                      bgcolor: alpha(theme.palette.background.default, 0.6),
-                      height: '100%'
-                    }}
-                  >
-                    <Typography variant="caption" className='text-[14px]' color="text.secondary" gutterBottom>
-                      Total Amount
-                    </Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                      {formatNumber(quotationData.TotalAmount)}
-                    </Typography>
-                  </Box>
-                </Grid>
-
-
-
-
-                <Grid item xs={12} sm={6}>
-                  <Box
-                    sx={{
-                      p: 3,
-                      borderRadius: '12px',
-                      bgcolor: alpha(theme.palette.background.default, 0.6),
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}
-                  >
-                    <Typography variant="caption" className='text-[14px]' color="text.secondary" gutterBottom>
-                       Creation Date
-                    </Typography>
-                    <Box sx={{ display: 'flex' }}>
-                      <Chip
-                        label={formatDate(quotationData.quotation_date)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ borderRadius: '8px', width: 'fit-content', fontSize: '14px' }}
-                      />
-                    </Box>
-                  </Box>
-                </Grid>
-
-
-                <Grid item xs={12} sm={6}>
-                  <Box
-                    sx={{
-                      p: 3,
-                      borderRadius: '12px',
-                      bgcolor: alpha(theme.palette.background.default, 0.6),
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}
-                  >
-                    <Typography variant="caption" className='text-[14px]' color="text.secondary" gutterBottom>
-                      Expiry Date
-                    </Typography>
-                    <Box sx={{ display: 'flex' }}>
-                      <Chip
-                        label={formatDate(quotationData.due_date)}
-                        size="small"
-                        variant="outlined"
-                        color={isExpired ? 'error' : 'default'}
-                        sx={{ borderRadius: '8px', width: 'fit-content', fontSize: '14px' }}
-                      />
-                    </Box>
-                  </Box>
-                </Grid>
-
+                </Box>
               </Grid>
             </Grid>
-          </Grid>
 
-          {/* Items Table - Enhanced with subtle hover effects */}
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 3 }}> {/* Increased font weight */}
-            Items
-          </Typography>
-          <TableContainer
-            component={Paper}
-            elevation={0}
+            <Divider sx={{ my: 4 }} />
 
-            sx={{
-              borderRadius: '14px', // Slightly more rounded
-              border: theme => `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-              mb: 5,
-              overflow: 'hidden', // Ensures the border-radius is applied to the table
-              transition: 'all 0.2s ease', // Added transition
-              boxShadow: theme => `0 3px 6px ${alpha(theme.palette.common.black, 0.06)}`, // Hover effect
-
-            }}
-          >
-            <Table sx={{ minWidth: 650 }} size={isSmallScreen ? 'small' : 'medium'}>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: alpha(theme.palette.background.default, 0.7) }}> {/* Slightly darker */}
-                  <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Item</TableCell> {/* Increased font weight and padding */}
-                  <TableCell sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Units</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Qty</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Rate</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Discount</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>VAT</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 600, fontSize: '15px', py: 2.2 }}>Amount</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {quotationData.items && quotationData.items.length > 0 ? (
-                  quotationData.items.map((item, index) => (
-                    <TableRow
-                      key={index}
-                      sx={{
-                        '&:last-child td, &:last-child th': { border: 0 },
-                        '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.04) }
-                      }}
-                    >
-                      <TableCell component="th" scope="row" sx={{  fontSize: '14px' }}>
-                        {getProductName(item.productId)}
-                      </TableCell>
-                      <TableCell sx={{  fontSize: '14px' }}>{getUnitName(item.unit)}</TableCell>
-                      <TableCell align="right" sx={{  fontSize: '14px' }}>{item.quantity}</TableCell>
-                      <TableCell align="right" sx={{  fontSize: '14px' }}>{formatNumber(item.rate)}</TableCell>
-                      <TableCell align="right" sx={{  fontSize: '14px' }}>
-                        {quotationData.discountType === '2'
-                          ? `${item.discount}% (${formatNumber((item.discount / 100) * item.rate * item.quantity)})`
-                          : `${formatNumber(item.discount)}`}
-                      </TableCell>
-                      <TableCell align="right" sx={{  fontSize: '14px' }}>{item.tax}%</TableCell>
-                      <TableCell align="right" sx={{  fontSize: '14px' }}>
-                        {formatNumber(item.amount)}
-                      </TableCell>
+            {/* Items Table */}
+            <Box className='mb-6'>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                Items
+              </Typography>
+              <TableContainer component={Paper} variant="outlined">
+                <Table>
+                  <TableHead sx={{ backgroundColor: theme.palette.grey[50] }}>
+                    <TableRow>
+                      <TableCell>Item</TableCell>
+                      <TableCell>Units</TableCell>
+                      <TableCell align="center">Quantity</TableCell>
+                      <TableCell align="right">Rate</TableCell>
+                      <TableCell align="right">Discount</TableCell>
+                      <TableCell align="right">VAT</TableCell>
+                      <TableCell align="right">Amount</TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                      No items found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {quotationData.items && quotationData.items.length > 0 ? (
+                      quotationData.items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {getProductName(item.productId)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>{getUnitName(item.unit)}</TableCell>
+                          <TableCell align="center">{item.quantity}</TableCell>
+                          <TableCell align="right">{formatNumber(item.rate)}</TableCell>
+                          <TableCell align="right">
+                            {quotationData.discountType === '2'
+                              ? `${item.discount}% (${formatNumber((item.discount / 100) * item.rate * item.quantity)})`
+                              : `${formatNumber(item.discount)}`}
+                          </TableCell>
+                          <TableCell align="right">{item.tax}%</TableCell>
+                          <TableCell align="right">{formatNumber(item.amount)}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                          No items found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
 
-          {/* Total Section */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
-            <Box
-              sx={{
-                width: { xs: '100%', sm: '60%', md: '40%' },
-                borderRadius: '12px',
-                overflow: 'hidden',
-                position: 'relative',
-                ml: 'auto',
-                background: theme => `
-                  linear-gradient(${theme.palette.background.paper}, ${theme.palette.background.paper}) padding-box,
-                  linear-gradient(to right, ${alpha(theme.palette.primary.light, 0.1)}, ${alpha(theme.palette.secondary.light, 0.1)}) border-box
-                `,
-                border: '1px solid transparent',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '4px',
-                  height: '100%',
-                  backgroundImage: theme => `linear-gradient(to bottom, ${theme.palette.primary.light}, ${theme.palette.secondary.light})`,
-                  opacity: 0.2,
-                  borderTopLeftRadius: '12px',
-                  borderBottomLeftRadius: '12px'
-                }
-              }}
-            >
-              <Box className='flex flex-col gap-2 p-4'>
-                <Grid container>
-                  <Grid item xs={6}>
-                    <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500, fontSize: '14px' }}>
-                      Subtotal
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                    <Typography variant="body1" sx={{ fontWeight: 500, fontSize: '14px' }}>
-                      {formatNumber(quotationData.taxableAmount)}
-                    </Typography>
-                  </Grid>
-                </Grid>
+            {/* Totals Section */}
+            <Box className='flex justify-end mb-6'>
+              <Box className='w-80'>
+                <Box className='flex justify-between py-2'>
+                  <Typography variant="body2">Subtotal:</Typography>
+                  <Typography variant="body2">{formatNumber(quotationData.taxableAmount)}</Typography>
+                </Box>
 
-                {parseFloat(quotationData.totalDiscount || '0.00') > 0 && (
-                  <Grid container>
-                    <Grid item xs={6}>
-                      <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500, fontSize: '14px' }}>
-                        Discount
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                      <Typography variant="body1" sx={{ fontWeight: 500, fontSize: '14px' }}>
-                        {`(${formatNumber(quotationData.totalDiscount)})`}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                )}
+                <Box className='flex justify-between py-2'>
+                  <Typography variant="body2">Discount:</Typography>
+                  <Typography variant="body2">-{formatNumber(quotationData.totalDiscount)}</Typography>
+                </Box>
 
-                {parseFloat(quotationData.vat || '0.00') > 0 && (
-                  <Grid container sx={{ mb: 2 }}>
-                    <Grid item xs={6}>
-                      <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500, fontSize: '14px' }}>
-                        VAT
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                      <Typography variant="body1" sx={{ fontWeight: 500, fontSize: '14px' }}>
-                        {formatNumber(quotationData.vat)}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                )}
+                <Box className='flex justify-between py-2'>
+                  <Typography variant="body2">VAT:</Typography>
+                  <Typography variant="body2">{formatNumber(quotationData.vat)}</Typography>
+                </Box>
 
-                <Divider  />
+                <Divider sx={{ my: 1 }} />
 
-                <Grid container>
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '15px' }}>
-                      Total
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '15px' }}>
-                      {formatNumber(quotationData.TotalAmount)}
-                    </Typography>
-                  </Grid>
-                </Grid>
+                <Box className='flex justify-between py-2'>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Total:</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                    {formatNumber(quotationData.TotalAmount)}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
-          </Box>
 
 
-          {/* Notes & TermsSection */}
+            {/* Notes and Terms */}
+            {(quotationData.notes || quotationData.termsAndCondition) && (
+              <>
+                <Divider sx={{ my: 4 }} />
 
-          {/* Notes */}
-          {quotationData.notes && (
+                <Grid container spacing={4}>
+                  {quotationData.notes && (
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                        Notes
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {quotationData.notes}
+                      </Typography>
+                    </Grid>
+                  )}
 
-
-
-            <Grid container className='mb-4 flex-flex-col' >
-              <Grid item xs={12} md={12}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                Notes
-              </Typography>
-
-                 </Grid>
-
-                <Grid item xs={12} md={9} lg={7}
-                  sx={{
-                  p: 3,
-                  borderRadius: '12px',
-                  backgroundColor: alpha(theme.palette.background.default, 0.6),
-
-                }}
-                >
-                <Typography variant="body2"
-                //       sx={{
-                //   p: 3,
-                //   borderRadius: '12px',
-                //   backgroundColor: alpha(theme.palette.background.default, 0.6),
-
-                // }}
-
-                >
-                  {quotationData.notes}
-                </Typography>
-
+                  {quotationData.termsAndCondition && (
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                        Terms and Conditions
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {quotationData.termsAndCondition}
+                      </Typography>
+                    </Grid>
+                  )}
                 </Grid>
+              </>
+            )}
 
-              </Grid>
+            {/* Signature */}
+            {quotationData.signatureId?.signatureImage && (
+              <>
+                <Divider sx={{ my: 4 }} />
 
+                <Box className='text-right'>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                    Authorized Signature
+                  </Typography>
 
-          )}
+                  <Box className='mb-2'>
+                    <img
+                      src={quotationData.signatureId?.signatureImage || quotationData.signatureImage}
+                      alt="Signature"
+                      style={{ maxHeight: '80px', maxWidth: '200px' }}
+                    />
+                  </Box>
+                </Box>
+              </>
+            )}
 
-          {/* Terms and Conditions */}
-          {quotationData.termsAndCondition && (
-            <Grid container className='mb-4 flex-flex-col' >
-              <Grid item xs={12} md={12}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                Terms and Conditions
-              </Typography>
-
-              </Grid>
-
-              <Grid item xs={12} md={9} lg={7}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 3,
-                  borderRadius: '12px',
-                  backgroundColor: alpha(theme.palette.background.default, 0.6),
-                  border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}`
-                }}
+            {/* Back Button */}
+            <Box className='flex justify-start mt-6'>
+              <Button
+                variant="outlined"
+                component={Link}
+                href="/quotations/quotation-list"
+                startIcon={<Icon icon="tabler:arrow-left" />}
               >
-                <Typography variant="body2">
-                  {quotationData.termsAndCondition}
-                </Typography>
-              </Paper>
-              </Grid>
-              </Grid>
-          )}
-
-          {/* Signature Section */}
-          {(quotationData.signatureId?.signatureImage) && (
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                Signature
-              </Typography>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 3,
-                  borderRadius: '12px',
-                  backgroundColor: alpha(theme.palette.background.default, 0.6),
-                  border: theme => `1px solid ${alpha(theme.palette.divider, 0.1)}`
-                }}
-              >
-                <Box
-                  component="img"
-                  src={quotationData.signatureId?.signatureImage || quotationData.signatureImage}
-                  alt="Signature"
-                  sx={{
-                    maxWidth: 250,
-                    maxHeight: 100,
-                    display: 'block'
-                  }}
-                />
-              </Paper>
+                Back to List
+              </Button>
             </Box>
-          )}
-
-          {/* Action Buttons - Enhanced with better visual feedback */}
-          <Box className='flex justify-between mt-5'> {/* Increased top margin */}
-            <Button
-              variant="outlined"
-              component={Link}
-              href="/quotations/quotation-list"
-              startIcon={<Icon icon="tabler:arrow-left" />}
-
-            >
-              Back to List
-            </Button>
-
-          </Box>
-        </CardContent>
-      </Card>
-
-
-    </>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
   );
 };
 
 export default ViewQuotation;
-
-

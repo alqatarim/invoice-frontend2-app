@@ -1,1033 +1,1056 @@
-'use client'
+import React, { useState, useEffect } from 'react';
+import { Controller } from 'react-hook-form';
+import {
+     TextField,
+     Button,
+     Select,
+     MenuItem,
+     InputLabel,
+     FormControl,
+     Typography,
+     IconButton,
+     Box,
+     Card,
+     CardContent,
+     Grid,
+     Snackbar,
+     Alert,
+     Dialog,
+     DialogContent,
+     FormHelperText,
+     InputAdornment,
+     Menu,
+     Divider,
+} from '@mui/material';
+import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
+import { Clear } from '@mui/icons-material';
+import { alpha, useTheme } from '@mui/material/styles';
+import { Icon } from '@iconify/react';
+import CustomIconButton from '@core/components/mui/CustomIconButton';
+import CustomerAutocomplete from '@/components/custom-components/CustomerAutocomplete';
+import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
+import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
+import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
+import { calculateInvoiceTotals } from '@/utils/invoiceTotals';
+import { paymentMethods } from '@/data/dataSets';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { quotationSchema } from './QuotationSchema';
 
-// ** React Imports
-import { useState, useEffect, Fragment } from 'react'
+const AddQuotation = ({ customersData, productData, taxRates, initialBanks, signatures, onSave, enqueueSnackbar, closeSnackbar, quotationNumber }) => {
+     const theme = useTheme();
+     const [openBankModal, setOpenBankModal] = useState(false);
+     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-// ** Next Imports
-import Link from 'next/link'
+     // State for UI controls
+     const [productsCloneData, setProductsCloneData] = useState([]);
+     const [banks, setBanks] = useState(initialBanks || []);
+     const [newBank, setNewBank] = useState({
+          name: '',
+          bankName: '',
+          accountNumber: '',
+          branch: '',
+          ifscCode: ''
+     });
+     const [signOptions, setSignOptions] = useState(signatures || []);
+     const [notesExpanded, setNotesExpanded] = useState(false);
+     const [termsDialogOpen, setTermsDialogOpen] = useState(false);
+     const [tempTerms, setTempTerms] = useState('');
+     const [discountMenu, setDiscountMenu] = useState({ anchorEl: null, rowIndex: null });
+     const [taxMenu, setTaxMenu] = useState({ anchorEl: null, rowIndex: null });
 
-// ** MUI Imports
-import Card from '@mui/material/Card'
-import Grid from '@mui/material/Grid'
-import Button from '@mui/material/Button'
-import Divider from '@mui/material/Divider'
-import MenuItem from '@mui/material/MenuItem'
-import TextField from '@mui/material/TextField'
-import CardHeader from '@mui/material/CardHeader'
-import CardContent from '@mui/material/CardContent'
-import CardActions from '@mui/material/CardActions'
-import Typography from '@mui/material/Typography'
-import IconButton from '@mui/material/IconButton'
-import InputAdornment from '@mui/material/InputAdornment'
-import Table from '@mui/material/Table'
-import TableRow from '@mui/material/TableRow'
-import TableHead from '@mui/material/TableHead'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import InputLabel from '@mui/material/InputLabel'
-import Select from '@mui/material/Select'
-import FormControl from '@mui/material/FormControl'
-import FormHelperText from '@mui/material/FormHelperText'
-import Box from '@mui/material/Box'
-import Autocomplete from '@mui/material/Autocomplete'
-import { useTheme } from '@mui/material/styles'
-import { alpha } from '@mui/material/styles'
-import Alert from '@mui/material/Alert'
-import Paper from '@mui/material/Paper'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Switch from '@mui/material/Switch'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import Modal from '@mui/material/Modal'
-import { styled } from '@mui/material/styles'
-import RadioGroup from '@mui/material/RadioGroup'
-
-// ** Icon Imports
-import Icon from '@iconify/react'
-
-// ** Third Party Imports
-import { useForm, Controller, useFieldArray } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import { DatePicker } from '@mui/x-date-pickers/DatePicker'
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import dayjs from 'dayjs'
-import { quotationSchema } from './QuotationSchema'
-
-// ** Custom Components
-import Spinner from '@/components/Spinner'
-
-// ** Actions Imports
-import { 
-  getQuotationNumber, 
-  getProducts, 
-  getTaxes, 
-  getUnits,
-  searchCustomers
-} from 'src/app/(dashboard)/quotations/actions'
-
-
-const CustomTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiInputBase-root': {
-    borderRadius: 12,
-    backgroundColor: alpha(theme.palette.background.paper, 0.6),
-    '&:hover': {
-      backgroundColor: alpha(theme.palette.background.paper, 0.9)
-    }
-  }
-}))
-
-// Remove or fix the unused CustomAutocomplete component
-// This component is defined but not used, which might be causing issues
-// const CustomAutocomplete = ({ options, value, onChange, renderInput, getOptionLabel, ...props }) => {
-//   return (
-//     <Autocomplete
-//       options={options}
-//       value={value}
-//       onChange={onChange}
-//       getOptionLabel={getOptionLabel}
-//       renderInput={renderInput}
-//       {...props}
-//     />
-//   )
-// }
-
-
-const AddQuotation = ({ customers = [], isSubmitting = false, onSubmit, resetData }) => {
-  // ** Hooks
-  const theme = useTheme()
-
-  // ** States
-  const [quotationNumber, setQuotationNumber] = useState('')
-  const [products, setProducts] = useState([])
-  const [taxes, setTaxes] = useState([])
-  const [units, setUnits] = useState([])
-  const [selectedProduct, setSelectedProduct] = useState(null)
-  const [productOptions, setProductOptions] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [editItemOpen, setEditItemOpen] = useState(false)
-  const [currentItem, setCurrentItem] = useState(null)
-  const [deleteItemOpen, setDeleteItemOpen] = useState(false)
-  const [itemToDelete, setItemToDelete] = useState(null)
-  const [applyRounding, setApplyRounding] = useState(false)
-  const [roundingAmount, setRoundingAmount] = useState(0)
-  const [signature, setSignature] = useState(null)
-  const [signatureType, setSignatureType] = useState('manualSignature')
-  const [signaturePreview, setSignaturePreview] = useState(null)
-  const [searchedCustomers, setSearchedCustomers] = useState([])
-  const [signatureName, setSignatureName] = useState('')
-
-  // ** Form
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    getValues,
-    watch,
-    reset,
-    formState: { errors }
-  } = useForm({
-    resolver: yupResolver(quotationSchema),
-    defaultValues: {
-      quotationNumber: '',
-      customerId: '',
-      customerName: '',
-      date: dayjs(),
-      expiryDate: dayjs().add(30, 'day'),
-      subject: '',
-      status: 'DRAFTED',
-      items: [],
-      subTotal: 0,
-      totalAmount: 0,
-      totalDiscount: 0,
-      totalTax: 0,
-      notes: '',
-      termsAndConditions: ''
-    }
-  })
-
-  // Watch form values for calculations
-  const watchedItems = watch('items')
-
-  // Setup field array for items
-  const { fields, append, remove, update } = useFieldArray({
-    control,
-    name: 'items'
-  })
-
-  // ** Effects
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        // Fetch quotation number
-        const qNumber = await getQuotationNumber()
-        setQuotationNumber(qNumber)
-        setValue('quotationNumber', qNumber)
-
-        // Fetch product list
-        const productsList = await getProducts()
-        setProducts(productsList)
-        setProductOptions(productsList)
-
-        // Fetch tax list
-        const taxesList = await getTaxes()
-        setTaxes(taxesList)
-
-        // Fetch unit list
-        const unitsList = await getUnits()
-        setUnits(unitsList)
-      } catch (error) {
-        console.error('Error fetching initial data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchInitialData()
-  }, [setValue])
-
-  // Calculate totals whenever items change
-  useEffect(() => {
-    if (watchedItems?.length > 0) {
-      calculateTotals()
-    }
-  }, [watchedItems, applyRounding, roundingAmount])
-
-  // ** Handlers
-  const handleProductSelect = (product) => {
-    if (!product) return
-
-    // Find the product in the products list
-    const selectedProd = products.find(p => p._id === product._id)
-    
-    if (selectedProd) {
-      append({
-        productId: selectedProd._id,
-        name: selectedProd.name,
-        description: selectedProd.description || '',
-        quantity: 1,
-        unit: selectedProd.units?._id || '',
-        unitName: selectedProd.units?.name || '',
-        rate: selectedProd.sellingPrice || 0,
-        discount: selectedProd.discountValue || 0,
-        discountType: selectedProd.discountType || 'flat',
-        tax: selectedProd.tax?.taxRate || 0,
-        amount: selectedProd.sellingPrice || 0
-      })
-
-      // Remove this product from options
-      const updatedOptions = productOptions.filter(p => p._id !== product._id)
-      setProductOptions(updatedOptions)
-      setSelectedProduct(null)
-    }
-  }
-
-  const handleEditItem = (index) => {
-    setCurrentItem({ ...watchedItems[index], index })
-    setEditItemOpen(true)
-  }
-
-  const handleUpdateItem = () => {
-    if (!currentItem) return
-
-    update(currentItem.index, {
-      ...currentItem
-    })
-
-    calculateItemAmount(currentItem)
-    setEditItemOpen(false)
-    setCurrentItem(null)
-  }
-
-  const handleDeleteItem = (index) => {
-    setItemToDelete(index)
-    setDeleteItemOpen(true)
-  }
-
-  const confirmDeleteItem = () => {
-    if (itemToDelete !== null) {
-      // Get the item to be removed
-      const removedItem = watchedItems[itemToDelete]
-      
-      // Add it back to product options if it exists
-      if (removedItem?.productId) {
-        const productToAdd = products.find(p => p._id === removedItem.productId)
-        if (productToAdd) {
-          setProductOptions(prev => [...prev, productToAdd])
-        }
-      }
-      
-      // Remove the item
-      remove(itemToDelete)
-      
-      setItemToDelete(null)
-      setDeleteItemOpen(false)
-    }
-  }
-
-  const handleQuantityChange = (index, value) => {
-    // Update the quantity
-    const currentItems = getValues('items')
-    const currentItem = { ...currentItems[index], quantity: parseFloat(value) || 0 }
-    
-    // Recalculate amount
-    calculateItemAmount(currentItem)
-    
-    // Update the item
-    update(index, currentItem)
-  }
-
-  const calculateItemAmount = (item) => {
-    const quantity = parseFloat(item.quantity) || 0
-    const rate = parseFloat(item.rate) || 0
-    const discountValue = parseFloat(item.discount) || 0
-    const taxRate = parseFloat(item.tax) || 0
-    
-    let discountAmount = 0
-    if (item.discountType === 'percent') {
-      discountAmount = (quantity * rate * discountValue) / 100
-    } else {
-      discountAmount = discountValue
-    }
-    
-    const taxableAmount = (quantity * rate) - discountAmount
-    const taxAmount = (taxableAmount * taxRate) / 100
-    
-    item.amount = taxableAmount + taxAmount
-    
-    return item
-  }
-
-  const calculateTotals = () => {
-    const items = getValues('items') || []
-    
-    let subTotal = 0
-    let totalDiscount = 0
-    let totalTax = 0
-    
-    items.forEach(item => {
-      const quantity = parseFloat(item.quantity) || 0
-      const rate = parseFloat(item.rate) || 0
-      const discount = parseFloat(item.discount) || 0
-      const taxRate = parseFloat(item.tax) || 0
-      
-      // Calculate discount amount
-      let discountAmount = 0
-      if (item.discountType === 'percent') {
-        discountAmount = (quantity * rate * discount) / 100
-      } else {
-        discountAmount = discount
-      }
-      
-      // Calculate taxable amount
-      const taxableAmount = (quantity * rate) - discountAmount
-      
-      // Calculate tax amount
-      const taxAmount = (taxableAmount * taxRate) / 100
-      
-      subTotal += taxableAmount
-      totalDiscount += discountAmount
-      totalTax += taxAmount
-    })
-    
-    // Apply rounding if enabled
-    let totalAmount = subTotal + totalTax
-    if (applyRounding) {
-      totalAmount = Math.round(totalAmount) + parseFloat(roundingAmount || 0)
-    }
-    
-    setValue('subTotal', subTotal)
-    setValue('totalDiscount', totalDiscount)
-    setValue('totalTax', totalTax)
-    setValue('totalAmount', totalAmount)
-    
-    return { subTotal, totalDiscount, totalTax, totalAmount }
-  }
-
-  const handleCustomerSearch = async (searchText) => {
-    if (searchText.length < 2) return
-
-    try {
-      const response = await searchCustomers(searchText)
-      if (response.success) {
-        setSearchedCustomers(response.data)
-      }
-    } catch (error) {
-      console.error('Error searching customers:', error)
-    }
-  }
-
-  const handleSignatureChange = (event) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0]
-      setSignature(file)
-      
-      // Create a preview
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setSignaturePreview(reader.result)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const handleFormSubmit = (data) => {
-    // Prepare data for submission
-    const formData = new FormData()
-    
-    // Append basic fields
-    formData.append('quotationNumber', data.quotationNumber)
-    formData.append('customerId', data.customerId)
-    formData.append('customerName', data.customerName || '')
-    formData.append('subject', data.subject || '')
-    formData.append('date', data.date ? dayjs(data.date).format('YYYY-MM-DD') : '')
-    formData.append('expiryDate', data.expiryDate ? dayjs(data.expiryDate).format('YYYY-MM-DD') : '')
-    formData.append('status', data.status || 'DRAFTED')
-    formData.append('subTotal', data.subTotal || 0)
-    formData.append('totalAmount', data.totalAmount || 0)
-    formData.append('totalDiscount', data.totalDiscount || 0)
-    formData.append('totalTax', data.totalTax || 0)
-    formData.append('notes', data.notes || '')
-    formData.append('termsAndConditions', data.termsAndConditions || '')
-    
-    // Append items as JSON string
-    if (data.items && data.items.length > 0) {
-      formData.append('items', JSON.stringify(data.items))
-    }
-    
-    // Handle signature
-    formData.append('sign_type', signatureType)
-    if (signatureType === 'eSignature') {
-      formData.append('signatureName', signatureName)
-      if (signature) {
-        formData.append('signature', signature)
-      }
-    } else {
-      // For manual signature, we would need the ID of the selected signature
-      // This should be implemented based on how signatures are stored/selected
-      formData.append('signatureId', data.signatureId || '')
-    }
-    
-    // Submit the form
-    onSubmit(formData)
-  }
-
-  if (loading) {
-    return <Spinner />
-  }
-
-  return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Card>
-        <CardHeader 
-          title='Add New Quotation' 
-          action={
-            <Button 
-              component={Link} 
-              href='/quotations/quotation-list'
-              variant='outlined' 
-              // startIcon={<Icon icon='mdi:arrow-left' />}
-              // startIcon={<Icon icon='mdi:arrow-left' fontSize={20} />}
-            >
-              Back to List
-            </Button>
+     // Form setup
+     const {
+          control,
+          handleSubmit,
+          setValue,
+          getValues,
+          watch,
+          formState: { errors }
+     } = useForm({
+          resolver: yupResolver(quotationSchema),
+          defaultValues: {
+               quotationNumber: quotationNumber || '',
+               customerId: '',
+               quotationDate: new Date().toISOString().split('T')[0],
+               expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+               payment_method: '',
+               bank: '',
+               referenceNo: '',
+               signatureId: '',
+               notes: '',
+               termsAndConditions: '',
+               items: [],
+               taxableAmount: 0,
+               totalDiscount: 0,
+               vat: 0,
+               TotalAmount: 0,
+               roundOff: false,
+               roundOffValue: 0,
           }
-        />
-        <form onSubmit={handleSubmit(handleFormSubmit)}>
-          <CardContent>
-            <Grid container spacing={6}>
-              <Grid item xs={12}>
-                <Typography variant='h6'>Quotation Details</Typography>
-                <Divider sx={{ mt: 1, mb: 4 }} />
-              </Grid>
+     });
 
-              {/* Quotation Number */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Controller
-                  name='quotationNumber'
-                  control={control}
-                  render={({ field }) => (
-                    <CustomTextField
-                      {...field}
-                      fullWidth
-                      label='Quotation Number'
-                      placeholder='QUO-000001'
-                      InputProps={{
-                        readOnly: true
-                      }}
-                      error={Boolean(errors.quotationNumber)}
-                      helperText={errors.quotationNumber?.message}
-                    />
-                  )}
-                />
-              </Grid>
+     // Field array for items
+     const { fields, append, remove } = useFieldArray({
+          control,
+          name: 'items'
+     });
 
-              {/* Customer */}
-              <Grid item xs={12} sm={6} md={5}>
-                <Controller
-                  name='customerId'
-                  control={control}
-                  render={({ field: { value, onChange } }) => (
-                    <FormControl fullWidth error={Boolean(errors.customerId)}>
-                      <Autocomplete
-                        id='customer-select'
-                        options={searchedCustomers.length > 0 ? searchedCustomers : customers}
-                        getOptionLabel={(option) => option.name || ''}
-                        value={customers.find(c => c._id === value) || null}
-                        onChange={(_, newValue) => {
-                          if (newValue) {
-                            onChange(newValue._id)
-                            setValue('customerName', newValue.name)
-                          } else {
-                            onChange('')
-                            setValue('customerName', '')
-                          }
-                        }}
-                        onInputChange={(_, newInputValue) => {
-                          handleCustomerSearch(newInputValue)
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label='Customer'
-                            error={Boolean(errors.customerId)}
-                            helperText={errors.customerId?.message}
-                          />
-                        )}
-                      />
-                    </FormControl>
-                  )}
-                />
-              </Grid>
+     // Watch fields
+     const watchItems = watch('items');
+     const watchRoundOff = watch('roundOff');
 
-              {/* Date */}
-              <Grid item xs={12} sm={6} md={2}>
-                <Controller
-                  name='date'
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      {...field}
-                      label='Date'
-                      format='DD/MM/YYYY'
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: Boolean(errors.date),
-                          helperText: errors.date?.message
-                        }
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
+     // Initialize products data
+     useEffect(() => {
+          if (productData && productData.length > 0) {
+               setProductsCloneData([...productData]);
+          }
+     }, [productData]);
 
-              {/* Expiry Date */}
-              <Grid item xs={12} sm={6} md={2}>
-                <Controller
-                  name='expiryDate'
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      {...field}
-                      label='Expiry Date'
-                      format='DD/MM/YYYY'
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: Boolean(errors.expiryDate),
-                          helperText: errors.expiryDate?.message
-                        }
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
+     // Calculate totals when items change
+     useEffect(() => {
+          if (watchItems) {
+               const { taxableAmount, totalDiscount, vat, TotalAmount, roundOffValue } = calculateInvoiceTotals(
+                    watchItems,
+                    watchRoundOff
+               );
+               setValue('taxableAmount', taxableAmount);
+               setValue('totalDiscount', totalDiscount);
+               setValue('vat', vat);
+               setValue('TotalAmount', TotalAmount);
+               setValue('roundOffValue', roundOffValue);
+          }
+     }, [watchItems, watchRoundOff, setValue]);
 
-              {/* Subject */}
-              <Grid item xs={12}>
-                <Controller
-                  name='subject'
-                  control={control}
-                  render={({ field }) => (
-                    <CustomTextField
-                      {...field}
-                      fullWidth
-                      label='Subject'
-                      placeholder='Enter quotation subject'
-                      error={Boolean(errors.subject)}
-                      helperText={errors.subject?.message}
-                    />
-                  )}
-                />
-              </Grid>
+     // Copy all the handlers from AddQuotation (same logic)
+     const updateCalculatedFields = (index, item, setValue) => {
+          const quantity = Number(item.quantity) || 0;
+          const rate = Number(item.rate) || 0;
+          const discountValue = Number(item.discount) || 0;
+          const discountType = Number(item.discountType) || 3;
+          const taxRate = Number(item.taxInfo?.taxRate) || 0;
 
-              {/* Items Table */}
-              <Grid item xs={12}>
-                <Typography variant='h6' sx={{ mb: 2 }}>
-                  Items
-                </Typography>
+          let discountAmount = 0;
+          if (discountType === 2) {
+               discountAmount = (quantity * rate * discountValue) / 100;
+          } else {
+               discountAmount = discountValue;
+          }
 
-                {/* Product Selection */}
-                <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
-                  <Autocomplete
-                    sx={{ width: 350, mr: 2 }}
-                    id='product-select'
-                    options={productOptions}
-                    getOptionLabel={(option) => option.name || ''}
-                    value={selectedProduct}
-                    onChange={(_, newValue) => setSelectedProduct(newValue)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label='Select Product'
-                        placeholder='Search and select a product'
-                      />
-                    )}
-                  />
-                  <Button 
-                    variant='contained' 
-                    onClick={() => handleProductSelect(selectedProduct)}
-                    disabled={!selectedProduct}
-                  >
-                    Add Item
-                  </Button>
-                </Box>
+          const taxableAmount = (quantity * rate) - discountAmount;
+          const taxAmount = (taxableAmount * taxRate) / 100;
+          const totalAmount = taxableAmount + taxAmount;
 
-                {/* Items List */}
-                {fields.length > 0 ? (
-                  <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Product</TableCell>
-                          <TableCell>Description</TableCell>
-                          <TableCell align='center'>Quantity</TableCell>
-                          <TableCell>Unit</TableCell>
-                          <TableCell align='right'>Rate</TableCell>
-                          <TableCell align='right'>Discount</TableCell>
-                          <TableCell align='right'>Tax (%)</TableCell>
-                          <TableCell align='right'>Amount</TableCell>
-                          <TableCell align='center'>Actions</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {fields.map((item, index) => (
-                          <TableRow key={item.id}>
-                            <TableCell>{watchedItems[index]?.name}</TableCell>
-                            <TableCell>{watchedItems[index]?.description || '-'}</TableCell>
-                            <TableCell align='center'>
-                              <TextField
-                                value={watchedItems[index]?.quantity || 0}
-                                type='number'
-                                size='small'
-                                sx={{ width: '80px' }}
-                                onChange={(e) => handleQuantityChange(index, e.target.value)}
-                                InputProps={{ inputProps: { min: 1 } }}
-                              />
-                            </TableCell>
-                            <TableCell>{watchedItems[index]?.unitName || '-'}</TableCell>
-                            <TableCell align='right'>
-                              {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(watchedItems[index]?.rate || 0)}
-                            </TableCell>
-                            <TableCell align='right'>
-                              {watchedItems[index]?.discountType === 'percent' 
-                                ? `${watchedItems[index]?.discount || 0}%`
-                                : new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(watchedItems[index]?.discount || 0)
-                              }
-                            </TableCell>
-                            <TableCell align='right'>{watchedItems[index]?.tax || 0}%</TableCell>
-                            <TableCell align='right'>
-                              {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(watchedItems[index]?.amount || 0)}
-                            </TableCell>
-                            <TableCell align='center'>
-                              <IconButton onClick={() => handleEditItem(index)} color='primary' size='small'>
-                                <Icon icon='mdi:pencil-outline' />
-                              </IconButton>
-                              <IconButton onClick={() => handleDeleteItem(index)} color='error' size='small'>
-                                <Icon icon='mdi:delete-outline' />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </Paper>
-                ) : (
-                  <Alert severity='info' sx={{ mt: 2 }}>
-                    No items added yet. Select a product to add items to this quotation.
-                  </Alert>
-                )}
-              </Grid>
+          setValue(`items.${index}.amount`, totalAmount);
+          setValue(`items.${index}.tax`, taxAmount);
+          setValue(`items.${index}.discount`, discountAmount);
+     };
 
-              <Grid item xs={12}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    {/* Notes */}
-                    <Typography sx={{ mb: 2 }} variant='subtitle2'>
-                      Notes
-                    </Typography>
+     const handleUpdateItemProduct = (index, productId, previousProductId) => {
+          if (previousProductId && previousProductId !== productId) {
+               const previousProduct = productData.find(p => p._id === previousProductId);
+               if (previousProduct) {
+                    setProductsCloneData(prev => [...prev, previousProduct]);
+               }
+          }
+
+          if (productId) {
+               const selectedProduct = productData.find(p => p._id === productId);
+               if (selectedProduct) {
+                    setValue(`items.${index}.productId`, selectedProduct._id);
+                    setValue(`items.${index}.name`, selectedProduct.name);
+                    setValue(`items.${index}.description`, selectedProduct.description || '');
+                    setValue(`items.${index}.units`, selectedProduct.units?.name || '');
+                    setValue(`items.${index}.rate`, selectedProduct.sellingPrice || 0);
+                    setValue(`items.${index}.quantity`, 1);
+                    setValue(`items.${index}.discountType`, selectedProduct.discountType || 3);
+                    setValue(`items.${index}.discount`, selectedProduct.discountValue || 0);
+                    setValue(`items.${index}.taxInfo`, selectedProduct.tax || {});
+
+                    setProductsCloneData(prev => prev.filter(p => p._id !== productId));
+                    const item = getValues(`items.${index}`);
+                    updateCalculatedFields(index, item, setValue);
+               }
+          }
+     };
+
+     const handleDeleteItem = (index) => {
+          const item = getValues(`items.${index}`);
+          if (item.productId) {
+               const product = productData.find(p => p._id === item.productId);
+               if (product) {
+                    setProductsCloneData(prev => [...prev, product]);
+               }
+          }
+          remove(index);
+     };
+
+     const handleAddEmptyRow = () => {
+          append({
+               productId: '',
+               name: '',
+               description: '',
+               quantity: 1,
+               units: '',
+               rate: 0,
+               discountType: 3,
+               discount: 0,
+               taxInfo: {},
+               tax: 0,
+               amount: 0,
+          });
+     };
+
+     const handleAddBank = async () => {
+          try {
+               const bankData = {
+                    ...newBank,
+                    _id: Date.now().toString(),
+               };
+               setBanks(prev => [...prev, bankData]);
+               setNewBank({
+                    name: '',
+                    bankName: '',
+                    accountNumber: '',
+                    branch: '',
+                    ifscCode: ''
+               });
+               if (enqueueSnackbar) {
+                    enqueueSnackbar('Bank added successfully', { variant: 'success' });
+               }
+          } catch (error) {
+               console.error('Error adding bank:', error);
+               if (enqueueSnackbar) {
+                    enqueueSnackbar('Failed to add bank', { variant: 'error' });
+               }
+          }
+     };
+
+     const handleSignatureSelection = (selected, field) => {
+          field.onChange(selected ? selected._id : '');
+     };
+
+     const handleFormSubmit = async (data) => {
+          try {
+               if (onSave) {
+                    await onSave(data);
+               }
+          } catch (error) {
+               console.error('Error saving quotation:', error);
+               if (enqueueSnackbar) {
+                    enqueueSnackbar(error.message || 'Failed to save quotation', { variant: 'error' });
+               }
+          }
+     };
+
+     const handleError = (errors) => {
+          console.error('Form validation errors:', errors);
+          if (enqueueSnackbar) {
+               enqueueSnackbar('Please fix the form errors', { variant: 'error' });
+          }
+     };
+
+     // Menu handlers
+     const handleMenuItemClick = (index, discountType) => {
+          setValue(`items.${index}.discountType`, discountType);
+          setValue(`items.${index}.discount`, 0);
+          setValue(`items.${index}.form_updated_discount`, 0);
+     };
+
+     const handleTaxClick = (event, index) => {
+          setTaxMenu({ anchorEl: event.currentTarget, rowIndex: index });
+     };
+
+     const handleTaxClose = () => {
+          setTaxMenu({ anchorEl: null, rowIndex: null });
+     };
+
+     const handleTaxMenuItemClick = (index, tax) => {
+          setValue(`items.${index}.taxInfo`, tax);
+          const item = getValues(`items.${index}`);
+          updateCalculatedFields(index, item, setValue);
+          handleTaxClose();
+     };
+
+     // UI handlers
+     const handleToggleNotes = () => {
+          setNotesExpanded(prev => !prev);
+     };
+
+     const handleOpenTermsDialog = () => {
+          setTempTerms(getValues('termsAndConditions') || '');
+          setTermsDialogOpen(true);
+     };
+
+     const handleCloseTermsDialog = () => {
+          setTermsDialogOpen(false);
+          setTempTerms('');
+     };
+
+     const handleSaveTerms = () => {
+          setValue('termsAndConditions', tempTerms);
+          setTermsDialogOpen(false);
+     };
+
+     // Define columns for InvoiceItemsTable (matching purchases exactly)
+     const columns = [
+          {
+               key: 'product',
+               label: 'Product/Service',
+               width: '24%',
+               align: 'center',
+               renderCell: (item, index) => (
                     <Controller
-                      name='notes'
-                      control={control}
-                      render={({ field }) => (
-                        <CustomTextField
-                          {...field}
-                          fullWidth
-                          multiline
-                          rows={4}
-                          placeholder='Add any additional notes here'
-                        />
-                      )}
+                         name={`items.${index}.productId`}
+                         control={control}
+                         render={({ field }) => (
+                              <FormControl fullWidth size="small" error={!!errors.items?.[index]?.productId}>
+                                   <Select
+                                        className={`py-0.5 min-h-[0] [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&.MuiOutlinedInput-input]:py-0.3 px-2.5`}
+                                        size='small'
+                                        sx={{ '& .MuiOutlinedInput-input': { py: 0.3, pl: 2.5 } }}
+                                        {...field}
+                                        displayEmpty
+                                        value={field.value || ''}
+                                        onChange={(e) => {
+                                             const productId = e.target.value;
+                                             const previousProductId = field.value;
+                                             handleUpdateItemProduct(index, productId, previousProductId);
+                                        }}
+                                        renderValue={(selected) => {
+                                             if (!selected) {
+                                                  return (
+                                                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                                            Select Product
+                                                       </Typography>
+                                                  );
+                                             }
+                                             return (
+                                                  <Box className='flex flex-col gap-0' sx={{ overflow: 'hidden' }}>
+                                                       <Typography variant="body1" color="text.primary" className='whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px]'>
+                                                            {watchItems[index]?.name}
+                                                       </Typography>
+                                                       <Typography variant="caption" fontSize={12} color='text.secondary'>
+                                                            Unit: {watchItems[index]?.units}
+                                                       </Typography>
+                                                  </Box>
+                                             );
+                                        }}
+                                   >
+                                        <MenuItem value="" disabled>
+                                             Select Product
+                                        </MenuItem>
+                                        {productsCloneData.map((product) => (
+                                             <MenuItem key={product._id} value={product._id}>
+                                                  {product.name}
+                                             </MenuItem>
+                                        ))}
+                                   </Select>
+                              </FormControl>
+                         )}
                     />
-
-                    {/* Terms and Conditions */}
-                    <Typography sx={{ mt: 4, mb: 2 }} variant='subtitle2'>
-                      Terms and Conditions
-                    </Typography>
+               )
+          },
+          {
+               key: 'quantity',
+               label: 'Quantity',
+               width: '12%',
+               align: 'center',
+               renderCell: (item, index) => (
                     <Controller
-                      name='termsAndConditions'
-                      control={control}
-                      render={({ field }) => (
-                        <CustomTextField
-                          {...field}
-                          fullWidth
-                          multiline
-                          rows={4}
-                          placeholder='Add your terms and conditions here'
-                        />
-                      )}
+                         name={`items.${index}.quantity`}
+                         control={control}
+                         render={({ field }) => (
+                              <FormControl error={!!errors.items?.[index]?.quantity} fullWidth>
+                                   <TextField
+                                        {...field}
+                                        type="number"
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="Quantity"
+                                        className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                                        inputProps={{
+                                             min: 1,
+                                             step: 1,
+                                             onKeyDown: (e) => { if (e.key === '.') e.preventDefault(); }
+                                        }}
+                                        onChange={e => {
+                                             const raw = e.target.value;
+                                             const quantity = Math.max(0, Math.floor(Number(raw)));
+                                             setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
+                                             const item = getValues(`items.${index}`);
+                                             updateCalculatedFields(index, { ...item, quantity }, setValue);
+                                        }}
+                                        error={!!errors.items?.[index]?.quantity}
+                                   />
+                              </FormControl>
+                         )}
                     />
-
-                    {/* Signature Section */}
-                    <Typography sx={{ mt: 4, mb: 2 }} variant='subtitle2'>
-                      Signature
-                    </Typography>
-                    <Box>
-                      <FormControl component='fieldset'>
-                        <RadioGroup
-                          value={signatureType}
-                          onChange={(e) => setSignatureType(e.target.value)}
-                          row
-                        >
-                          <FormControlLabel 
-                            value='manualSignature' 
-                            control={<Switch
-                              checked={signatureType === 'manualSignature'}
-                              onChange={() => setSignatureType('manualSignature')}
-                            />} 
-                            label='Manual Signature' 
-                          />
-                          <FormControlLabel 
-                            value='eSignature' 
-                            control={<Switch
-                              checked={signatureType === 'eSignature'}
-                              onChange={() => setSignatureType('eSignature')}
-                            />} 
-                            label='E-Signature' 
-                          />
-                        </RadioGroup>
-                      </FormControl>
-
-                      {signatureType === 'eSignature' && (
-                        <Box sx={{ mt: 2 }}>
-                          <TextField
-                            fullWidth
-                            label='Signature Name'
-                            value={signatureName}
-                            onChange={(e) => setSignatureName(e.target.value)}
-                            sx={{ mb: 2 }}
-                          />
-                          <Button
-                            variant='outlined'
-                            component='label'
-                            startIcon={<Icon icon='mdi:cloud-upload-outline' />}
-                          >
-                            Upload Signature
-                            <input
-                              type='file'
-                              accept='image/*'
-                              hidden
-                              onChange={handleSignatureChange}
-                            />
-                          </Button>
-                          {signaturePreview && (
-                            <Box sx={{ mt: 2 }}>
-                              <img 
-                                src={signaturePreview} 
-                                alt='Signature Preview' 
-                                style={{ maxWidth: '200px', maxHeight: '100px' }} 
-                              />
-                            </Box>
-                          )}
-                        </Box>
-                      )}
-
-                      {signatureType === 'manualSignature' && (
-                        <FormControl fullWidth sx={{ mt: 2 }}>
-                          <InputLabel>Select Signature</InputLabel>
-                          <Controller
-                            name='signatureId'
-                            control={control}
-                            render={({ field }) => (
-                              <Select
-                                {...field}
-                                label='Select Signature'
+               )
+          },
+          {
+               key: 'rate',
+               label: 'Rate',
+               width: '19%',
+               align: 'center',
+               renderCell: (item, index) => (
+                    <Controller
+                         name={`items.${index}.rate`}
+                         control={control}
+                         render={({ field }) => (
+                              <FormControl error={!!errors.items?.[index]?.rate} size="small" fullWidth>
+                                   <TextField
+                                        {...field}
+                                        type="number"
+                                        variant="outlined"
+                                        placeholder="Rate"
+                                        size="small"
+                                        className="min-w-[90px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                                        InputProps={{
+                                             sx: { paddingLeft: '8px' },
+                                             startAdornment: (
+                                                  <Icon icon="lucide:saudi-riyal" width={22} color={theme.palette.secondary.main} />
+                                             ),
+                                        }}
+                                        inputProps={{
+                                             sx: { paddingLeft: '4px' },
+                                             min: 0,
+                                             step: 1,
+                                             onKeyDown: (e) => { if (e.key === '.') e.preventDefault(); }
+                                        }}
+                                        onChange={e => {
+                                             const rate = Number(e.target.value);
+                                             setValue(`items.${index}.rate`, rate);
+                                             const item = getValues(`items.${index}`);
+                                             updateCalculatedFields(index, item, setValue);
+                                        }}
+                                        error={!!errors.items?.[index]?.rate}
+                                   />
+                              </FormControl>
+                         )}
+                    />
+               )
+          },
+          {
+               key: 'discount',
+               label: 'Discount',
+               width: '19%',
+               align: 'center',
+               renderCell: (item, index) => {
+                    const watched = watchItems[index] || {};
+                    return (
+                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CustomIconButton
+                                   variant="tonal"
+                                   onClick={e => setDiscountMenu({ anchorEl: e.currentTarget, rowIndex: index })}
+                                   color="primary"
+                                   skin="lightest"
+                                   size="small"
+                                   className="min-w-[32px] min-h-[36px] px-2 py-0"
                               >
-                                <MenuItem value=''>None</MenuItem>
-                                {/* Populate with saved signatures from backend */}
-                                <MenuItem value='sig1'>Signature 1</MenuItem>
-                                <MenuItem value='sig2'>Signature 2</MenuItem>
-                              </Select>
-                            )}
-                          />
-                        </FormControl>
-                      )}
-                    </Box>
-                  </Grid>
+                                   {Number(watched.discountType) === 2 ? (
+                                        <Icon icon="lucide:percent" color={theme.palette.primary.light} width={19} />
+                                   ) : Number(watched.discountType) === 3 ? (
+                                        <Icon icon="lucide:saudi-riyal" color={theme.palette.primary.light} width={30} />
+                                   ) : ''}
+                              </CustomIconButton>
 
-                  <Grid item xs={12} md={6}>
-                    {/* Summary */}
-                    <Box 
-                      sx={{ 
-                        p: 3, 
-                        border: `1px solid ${theme.palette.divider}`,
-                        borderRadius: 1,
-                        bgcolor: theme.palette.background.default
-                      }}
+                              {Number(watched.discountType) === 2 ? (
+                                   <Controller
+                                        name={`items.${index}.form_updated_discount`}
+                                        control={control}
+                                        render={({ field }) => {
+                                             const handleChange = (e) => {
+                                                  let value = Number(e.target.value);
+                                                  value = Math.min(100, value);
+                                                  field.onChange(value);
+                                                  setValue(`items.${index}.isRateFormUpadted`, true);
+                                                  const item = getValues(`items.${index}`);
+                                                  updateCalculatedFields(index, item, setValue)
+                                             };
+                                             return (
+                                                  <TextField
+                                                       {...field}
+                                                       value={field.value}
+                                                       type="number"
+                                                       variant="outlined"
+                                                       size="small"
+                                                       placeholder="Discount (%)"
+                                                       aria-label="Discount Percentage"
+                                                       tabIndex={0}
+                                                       className="min-w-[110px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                                                       inputProps={{
+                                                            min: 0,
+                                                            max: 100,
+                                                            step: 1,
+                                                            sx: { paddingLeft: '8px' },
+                                                       }}
+                                                       onChange={handleChange}
+                                                       error={!!errors.items?.[index]?.form_updated_discount}
+                                                  />
+                                             );
+                                        }}
+                                   />
+                              ) : (
+                                   <Controller
+                                        name={`items.${index}.discount`}
+                                        control={control}
+                                        render={({ field }) => {
+                                             const handleChange = (e) => {
+                                                  let value = Number(e.target.value);
+                                                  field.onChange(value);
+                                                  setValue(`items.${index}.form_updated_discount`, value);
+                                                  setValue(`items.${index}.isRateFormUpadted`, true);
+                                                  setValue(`items.${index}.discount`, value);
+                                                  const item = getValues(`items.${index}`);
+                                                  updateCalculatedFields(index, item, setValue);
+                                             };
+                                             return (
+                                                  <TextField
+                                                       {...field}
+                                                       value={field.value}
+                                                       type="number"
+                                                       variant="outlined"
+                                                       size="small"
+                                                       placeholder="Discount"
+                                                       aria-label="Discount Fixed Amount"
+                                                       tabIndex={0}
+                                                       className="min-w-[110px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                                                       inputProps={{
+                                                            min: 0,
+                                                            step: 1,
+                                                            sx: { paddingLeft: '8px' },
+                                                       }}
+                                                       onChange={handleChange}
+                                                       error={!!errors.items?.[index]?.discount}
+                                                  />
+                                             );
+                                        }}
+                                   />
+                              )}
+
+                              <Menu
+                                   anchorEl={discountMenu.anchorEl}
+                                   open={discountMenu.rowIndex === index && Boolean(discountMenu.anchorEl)}
+                                   onClose={() => setDiscountMenu({ anchorEl: null, rowIndex: null })}
+                                   anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                   transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                   PaperProps={{ sx: { borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } }}
+                                   className='[&_.MuiMenuItem-root]:py-1'
+                              >
+                                   <MenuItem
+                                        onClick={() => {
+                                             handleMenuItemClick(index, 2);
+                                             setDiscountMenu({ anchorEl: null, rowIndex: null });
+                                        }}
+                                        className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
+                                   >
+                                        <Typography variant="overline">Percentage</Typography>
+                                        <Box className='flex flex-row items-center gap-1'>
+                                             <Icon icon="material-symbols:percent-rounded" width="20" color={theme.palette.primary.main} />
+                                        </Box>
+                                   </MenuItem>
+                                   <MenuItem
+                                        className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
+                                        onClick={() => {
+                                             handleMenuItemClick(index, 3);
+                                             setDiscountMenu({ anchorEl: null, rowIndex: null });
+                                        }}
+                                   >
+                                        <Typography variant="overline">Fixed Amount</Typography>
+                                        <Box className='flex flex-row items-center gap-1'>
+                                             <Icon icon="lucide:saudi-riyal" width="20" color={theme.palette.primary.main} />
+                                        </Box>
+                                   </MenuItem>
+                              </Menu>
+                         </Box>
+                    );
+               }
+          },
+          {
+               key: 'vat',
+               label: 'VAT',
+               width: '16%',
+               align: 'center',
+               renderCell: (item, index) => {
+                    const watched = watchItems[index] || {};
+                    return (
+                         <Box className='flex flex-row items-center gap-2 h-[36px]'>
+                              <CustomIconButton
+                                   variant="tonal"
+                                   onClick={(e) => handleTaxClick(e, index)}
+                                   color="primary"
+                                   skin="lightest"
+                                   size="small"
+                                   className='flex flex-row items-center gap-0.5 px-1'
+                              >
+                                   <Typography variant="button" fontSize={13} color="primary.light">
+                                        {watched.taxInfo && typeof watched.taxInfo === 'object' ? (watched.taxInfo.taxRate || 0) : 0}%
+                                   </Typography>
+                                   <Icon icon="garden:chevron-down-fill-12" color={theme.palette.primary.light} width={11} />
+                              </CustomIconButton>
+                              <Box className='flex flex-row items-center gap-0.5'>
+                                   <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={18} />
+                                   <Typography variant='body1'>
+                                        {isNaN(Number(watched.tax)) ? '0.00' : Number(watched.tax).toFixed(2)}
+                                   </Typography>
+                              </Box>
+                              <Menu
+                                   anchorEl={taxMenu.anchorEl}
+                                   open={taxMenu.rowIndex === index && Boolean(taxMenu.anchorEl)}
+                                   onClose={handleTaxClose}
+                                   anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                   transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                              >
+                                   {taxRates.map((tax) => (
+                                        <MenuItem
+                                             key={tax._id}
+                                             onClick={() => handleTaxMenuItemClick(index, tax)}
+                                             sx={{
+                                                  py: 1,
+                                                  '&:hover': {
+                                                       backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08)
+                                                  }
+                                             }}
+                                        >
+                                             <Box className='flex flex-row items-center justify-between w-[8em]'>
+                                                  <Typography variant="body2">{tax.name}</Typography>
+                                                  <Typography
+                                                       variant="body2"
+                                                       sx={{
+                                                            fontWeight: 600,
+                                                            color: 'primary.main',
+                                                            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                                                            px: 1,
+                                                            py: 0.5,
+                                                            borderRadius: '4px'
+                                                       }}
+                                                  >
+                                                       {tax.taxRate}%
+                                                  </Typography>
+                                             </Box>
+                                        </MenuItem>
+                                   ))}
+                              </Menu>
+                         </Box>
+                    );
+               }
+          },
+          {
+               key: 'amount',
+               label: 'Amount',
+               width: '13%',
+               align: 'center',
+               renderCell: (item, index) => {
+                    const watched = watchItems[index] || {};
+                    return (
+                         <Box className='flex flex-row items-center gap-0.5'>
+                              <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={18} />
+                              <Typography variant="body1" className='font-medium whitespace-nowrap'>
+                                   {isNaN(Number(watched.amount)) ? '0.00' : Number(watched.amount).toFixed(2)}
+                              </Typography>
+                         </Box>
+                    );
+               }
+          },
+          {
+               key: 'actions',
+               label: '',
+               width: '4%',
+               align: 'center',
+               renderCell: (item, index) => (
+                    <IconButton
+                         size="small"
+                         color="error"
+                         onClick={() => handleDeleteItem(index)}
+                         onKeyDown={(e) => {
+                              if (e.key === 'Tab' && !e.shiftKey && index === fields.length - 1) {
+                                   e.preventDefault();
+                                   handleAddEmptyRow();
+                              }
+                         }}
+                         tabIndex={0}
                     >
-                      <Typography variant='subtitle2' sx={{ mb: 3 }}>
-                        Summary
-                      </Typography>
+                         <Icon icon="ic:twotone-delete" width={20} color={theme.palette.error.main} />
+                    </IconButton>
+               )
+          },
+     ];
 
-                      <Grid container spacing={2}>
-                        <Grid item xs={6}>
-                          <Typography>Subtotal:</Typography>
-                        </Grid>
-                        <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                          <Typography>
-                            {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(watch('subTotal') || 0)}
-                          </Typography>
-                        </Grid>
+     const addRowButton = (
+          <CustomIconButton
+               className='flex flex-row items-center justify-center gap-3 w-[13rem]'
+               variant="tonal"
+               skin='lighter'
+               color="primary"
+               size="medium"
+               onClick={handleAddEmptyRow}
+          >
+               <Icon icon="mingcute:add-fill" color={theme.palette.primary.main} width={16} />
+               <Typography variant="button" color="primary.main" fontSize={14}>
+                    Add Row
+               </Typography>
+          </CustomIconButton>
+     );
 
-                        <Grid item xs={6}>
-                          <Typography>Discount:</Typography>
-                        </Grid>
-                        <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                          <Typography>
-                            {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(watch('totalDiscount') || 0)}
-                          </Typography>
-                        </Grid>
+     const emptyContent = (
+          <Box className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+               <Icon icon="mdi:cart-outline" width={36} color={theme.palette.primary.main} />
+               <Typography variant="h6" color="text.primary">
+                    No Items Added Yet
+               </Typography>
+               <Typography variant="body2" color="text.secondary" sx={{ maxWidth: '300px' }}>
+                    Click the 'Add Item' button to add items to your quotation
+               </Typography>
+               <Button
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<Icon icon="mingcute:add-fill" width={16} />}
+                    size="small"
+                    sx={{ mt: 1 }}
+                    onClick={handleAddEmptyRow}
+               >
+                    Add Item
+               </Button>
+          </Box>
+     );
 
-                        <Grid item xs={6}>
-                          <Typography>Tax:</Typography>
-                        </Grid>
-                        <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                          <Typography>
-                            {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(watch('totalTax') || 0)}
-                          </Typography>
-                        </Grid>
-
-                        <Grid item xs={12}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={applyRounding}
-                                onChange={(e) => setApplyRounding(e.target.checked)}
-                              />
-                            }
-                            label='Apply Rounding'
-                          />
-                        </Grid>
-
-                        {applyRounding && (
-                          <>
-                            <Grid item xs={6}>
-                              <Typography>Rounding:</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <TextField
-                                size='small'
-                                type='number'
-                                value={roundingAmount}
-                                onChange={(e) => setRoundingAmount(e.target.value)}
-                                InputProps={{
-                                  inputProps: { step: 0.01 },
-                                  sx: { textAlign: 'right' }
-                                }}
-                              />
-                            </Grid>
-                          </>
-                        )}
-
-                        <Grid item xs={12}>
-                          <Divider />
-                        </Grid>
-
-                        <Grid item xs={6}>
-                          <Typography variant='subtitle1'>Total:</Typography>
-                        </Grid>
-                        <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                          <Typography variant='subtitle1'>
-                            {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(watch('totalAmount') || 0)}
-                          </Typography>
-                        </Grid>
-                      </Grid>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-          </CardContent>
-
-          <Divider sx={{ mt: 2 }} />
-          
-          <CardActions sx={{ justifyContent: 'flex-end', p: 3 }}>
-            <Button 
-              variant='outlined' 
-              color='secondary' 
-              onClick={resetData}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant='contained' 
-              type='submit'
-              disabled={isSubmitting || fields.length === 0}
-              startIcon={isSubmitting ? <Spinner size={20} /> : null}
-            >
-              {isSubmitting ? 'Saving...' : 'Save Quotation'}
-            </Button>
-          </CardActions>
-        </form>
-
-        {/* Edit Item Modal */}
-        <Dialog
-          open={editItemOpen}
-          onClose={() => setEditItemOpen(false)}
-          aria-labelledby='edit-item-dialog-title'
-          maxWidth='sm'
-          fullWidth
-        >
-          <DialogTitle id='edit-item-dialog-title'>Edit Item</DialogTitle>
-          <DialogContent>
-            {currentItem && (
-              <Grid container spacing={3} sx={{ mt: 0 }}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label='Name'
-                    value={currentItem.name || ''}
-                    onChange={(e) => setCurrentItem({...currentItem, name: e.target.value})}
-                    margin='normal'
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label='Description'
-                    value={currentItem.description || ''}
-                    onChange={(e) => setCurrentItem({...currentItem, description: e.target.value})}
-                    multiline
-                    rows={2}
-                    margin='normal'
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label='Quantity'
-                    type='number'
-                    value={currentItem.quantity || 0}
-                    onChange={(e) => setCurrentItem({...currentItem, quantity: parseFloat(e.target.value) || 0})}
-                    InputProps={{ inputProps: { min: 1 } }}
-                    margin='normal'
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label='Rate'
-                    type='number'
-                    value={currentItem.rate || 0}
-                    onChange={(e) => setCurrentItem({...currentItem, rate: parseFloat(e.target.value) || 0})}
-                    InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-                    margin='normal'
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label='Discount'
-                    type='number'
-                    value={currentItem.discount || 0}
-                    onChange={(e) => setCurrentItem({...currentItem, discount: parseFloat(e.target.value) || 0})}
-                    InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-                    margin='normal'
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth margin='normal'>
-                    <InputLabel>Discount Type</InputLabel>
-                    <Select
-                      value={currentItem.discountType || 'flat'}
-                      onChange={(e) => setCurrentItem({...currentItem, discountType: e.target.value})}
-                      label='Discount Type'
+     return (
+          <Grid container rowSpacing={4} columnSpacing={3}>
+               <Grid size={{ xs: 12, md: 12 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 500 }}>
+                         Add Quotation
+                    </Typography>
+               </Grid>
+               {/* Top Section - Quotation Details */}
+               <Grid size={{ xs: 12, md: 12 }}>
+                    <Card>
+                         <CardContent className='py-3.5'>
+                              <Grid container columnSpacing={3} rowSpacing={4}>
+                                   {/* Quotation Details Header */}
+                                   <Grid size={{ xs: 12 }} className='flex flex-col gap-2'>
+                                        <Box className='flex flex-row gap-1.5 items-center'>
+                                             <Box className='w-2 h-8 bg-secondaryLight rounded-md' />
+                                             <Typography variant="caption" fontWeight={500} fontSize='1rem'>
+                                                  Quotation Details
+                                             </Typography>
+                                        </Box>
+                                        <Divider light textAlign='left' width='400px' />
+                                   </Grid>
+                                   {/* Quotation Number (read-only) */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Box className="flex flex-row items-center px-3 justify-between bg-tableHeader rounded-md w-full h-full">
+                                             <Typography variant="caption" className='text-[0.9rem]' color="text.secondary">
+                                                  Quotation Number
+                                             </Typography>
+                                             <Typography variant="h6" className='text-[1rem] font-medium'>
+                                                  {quotationNumber || ''}
+                                             </Typography>
+                                        </Box>
+                                   </Grid>
+                                   {/* Quotation Date */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="quotationDate"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <TextField
+                                                       {...field}
+                                                       label="Quotation Date"
+                                                       type="date"
+                                                       variant="outlined"
+                                                       fullWidth
+                                                       size="small"
+                                                       error={!!errors.quotationDate}
+                                                       inputProps={{
+                                                            max: new Date().toISOString().split('T')[0],
+                                                       }}
+                                                  />
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Expiry Date */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="expiryDate"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <TextField
+                                                       {...field}
+                                                       label="Expiry Date"
+                                                       type="date"
+                                                       variant="outlined"
+                                                       fullWidth
+                                                       size="small"
+                                                       error={!!errors.expiryDate}
+                                                       inputProps={{
+                                                            min: getValues('quotationDate'),
+                                                       }}
+                                                  />
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Payment Method */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="payment_method"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <FormControl fullWidth variant="outlined" error={!!errors.payment_method}>
+                                                       <InputLabel size="small">Payment Method</InputLabel>
+                                                       <Select {...field} label="Payment Method" size="small">
+                                                            {paymentMethods.map((method) => (
+                                                                 <MenuItem key={method.value} value={method.value}>
+                                                                      {method.label}
+                                                                 </MenuItem>
+                                                            ))}
+                                                       </Select>
+                                                       {errors.payment_method && (
+                                                            <FormHelperText error>{errors.payment_method.message}</FormHelperText>
+                                                       )}
+                                                  </FormControl>
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Bank Selection */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} className="flex flex-row gap-1 justify-between">
+                                        <Controller
+                                             name="bank"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <FormControl size='small' fullWidth variant="outlined" error={!!errors.bank}>
+                                                       <InputLabel size="small">Select Bank</InputLabel>
+                                                       <Select
+                                                            {...field}
+                                                            label="Select Bank"
+                                                            size="small"
+                                                            value={field.value}
+                                                            onChange={(e) => {
+                                                                 field.onChange(e.target.value);
+                                                            }}
+                                                       >
+                                                            {banks.map((bank) => (
+                                                                 <MenuItem key={bank._id} value={bank._id}>
+                                                                      {bank.bankName}
+                                                                 </MenuItem>
+                                                            ))}
+                                                       </Select>
+                                                       {errors.bank && (
+                                                            <FormHelperText error>{errors.bank.message}</FormHelperText>
+                                                       )}
+                                                  </FormControl>
+                                             )}
+                                        />
+                                        <CustomIconButton
+                                             color="primary"
+                                             size='small'
+                                             variant='tonal'
+                                             skin='lighter'
+                                             onClick={() => setOpenBankModal(true)}
+                                        >
+                                             <Icon icon="mdi:bank-plus" width={26} />
+                                        </CustomIconButton>
+                                   </Grid>
+                                   {/* Reference No */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="referenceNo"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <TextField
+                                                       {...field}
+                                                       label="Reference No"
+                                                       variant="outlined"
+                                                       fullWidth
+                                                       size="small"
+                                                       error={!!errors.referenceNo}
+                                                       helperText={errors.referenceNo?.message}
+                                                  />
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Signature Section */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                             <Controller
+                                                  name="signatureId"
+                                                  control={control}
+                                                  render={({ field }) => (
+                                                       <FormControl fullWidth error={!!errors.signatureId} variant="outlined" size="small">
+                                                            <InputLabel>Select Signature Name</InputLabel>
+                                                            <Select
+                                                                 className='h-[39px]'
+                                                                 label="Select Signature Name"
+                                                                 value={field.value || ''}
+                                                                 onChange={(event) => {
+                                                                      const selected = signOptions.find(sig => sig._id === event.target.value);
+                                                                      handleSignatureSelection(selected, field);
+                                                                 }}
+                                                            >
+                                                                 {signOptions.map((option) => (
+                                                                      <MenuItem key={option._id} value={option._id}>
+                                                                           {option.signatureName}
+                                                                      </MenuItem>
+                                                                 ))}
+                                                            </Select>
+                                                            {errors.signatureId && (
+                                                                 <FormHelperText error>{errors.signatureId.message}</FormHelperText>
+                                                            )}
+                                                       </FormControl>
+                                                  )}
+                                             />
+                                        </Box>
+                                   </Grid>
+                                   {/* Notes TextField */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Controller
+                                             name="notes"
+                                             control={control}
+                                             render={({ field }) => (
+                                                  <TextField
+                                                       className='overflow-auto scrollbar-thin scrollbar-thumb-primary scrollbar-thumb-opacity-20 scrollbar-thumb-rounded'
+                                                       {...field}
+                                                       multiline
+                                                       rows={notesExpanded ? 4 : 1}
+                                                       variant="outlined"
+                                                       size="small"
+                                                       placeholder="Add notes..."
+                                                       fullWidth
+                                                       InputProps={{
+                                                            endAdornment: (
+                                                                 <InputAdornment position="end" className=' max-h-[14px]'>
+                                                                      <CustomOriginalIconButton
+                                                                           onClick={handleToggleNotes}
+                                                                           color='primary'
+                                                                           skin='light'
+                                                                      >
+                                                                           {notesExpanded ? <Icon icon="mdi:keyboard-arrow-up" width={24} color={theme.palette.primary.main} /> : <Icon icon="mdi:keyboard-arrow-down" width={24} color={theme.palette.primary.main} />}
+                                                                      </CustomOriginalIconButton>
+                                                                 </InputAdornment>
+                                                            ),
+                                                       }}
+                                                  />
+                                             )}
+                                        />
+                                   </Grid>
+                                   {/* Terms & Conditions */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                                        <Button
+                                             fullWidth className="flex flex-row items-center gap-0 justify-center" variant="text" color="primary" size="small"
+                                             startIcon={<Icon icon="mdi:file-document-outline" width={24} color={theme.palette.primary.main} />}
+                                             onClick={handleOpenTermsDialog}
+                                        >
+                                             Terms & Conditions
+                                        </Button>
+                                   </Grid>
+                                   {/* Customer */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 8, lg: 6 }}>
+                                        <CustomerAutocomplete control={control} errors={errors} customersData={customersData} />
+                                   </Grid>
+                              </Grid>
+                         </CardContent>
+                    </Card>
+               </Grid>
+               {/* Middle Section - Products Table */}
+               <Grid size={{ xs: 12, md: 9.5 }}>
+                    <form onSubmit={handleSubmit(handleFormSubmit, handleError)}>
+                         <Card>
+                              <CardContent spacing={12} className='flex flex-col gap-2 px-0 pt-0'>
+                                   <Box>
+                                        <InvoiceItemsTable
+                                             columns={columns}
+                                             rows={fields}
+                                             rowKey={(row, idx) => row.id || idx}
+                                             addRowButton={addRowButton}
+                                             emptyContent={emptyContent}
+                                        />
+                                   </Box>
+                              </CardContent>
+                         </Card>
+                    </form>
+               </Grid>
+               {/* Left side totals card */}
+               <Grid size={{ xs: 12, md: 2.5 }}>
+                    <InvoiceTotals
+                         control={control}
+                         handleSubmit={handleSubmit}
+                         handleFormSubmit={handleFormSubmit}
+                         handleError={handleError}
+                    />
+               </Grid>
+               {/* Add Bank Modal */}
+               <BankDetailsDialog
+                    open={openBankModal}
+                    onClose={() => setOpenBankModal(false)}
+                    newBank={newBank}
+                    setNewBank={setNewBank}
+                    handleAddBank={handleAddBank}
+               />
+               {/* Snackbar */}
+               <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={3000}
+                    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+               >
+                    <Alert
+                         variant="filled"
+                         size="small"
+                         severity={snackbar.severity}
+                         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+                         className="is-full shadow-xs p-2 text-md"
                     >
-                      <MenuItem value='flat'>Flat</MenuItem>
-                      <MenuItem value='percent'>Percentage</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
+                         {snackbar.message}
+                    </Alert>
+               </Snackbar>
+               {/* Terms Dialog */}
+               <Dialog
+                    open={termsDialogOpen}
+                    onClose={handleCloseTermsDialog}
+                    maxWidth="sm"
                     fullWidth
-                    label='Tax (%)'
-                    type='number'
-                    value={currentItem.tax || 0}
-                    onChange={(e) => setCurrentItem({...currentItem, tax: parseFloat(e.target.value) || 0})}
-                    InputProps={{ inputProps: { min: 0, max: 100, step: 0.01 } }}
-                    margin='normal'
-                  />
-                </Grid>
-              </Grid>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditItemOpen(false)} color='secondary'>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateItem} color='primary'>
-              Update
-            </Button>
-          </DialogActions>
-        </Dialog>
+               >
+                    <Box sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04), py: 3, px: 5 }}>
+                         <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                              Terms and Conditions
+                         </Typography>
+                    </Box>
+                    <DialogContent sx={{ py: 5, px: 5 }}>
+                         <TextField
+                              value={tempTerms}
+                              onChange={(e) => setTempTerms(e.target.value)}
+                              fullWidth
+                              multiline
+                              rows={5}
+                              variant="filled"
+                              placeholder="Enter your standard terms and conditions (payment terms, delivery terms, warranty information, etc.)"
+                              InputProps={{
+                                   endAdornment: tempTerms.trim() !== '' && (
+                                        <InputAdornment position="end">
+                                             <IconButton
+                                                  onClick={handleCloseTermsDialog}
+                                                  edge="end"
+                                                  className="transition-transform duration-200 ease-in-out hover:scale-110 active:scale-95"
+                                                  title="Clear terms and conditions"
+                                                  size="small"
+                                             >
+                                                  <Clear />
+                                             </IconButton>
+                                        </InputAdornment>
+                                   )
+                              }}
+                         />
+                    </DialogContent>
+                    <Box className='flex flex-row justify-end gap-2 px-5 pb-4 pt-1'>
+                         <Button onClick={handleCloseTermsDialog} variant="outlined" color="secondary">
+                              Cancel
+                         </Button>
+                         <Button onClick={handleSaveTerms} color="primary" variant="contained">
+                              Save Changes
+                         </Button>
+                    </Box>
+               </Dialog>
+          </Grid>
+     );
+};
 
-        {/* Delete Confirmation Modal */}
-        <Dialog
-          open={deleteItemOpen}
-          onClose={() => setDeleteItemOpen(false)}
-          aria-labelledby='delete-item-dialog-title'
-        >
-          <DialogTitle id='delete-item-dialog-title'>Confirm Delete</DialogTitle>
-          <DialogContent>
-            <Typography>Are you sure you want to remove this item?</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteItemOpen(false)} color='secondary'>
-              Cancel
-            </Button>
-            <Button onClick={confirmDeleteItem} color='error'>
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Card>
-    </LocalizationProvider>
-  )
-}
-
-export default AddQuotation
+export default AddQuotation;

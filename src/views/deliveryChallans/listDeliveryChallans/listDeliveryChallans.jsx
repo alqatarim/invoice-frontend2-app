@@ -5,12 +5,10 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTheme, alpha } from '@mui/material/styles';
 import {
-     Divider,
      Avatar,
      Box,
      Button,
      Card,
-     CardContent,
      Chip,
      Dialog,
      DialogActions,
@@ -20,16 +18,7 @@ import {
      IconButton,
      Menu,
      MenuItem,
-     Pagination,
-     Stack,
-     Table,
-     TableBody,
-     TableCell,
-     TableContainer,
-     TableHead,
-     TableRow,
      Typography,
-     Paper,
      useMediaQuery,
      Grid,
      Snackbar,
@@ -41,15 +30,15 @@ import { usePermission } from '@/Auth/usePermission';
 import { formatDate } from '@/utils/dateUtils';
 import dayjs from 'dayjs';
 import { formatCurrency } from '@/utils/currencyUtils';
-import { deleteQuotation, convertToInvoice, updateQuotationStatus } from '@/app/(dashboard)/quotations/actions';
+import { deleteDeliveryChallan, convertToInvoice } from '@/app/(dashboard)/deliveryChallans/actions';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import { quotationStatusOptions } from '@/data/dataSets';
+import { deliveryChallanStatusOptions } from '@/data/dataSets';
 import { amountFormat } from '@/utils/numberUtils';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
 // Helper function to get status color
 const getStatusColor = (status) => {
-     const statusOption = quotationStatusOptions.find(opt => opt.value === status);
+     const statusOption = deliveryChallanStatusOptions.find(opt => opt.value === status);
      return statusOption?.color || 'default';
 };
 
@@ -60,7 +49,7 @@ const formatNumber = (value) => {
      return isNaN(num) ? '0.00' : Number(num).toFixed(2);
 };
 
-const ListQuotation = ({ initialData, customers }) => {
+const ListDeliveryChallans = ({ initialData, customers }) => {
      const theme = useTheme();
      const router = useRouter();
      const searchParams = useSearchParams();
@@ -70,24 +59,18 @@ const ListQuotation = ({ initialData, customers }) => {
 
      // Permissions
      const permissions = {
-          canCreate: usePermission('quotation', 'create'),
-          canUpdate: usePermission('quotation', 'update'),
-          canView: usePermission('quotation', 'view'),
-          canDelete: usePermission('quotation', 'delete'),
+          canCreate: usePermission('deliveryChallan', 'create'),
+          canUpdate: usePermission('deliveryChallan', 'update'),
+          canView: usePermission('deliveryChallan', 'view'),
+          canDelete: usePermission('deliveryChallan', 'delete'),
      };
 
-     const [quotations, setQuotations] = useState(initialData?.data || []);
+     const [deliveryChallans, setDeliveryChallans] = useState(initialData?.data || []);
      const [searchTerm, setSearchTerm] = useState('');
-     const [filteredQuotations, setFilteredQuotations] = useState(initialData?.data || []);
+     const [filteredDeliveryChallans, setFilteredDeliveryChallans] = useState(initialData?.data || []);
      const [loading, setLoading] = useState(false);
 
-     const [pagination, setPagination] = useState({
-          page: 1,
-          pageSize: 10,
-          totalPages: Math.ceil((initialData?.totalRecords || 0) / 10)
-     });
-
-     const [selectedQuotation, setSelectedQuotation] = useState(null);
+     const [selectedDeliveryChallan, setSelectedDeliveryChallan] = useState(null);
      const [actionAnchorEl, setActionAnchorEl] = useState(null);
      const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
      const [openConvertDialog, setOpenConvertDialog] = useState(false);
@@ -111,48 +94,49 @@ const ListQuotation = ({ initialData, customers }) => {
 
      // Calculate manual card counts from the data
      const cardCounts = {
-          totalAccepted: {
-               count: quotations.filter(q => q.status === 'ACCEPTED').length,
-               total_sum: quotations.filter(q => q.status === 'ACCEPTED').reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
+          totalActive: {
+               count: deliveryChallans.filter(dc => dc.status === 'ACTIVE').length,
+               total_sum: deliveryChallans.filter(dc => dc.status === 'ACTIVE').reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
           },
-          totalDrafted: {
-               count: quotations.filter(q => q.status === 'DRAFTED').length,
-               total_sum: quotations.filter(q => q.status === 'DRAFTED').reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
+          totalConverted: {
+               count: deliveryChallans.filter(dc => dc.status === 'CONVERTED').length,
+               total_sum: deliveryChallans.filter(dc => dc.status === 'CONVERTED').reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
           },
-          totalSent: {
-               count: quotations.filter(q => q.status === 'SENT').length,
-               total_sum: quotations.filter(q => q.status === 'SENT').reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
+          totalCancelled: {
+               count: deliveryChallans.filter(dc => dc.status === 'CANCELLED').length,
+               total_sum: deliveryChallans.filter(dc => dc.status === 'CANCELLED').reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
           },
-          totalExpired: {
-               count: quotations.filter(q => q.status === 'EXPIRED').length,
-               total_sum: quotations.filter(q => q.status === 'EXPIRED').reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
+          totalDeliveryChallans: {
+               count: deliveryChallans.length,
+               total_sum: deliveryChallans.reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
           }
      };
 
      // Search functionality
      useEffect(() => {
           if (!searchTerm) {
-               setFilteredQuotations(quotations);
+               setFilteredDeliveryChallans(deliveryChallans);
           } else {
-               const filtered = quotations.filter(quotation =>
-                    quotation.quotation_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    quotation.customerId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    quotation.customerId?.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+               const filtered = deliveryChallans.filter(challan =>
+                    challan.challanNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    challan.deliveryChallanNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    challan.customerId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    challan.customerId?.phone?.toLowerCase().includes(searchTerm.toLowerCase())
                );
-               setFilteredQuotations(filtered);
+               setFilteredDeliveryChallans(filtered);
           }
-     }, [searchTerm, quotations]);
+     }, [searchTerm, deliveryChallans]);
 
      // Show success message if redirected from add/edit page
      useEffect(() => {
           if (successParam === 'add') {
-               onSuccess('Quotation added successfully!');
+               onSuccess('Delivery challan added successfully!');
           } else if (successParam === 'edit') {
-               onSuccess('Quotation updated successfully!');
+               onSuccess('Delivery challan updated successfully!');
           } else if (successParam === 'delete') {
-               onSuccess('Quotation deleted successfully!');
+               onSuccess('Delivery challan deleted successfully!');
           } else if (successParam === 'convert') {
-               onSuccess('Quotation converted to invoice successfully!');
+               onSuccess('Delivery challan converted to invoice successfully!');
           }
 
           // Clear the success parameter from the URL
@@ -162,8 +146,8 @@ const ListQuotation = ({ initialData, customers }) => {
           }
      }, [successParam, onSuccess]);
 
-     const handleActionClick = (event, quotation) => {
-          setSelectedQuotation(quotation);
+     const handleActionClick = (event, deliveryChallan) => {
+          setSelectedDeliveryChallan(deliveryChallan);
           setActionAnchorEl(event.currentTarget);
      };
 
@@ -179,22 +163,22 @@ const ListQuotation = ({ initialData, customers }) => {
      const handleDeleteConfirm = async () => {
           try {
                setLoadingAction(true);
-               const response = await deleteQuotation(selectedQuotation._id);
+               const response = await deleteDeliveryChallan(selectedDeliveryChallan._id);
 
                if (response.success) {
                     setOpenDeleteDialog(false);
-                    onSuccess('Quotation deleted successfully!');
+                    onSuccess('Delivery challan deleted successfully!');
                     // Remove from local state
-                    setQuotations(prev => prev.filter(q => q._id !== selectedQuotation._id));
+                    setDeliveryChallans(prev => prev.filter(dc => dc._id !== selectedDeliveryChallan._id));
                } else {
-                    throw new Error(response.message || 'Failed to delete quotation');
+                    throw new Error(response.message || 'Failed to delete delivery challan');
                }
           } catch (error) {
-               console.error('Error deleting quotation:', error);
-               onError('Failed to delete quotation: ' + error.message);
+               console.error('Error deleting delivery challan:', error);
+               onError('Failed to delete delivery challan: ' + error.message);
           } finally {
                setLoadingAction(false);
-               setSelectedQuotation(null);
+               setSelectedDeliveryChallan(null);
           }
      };
 
@@ -206,46 +190,42 @@ const ListQuotation = ({ initialData, customers }) => {
      const handleConvertConfirm = async () => {
           try {
                setLoadingAction(true);
-               const response = await convertToInvoice(selectedQuotation._id);
+               const response = await convertToInvoice(selectedDeliveryChallan._id);
 
                if (response.success) {
                     setOpenConvertDialog(false);
-                    onSuccess('Quotation converted to invoice successfully!');
+                    onSuccess('Delivery challan converted to invoice successfully!');
                     // Update status in local state
-                    setQuotations(prev => prev.map(q =>
-                         q._id === selectedQuotation._id ? { ...q, status: 'CONVERTED' } : q
+                    setDeliveryChallans(prev => prev.map(dc =>
+                         dc._id === selectedDeliveryChallan._id ? { ...dc, status: 'CONVERTED' } : dc
                     ));
                } else {
-                    throw new Error(response.message || 'Failed to convert quotation to invoice');
+                    throw new Error(response.message || 'Failed to convert delivery challan to invoice');
                }
           } catch (error) {
-               console.error('Error converting quotation:', error);
-               onError('Failed to convert quotation: ' + error.message);
+               console.error('Error converting delivery challan:', error);
+               onError('Failed to convert delivery challan: ' + error.message);
           } finally {
                setLoadingAction(false);
-               setSelectedQuotation(null);
+               setSelectedDeliveryChallan(null);
           }
-     };
-
-     const isExpired = (expiryDate) => {
-          return dayjs(expiryDate).isBefore(dayjs(), 'day');
      };
 
      // Define columns for the table
      const columns = [
           {
-               key: 'quotationNumber',
+               key: 'challanNumber',
                visible: true,
-               label: 'Quotation No',
+               label: 'Challan No',
                sortable: true,
                align: 'center',
                renderCell: (row) => (
-                    <Link href={`/quotations/quotation-view/${row._id}`} passHref>
+                    <Link href={`/deliveryChallans/deliveryChallans-view/${row._id}`} passHref>
                          <Typography
                               className="cursor-pointer text-primary hover:underline"
                               align='center'
                          >
-                              {row.quotation_id || 'N/A'}
+                              {row.challanNumber || row.deliveryChallanNumber || 'N/A'}
                          </Typography>
                     </Link>
                ),
@@ -286,25 +266,21 @@ const ListQuotation = ({ initialData, customers }) => {
                     <div className="flex items-center gap-1 justify-center">
                          <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
                          <Typography color="text.primary" className='text-[1rem] font-medium'>
-                              {formatNumber(row.TotalAmount)}
+                              {formatNumber(row.TotalAmount || row.totalAmount)}
                          </Typography>
                     </div>
                ),
           },
           {
-               key: 'expiryDate',
-               label: 'Expiry Date',
+               key: 'deliveryDate',
+               label: 'Delivery Date',
                visible: true,
                align: 'center',
                sortable: true,
                renderCell: (row) => (
-                    <Chip
-                         label={formatDate(row.due_date)}
-                         size="medium"
-                         variant="outlined"
-                         color={isExpired(row.due_date) ? 'error' : 'default'}
-                         sx={{ borderRadius: '8px' }}
-                    />
+                    <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
+                         {row.deliveryDate ? formatDate(row.deliveryDate) : 'N/A'}
+                    </Typography>
                ),
           },
           {
@@ -354,18 +330,18 @@ const ListQuotation = ({ initialData, customers }) => {
      const tableColumns = useMemo(() => {
           const cellHandlers = {
                handleDelete: (id) => {
-                    const quotation = quotations.find(q => q._id === id);
-                    if (quotation) {
-                         setSelectedQuotation(quotation);
+                    const challan = deliveryChallans.find(dc => dc._id === id);
+                    if (challan) {
+                         setSelectedDeliveryChallan(challan);
                          handleDeleteClick();
                     }
                },
-               handleView: (id) => router.push(`/quotations/quotation-view/${id}`),
-               handleEdit: (id) => router.push(`/quotations/quotation-edit/${id}`),
+               handleView: (id) => router.push(`/deliveryChallans/deliveryChallans-view/${id}`),
+               handleEdit: (id) => router.push(`/deliveryChallans/deliveryChallans-edit/${id}`),
                handleConvert: (id) => {
-                    const quotation = quotations.find(q => q._id === id);
-                    if (quotation) {
-                         setSelectedQuotation(quotation);
+                    const challan = deliveryChallans.find(dc => dc._id === id);
+                    if (challan) {
+                         setSelectedDeliveryChallan(challan);
                          handleConvertClick();
                     }
                },
@@ -376,13 +352,13 @@ const ListQuotation = ({ initialData, customers }) => {
                ...col,
                renderCell: col.renderCell ? (row, index) => col.renderCell(row, cellHandlers, index) : undefined
           }));
-     }, [columns, permissions, quotations, router]);
+     }, [columns, permissions, deliveryChallans, router]);
 
      const tablePagination = useMemo(() => ({
-          page: pagination.page - 1,
-          pageSize: pagination.pageSize,
-          total: filteredQuotations.length
-     }), [pagination, filteredQuotations.length]);
+          page: 0,
+          pageSize: 10,
+          total: filteredDeliveryChallans.length
+     }), [filteredDeliveryChallans.length]);
 
      return (
           <div className='flex flex-col gap-5'>
@@ -390,10 +366,10 @@ const ListQuotation = ({ initialData, customers }) => {
                <div className="flex justify-start items-center mb-5">
                     <div className="flex items-center gap-2">
                          <Avatar className='bg-primary/12 text-primary bg-primaryLight w-12 h-12'>
-                              <Icon icon="tabler:file-analytics" fontSize={26} />
+                              <Icon icon="tabler:truck-delivery" fontSize={26} />
                          </Avatar>
                          <Typography variant="h5" className="font-semibold text-primary">
-                              Quotations
+                              Delivery Challans
                          </Typography>
                     </div>
                </div>
@@ -403,31 +379,47 @@ const ListQuotation = ({ initialData, customers }) => {
                     <Grid container spacing={4}>
                          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                               <HorizontalWithBorder
-                                   title="Total Accepted"
-                                   subtitle="No of Accepted"
+                                   title="Total Challans"
+                                   subtitle="No of Challans"
                                    titleVariant='h5'
                                    subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalAccepted?.total_sum)}`}
+                                   stats={`$ ${amountFormat(cardCounts.totalDeliveryChallans?.total_sum)}`}
                                    statsVariant='h4'
-                                   trendNumber={cardCounts.totalAccepted?.count || 0}
+                                   trendNumber={cardCounts.totalDeliveryChallans?.count || 0}
                                    trendNumberVariant='body1'
-                                   avatarIcon='mdi:check-circle-outline'
-                                   color="success"
+                                   avatarIcon='tabler:truck-delivery'
+                                   color="primary"
                                    iconSize='30px'
                               />
                          </Grid>
 
                          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                               <HorizontalWithBorder
-                                   title="Total Sent"
-                                   subtitle="No of Sent"
+                                   title="Active"
+                                   subtitle="No of Active"
                                    titleVariant='h5'
                                    subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalSent?.total_sum)}`}
+                                   stats={`$ ${amountFormat(cardCounts.totalActive?.total_sum)}`}
                                    statsVariant='h4'
-                                   trendNumber={cardCounts.totalSent?.count || 0}
+                                   trendNumber={cardCounts.totalActive?.count || 0}
                                    trendNumberVariant='body1'
-                                   avatarIcon='mdi:send-outline'
+                                   avatarIcon='mdi:check-circle-outline'
+                                   color="success"
+                                   iconSize='35px'
+                              />
+                         </Grid>
+
+                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <HorizontalWithBorder
+                                   title="Converted"
+                                   subtitle="No of Converted"
+                                   titleVariant='h5'
+                                   subtitleVariant='body2'
+                                   stats={`$ ${amountFormat(cardCounts.totalConverted?.total_sum)}`}
+                                   statsVariant='h4'
+                                   trendNumber={cardCounts.totalConverted?.count || 0}
+                                   trendNumberVariant='body1'
+                                   avatarIcon='mdi:arrow-right-circle-outline'
                                    color="info"
                                    iconSize='35px'
                               />
@@ -435,32 +427,16 @@ const ListQuotation = ({ initialData, customers }) => {
 
                          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                               <HorizontalWithBorder
-                                   title="Total Expired"
-                                   subtitle="No of Expired"
+                                   title="Cancelled"
+                                   subtitle="No of Cancelled"
                                    titleVariant='h5'
                                    subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalExpired?.total_sum)}`}
+                                   stats={`$ ${amountFormat(cardCounts.totalCancelled?.total_sum)}`}
                                    statsVariant='h4'
-                                   trendNumber={cardCounts.totalExpired?.count || 0}
+                                   trendNumber={cardCounts.totalCancelled?.count || 0}
                                    trendNumberVariant='body1'
-                                   avatarIcon='mdi:clock-alert-outline'
-                                   color="warning"
-                                   iconSize='35px'
-                              />
-                         </Grid>
-
-                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                              <HorizontalWithBorder
-                                   title="Drafts"
-                                   subtitle="No of Drafts"
-                                   titleVariant='h5'
-                                   subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalDrafted?.total_sum)}`}
-                                   statsVariant='h4'
-                                   trendNumber={cardCounts.totalDrafted?.count || 0}
-                                   trendNumberVariant='body1'
-                                   avatarIcon='mdi:draw-pen'
-                                   color="secondary"
+                                   avatarIcon='mdi:close-circle-outline'
+                                   color="error"
                                    iconSize='35px'
                               />
                          </Grid>
@@ -471,12 +447,12 @@ const ListQuotation = ({ initialData, customers }) => {
                     <Grid size={{ xs: 12 }}>
                          <CustomListTable
                               columns={tableColumns}
-                              rows={filteredQuotations}
+                              rows={filteredDeliveryChallans}
                               loading={loading}
                               pagination={tablePagination}
-                              onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage + 1 }))}
-                              onRowsPerPageChange={(pageSize) => setPagination(prev => ({ ...prev, pageSize, page: 1 }))}
-                              noDataText="No quotations found"
+                              onPageChange={(page) => {/* pagination handler if needed */ }}
+                              onRowsPerPageChange={(size) => {/* page size handler if needed */ }}
+                              noDataText="No delivery challans found"
                               rowKey={(row) => row._id || row.id}
                               showSearch={true}
                               searchValue={searchTerm}
@@ -485,11 +461,11 @@ const ListQuotation = ({ initialData, customers }) => {
                                    permissions.canCreate && (
                                         <Button
                                              component={Link}
-                                             href="/quotations/quotation-add"
+                                             href="/deliveryChallans/deliveryChallans-add"
                                              variant="contained"
                                              startIcon={<Icon icon="tabler:plus" />}
                                         >
-                                             New Quotation
+                                             New Delivery Challan
                                         </Button>
                                    )
                               }
@@ -517,7 +493,7 @@ const ListQuotation = ({ initialData, customers }) => {
                >
                     <MenuItem
                          component={Link}
-                         href={`/quotations/quotation-view/${selectedQuotation?._id}`}
+                         href={`/deliveryChallans/deliveryChallans-view/${selectedDeliveryChallan?._id}`}
                          onClick={handleActionClose}
                          sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}
                     >
@@ -526,7 +502,7 @@ const ListQuotation = ({ initialData, customers }) => {
                     </MenuItem>
                     <MenuItem
                          component={Link}
-                         href={`/quotations/quotation-edit/${selectedQuotation?._id}`}
+                         href={`/deliveryChallans/deliveryChallans-edit/${selectedDeliveryChallan?._id}`}
                          onClick={handleActionClose}
                          sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}
                     >
@@ -535,7 +511,7 @@ const ListQuotation = ({ initialData, customers }) => {
                     </MenuItem>
                     <MenuItem
                          onClick={handleConvertClick}
-                         disabled={selectedQuotation?.status === 'CONVERTED'}
+                         disabled={selectedDeliveryChallan?.status === 'CONVERTED'}
                          sx={{
                               py: 1.5,
                               pl: 2.5,
@@ -543,13 +519,12 @@ const ListQuotation = ({ initialData, customers }) => {
                               borderRadius: '8px',
                               mx: 1,
                               my: 0.5,
-                              color: selectedQuotation?.status === 'CONVERTED' ? 'text.disabled' : 'text.primary'
+                              color: selectedDeliveryChallan?.status === 'CONVERTED' ? 'text.disabled' : 'text.primary'
                          }}
                     >
                          <Icon icon="tabler:arrow-right" fontSize={20} style={{ marginRight: '12px' }} />
                          Convert to Invoice
                     </MenuItem>
-                    <Divider sx={{ my: 1.5 }} />
                     <MenuItem
                          onClick={handleDeleteClick}
                          sx={{
@@ -586,7 +561,7 @@ const ListQuotation = ({ initialData, customers }) => {
                     </DialogTitle>
                     <DialogContent sx={{ px: 4 }}>
                          <DialogContentText>
-                              Are you sure you want to delete this quotation? This action cannot be undone.
+                              Are you sure you want to delete this delivery challan? This action cannot be undone.
                          </DialogContentText>
                     </DialogContent>
                     <DialogActions sx={{ px: 4, pb: 4, pt: 2 }}>
@@ -594,15 +569,7 @@ const ListQuotation = ({ initialData, customers }) => {
                               onClick={() => setOpenDeleteDialog(false)}
                               variant="outlined"
                               disabled={loadingAction}
-                              sx={{
-                                   borderRadius: '10px',
-                                   py: 1,
-                                   px: 3,
-                                   borderWidth: '2px',
-                                   '&:hover': {
-                                        borderWidth: '2px'
-                                   }
-                              }}
+                              sx={{ borderRadius: '10px', py: 1, px: 3 }}
                          >
                               Cancel
                          </Button>
@@ -612,12 +579,7 @@ const ListQuotation = ({ initialData, customers }) => {
                               color="error"
                               disabled={loadingAction}
                               startIcon={loadingAction ? null : <Icon icon="tabler:trash" />}
-                              sx={{
-                                   borderRadius: '10px',
-                                   py: 1,
-                                   px: 3,
-                                   ml: 2
-                              }}
+                              sx={{ borderRadius: '10px', py: 1, px: 3, ml: 2 }}
                          >
                               {loadingAction ? 'Deleting...' : 'Delete'}
                          </Button>
@@ -642,7 +604,7 @@ const ListQuotation = ({ initialData, customers }) => {
                     </DialogTitle>
                     <DialogContent sx={{ px: 4 }}>
                          <DialogContentText>
-                              Are you sure you want to convert this quotation to an invoice? This will create a new invoice with the same details.
+                              Are you sure you want to convert this delivery challan to an invoice? This will create a new invoice with the same details.
                          </DialogContentText>
                     </DialogContent>
                     <DialogActions sx={{ px: 4, pb: 4, pt: 2 }}>
@@ -650,15 +612,7 @@ const ListQuotation = ({ initialData, customers }) => {
                               onClick={() => setOpenConvertDialog(false)}
                               variant="outlined"
                               disabled={loadingAction}
-                              sx={{
-                                   borderRadius: '10px',
-                                   py: 1,
-                                   px: 3,
-                                   borderWidth: '2px',
-                                   '&:hover': {
-                                        borderWidth: '2px'
-                                   }
-                              }}
+                              sx={{ borderRadius: '10px', py: 1, px: 3 }}
                          >
                               Cancel
                          </Button>
@@ -667,12 +621,7 @@ const ListQuotation = ({ initialData, customers }) => {
                               variant="contained"
                               disabled={loadingAction}
                               startIcon={loadingAction ? null : <Icon icon="tabler:arrow-right" />}
-                              sx={{
-                                   borderRadius: '10px',
-                                   py: 1,
-                                   px: 3,
-                                   ml: 2
-                              }}
+                              sx={{ borderRadius: '10px', py: 1, px: 3, ml: 2 }}
                          >
                               {loadingAction ? 'Converting...' : 'Convert'}
                          </Button>
@@ -699,4 +648,4 @@ const ListQuotation = ({ initialData, customers }) => {
      );
 };
 
-export default ListQuotation;
+export default ListDeliveryChallans;

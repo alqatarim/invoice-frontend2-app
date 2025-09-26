@@ -12,7 +12,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Box from '@mui/material/Box'
 
 // ** Custom Components Imports
-import EditQuotation from '@/views/quotations/editQuotation/editQuotation'
+import EditQuotation from './EditQuotation'
 import CustomHelmet from '@/components/CustomHelment'
 
 // ** Third Party Imports
@@ -20,20 +20,23 @@ import { useSnackbar } from 'notistack'
 import { formatISO } from 'date-fns'
 
 // ** Actions Import
-import {
-  updateQuotation,
-  getQuotationById,
-  getAllCustomers
-} from 'src/app/(dashboard)/quotations/actions'
+import { updateQuotation } from 'src/app/(dashboard)/quotations/actions'
 
-const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
+const EditQuotationIndex = ({
+  quotationData = null,
+  customers = [],
+  products = [],
+  taxRates = [],
+  banks = [],
+  signatures = [],
+  units = []
+}) => {
   // ** Hooks
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
 
   // ** States
-  const [quotation, setQuotation] = useState(null)
-  const [customersList, setCustomersList] = useState([])
+  const [quotation, setQuotation] = useState(quotationData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(!quotationData)
 
@@ -45,58 +48,7 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
     }
   }, [quotationData])
 
-  // Process customers list if available
-  useEffect(() => {
-    if (customers?.length) {
-      setCustomersList(customers)
-    } else {
-      // Fetch customers if not provided
-      fetchCustomers()
-    }
-  }, [customers])
 
-  // Fetch customers if not provided as prop
-  const fetchCustomers = async () => {
-    try {
-      const response = await getAllCustomers()
-      if (response?.success && Array.isArray(response.data)) {
-        setCustomersList(response.data)
-      } else {
-        // Set empty array if data is not valid
-        setCustomersList([])
-      }
-    } catch (error) {
-      console.error("Error fetching customers:", error)
-      enqueueSnackbar('Failed to load customers', { variant: 'error' })
-      setCustomersList([]) // Fallback to empty array on error
-    }
-  }
-
-  // Fetch quotation data if not provided as prop
-  const fetchQuotationData = async (id) => {
-    if (!id) {
-      enqueueSnackbar('Invalid quotation ID', { variant: 'error' })
-      router.push('/quotations')
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      const response = await getQuotationById(id)
-      if (response?.success && response?.data) {
-        setQuotation(response.data)
-      } else {
-        enqueueSnackbar('Quotation not found', { variant: 'error' })
-        router.push('/quotations')
-      }
-    } catch (error) {
-      console.error("Error fetching quotation:", error)
-      enqueueSnackbar('Failed to load quotation details', { variant: 'error' })
-      router.push('/quotations')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   // Handle form submission
   const handleSubmit = async (formData) => {
@@ -107,11 +59,24 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
 
     setIsSubmitting(true)
     try {
-      // Format dates for API
+      // Format dates for API and map fields
       const formattedData = {
-        ...formData,
-        date: formData.date ? formatISO(new Date(formData.date)) : formatISO(new Date()),
-        expiryDate: formData.expiryDate ? formatISO(new Date(formData.expiryDate)) : formatISO(new Date())
+        quotationNumber: formData.quotationNumber,
+        customerId: formData.customerId,
+        date: formData.quotationDate ? formatISO(new Date(formData.quotationDate)) : formatISO(new Date()),
+        expiryDate: formData.expiryDate ? formatISO(new Date(formData.expiryDate)) : formatISO(new Date()),
+        payment_method: formData.payment_method,
+        bank: formData.bank,
+        referenceNo: formData.referenceNo,
+        signatureId: formData.signatureId,
+        notes: formData.notes,
+        termsAndConditions: formData.termsAndConditions,
+        items: formData.items,
+        subTotal: formData.taxableAmount,
+        totalAmount: formData.TotalAmount,
+        totalDiscount: formData.totalDiscount,
+        totalTax: formData.vat,
+        status: 'DRAFTED'
       }
 
       // Update quotation
@@ -133,8 +98,9 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
 
   // Handle reset form data
   const handleResetData = () => {
-    if (quotation?._id) {
-      fetchQuotationData(quotation._id)
+    // Reset data is handled by the component itself
+    if (quotationData) {
+      setQuotation(quotationData)
     }
   }
 
@@ -162,10 +128,16 @@ const EditQuotationIndex = ({ quotationData = null, customers = [] }) => {
 
       <EditQuotation
         quotation={quotation}
-        customers={customersList}
+        customers={customers}
+        productData={products}
+        taxRates={taxRates}
+        initialBanks={banks}
+        signatures={signatures}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
         resetData={handleResetData}
+        enqueueSnackbar={enqueueSnackbar}
+        closeSnackbar={() => { }}
       />
     </>
   )

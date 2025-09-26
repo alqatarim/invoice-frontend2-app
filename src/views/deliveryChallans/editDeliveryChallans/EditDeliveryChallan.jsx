@@ -264,7 +264,7 @@ const EditDeliveryChallan = (props) => {
                 InputProps={{
                   sx: { paddingLeft: '8px' },
                   startAdornment: (
-                    <Icon icon="lucide:saudi-riyal" width={22} color={theme.palette.secondary.main}/>
+                    <Icon icon="lucide:saudi-riyal" width={22} color={theme.palette.secondary.main} />
                   ),
                 }}
                 inputProps={{
@@ -587,19 +587,19 @@ const EditDeliveryChallan = (props) => {
 
   return (
     <Grid container rowSpacing={4} columnSpacing={3}>
-      <Grid item xs={12} md={12}>
+      <Grid size={{ xs: 12, md: 12 }}>
         <Typography variant="h5" sx={{ fontWeight: 500 }}>
           Edit Delivery Challan
         </Typography>
       </Grid>
 
       {/* Top Section - Delivery Challan Details*/}
-      <Grid item xs={12} md={12}>
+      <Grid size={{ xs: 12, md: 12 }}>
         <Card>
           <CardContent className='py-3.5'>
             <Grid container columnSpacing={3} rowSpacing={4}>
               {/* Delivery Challan Details Header */}
-              <Grid item xs={12} className='flex flex-col gap-2'>
+              <Grid size={{ xs: 12 }} className='flex flex-col gap-2'>
                 <Box className='flex flex-row gap-1.5 items-center'>
                   <Box className='w-2 h-8 bg-secondaryLight rounded-md' />
                   <Typography variant="caption" fontWeight={500} fontSize='1rem'>
@@ -608,7 +608,7 @@ const EditDeliveryChallan = (props) => {
                 </Box>
               </Grid>
 
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Box className="flex flex-row items-center px-3 justify-between bg-tableHeader rounded-md w-full h-full">
                   <Typography variant="caption" className='text-[0.9rem]' color="text.secondary">
                     Delivery Challan Number
@@ -620,7 +620,7 @@ const EditDeliveryChallan = (props) => {
               </Grid>
 
               {/* Delivery Challan Date */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="deliveryChallanDate"
                   control={control}
@@ -642,7 +642,7 @@ const EditDeliveryChallan = (props) => {
               </Grid>
 
               {/* Due Date */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="dueDate"
                   control={control}
@@ -664,7 +664,7 @@ const EditDeliveryChallan = (props) => {
               </Grid>
 
               {/* Bank Selection */}
-              <Grid item xs={12} sm={6} md={4} lg={3} className="flex flex-row gap-1 justify-between">
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} className="flex flex-row gap-1 justify-between">
                 <Controller
                   name="bank"
                   control={control}
@@ -700,12 +700,12 @@ const EditDeliveryChallan = (props) => {
                   skin='lighter'
                   onClick={() => setOpenBankModal(true)}
                 >
-                  <Icon icon="mdi:bank-plus" width={26}/>
+                  <Icon icon="mdi:bank-plus" width={26} />
                 </CustomIconButton>
               </Grid>
 
               {/* Reference No */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="referenceNo"
                   control={control}
@@ -724,7 +724,7 @@ const EditDeliveryChallan = (props) => {
               </Grid>
 
               {/* Signature Section - Simplified */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Controller
                     name="signatureId"
@@ -757,7 +757,7 @@ const EditDeliveryChallan = (props) => {
               </Grid>
 
               {/* Notes TextField */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="notes"
                   control={control}
@@ -790,17 +790,17 @@ const EditDeliveryChallan = (props) => {
               </Grid>
 
               {/* Customer */}
-              <Grid item xs={12} sm={6} md={8} lg={6}>
+              <Grid size={{ xs: 12, sm: 6, md: 8, lg: 6 }}>
                 <CustomerAutocomplete control={control} errors={errors} customersData={customersData} />
               </Grid>
 
               {/* Shipping Address */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Button
-                  fullWidth 
-                  className="flex flex-row items-center gap-0 justify-center" 
-                  variant="text" 
-                  color="primary" 
+                  fullWidth
+                  className="flex flex-row items-center gap-0 justify-center"
+                  variant="text"
+                  color="primary"
                   size="small"
                   startIcon={<Icon icon="mdi:truck-delivery-outline" width={24} color={theme.palette.primary.main} />}
                   onClick={handleOpenAddressDialog}
@@ -810,12 +810,12 @@ const EditDeliveryChallan = (props) => {
               </Grid>
 
               {/* Terms & Conditions */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Button
-                  fullWidth 
-                  className="flex flex-row items-center gap-0 justify-center" 
-                  variant="text" 
-                  color="primary" 
+                  fullWidth
+                  className="flex flex-row items-center gap-0 justify-center"
+                  variant="text"
+                  color="primary"
                   size="small"
                   startIcon={<Icon icon="mdi:file-document-outline" width={24} color={theme.palette.primary.main} />}
                   onClick={handleOpenTermsDialog}
@@ -829,7 +829,7 @@ const EditDeliveryChallan = (props) => {
       </Grid>
 
       {/* Middle Section - Products Table*/}
-      <Grid item xs={12} md={9.5}>
+      <Grid size={{ xs: 12, md: 9.5 }}>
         <form onSubmit={handleSubmit(handleFormSubmit, handleError)}>
           <Card>
             <CardContent spacing={12} className='flex flex-col gap-2 px-0 pt-0'>
@@ -849,7 +849,7 @@ const EditDeliveryChallan = (props) => {
       </Grid>
 
       {/* Left side totals card */}
-      <Grid item xs={12} md={2.5}>
+      <Grid size={{ xs: 12, md: 2.5 }}>
         <DeliveryChallanTotals
           control={control}
           handleSubmit={handleSubmit}

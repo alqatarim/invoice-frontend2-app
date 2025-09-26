@@ -11,7 +11,7 @@ import Spinner from '@/components/Spinner'
 import { useSnackbar } from 'notistack'
 
 // ** Component Imports
-import AddQuotation from '@/views/quotations/addQuotation/addQuotation'
+import AddQuotation from '@/views/quotations/addQuotation/AddQuotation'
 
 // ** API Import
 import { createQuotation, getAllCustomers } from 'src/app/(dashboard)/quotations/actions'
@@ -20,17 +20,17 @@ const AddQuotationIndex = ({ customers = [] }) => {
   // ** Hooks
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
-  
+
   // ** State
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // ** Form submission handler
   const handleFormSubmit = async formData => {
     try {
       setIsSubmitting(true)
-      
+
       const response = await createQuotation(formData)
-      
+
       if (response?.success) {
         enqueueSnackbar('Quotation created successfully', { variant: 'success' })
         router.push('/quotations/quotation-list')
@@ -44,12 +44,12 @@ const AddQuotationIndex = ({ customers = [] }) => {
       setIsSubmitting(false)
     }
   }
-  
+
   // ** Reset handler
   const handleReset = () => {
     router.push('/quotations/quotation-list')
   }
-  
+
   return (
     <AddQuotation
       customers={customers}
