@@ -2,12 +2,12 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Box, 
-  Grid, 
-  TextField, 
-  Button, 
-  Typography, 
+import {
+  Box,
+  Grid,
+  TextField,
+  Button,
+  Typography,
   Alert,
   CircularProgress,
   Card,
@@ -22,23 +22,51 @@ import * as yup from 'yup'
 import Link from 'next/link'
 
 const bankSettingsSchema = yup.object({
-  bankName: yup.string().required('Bank name is required'),
-  accountNumber: yup.string().required('Account number is required'),
-  accountHolderName: yup.string().required('Account holder name is required'),
-  branchName: yup.string().required('Branch name is required'),
-  ifscCode: yup.string().required('IFSC code is required'),
+  bankName: yup
+    .string()
+    .required('Enter Bank Name')
+    .min(3, 'Bank Name Must Be At Least 3 Characters')
+    .max(15, 'Bank Name Must Be At Most 15 Characters')
+    .matches(/^[aA-zZ\s]+$/, 'Only Alphabets Are Allowed For This Field')
+    .matches(/^[a-zA-Z0-9 ]*$/, 'Special Characters Are Not Allowed'),
+  accountNumber: yup
+    .string()
+    .required('Enter Valid Account Number')
+    .min(4, 'Account Number Must Be At Least 4 Digits')
+    .max(15, 'Account Number must be at most 15 digits')
+    .matches(/^\d+$/, 'Input Value Must Contain Only Numbers'),
+  accountHolderName: yup
+    .string()
+    .required('Enter Account Holder Name')
+    .min(3, 'Account Holder Name Must Be At Least 3 Characters')
+    .max(15, 'Account Holder Name Must Be At Most 15 Characters')
+    .matches(/^[aA-zZ\s]+$/, 'Only Alphabets Are Allowed For This Field')
+    .matches(/^[a-zA-Z0-9 ]*$/, 'Special Characters Are Not Allowed'),
+  branchName: yup
+    .string()
+    .required('Enter Branch Name')
+    .min(3, 'Branch Name Must Be At Least 3 Characters')
+    .max(15, 'Branch Name Must Be At Most 15 Characters')
+    .matches(/^[aA-zZ\s]+$/, 'Only Alphabets Are Allowed For This Field')
+    .matches(/^[a-zA-Z0-9 ]*$/, 'Special Characters Are Not Allowed'),
+  ifscCode: yup
+    .string()
+    .required('Enter IFSC Code')
+    .min(4, 'IFSC Must Be At Least 4 Characters')
+    .max(15, 'IFSC Must Be At Most 15 Characters')
+    .matches(/^[a-zA-Z0-9]*$/, 'Special Characters Are Not Allowed'),
   swiftCode: yup.string(),
   accountType: yup.string(),
   isActive: yup.boolean()
 })
 
-const BankSettingsForm = ({ 
+const BankSettingsForm = ({
   mode = 'add', // 'add', 'edit', 'view'
   bankData = null,
-  loading = false, 
-  error = null, 
+  loading = false,
+  error = null,
   onSubmit,
-  onClearError 
+  onClearError
 }) => {
   const router = useRouter()
 
@@ -79,14 +107,14 @@ const BankSettingsForm = ({
 
   const handleFormSubmit = async (data) => {
     const formData = new FormData()
-    
+
     Object.keys(data).forEach(key => {
       formData.append(key, data[key])
     })
-    
+
     const result = await onSubmit(formData)
     if (result?.success) {
-      router.push('/settings/bank-settings-list')
+      router.push('/settings?tab=bank')
     }
   }
 
@@ -98,16 +126,16 @@ const BankSettingsForm = ({
         <Box display="flex" alignItems="center" gap={2} mb={3}>
           <Button
             component={Link}
-            href="/settings/bank-settings-list"
+            href="/settings?tab=bank"
             startIcon={<ArrowBack />}
             variant="outlined"
           >
             Back to List
           </Button>
           <Typography variant="h6">
-            {mode === 'add' ? 'Add New Bank Account' : 
-             mode === 'edit' ? 'Edit Bank Account' : 
-             'View Bank Account'}
+            {mode === 'add' ? 'Add New Bank Account' :
+              mode === 'edit' ? 'Edit Bank Account' :
+                'View Bank Account'}
           </Typography>
         </Box>
 
@@ -120,13 +148,13 @@ const BankSettingsForm = ({
         <Box component="form" onSubmit={handleSubmit(handleFormSubmit)}>
           <Grid container spacing={3}>
             {/* Bank Information */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="h6" gutterBottom>
                 Bank Information
               </Typography>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Bank Name"
@@ -137,7 +165,7 @@ const BankSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Branch Name"
@@ -148,7 +176,7 @@ const BankSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="IFSC Code"
@@ -159,7 +187,7 @@ const BankSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="SWIFT Code (Optional)"
@@ -171,13 +199,13 @@ const BankSettingsForm = ({
             </Grid>
 
             {/* Account Information */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
                 Account Information
               </Typography>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Account Number"
@@ -188,7 +216,7 @@ const BankSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Account Holder Name"
@@ -199,7 +227,7 @@ const BankSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Account Type"
@@ -217,7 +245,7 @@ const BankSettingsForm = ({
               </TextField>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -233,7 +261,7 @@ const BankSettingsForm = ({
 
             {/* Actions */}
             {!isReadOnly && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box display="flex" gap={2} sx={{ mt: 3 }}>
                   <Button
                     type="submit"
@@ -245,7 +273,7 @@ const BankSettingsForm = ({
                   </Button>
                   <Button
                     component={Link}
-                    href="/settings/bank-settings-list"
+                    href="/settings?tab=bank"
                     variant="outlined"
                   >
                     Cancel

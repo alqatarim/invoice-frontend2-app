@@ -5,106 +5,50 @@ import { useState, useEffect } from 'react'
 
 // Component Imports
 import PaymentSettingsForm from './PaymentSettingsForm'
-import { getPaymentSettings, updatePaymentSettings } from '@/app/(dashboard)/settings/payment-settings/actions'
+import usePaymentSettingsHandlers from '@/handlers/settings/usePaymentSettingsHandlers'
 
 const PaymentSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
-  const [paymentSettings, setPaymentSettings] = useState(initialData.paymentSettings || {})
-  const [loading, setLoading] = useState(!initialData.paymentSettings)
-  const [updating, setUpdating] = useState(false)
-  const [error, setError] = useState(null)
+  const {
+    paymentSettings,
+    loading,
+    updating,
+    error,
+    getPaymentSettings,
+    updatePaymentSettings,
+    clearError
+  } = usePaymentSettingsHandlers(initialData)
 
   // Load payment settings data only if not provided
   useEffect(() => {
     if (!initialData.paymentSettings) {
-      const loadData = async () => {
-        try {
-          setLoading(true)
-          const result = await getPaymentSettings()
-          if (result.success) {
-            setPaymentSettings(result.data || {})
-          } else {
-            setError(result.message)
-          }
-        } catch (err) {
-          setError(err.message)
-        } finally {
-          setLoading(false)
-        }
-      }
-
-      loadData()
+      getPaymentSettings()
     }
-  }, [initialData.paymentSettings])
+  }, [])
 
   const handleUpdate = async (formData) => {
-    setUpdating(true)
-    setError(null)
-
     try {
-      const loadingKey = enqueueSnackbar('Updating payment settings...', {
-        variant: 'info',
-        persist: true,
-        preventDuplicate: true,
-      })
-
-      const result = await updatePaymentSettings(formData)
-
-      if (result.success) {
-        setPaymentSettings(result.data)
-        enqueueSnackbar('Payment settings updated successfully', {
-          variant: 'success',
-          autoHideDuration: 3000,
-        })
-        return { success: true }
-      } else {
-        const errorMessage = result.message || 'Failed to update payment settings'
-        enqueueSnackbar(errorMessage, {
-          variant: 'error',
-          autoHideDuration: 5000,
-          preventDuplicate: true,
-        })
-        setError(errorMessage)
-        return { success: false, message: errorMessage }
-      }
+      await updatePaymentSettings(formData)
+      enqueueSnackbar('Payment settings updated successfully', { variant: 'success' })
+      return { success: true }
     } catch (error) {
-      const errorMessage = error.message || 'Failed to update payment settings'
-      enqueueSnackbar(errorMessage, {
-        variant: 'error',
-        autoHideDuration: 5000,
-      })
-      setError(errorMessage)
-      return { success: false, message: errorMessage }
-    } finally {
-      setUpdating(false)
+      enqueueSnackbar(error.message || 'Failed to update payment settings', { variant: 'error' })
+      return { success: false, message: error.message }
     }
   }
 
   const handleRefresh = async () => {
-    setLoading(true)
-    try {
-      const result = await getPaymentSettings()
-      if (result.success) {
-        setPaymentSettings(result.data || {})
-        setError(null)
-      } else {
-        setError(result.message)
-      }
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
+    clearError()
+    await getPaymentSettings()
   }
 
   return (
     <PaymentSettingsForm
-      paymentSettings={paymentSettings}
+      paymentSettings={paymentSettings || initialData.paymentSettings}
       loading={loading}
       updating={updating}
       error={error}
       onUpdate={handleUpdate}
       onRefresh={handleRefresh}
-      enqueueSnackbar={enqueueSnackbar}
     />
   )
 }

@@ -100,7 +100,7 @@ const NotificationSettingsForm = ({
 
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name="senderId"
                 control={control}
@@ -119,7 +119,7 @@ const NotificationSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name="serverKey"
                 control={control}
@@ -138,7 +138,7 @@ const NotificationSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box sx={{ display: 'flex', gap: 2, pt: 2 }}>
                 <Button
                   variant="outlined"

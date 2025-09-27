@@ -29,6 +29,7 @@ import CustomListTable from '@/components/custom-components/CustomListTable';
 import { paymentSummaryStatus } from '@/data/dataSets';
 import { amountFormat } from '@/utils/numberUtils';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
+import { getPaymentSummaryColumns } from './paymentSummaryColumns';
 
 // Helper function to get status color
 const getStatusColor = (status) => {
@@ -85,19 +86,19 @@ const ListPaymentSummary = ({ initialData, customers }) => {
      const cardCounts = {
           totalPaid: {
                count: paymentSummaries.filter(p => p.status === 'Success' || p.status === 'PAID').length,
-               total_sum: paymentSummaries.filter(p => p.status === 'Success' || p.status === 'PAID').reduce((sum, p) => sum + (Number(p.amount || p.paidAmount) || 0), 0)
+               total_sum: paymentSummaries.filter(p => p.status === 'Success' || p.status === 'PAID').reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
           },
           totalRefund: {
                count: paymentSummaries.filter(p => p.status === 'REFUND').length,
-               total_sum: paymentSummaries.filter(p => p.status === 'REFUND').reduce((sum, p) => sum + (Number(p.amount || p.paidAmount) || 0), 0)
+               total_sum: paymentSummaries.filter(p => p.status === 'REFUND').reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
           },
           totalFailed: {
                count: paymentSummaries.filter(p => p.status === 'Failed').length,
-               total_sum: paymentSummaries.filter(p => p.status === 'Failed').reduce((sum, p) => sum + (Number(p.amount || p.paidAmount) || 0), 0)
+               total_sum: paymentSummaries.filter(p => p.status === 'Failed').reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
           },
           totalPayments: {
                count: paymentSummaries.length,
-               total_sum: paymentSummaries.reduce((sum, p) => sum + (Number(p.amount || p.paidAmount) || 0), 0)
+               total_sum: paymentSummaries.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
           }
      };
 
@@ -107,11 +108,13 @@ const ListPaymentSummary = ({ initialData, customers }) => {
                setFilteredPaymentSummaries(paymentSummaries);
           } else {
                const filtered = paymentSummaries.filter(payment =>
-                    payment.transactionId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    payment.paymentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    payment.customerId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    payment.customerId?.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    payment.invoiceId?.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+                    payment.payment_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    payment.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    payment.customerDetail?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    payment.customerDetail?.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    payment.customerDetail?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    payment.payment_method?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    payment.status?.toLowerCase().includes(searchTerm.toLowerCase())
                );
                setFilteredPaymentSummaries(filtered);
           }
@@ -132,146 +135,11 @@ const ListPaymentSummary = ({ initialData, customers }) => {
           enqueueSnackbar && enqueueSnackbar('Export functionality not yet implemented', { variant: 'info' });
      };
 
-     // Define columns for the table (based on sample data structure)
-     const columns = [
-          {
-               key: 'invoiceNumber',
-               visible: true,
-               label: 'Invoice No',
-               sortable: true,
-               align: 'center',
-               renderCell: (row) => (
-                    <Link href={`/invoices/invoice-view/${row._id}`} passHref>
-                         <Typography
-                              className="cursor-pointer text-primary hover:underline"
-                              align='center'
-                         >
-                              {row.invoiceNumber || 'N/A'}
-                         </Typography>
-                    </Link>
-               ),
-          },
-          {
-               key: 'customer',
-               visible: true,
-               label: 'Customer',
-               sortable: true,
-               align: 'center',
-               renderCell: (row) => (
-                    <Box className="flex justify-between items-start flex-col gap-1">
-                         <Link href={`/customers/customer-view/${row.customerId}`} passHref>
-                              <Typography
-                                   variant="body1"
-                                   className='text-[0.95rem] text-start cursor-pointer text-primary hover:underline'
-                              >
-                                   {row.customerId?.name || 'Customer'}
-                              </Typography>
-                         </Link>
-                         <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              className='text-[0.85rem] truncate select-text'
-                              sx={{ userSelect: 'text', cursor: 'text' }}
-                         >
-                              {row.customerId?.phone || 'N/A'}
-                         </Typography>
-                    </Box>
-               ),
-          },
-          {
-               key: 'paymentDate',
-               visible: true,
-               label: 'Payment Date',
-               sortable: true,
-               align: 'center',
-               renderCell: (row) => (
-                    <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-                         {row.invoiceDate ? formatDate(row.invoiceDate) : 'N/A'}
-                    </Typography>
-               ),
-          },
-          {
-               key: 'paymentMethod',
-               visible: true,
-               label: 'Payment Method',
-               sortable: true,
-               align: 'center',
-               renderCell: (row) => (
-                    <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-                         {row.payment_method || 'N/A'}
-                    </Typography>
-               ),
-          },
-          {
-               key: 'amount',
-               label: 'Total Amount',
-               visible: true,
-               align: 'center',
-               renderCell: (row) => (
-                    <div className="flex items-center gap-1 justify-center">
-                         <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
-                         <Typography color="text.primary" className='text-[1rem] font-medium'>
-                              {formatNumber(row.TotalAmount)}
-                         </Typography>
-                    </div>
-               ),
-          },
-          {
-               key: 'paidAmount',
-               label: 'Paid Amount',
-               visible: true,
-               align: 'center',
-               renderCell: (row) => (
-                    <div className="flex items-center gap-1 justify-center">
-                         <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.success.main} />
-                         <Typography color="success.main" className='text-[1rem] font-medium'>
-                              {formatNumber(row.paidAmount || 0)}
-                         </Typography>
-                    </div>
-               ),
-          },
-          {
-               key: 'status',
-               label: 'Status',
-               visible: true,
-               align: 'center',
-               sortable: true,
-               renderCell: (row) => (
-                    <Chip
-                         label={row.status ? row.status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'}
-                         size="medium"
-                         color={getStatusColor(row.status)}
-                         variant="tonal"
-                         sx={{ fontWeight: 500 }}
-                    />
-               ),
-          },
-          {
-               key: 'actions',
-               label: 'Actions',
-               visible: true,
-               align: 'center',
-               renderCell: (row) => (
-                    <IconButton
-                         size="small"
-                         onClick={(e) => {
-                              e.stopPropagation();
-                              handleActionClick(e, row);
-                         }}
-                         sx={{
-                              borderRadius: '8px',
-                              backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                              color: 'primary.main',
-                              '&:hover': {
-                                   backgroundColor: alpha(theme.palette.primary.main, 0.12),
-                              }
-                         }}
-                    >
-                         <Icon icon="tabler:dots-vertical" fontSize={20} />
-                    </IconButton>
-               ),
-          }
-     ];
+     // Get columns from external file
+     const columns = useMemo(() =>
+          getPaymentSummaryColumns(theme, handleActionClick),
+          [theme, handleActionClick]
+     );
 
      // Table columns with proper cell handlers  
      const tableColumns = useMemo(() => {

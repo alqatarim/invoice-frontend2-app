@@ -135,7 +135,7 @@ const SignatureForm = ({
 
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Signature Name"
@@ -149,7 +149,7 @@ const SignatureForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
                   Signature Image {!isEdit && '*'}
@@ -188,7 +188,7 @@ const SignatureForm = ({
               </Box>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -203,7 +203,7 @@ const SignatureForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -218,7 +218,7 @@ const SignatureForm = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
                 <Button
                   variant="outlined"

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import * as taxSettingsActions from '@/app/(dashboard)/settings/tax-settings/actions'
+import * as taxSettingsActions from '@/app/(dashboard)/settings/actions'
 
 /**
  * Tax Settings Handlers Hook
@@ -21,24 +21,24 @@ export const useTaxSettingsHandlers = (initialData = {}) => {
       try {
         const result = await taxSettingsActions.getInitialTaxSettingsData()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             taxes: result.data?.data || [],
             pagination: {
               page: 0,
               totalCount: result.data?.totalCount || 0,
               limit: 10
             },
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -49,19 +49,19 @@ export const useTaxSettingsHandlers = (initialData = {}) => {
       try {
         const result = await taxSettingsActions.getTaxById(id)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             selectedTax: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -74,19 +74,19 @@ export const useTaxSettingsHandlers = (initialData = {}) => {
       try {
         const result = await taxSettingsActions.addTaxSettings(formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             taxes: [...prev.taxes, result.data],
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -97,22 +97,22 @@ export const useTaxSettingsHandlers = (initialData = {}) => {
       try {
         const result = await taxSettingsActions.updateTaxSettings(id, formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
-            taxes: prev.taxes.map(tax => 
+          setState(prev => ({
+            ...prev,
+            taxes: prev.taxes.map(tax =>
               tax._id === id ? result.data : tax
             ),
             selectedTax: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -123,19 +123,19 @@ export const useTaxSettingsHandlers = (initialData = {}) => {
       try {
         const result = await taxSettingsActions.deleteTaxSettings(ids)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             taxes: prev.taxes.filter(tax => !ids.includes(tax._id)),
-            deleting: false 
+            deleting: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          deleting: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          deleting: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }

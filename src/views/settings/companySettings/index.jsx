@@ -5,9 +5,9 @@ import CompanySettingsForm from './CompanySettingsForm'
 import SettingsLayout from '../shared/SettingsLayout'
 
 const CompanySettingsIndex = ({ initialData = {} }) => {
-  const { 
-    state, 
-    companyHandlers 
+  const {
+    state,
+    companyHandlers
   } = useSettingsHandlers(initialData)
 
   return (

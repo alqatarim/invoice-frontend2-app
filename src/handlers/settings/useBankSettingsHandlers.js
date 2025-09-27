@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import * as bankSettingsActions from '@/app/(dashboard)/settings/bank-settings/actions'
+import * as bankSettingsActions from '@/app/(dashboard)/settings/actions'
 
 /**
  * Bank Settings Handlers Hook
@@ -21,24 +21,24 @@ export const useBankSettingsHandlers = (initialData = {}) => {
       try {
         const result = await bankSettingsActions.getInitialBankSettingsData()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             banks: result.data?.data || [],
             pagination: {
               page: 0,
               totalCount: result.data?.totalCount || 0,
               limit: 10
             },
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -49,19 +49,19 @@ export const useBankSettingsHandlers = (initialData = {}) => {
       try {
         const result = await bankSettingsActions.getBankById(id)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             selectedBank: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -74,19 +74,19 @@ export const useBankSettingsHandlers = (initialData = {}) => {
       try {
         const result = await bankSettingsActions.addBankSettings(formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             banks: [...prev.banks, result.data],
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -97,22 +97,22 @@ export const useBankSettingsHandlers = (initialData = {}) => {
       try {
         const result = await bankSettingsActions.updateBankSettings(id, formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
-            banks: prev.banks.map(bank => 
+          setState(prev => ({
+            ...prev,
+            banks: prev.banks.map(bank =>
               bank._id === id ? result.data : bank
             ),
             selectedBank: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -123,19 +123,19 @@ export const useBankSettingsHandlers = (initialData = {}) => {
       try {
         const result = await bankSettingsActions.deleteBankSettings(ids)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             banks: prev.banks.filter(bank => !ids.includes(bank._id)),
-            deleting: false 
+            deleting: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          deleting: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          deleting: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }

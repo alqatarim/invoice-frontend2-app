@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { 
-  Grid, 
-  Card, 
-  CardContent, 
-  Typography, 
-  TextField, 
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -21,14 +21,14 @@ import {
 import { Save, Cancel } from '@mui/icons-material'
 import { useRouter } from 'next/navigation'
 
-const TaxSettingsForm = ({ 
-  tax = {}, 
-  loading = false, 
-  updating = false, 
-  error = null, 
-  onSave, 
+const TaxSettingsForm = ({
+  tax = {},
+  loading = false,
+  updating = false,
+  error = null,
+  onSave,
   onCancel,
-  isEdit = false 
+  isEdit = false
 }) => {
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -41,7 +41,7 @@ const TaxSettingsForm = ({
   const handleChange = (field) => (event) => {
     const value = field === 'status' ? event.target.checked : event.target.value
     setFormData(prev => ({ ...prev, [field]: value }))
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }))
@@ -50,23 +50,23 @@ const TaxSettingsForm = ({
 
   const validateForm = () => {
     const newErrors = {}
-    
+
     if (!formData.name.trim()) {
       newErrors.name = 'Tax name is required'
     }
-    
+
     if (!formData.taxRate || formData.taxRate <= 0) {
       newErrors.taxRate = 'Tax rate must be greater than 0'
     }
-    
-    
+
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    
+
     if (!validateForm()) {
       return
     }
@@ -78,7 +78,7 @@ const TaxSettingsForm = ({
     submitData.append('status', formData.status)
 
     const result = await onSave(submitData)
-    
+
     if (result?.success) {
       router.push('/settings/tax-settings-list')
     }
@@ -115,7 +115,7 @@ const TaxSettingsForm = ({
 
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Tax Name"
@@ -129,7 +129,7 @@ const TaxSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Tax Rate"
@@ -145,7 +145,7 @@ const TaxSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth error={!!errors.type}>
                 <InputLabel>Tax Type</InputLabel>
                 <Select
@@ -164,7 +164,7 @@ const TaxSettingsForm = ({
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -179,7 +179,7 @@ const TaxSettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
                 <Button
                   variant="outlined"

@@ -1,14 +1,5 @@
 import { useState, useCallback } from 'react'
-import * as accountActions from '@/app/(dashboard)/settings/account-settings/actions'
-import * as companyActions from '@/app/(dashboard)/settings/company-settings/actions'
-import * as passwordActions from '@/app/(dashboard)/settings/change-password/actions'
-import * as invoiceSettingsActions from '@/app/(dashboard)/settings/invoice-settings/actions'
-import * as emailSettingsActions from '@/app/(dashboard)/settings/email-settings/actions'
-import * as notificationSettingsActions from '@/app/(dashboard)/settings/notification-settings/actions'
-import * as paymentSettingsActions from '@/app/(dashboard)/settings/payment-settings/actions'
-import * as preferenceSettingsActions from '@/app/(dashboard)/settings/preference-settings/actions'
-import * as taxSettingsActions from '@/app/(dashboard)/settings/tax-settings/actions'
-import * as bankSettingsActions from '@/app/(dashboard)/settings/bank-settings/actions'
+import * as settingsActions from '@/app/(dashboard)/settings/actions'
 
 /**
  * Settings Handlers Hook
@@ -29,19 +20,19 @@ export const useSettingsHandlers = (initialData = {}) => {
       try {
         const result = await accountActions.getAccountSettings()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             accountSettings: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -50,21 +41,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async updateAccountSettings(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await accountActions.updateAccountSettings(formData)
+        const result = await settingsActions.updateAccountSettings(formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             accountSettings: result.data,
-            updating: false 
+            updating: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -76,21 +67,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async loadCompanySettings() {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await companyActions.getCompanySettings()
+        const result = await settingsActions.getCompanySettings()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             companySettings: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -99,21 +90,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async updateCompanySettings(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await companyActions.updateCompanySettings(formData)
+        const result = await settingsActions.updateCompanySettings(formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             companySettings: result.data,
-            updating: false 
+            updating: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -125,14 +116,14 @@ export const useSettingsHandlers = (initialData = {}) => {
     async changePassword(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await passwordActions.changePassword(formData)
+        const result = await settingsActions.changePassword(formData)
         setState(prev => ({ ...prev, updating: false }))
         return result
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -144,21 +135,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async loadInvoiceSettings() {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await invoiceSettingsActions.getInvoiceSettings()
+        const result = await settingsActions.getInvoiceSettings()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             invoiceSettings: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -167,21 +158,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async updateInvoiceSettings(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await invoiceSettingsActions.updateInvoiceSettings(formData)
+        const result = await settingsActions.updateInvoiceSettings(formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             invoiceSettings: result.data,
-            updating: false 
+            updating: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -193,21 +184,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async loadPaymentSettings() {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await paymentSettingsActions.getPaymentSettings()
+        const result = await settingsActions.getPaymentSettings()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             paymentSettings: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -216,21 +207,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async updatePaymentSettings(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await paymentSettingsActions.updatePaymentSettings(formData)
+        const result = await settingsActions.updatePaymentSettings(formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             paymentSettings: result.data,
-            updating: false 
+            updating: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -242,21 +233,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async loadPreferenceSettings() {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await preferenceSettingsActions.getPreferenceSettings()
+        const result = await settingsActions.getPreferenceSettings()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             preferenceSettings: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -265,21 +256,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async updatePreferenceSettings(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await preferenceSettingsActions.updatePreferenceSettings(formData)
+        const result = await settingsActions.updatePreferenceSettings(formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             preferenceSettings: result.data,
-            updating: false 
+            updating: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -288,21 +279,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     loadCurrencies: useCallback(async () => {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await preferenceSettingsActions.getCurrencies()
+        const result = await settingsActions.getCurrencies()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             currencies: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -314,21 +305,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async loadEmailSettings() {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await emailSettingsActions.getEmailSettings()
+        const result = await settingsActions.getEmailSettings()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             emailSettings: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -337,21 +328,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async updateEmailSettings(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await emailSettingsActions.updateEmailSettings(formData)
+        const result = await settingsActions.updateEmailSettings(formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             emailSettings: result.data,
-            updating: false 
+            updating: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -363,21 +354,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async loadNotificationSettings() {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await notificationSettingsActions.getNotificationSettings()
+        const result = await settingsActions.getNotificationSettings()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             notificationSettings: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -386,21 +377,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async updateNotificationSettings(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await notificationSettingsActions.updateNotificationSettings(formData)
+        const result = await settingsActions.updateNotificationSettings(formData)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             notificationSettings: result.data,
-            updating: false 
+            updating: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -412,26 +403,26 @@ export const useSettingsHandlers = (initialData = {}) => {
     async loadTaxes() {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await taxSettingsActions.getTaxSettings()
+        const result = await settingsActions.getTaxSettings()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             taxes: result.data?.data || [],
             taxPagination: {
               page: 0,
               totalCount: result.data?.totalCount || 0,
               limit: 10
             },
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -440,7 +431,7 @@ export const useSettingsHandlers = (initialData = {}) => {
     async addTax(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await taxSettingsActions.addTaxSettings(formData)
+        const result = await settingsActions.addTaxSettings(formData)
         if (result.success) {
           // Reload taxes after adding
           await this.loadTaxes()
@@ -449,10 +440,10 @@ export const useSettingsHandlers = (initialData = {}) => {
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -461,7 +452,7 @@ export const useSettingsHandlers = (initialData = {}) => {
     async updateTax(id, formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await taxSettingsActions.updateTaxSettings(id, formData)
+        const result = await settingsActions.updateTaxSettings(id, formData)
         if (result.success) {
           // Reload taxes after updating
           await this.loadTaxes()
@@ -470,10 +461,10 @@ export const useSettingsHandlers = (initialData = {}) => {
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -482,7 +473,7 @@ export const useSettingsHandlers = (initialData = {}) => {
     async deleteTax(ids) {
       setState(prev => ({ ...prev, deleting: true, error: null }))
       try {
-        const result = await taxSettingsActions.deleteTaxSettings(ids)
+        const result = await settingsActions.deleteTaxSettings(ids)
         if (result.success) {
           // Reload taxes after deleting
           await this.loadTaxes()
@@ -491,10 +482,10 @@ export const useSettingsHandlers = (initialData = {}) => {
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          deleting: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          deleting: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -503,21 +494,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async getTaxById(id) {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await taxSettingsActions.getTaxById(id)
+        const result = await settingsActions.getTaxById(id)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             currentTax: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -533,26 +524,26 @@ export const useSettingsHandlers = (initialData = {}) => {
     async loadBanks() {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await bankSettingsActions.getBankSettings()
+        const result = await settingsActions.getBankSettings()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             banks: result.data?.data || [],
             bankPagination: {
               page: 0,
               totalCount: result.data?.totalCount || 0,
               limit: 10
             },
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -561,7 +552,7 @@ export const useSettingsHandlers = (initialData = {}) => {
     async addBank(formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await bankSettingsActions.addBankSettings(formData)
+        const result = await settingsActions.addBankSettings(formData)
         if (result.success) {
           await this.loadBanks()
           setState(prev => ({ ...prev, updating: false }))
@@ -569,10 +560,10 @@ export const useSettingsHandlers = (initialData = {}) => {
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -581,7 +572,7 @@ export const useSettingsHandlers = (initialData = {}) => {
     async updateBank(id, formData) {
       setState(prev => ({ ...prev, updating: true, error: null }))
       try {
-        const result = await bankSettingsActions.updateBankSettings(id, formData)
+        const result = await settingsActions.updateBankSettings(id, formData)
         if (result.success) {
           await this.loadBanks()
           setState(prev => ({ ...prev, updating: false }))
@@ -589,10 +580,10 @@ export const useSettingsHandlers = (initialData = {}) => {
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -601,7 +592,7 @@ export const useSettingsHandlers = (initialData = {}) => {
     async deleteBank(ids) {
       setState(prev => ({ ...prev, deleting: true, error: null }))
       try {
-        const result = await bankSettingsActions.deleteBankSettings(ids)
+        const result = await settingsActions.deleteBankSettings(ids)
         if (result.success) {
           await this.loadBanks()
           setState(prev => ({ ...prev, deleting: false }))
@@ -609,10 +600,10 @@ export const useSettingsHandlers = (initialData = {}) => {
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          deleting: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          deleting: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -621,21 +612,21 @@ export const useSettingsHandlers = (initialData = {}) => {
     async getBankById(id) {
       setState(prev => ({ ...prev, loading: true, error: null }))
       try {
-        const result = await bankSettingsActions.getBankById(id)
+        const result = await settingsActions.getBankById(id)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             currentBank: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }

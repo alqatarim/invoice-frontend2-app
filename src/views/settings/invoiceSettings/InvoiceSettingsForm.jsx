@@ -109,13 +109,13 @@ const InvoiceSettingsForm = ({
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3}>
             {/* Invoice Configuration */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="h6" gutterBottom>
                 Invoice Configuration
               </Typography>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Invoice Prefix"
@@ -127,13 +127,13 @@ const InvoiceSettingsForm = ({
             </Grid>
 
             {/* Invoice Logo */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
                 Invoice Logo
               </Typography>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Card variant="outlined">
                 <CardContent>
                   <Typography variant="subtitle1" gutterBottom>
@@ -186,7 +186,7 @@ const InvoiceSettingsForm = ({
             </Grid>
 
             {/* Action Buttons */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box display="flex" gap={2} justifyContent="flex-end" sx={{ mt: 3 }}>
                 <Button
                   variant="outlined"

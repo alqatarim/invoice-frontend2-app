@@ -187,6 +187,7 @@ export const profileAddressInfoIcons = {
 
 // Settings tabs for the settings page - matching old implementation exactly
 export const settingsTabs = [
+  { value: 'account', label: 'Account Settings', icon: 'ri-user-settings-line' },
   { value: 'company', label: 'Company Settings', icon: 'ri-building-line' },
   { value: 'changePassword', label: 'Change Password', icon: 'ri-shield-user-line' },
   { value: 'notification', label: 'Notifications', icon: 'ri-notification-3-line' },

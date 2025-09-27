@@ -24,15 +24,27 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 
 const companySettingsSchema = yup.object({
-  companyName: yup.string().required('Company name is required'),
-  email: yup.string().email('Invalid email').required('Email is required'),
-  phone: yup.string().required('Phone number is required'),
-  addressLine1: yup.string().required('Address Line 1 is required'),
+  companyName: yup.string().required('Enter Company Name'),
+  email: yup
+    .string()
+    .email('Email must be a valid email')
+    .required('Enter Company Email'),
+  phone: yup
+    .string()
+    .required('Enter Phone number')
+    .min(10, 'Phone Number Must Be At Least 10 Digits')
+    .max(10, 'Phone Number Must Be At Most 10 Digits')
+    .matches(/^\+?[1-9]\d*$/, 'Invalid phone number'),
+  addressLine1: yup
+    .string()
+    .required('Enter Address Line 1')
+    .min(4, 'Address Line 1 Must Be At Least 6 Characters')
+    .max(30, 'Address Line 1 Must Be At Most 30 Characters'),
   addressLine2: yup.string(),
-  city: yup.string().required('City is required'),
-  state: yup.string().required('State is required'),
-  country: yup.string().required('Country is required'),
-  pincode: yup.string().required('Pincode is required')
+  city: yup.string().required('Enter City Name'),
+  state: yup.string().required('Enter State Name'),
+  country: yup.string().required('Enter Country Name'),
+  pincode: yup.string()
 })
 
 const CompanySettingsForm = ({
@@ -182,13 +194,13 @@ const CompanySettingsForm = ({
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={6}>
             {/* Company Information */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="h6" gutterBottom>
                 Company Information
               </Typography>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Company Name"
@@ -199,7 +211,7 @@ const CompanySettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Company Email"
@@ -211,7 +223,7 @@ const CompanySettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Phone"
@@ -222,7 +234,7 @@ const CompanySettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Address Line 1"
@@ -233,7 +245,7 @@ const CompanySettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Address Line 2"
@@ -243,7 +255,7 @@ const CompanySettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="City"
@@ -254,7 +266,7 @@ const CompanySettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="State"
@@ -265,7 +277,7 @@ const CompanySettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Country"
@@ -276,7 +288,7 @@ const CompanySettingsForm = ({
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Pincode"
@@ -288,13 +300,13 @@ const CompanySettingsForm = ({
             </Grid>
 
             {/* Logo and Favicon Section */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
                 Company Branding
               </Typography>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Card variant="outlined">
                 <CardContent>
                   <Typography variant="subtitle1" gutterBottom>
@@ -346,7 +358,7 @@ const CompanySettingsForm = ({
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card variant="outlined">
                 <CardContent>
                   <Typography variant="subtitle1" gutterBottom>
@@ -398,7 +410,7 @@ const CompanySettingsForm = ({
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card variant="outlined">
                 <CardContent>
                   <Typography variant="subtitle1" gutterBottom>
@@ -451,7 +463,7 @@ const CompanySettingsForm = ({
             </Grid>
 
             {/* Action Buttons */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box display="flex" gap={2} justifyContent="flex-end" sx={{ mt: 3 }}>
                 <Button
                   variant="outlined"

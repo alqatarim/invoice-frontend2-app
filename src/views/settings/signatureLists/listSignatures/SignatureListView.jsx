@@ -234,7 +234,7 @@ const SignatureListView = ({
   const filteredSignatures = getFilteredSignatures();
 
   // Simple computed values - no memoization needed for these
-  const signatureNameOptions = signatures.map(sig => ({ value: sig._id, label: sig.signatureName }));
+  const signatureNameOptions = (signatures || []).map(sig => ({ value: sig._id, label: sig.signatureName }));
   const columns = getSignatureColumns({ theme });
 
   // Table columns with handlers
@@ -254,7 +254,7 @@ const SignatureListView = ({
     <div className='flex flex-col gap-5'>
       <Grid container spacing={3}>
         {/* Add Signature Button */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <div className="flex justify-end">
             <Button
               variant="contained"
@@ -267,7 +267,7 @@ const SignatureListView = ({
         </Grid>
 
         {/* Filter Component */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <SignatureFilter
             onChange={handleFilterValueChange}
             onApply={handleFilterApply}
@@ -280,7 +280,7 @@ const SignatureListView = ({
         </Grid>
 
         {/* Signatures Table */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CustomListTable
               columns={tableColumns}

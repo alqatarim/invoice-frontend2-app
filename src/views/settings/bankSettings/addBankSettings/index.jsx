@@ -5,17 +5,17 @@ import BankSettingsForm from '../shared/BankSettingsForm'
 import SettingsLayout from '../../shared/SettingsLayout'
 
 const AddBankSettingsIndex = () => {
-  const { 
-    state, 
-    actionHandlers 
+  const {
+    state,
+    actionHandlers
   } = useBankSettingsHandlers()
 
   return (
     <SettingsLayout
       title="Add Bank Account"
       breadcrumb={[
-        { label: 'Settings', href: '/settings' },
-        { label: 'Bank Settings', href: '/settings/bank-settings/list' },
+        { label: 'Settings', href: '/settings?tab=bank' },
+        { label: 'Bank Settings', href: '/settings?tab=bank' },
         { label: 'Add Bank Account', current: true }
       ]}
     >

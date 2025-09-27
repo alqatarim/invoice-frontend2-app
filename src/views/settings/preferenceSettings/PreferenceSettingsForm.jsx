@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect } from 'react'
-import { 
-  Box, 
-  Grid, 
-  TextField, 
-  Button, 
-  Typography, 
+import {
+  Box,
+  Grid,
+  TextField,
+  Button,
+  Typography,
   Alert,
   CircularProgress,
   Card,
@@ -32,15 +32,15 @@ const preferenceSettingsSchema = yup.object({
   enablePushNotifications: yup.boolean()
 })
 
-const PreferenceSettingsForm = ({ 
-  preferenceSettings = {}, 
+const PreferenceSettingsForm = ({
+  preferenceSettings = {},
   currencies = [],
-  loading = false, 
-  updating = false, 
-  error = null, 
-  onUpdate, 
+  loading = false,
+  updating = false,
+  error = null,
+  onUpdate,
   onRefresh,
-  onLoadCurrencies 
+  onLoadCurrencies
 }) => {
   const {
     register,
@@ -88,11 +88,11 @@ const PreferenceSettingsForm = ({
 
   const onSubmit = async (data) => {
     const formData = new FormData()
-    
+
     Object.keys(data).forEach(key => {
       formData.append(key, data[key])
     })
-    
+
     await onUpdate(formData)
   }
 
@@ -140,15 +140,15 @@ const PreferenceSettingsForm = ({
 
       <Grid container spacing={3}>
         {/* Regional Settings */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Regional Settings
               </Typography>
-              
+
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Currency"
@@ -168,7 +168,7 @@ const PreferenceSettingsForm = ({
                   </TextField>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Timezone"
@@ -185,7 +185,7 @@ const PreferenceSettingsForm = ({
                   </TextField>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Language"
@@ -202,7 +202,7 @@ const PreferenceSettingsForm = ({
                   </TextField>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Number Format"
@@ -222,15 +222,15 @@ const PreferenceSettingsForm = ({
         </Grid>
 
         {/* Date & Time Settings */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Date & Time Settings
               </Typography>
-              
+
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Date Format"
@@ -246,7 +246,7 @@ const PreferenceSettingsForm = ({
                   </TextField>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Time Format"
@@ -265,15 +265,15 @@ const PreferenceSettingsForm = ({
         </Grid>
 
         {/* Notification Preferences */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Notification Preferences
               </Typography>
-              
+
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
+                <Grid size={{ xs: 12, sm: 4 }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -286,7 +286,7 @@ const PreferenceSettingsForm = ({
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={4}>
+                <Grid size={{ xs: 12, sm: 4 }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -299,7 +299,7 @@ const PreferenceSettingsForm = ({
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={4}>
+                <Grid size={{ xs: 12, sm: 4 }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -317,7 +317,7 @@ const PreferenceSettingsForm = ({
         </Grid>
 
         {/* Actions */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Box display="flex" gap={2}>
             <Button
               type="submit"

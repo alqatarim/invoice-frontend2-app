@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect } from 'react'
-import { 
-  Box, 
-  Grid, 
-  TextField, 
-  Button, 
-  Typography, 
+import {
+  Box,
+  Grid,
+  TextField,
+  Button,
+  Typography,
   Alert,
   CircularProgress,
   Card,
@@ -37,7 +37,7 @@ const paymentSettingsSchema = yup.object({
   }),
   stripeWebhookSecret: yup.string(),
   stripeTestMode: yup.boolean(),
-  
+
   // PayPal Settings
   enablePaypal: yup.boolean(),
   paypalClientId: yup.string().when('enablePaypal', {
@@ -51,7 +51,7 @@ const paymentSettingsSchema = yup.object({
     otherwise: (schema) => schema
   }),
   paypalSandboxMode: yup.boolean(),
-  
+
   // General Settings
   defaultPaymentMethod: yup.string(),
   paymentTerms: yup.string(),
@@ -59,13 +59,13 @@ const paymentSettingsSchema = yup.object({
   enableLateFees: yup.boolean()
 })
 
-const PaymentSettingsForm = ({ 
-  paymentSettings = {}, 
-  loading = false, 
-  updating = false, 
-  error = null, 
-  onUpdate, 
-  onRefresh 
+const PaymentSettingsForm = ({
+  paymentSettings = {},
+  loading = false,
+  updating = false,
+  error = null,
+  onUpdate,
+  onRefresh
 }) => {
   const {
     register,
@@ -119,11 +119,11 @@ const PaymentSettingsForm = ({
 
   const onSubmit = async (data) => {
     const formData = new FormData()
-    
+
     Object.keys(data).forEach(key => {
       formData.append(key, data[key])
     })
-    
+
     await onUpdate(formData)
   }
 
@@ -145,15 +145,15 @@ const PaymentSettingsForm = ({
 
       <Grid container spacing={3}>
         {/* General Payment Settings */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 General Payment Settings
               </Typography>
-              
+
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Default Payment Method"
@@ -172,7 +172,7 @@ const PaymentSettingsForm = ({
                   </TextField>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Payment Terms"
@@ -190,7 +190,7 @@ const PaymentSettingsForm = ({
                   </TextField>
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -204,7 +204,7 @@ const PaymentSettingsForm = ({
                 </Grid>
 
                 {watchEnableLateFees && (
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Late Fee Percentage (%)"
@@ -222,7 +222,7 @@ const PaymentSettingsForm = ({
         </Grid>
 
         {/* Stripe Settings */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Box display="flex" alignItems="center" gap={2}>
@@ -246,7 +246,7 @@ const PaymentSettingsForm = ({
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Publishable Key"
@@ -258,7 +258,7 @@ const PaymentSettingsForm = ({
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Secret Key"
@@ -271,7 +271,7 @@ const PaymentSettingsForm = ({
                   />
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Webhook Secret (Optional)"
@@ -283,7 +283,7 @@ const PaymentSettingsForm = ({
                   />
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -302,7 +302,7 @@ const PaymentSettingsForm = ({
         </Grid>
 
         {/* PayPal Settings */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Box display="flex" alignItems="center" gap={2}>
@@ -326,7 +326,7 @@ const PaymentSettingsForm = ({
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Client ID"
@@ -337,7 +337,7 @@ const PaymentSettingsForm = ({
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Client Secret"
@@ -349,7 +349,7 @@ const PaymentSettingsForm = ({
                   />
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <FormControlLabel
                     control={
                       <Switch
@@ -368,7 +368,7 @@ const PaymentSettingsForm = ({
         </Grid>
 
         {/* Actions */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Box display="flex" gap={2}>
             <Button
               type="submit"

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import * as invoiceTemplatesActions from '@/app/(dashboard)/settings/invoice-templates/actions'
+import * as invoiceTemplatesActions from '@/app/(dashboard)/settings/actions'
 
 /**
  * Invoice Template Handlers Hook
@@ -20,19 +20,19 @@ export const useInvoiceTemplateHandlers = (initialData = {}) => {
       try {
         const result = await invoiceTemplatesActions.getDefaultInvoiceTemplate()
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             defaultTemplate: result.data,
-            loading: false 
+            loading: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }
@@ -43,19 +43,19 @@ export const useInvoiceTemplateHandlers = (initialData = {}) => {
       try {
         const result = await invoiceTemplatesActions.updateDefaultInvoiceTemplate(templateId)
         if (result.success) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             defaultTemplate: result.data,
-            updating: false 
+            updating: false
           }))
           return result
         }
         throw new Error(result.message)
       } catch (error) {
-        setState(prev => ({ 
-          ...prev, 
-          updating: false, 
-          error: error.message 
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          error: error.message
         }))
         return { success: false, message: error.message }
       }

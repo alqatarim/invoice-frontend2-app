@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { 
-  Box, 
-  Grid, 
-  TextField, 
-  Button, 
-  Typography, 
+import {
+  Box,
+  Grid,
+  TextField,
+  Button,
+  Typography,
   Alert,
   CircularProgress,
   Card,
@@ -49,16 +49,16 @@ const emailSettingsSchema = yup.object({
   enableStartTls: yup.boolean()
 })
 
-const EmailSettingsForm = ({ 
-  emailSettings = {}, 
-  loading = false, 
-  updating = false, 
-  error = null, 
-  onUpdate, 
-  onRefresh 
+const EmailSettingsForm = ({
+  emailSettings = {},
+  loading = false,
+  updating = false,
+  error = null,
+  onUpdate,
+  onRefresh
 }) => {
   const [testEmailSent, setTestEmailSent] = useState(false)
-  
+
   const {
     register,
     handleSubmit,
@@ -103,11 +103,11 @@ const EmailSettingsForm = ({
 
   const onSubmit = async (data) => {
     const formData = new FormData()
-    
+
     Object.keys(data).forEach(key => {
       formData.append(key, data[key])
     })
-    
+
     const result = await onUpdate(formData)
     if (result?.success) {
       setTestEmailSent(false)
@@ -145,15 +145,15 @@ const EmailSettingsForm = ({
 
       <Grid container spacing={3}>
         {/* Email Provider Settings */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Email Provider Settings
               </Typography>
-              
+
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Provider Type"
@@ -169,7 +169,7 @@ const EmailSettingsForm = ({
 
                 {watchProviderType === 'SMTP' && (
                   <>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
                         fullWidth
                         label="SMTP Host"
@@ -180,7 +180,7 @@ const EmailSettingsForm = ({
                       />
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
                         fullWidth
                         label="SMTP Port"
@@ -192,7 +192,7 @@ const EmailSettingsForm = ({
                       />
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
                         fullWidth
                         label="SMTP Username"
@@ -202,7 +202,7 @@ const EmailSettingsForm = ({
                       />
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
                         fullWidth
                         label="SMTP Password"
@@ -213,7 +213,7 @@ const EmailSettingsForm = ({
                       />
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <FormControlLabel
                         control={
                           <Switch
@@ -226,7 +226,7 @@ const EmailSettingsForm = ({
                       />
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <FormControlLabel
                         control={
                           <Switch
@@ -246,15 +246,15 @@ const EmailSettingsForm = ({
         </Grid>
 
         {/* Email Configuration */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Email Configuration
               </Typography>
-              
+
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="From Email"
@@ -266,7 +266,7 @@ const EmailSettingsForm = ({
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="From Name"
@@ -277,7 +277,7 @@ const EmailSettingsForm = ({
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Reply-To Email (Optional)"
@@ -294,7 +294,7 @@ const EmailSettingsForm = ({
         </Grid>
 
         {/* Actions */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Box display="flex" gap={2} flexWrap="wrap">
             <Button
               type="submit"
@@ -304,7 +304,7 @@ const EmailSettingsForm = ({
             >
               {updating ? 'Updating...' : 'Update Email Settings'}
             </Button>
-            
+
             <Button
               variant="outlined"
               onClick={onRefresh}
@@ -327,14 +327,14 @@ const EmailSettingsForm = ({
         </Grid>
 
         {/* Help Information */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Alert severity="info">
             <Typography variant="subtitle2" gutterBottom>
               Email Configuration Help
             </Typography>
             <Typography variant="body2">
-              • <strong>Node.js Provider:</strong> Uses the default server email configuration<br/>
-              • <strong>SMTP Provider:</strong> Use your custom SMTP server (Gmail, Outlook, etc.)<br/>
+              • <strong>Node.js Provider:</strong> Uses the default server email configuration<br />
+              • <strong>SMTP Provider:</strong> Use your custom SMTP server (Gmail, Outlook, etc.)<br />
               • <strong>Gmail Users:</strong> Use smtp.gmail.com, port 587, and enable 2-factor authentication with app passwords
             </Typography>
           </Alert>

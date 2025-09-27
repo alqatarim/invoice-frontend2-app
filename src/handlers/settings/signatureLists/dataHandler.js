@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react';
-import { getInitialSignaturesData } from '@/app/(dashboard)/settings/signatures/actions';
+import { getInitialSignaturesData } from '@/app/(dashboard)/settings/actions';
 
 /**
  * Data handler for signature lists - manages state and pagination

@@ -36,9 +36,7 @@ export async function updateAccountSettings(formData) {
  */
 export async function getCompanySettings() {
   try {
-    const response = await fetchWithAuth(endPoints.CompanysettingView, {
-      method: 'GET'
-    })
+    const response = await fetchWithAuth(`/companySettings/viewCompanySetting`)
     return { success: true, data: response.data }
   } catch (error) {
     console.error('Error fetching company settings:', error)
@@ -98,7 +96,7 @@ export async function getInvoiceSettings() {
 
 export async function updateInvoiceSettings(formData) {
   try {
-    const response = await fetchWithAuth(endPoints.InvoiceSettingsupdate, {
+    const response = await fetchWithAuth(endPoints.InvoiceSettingsUpdate, {
       method: 'PUT',
       body: formData
     })
@@ -208,6 +206,11 @@ export async function getBankSettings() {
   }
 }
 
+// Alias for compatibility
+export async function getInitialBankSettingsData() {
+  return getBankSettings()
+}
+
 export async function getBankById(id) {
   try {
     const response = await fetchWithAuth(`${endPoints.BankSettings.View}/${id}`, {
@@ -277,6 +280,11 @@ export async function getTaxSettings() {
   }
 }
 
+// Alias for compatibility
+export async function getInitialTaxSettingsData() {
+  return getTaxSettings()
+}
+
 export async function getTaxById(id) {
   try {
     const response = await fetchWithAuth(`${endPoints.TaxRateAPI.View}/${id}`, {
@@ -342,6 +350,28 @@ export async function getSignatures() {
     return { success: true, data: response.data }
   } catch (error) {
     console.error('Error fetching signatures:', error)
+    return { success: false, message: error.message }
+  }
+}
+
+// Alias for compatibility
+export async function getInitialSignaturesData() {
+  return getSignatures()
+}
+
+// Alternative delete function for multiple signatures
+export async function deleteSignatures(ids) {
+  try {
+    const response = await fetchWithAuth(endPoints.signatures_api.Delete, {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    return { success: true, data: response.data }
+  } catch (error) {
+    console.error('Error deleting signatures:', error)
     return { success: false, message: error.message }
   }
 }

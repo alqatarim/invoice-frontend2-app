@@ -12,8 +12,7 @@ const ENDPOINTS = {
     UPDATE: '/quotation/updateQuotation',
     DELETE: '/quotation/deleteQuotation',
     GET_QUOTATION_NUMBER: '/quotation/getQuotationNumber',
-    UPDATE_STATUS: '/quotation/update_status',
-    CONVERT_TO_INVOICE: '/quotation/convertToInvoice'
+    UPDATE_STATUS: '/quotation/update_status'
   },
   LIST: {
     CUSTOMER_LIST: '/customers/listCustomers',
@@ -265,29 +264,51 @@ export async function updateQuotationStatus(id, status) {
   }
 }
 
-export async function convertToInvoice(id) {
+export async function convertToInvoice(id, paymentMethod = 'Cash') {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.QUOTATION.CONVERT_TO_INVOICE}/${id}`, {
+    const response = await fetchWithAuth('/quotation/convertInvoice', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify({
+        _id: id,
+        isRecurring: false,
+        recurringCycle: "0",
+        payment_method: paymentMethod
+      })
     });
 
-    if (response.code !== 200) {
-      throw new Error(response?.message || 'Failed to convert quotation to invoice');
+    // Handle success case
+    if (response.code === 200) {
+      revalidatePath('/quotations');
+      revalidatePath('/invoices');
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || 'Quotation converted to invoice successfully'
+      };
     }
 
-    revalidatePath('/quotations');
-    revalidatePath('/invoices');
-    return {
-      success: true,
-      data: response.data,
-      message: 'Quotation converted to invoice successfully'
-    };
+    // Handle validation errors (inventory insufficient)
+    if (response.code === 422 || response.code === 400) {
+      return {
+        success: false,
+        message: response.message || 'Validation error occurred'
+      };
+    }
+
+    // Handle other error cases
+    throw new Error(response?.message || 'Failed to convert quotation to invoice');
+
   } catch (error) {
     console.error('Error converting quotation to invoice:', error);
-    return { success: false, message: error.message };
+
+    // Return structured error response
+    return {
+      success: false,
+      message: error.message || 'An unexpected error occurred while converting the quotation'
+    };
   }
 }
 

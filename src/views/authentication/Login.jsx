@@ -115,31 +115,34 @@ const Login = ({ mode }) => {
 
     setSnackbar({ open: true, message: 'Logging In...', status: 'loading' })
 
-      const res = await signIn('credentials', {
-        email: data.email,
-        password: data.password,
-        redirect: false
-      })
-      console.log('loggin in now')
+    const res = await signIn('credentials', {
+      email: data.email,
+      password: data.password,
+      redirect: false
+    })
+    console.log('loggin in now')
 
-      if (res && res.ok && res.error === null) {
+    if (res && res.ok && res.error === null) {
 
-        setSnackbar({ open: true, message: 'Login Successful', status: 'success' })
+      setSnackbar({ open: true, message: 'Login Successful', status: 'success' })
 
-         // Vars
+      // Vars
       const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
 
-      router.replace(getLocalizedUrl(redirectURL, locale))
+      // Small delay to ensure session is established before redirect
+      setTimeout(() => {
+        router.replace(getLocalizedUrl(redirectURL, locale))
+      }, 1000)
 
-        } else {
-          if (res?.error) {
-            const error = res.error
+    } else {
+      if (res?.error) {
+        const error = res.error
 
-            setSnackbar({ open: true, message: `An error occurred: ${error}`, status: 'error' })
-            setErrorState(error)
-        }
+        setSnackbar({ open: true, message: `An error occurred: ${error}`, status: 'error' })
+        setErrorState(error)
       }
-      }
+    }
+  }
 
 
   const handleCloseSnackbar = (event, reason) => {

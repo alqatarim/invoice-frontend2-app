@@ -192,7 +192,7 @@ const SignatureFilter = ({
         <div className="p-6">
           <Grid container spacing={4}>
             {/* Status Filter Section */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <ToggleButtonGroup
                 color="primary"
                 value={tab}
@@ -214,7 +214,7 @@ const SignatureFilter = ({
             </Grid>
 
             {/* Signature Name Filter */}
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <MultiSelectDropdown
                 id="signature-name-select"
                 label="Signature Names"

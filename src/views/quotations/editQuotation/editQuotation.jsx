@@ -612,6 +612,13 @@ const EditQuotation = ({
                                              )}
                                         />
                                    </Grid>
+
+                                   {/* Customer */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 8, lg: 6 }}>
+                                        <CustomerAutocomplete control={control} errors={errors} customersData={customers} />
+                                   </Grid>
+
+
                                    {/* Terms & Conditions */}
                                    <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                                         <Button
@@ -621,10 +628,6 @@ const EditQuotation = ({
                                         >
                                              Terms & Conditions
                                         </Button>
-                                   </Grid>
-                                   {/* Customer */}
-                                   <Grid size={{ xs: 12, sm: 6, md: 8, lg: 6 }}>
-                                        <CustomerAutocomplete control={control} errors={errors} customersData={customers} />
                                    </Grid>
                               </Grid>
                          </CardContent>

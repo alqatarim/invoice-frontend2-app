@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 
 // Component Imports
 import InvoiceSettingsForm from './InvoiceSettingsForm'
-import { getInvoiceSettings, updateInvoiceSettings } from '@/app/(dashboard)/settings/invoice-settings/actions'
+import { getInvoiceSettings, updateInvoiceSettings } from '@/app/(dashboard)/settings/actions'
 
 const InvoiceSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
   const [invoiceSettings, setInvoiceSettings] = useState(initialData.invoiceSettings || {})

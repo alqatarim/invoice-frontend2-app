@@ -6,7 +6,7 @@ import {
   deleteSignatures,
   setDefaultSignature,
   updateSignatureStatus,
-} from '@/app/(dashboard)/settings/signatures/actions';
+} from '@/app/(dashboard)/settings/actions';
 
 /**
  * Signature actions handler - manages all signature-related CRUD actions.

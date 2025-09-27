@@ -5,9 +5,9 @@ import InvoiceSettingsForm from './InvoiceSettingsForm'
 import SettingsLayout from '../shared/SettingsLayout'
 
 const InvoiceSettingsIndex = ({ initialData = {} }) => {
-  const { 
-    state, 
-    invoiceSettingsHandlers 
+  const {
+    state,
+    invoiceSettingsHandlers
   } = useSettingsHandlers(initialData)
 
   return (

@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { 
-  Box, 
-  Grid, 
-  TextField, 
-  Button, 
-  Typography, 
+import {
+  Box,
+  Grid,
+  TextField,
+  Button,
+  Typography,
   Alert,
   CircularProgress,
   InputAdornment,
@@ -19,23 +19,35 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 
+// Password validation patterns
+const lowerCase = /[a-z]/
+const upperCase = /[A-Z]/
+const numberRgx = /[0-9]/
+const specialCharacters = /[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/
+
 const changePasswordSchema = yup.object({
-  oldPassword: yup.string().required('Current password is required'),
+  oldPassword: yup.string().required('Enter old password'),
   newPassword: yup
     .string()
-    .min(8, 'Password must be at least 8 characters')
-    .required('New password is required'),
+    .required('Enter new password')
+    .min(6, 'Password should be at least 6 characters')
+    .max(10, 'Password should be maximum 10 characters')
+    .matches(specialCharacters, 'At least one special character')
+    .matches(numberRgx, 'Password must contain at least one number')
+    .matches(lowerCase, 'Password must contain at least one lowercase')
+    .matches(upperCase, 'Password must contain at least one uppercase')
+    .trim(),
   confirmPassword: yup
     .string()
-    .oneOf([yup.ref('newPassword')], 'Passwords must match')
-    .required('Please confirm your password')
+    .required('Enter confirm password')
+    .oneOf([yup.ref('newPassword')], 'Password does not match')
 })
 
-const ChangePasswordForm = ({ 
-  loading = false, 
-  updating = false, 
-  error = null, 
-  onChangePassword 
+const ChangePasswordForm = ({
+  loading = false,
+  updating = false,
+  error = null,
+  onChangePassword
 }) => {
   const [showPasswords, setShowPasswords] = useState({
     old: false,
@@ -70,7 +82,7 @@ const ChangePasswordForm = ({
     const formData = new FormData()
     formData.append('oldPassword', data.oldPassword)
     formData.append('newPassword', data.newPassword)
-    
+
     const result = await onChangePassword(formData)
     if (result?.success) {
       setSuccess(true)
@@ -107,7 +119,7 @@ const ChangePasswordForm = ({
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Current Password"
@@ -130,14 +142,14 @@ const ChangePasswordForm = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="New Password"
                 type={showPasswords.new ? 'text' : 'password'}
                 {...register('newPassword')}
                 error={!!errors.newPassword}
-                helperText={errors.newPassword?.message || 'Password must be at least 8 characters long'}
+                helperText={errors.newPassword?.message || 'Password must be at least 6 characters long'}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -153,7 +165,7 @@ const ChangePasswordForm = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Confirm New Password"
@@ -176,7 +188,7 @@ const ChangePasswordForm = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box display="flex" gap={2}>
                 <Button
                   type="submit"

@@ -33,7 +33,10 @@ import {
      useMediaQuery,
      Grid,
      Snackbar,
-     Alert
+     Alert,
+     FormControl,
+     InputLabel,
+     Select
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { useSession } from 'next-auth/react';
@@ -60,6 +63,16 @@ const formatNumber = (value) => {
      return isNaN(num) ? '0.00' : Number(num).toFixed(2);
 };
 
+// Payment method options
+const paymentMethodOptions = [
+     { value: 'Cash', label: 'Cash' },
+     { value: 'Credit Card', label: 'Credit Card' },
+     { value: 'Debit Card', label: 'Debit Card' },
+     { value: 'Bank Transfer', label: 'Bank Transfer' },
+     { value: 'Check', label: 'Check' },
+     { value: 'Online', label: 'Online Payment' }
+];
+
 const ListQuotation = ({ initialData, customers }) => {
      const theme = useTheme();
      const router = useRouter();
@@ -67,6 +80,11 @@ const ListQuotation = ({ initialData, customers }) => {
      const { data: session } = useSession();
      const successParam = searchParams.get('success');
      const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
+     // Helper function to check if quotation is expired (defined early)
+     const isExpired = (expiryDate) => {
+          return dayjs(expiryDate).isBefore(dayjs(), 'day');
+     };
 
      // Permissions
      const permissions = {
@@ -92,6 +110,7 @@ const ListQuotation = ({ initialData, customers }) => {
      const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
      const [openConvertDialog, setOpenConvertDialog] = useState(false);
      const [loadingAction, setLoadingAction] = useState(false);
+     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Cash');
 
      // Snackbar state
      const [snackbar, setSnackbar] = useState({
@@ -109,23 +128,23 @@ const ListQuotation = ({ initialData, customers }) => {
           setSnackbar({ open: true, message: msg, severity: 'success' });
      }, []);
 
-     // Calculate manual card counts from the data
+     // Calculate card counts with new categories: Total, Open, Converted, Expired
      const cardCounts = {
-          totalAccepted: {
-               count: quotations.filter(q => q.status === 'ACCEPTED').length,
-               total_sum: quotations.filter(q => q.status === 'ACCEPTED').reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
+          totalQuotations: {
+               count: quotations.length,
+               total_sum: quotations.reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
           },
-          totalDrafted: {
-               count: quotations.filter(q => q.status === 'DRAFTED').length,
-               total_sum: quotations.filter(q => q.status === 'DRAFTED').reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
+          totalOpen: {
+               count: quotations.filter(q => ['Open', 'SENT', 'ACCEPTED', 'DRAFTED'].includes(q.status) && !isExpired(q.due_date)).length,
+               total_sum: quotations.filter(q => ['Open', 'SENT', 'ACCEPTED', 'DRAFTED'].includes(q.status) && !isExpired(q.due_date)).reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
           },
-          totalSent: {
-               count: quotations.filter(q => q.status === 'SENT').length,
-               total_sum: quotations.filter(q => q.status === 'SENT').reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
+          totalConverted: {
+               count: quotations.filter(q => q.status === 'CONVERTED').length,
+               total_sum: quotations.filter(q => q.status === 'CONVERTED').reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
           },
           totalExpired: {
-               count: quotations.filter(q => q.status === 'EXPIRED').length,
-               total_sum: quotations.filter(q => q.status === 'EXPIRED').reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
+               count: quotations.filter(q => q.status === 'EXPIRED' || isExpired(q.due_date)).length,
+               total_sum: quotations.filter(q => q.status === 'EXPIRED' || isExpired(q.due_date)).reduce((sum, q) => sum + (Number(q.TotalAmount) || 0), 0)
           }
      };
 
@@ -199,6 +218,7 @@ const ListQuotation = ({ initialData, customers }) => {
      };
 
      const handleConvertClick = () => {
+          setSelectedPaymentMethod('Cash'); // Reset to default
           setOpenConvertDialog(true);
           handleActionClose();
      };
@@ -206,29 +226,75 @@ const ListQuotation = ({ initialData, customers }) => {
      const handleConvertConfirm = async () => {
           try {
                setLoadingAction(true);
-               const response = await convertToInvoice(selectedQuotation._id);
+               const response = await convertToInvoice(selectedQuotation._id, selectedPaymentMethod);
 
                if (response.success) {
                     setOpenConvertDialog(false);
-                    onSuccess('Quotation converted to invoice successfully!');
-                    // Update status in local state
+
+                    // Show success message with option to view the new invoice
+                    const successMessage = response.message || 'Quotation converted to invoice successfully!';
+                    onSuccess(`${successMessage} You can view it in the Invoices section.`);
+
+                    // Update status in local state to reflect conversion
                     setQuotations(prev => prev.map(q =>
                          q._id === selectedQuotation._id ? { ...q, status: 'CONVERTED' } : q
                     ));
+
+                    // Refresh the page to get updated data after a short delay
+                    setTimeout(() => {
+                         window.location.reload();
+                    }, 2000);
                } else {
-                    throw new Error(response.message || 'Failed to convert quotation to invoice');
+                    // Handle different types of validation errors
+                    if (Array.isArray(response.message)) {
+                         const inventoryErrors = response.message.join(', ');
+                         onError(`Insufficient inventory: ${inventoryErrors}`);
+                    } else if (response.message.includes('already been converted')) {
+                         onError('This quotation has already been converted to an invoice.');
+                    } else if (response.message.includes('expired')) {
+                         onError(`Cannot convert expired quotation: ${response.message}`);
+                    } else if (response.message.includes('not found')) {
+                         onError('Quotation not found. Please refresh the page and try again.');
+                    } else if (response.message.includes('not authorized')) {
+                         onError('You are not authorized to convert this quotation.');
+                    } else if (response.message.includes('Only Open, Sent, Accepted, or Drafted')) {
+                         onError(`${response.message}`);
+                    } else {
+                         onError(response.message || 'Failed to convert quotation to invoice');
+                    }
                }
           } catch (error) {
                console.error('Error converting quotation:', error);
-               onError('Failed to convert quotation: ' + error.message);
+               // Handle different types of errors
+               if (error.message.includes('inventory') || error.message.includes('quantity')) {
+                    onError('Insufficient inventory to convert quotation: ' + error.message);
+               } else {
+                    onError('Failed to convert quotation: ' + error.message);
+               }
           } finally {
                setLoadingAction(false);
                setSelectedQuotation(null);
           }
      };
 
-     const isExpired = (expiryDate) => {
-          return dayjs(expiryDate).isBefore(dayjs(), 'day');
+     const canConvertQuotation = (quotation) => {
+          // Check if quotation is already converted
+          if (quotation?.status === 'CONVERTED') {
+               return { canConvert: false, reason: 'Already converted' };
+          }
+
+          // Check if quotation has expired (either by status or date)
+          if (quotation?.status === 'EXPIRED' || (quotation?.due_date && isExpired(quotation.due_date))) {
+               return { canConvert: false, reason: 'Quotation expired' };
+          }
+
+          // Check if quotation status allows conversion
+          const allowedStatuses = ['Open', 'SENT', 'ACCEPTED', 'DRAFTED'];
+          if (quotation?.status && !allowedStatuses.includes(quotation.status)) {
+               return { canConvert: false, reason: 'Invalid status' };
+          }
+
+          return { canConvert: true, reason: null };
      };
 
      // Define columns for the table
@@ -403,13 +469,45 @@ const ListQuotation = ({ initialData, customers }) => {
                     <Grid container spacing={4}>
                          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                               <HorizontalWithBorder
-                                   title="Total Accepted"
-                                   subtitle="No of Accepted"
+                                   title="Total Quotations"
+                                   subtitle="All Quotations"
                                    titleVariant='h5'
                                    subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalAccepted?.total_sum)}`}
+                                   stats={`$ ${amountFormat(cardCounts.totalQuotations?.total_sum)}`}
                                    statsVariant='h4'
-                                   trendNumber={cardCounts.totalAccepted?.count || 0}
+                                   trendNumber={cardCounts.totalQuotations?.count || 0}
+                                   trendNumberVariant='body1'
+                                   avatarIcon='tabler:file-analytics'
+                                   color="primary"
+                                   iconSize='30px'
+                              />
+                         </Grid>
+
+                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <HorizontalWithBorder
+                                   title="Open Quotations"
+                                   subtitle="Active & Pending"
+                                   titleVariant='h5'
+                                   subtitleVariant='body2'
+                                   stats={`$ ${amountFormat(cardCounts.totalOpen?.total_sum)}`}
+                                   statsVariant='h4'
+                                   trendNumber={cardCounts.totalOpen?.count || 0}
+                                   trendNumberVariant='body1'
+                                   avatarIcon='mdi:file-document-outline'
+                                   color="info"
+                                   iconSize='30px'
+                              />
+                         </Grid>
+
+                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <HorizontalWithBorder
+                                   title="Converted"
+                                   subtitle="To Invoices"
+                                   titleVariant='h5'
+                                   subtitleVariant='body2'
+                                   stats={`$ ${amountFormat(cardCounts.totalConverted?.total_sum)}`}
+                                   statsVariant='h4'
+                                   trendNumber={cardCounts.totalConverted?.count || 0}
                                    trendNumberVariant='body1'
                                    avatarIcon='mdi:check-circle-outline'
                                    color="success"
@@ -419,24 +517,8 @@ const ListQuotation = ({ initialData, customers }) => {
 
                          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                               <HorizontalWithBorder
-                                   title="Total Sent"
-                                   subtitle="No of Sent"
-                                   titleVariant='h5'
-                                   subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalSent?.total_sum)}`}
-                                   statsVariant='h4'
-                                   trendNumber={cardCounts.totalSent?.count || 0}
-                                   trendNumberVariant='body1'
-                                   avatarIcon='mdi:send-outline'
-                                   color="info"
-                                   iconSize='35px'
-                              />
-                         </Grid>
-
-                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                              <HorizontalWithBorder
-                                   title="Total Expired"
-                                   subtitle="No of Expired"
+                                   title="Expired"
+                                   subtitle="Past Due Date"
                                    titleVariant='h5'
                                    subtitleVariant='body2'
                                    stats={`$ ${amountFormat(cardCounts.totalExpired?.total_sum)}`}
@@ -444,24 +526,8 @@ const ListQuotation = ({ initialData, customers }) => {
                                    trendNumber={cardCounts.totalExpired?.count || 0}
                                    trendNumberVariant='body1'
                                    avatarIcon='mdi:clock-alert-outline'
-                                   color="warning"
-                                   iconSize='35px'
-                              />
-                         </Grid>
-
-                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                              <HorizontalWithBorder
-                                   title="Drafts"
-                                   subtitle="No of Drafts"
-                                   titleVariant='h5'
-                                   subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalDrafted?.total_sum)}`}
-                                   statsVariant='h4'
-                                   trendNumber={cardCounts.totalDrafted?.count || 0}
-                                   trendNumberVariant='body1'
-                                   avatarIcon='mdi:draw-pen'
-                                   color="secondary"
-                                   iconSize='35px'
+                                   color="error"
+                                   iconSize='30px'
                               />
                          </Grid>
                     </Grid>
@@ -533,22 +599,27 @@ const ListQuotation = ({ initialData, customers }) => {
                          <Icon icon="tabler:edit" fontSize={20} style={{ marginRight: '12px' }} />
                          Edit
                     </MenuItem>
-                    <MenuItem
-                         onClick={handleConvertClick}
-                         disabled={selectedQuotation?.status === 'CONVERTED'}
-                         sx={{
-                              py: 1.5,
-                              pl: 2.5,
-                              pr: 3,
-                              borderRadius: '8px',
-                              mx: 1,
-                              my: 0.5,
-                              color: selectedQuotation?.status === 'CONVERTED' ? 'text.disabled' : 'text.primary'
-                         }}
-                    >
-                         <Icon icon="tabler:arrow-right" fontSize={20} style={{ marginRight: '12px' }} />
-                         Convert to Invoice
-                    </MenuItem>
+                    {(() => {
+                         const convertCheck = canConvertQuotation(selectedQuotation);
+                         return (
+                              <MenuItem
+                                   onClick={convertCheck.canConvert ? handleConvertClick : undefined}
+                                   disabled={!convertCheck.canConvert}
+                                   sx={{
+                                        py: 1.5,
+                                        pl: 2.5,
+                                        pr: 3,
+                                        borderRadius: '8px',
+                                        mx: 1,
+                                        my: 0.5,
+                                        color: convertCheck.canConvert ? 'text.primary' : 'text.disabled'
+                                   }}
+                              >
+                                   <Icon icon="tabler:arrow-right" fontSize={20} style={{ marginRight: '12px' }} />
+                                   {convertCheck.canConvert ? 'Convert to Invoice' : convertCheck.reason}
+                              </MenuItem>
+                         );
+                    })()}
                     <Divider sx={{ my: 1.5 }} />
                     <MenuItem
                          onClick={handleDeleteClick}
@@ -630,49 +701,74 @@ const ListQuotation = ({ initialData, customers }) => {
                     onClose={() => setOpenConvertDialog(false)}
                     PaperProps={{
                          sx: {
-                              borderRadius: '16px',
+                              borderRadius: '12px',
                               width: { xs: '90%', sm: 'auto' },
-                              minWidth: { sm: 400 },
-                              boxShadow: theme => `0 8px 24px 0 ${alpha(theme.palette.common.black, 0.16)}`
+                              minWidth: { sm: 350 },
+                              maxWidth: 400
                          }
                     }}
                >
-                    <DialogTitle sx={{ px: 4, pt: 4, fontSize: '1.25rem' }}>
+                    <DialogTitle sx={{ px: 3, pt: 3, pb: 1, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                         <Icon icon="tabler:arrow-right" fontSize={20} color={theme.palette.primary.main} />
                          Convert to Invoice
                     </DialogTitle>
-                    <DialogContent sx={{ px: 4 }}>
-                         <DialogContentText>
-                              Are you sure you want to convert this quotation to an invoice? This will create a new invoice with the same details.
+                    <DialogContent sx={{ px: 3, py: 2 }}>
+                         <DialogContentText sx={{ mb: 2, fontSize: '0.875rem' }}>
+                              Create an invoice from this quotation?
                          </DialogContentText>
+
+                         <Box sx={{ mb: 2 }}>
+                              <FormControl fullWidth size="small">
+                                   <InputLabel>Payment Method</InputLabel>
+                                   <Select
+                                        value={selectedPaymentMethod}
+                                        label="Payment Method"
+                                        onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                                        disabled={loadingAction}
+                                   >
+                                        {paymentMethodOptions.map((option) => (
+                                             <MenuItem key={option.value} value={option.value}>
+                                                  {option.label}
+                                             </MenuItem>
+                                        ))}
+                                   </Select>
+                              </FormControl>
+                         </Box>
+
+                         {/* Show warning if quotation is close to expiry */}
+                         {(() => {
+                              const daysUntilExpiry = selectedQuotation?.due_date ?
+                                   dayjs(selectedQuotation.due_date).diff(dayjs(), 'day') : null;
+
+                              if (daysUntilExpiry !== null && daysUntilExpiry <= 3 && daysUntilExpiry >= 0) {
+                                   return (
+                                        <Alert severity="warning" sx={{ mt: 1 }}>
+                                             <Typography variant="caption">
+                                                  Expires in {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}
+                                             </Typography>
+                                        </Alert>
+                                   );
+                              }
+                              return null;
+                         })()}
                     </DialogContent>
-                    <DialogActions sx={{ px: 4, pb: 4, pt: 2 }}>
+                    <DialogActions sx={{ px: 3, pb: 3, pt: 0 }}>
                          <Button
                               onClick={() => setOpenConvertDialog(false)}
-                              variant="outlined"
+                              color="secondary"
+                              size="small"
                               disabled={loadingAction}
-                              sx={{
-                                   borderRadius: '10px',
-                                   py: 1,
-                                   px: 3,
-                                   borderWidth: '2px',
-                                   '&:hover': {
-                                        borderWidth: '2px'
-                                   }
-                              }}
+                              sx={{ borderRadius: '8px' }}
                          >
                               Cancel
                          </Button>
                          <Button
                               onClick={handleConvertConfirm}
                               variant="contained"
-                              disabled={loadingAction}
-                              startIcon={loadingAction ? null : <Icon icon="tabler:arrow-right" />}
-                              sx={{
-                                   borderRadius: '10px',
-                                   py: 1,
-                                   px: 3,
-                                   ml: 2
-                              }}
+                              size="small"
+                              disabled={loadingAction || !selectedPaymentMethod}
+                              startIcon={loadingAction && <CircularProgress size={16} />}
+                              sx={{ borderRadius: '8px', ml: 1 }}
                          >
                               {loadingAction ? 'Converting...' : 'Convert'}
                          </Button>

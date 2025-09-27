@@ -16,7 +16,7 @@ import EditQuotation from './EditQuotation'
 import CustomHelmet from '@/components/CustomHelment'
 
 // ** Third Party Imports
-import { useSnackbar } from 'notistack'
+import { useSnackbar, closeSnackbar } from 'notistack'
 import { formatISO } from 'date-fns'
 
 // ** Actions Import
@@ -59,6 +59,12 @@ const EditQuotationIndex = ({
 
     setIsSubmitting(true)
     try {
+      const loadingKey = enqueueSnackbar('Updating quotation...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: true,
+      })
+
       // Format dates for API and map fields
       const formattedData = {
         quotationNumber: formData.quotationNumber,
@@ -81,6 +87,7 @@ const EditQuotationIndex = ({
 
       // Update quotation
       const response = await updateQuotation(quotation._id, formattedData)
+      closeSnackbar && closeSnackbar(loadingKey)
 
       if (response?.success) {
         enqueueSnackbar('Quotation updated successfully', { variant: 'success' })
@@ -90,6 +97,7 @@ const EditQuotationIndex = ({
       }
     } catch (error) {
       console.error("Error updating quotation:", error)
+      closeSnackbar && closeSnackbar()
       enqueueSnackbar('An error occurred while updating the quotation', { variant: 'error' })
     } finally {
       setIsSubmitting(false)
@@ -137,7 +145,7 @@ const EditQuotationIndex = ({
         onSubmit={handleSubmit}
         resetData={handleResetData}
         enqueueSnackbar={enqueueSnackbar}
-        closeSnackbar={() => { }}
+        closeSnackbar={closeSnackbar}
       />
     </>
   )

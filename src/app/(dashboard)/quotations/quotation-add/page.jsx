@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import AddQuotationIndex from 'src/views/quotations/addQuotation'
 
 // ** Actions Imports
-import { getAllCustomers } from '../actions'
+import { getDropdownData, getQuotationNumber } from '../actions'
 
 export function generateMetadata() {
   return {
@@ -15,20 +15,37 @@ export function generateMetadata() {
 
 const QuotationAddPage = async () => {
   try {
-    // Fetch all customers for the form dropdown
-    const customersResponse = await getAllCustomers()
-    
+    // Fetch all dropdown data and quotation number in parallel
+    const [dropdownData, quotationNumberResponse] = await Promise.all([
+      getDropdownData(),
+      getQuotationNumber()
+    ])
+
     // Return the client component with the fetched data
     return (
-      <AddQuotationIndex 
-        customers={customersResponse?.success && Array.isArray(customersResponse.data) ? customersResponse.data : []} 
+      <AddQuotationIndex
+        customersData={dropdownData.customers || []}
+        productData={dropdownData.products || []}
+        taxRates={dropdownData.taxRates || []}
+        initialBanks={dropdownData.banks || []}
+        signatures={dropdownData.signatures || []}
+        quotationNumber={quotationNumberResponse?.quotationNumber || ''}
       />
     )
   } catch (error) {
-    console.error('Error fetching customers data:', error)
-    
-    // Return the component with empty customers array
-    return <AddQuotationIndex customers={[]} />
+    console.error('Error fetching quotation data:', error)
+
+    // Return the component with empty data arrays
+    return (
+      <AddQuotationIndex
+        customersData={[]}
+        productData={[]}
+        taxRates={[]}
+        initialBanks={[]}
+        signatures={[]}
+        quotationNumber=""
+      />
+    )
   }
 }
 

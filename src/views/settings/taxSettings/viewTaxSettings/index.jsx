@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
-import { 
-  Grid, 
-  Card, 
-  CardContent, 
-  Typography, 
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
   Box,
   Chip,
   Button,
@@ -20,10 +20,10 @@ import SettingsLayout from '../../shared/SettingsLayout'
 
 const ViewTaxSettingsIndex = ({ taxId, initialData = {} }) => {
   const router = useRouter()
-  const { 
-    state, 
+  const {
+    state,
     dataHandlers,
-    actionHandlers 
+    actionHandlers
   } = useTaxSettingsHandlers(initialData)
 
   const id = taxId
@@ -117,7 +117,7 @@ const ViewTaxSettingsIndex = ({ taxId, initialData = {} }) => {
           </Box>
 
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Tax Name
               </Typography>
@@ -126,7 +126,7 @@ const ViewTaxSettingsIndex = ({ taxId, initialData = {} }) => {
               </Typography>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Tax Rate
               </Typography>
@@ -135,7 +135,7 @@ const ViewTaxSettingsIndex = ({ taxId, initialData = {} }) => {
               </Typography>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Tax Type
               </Typography>
@@ -144,7 +144,7 @@ const ViewTaxSettingsIndex = ({ taxId, initialData = {} }) => {
               </Typography>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Status
               </Typography>
@@ -156,7 +156,7 @@ const ViewTaxSettingsIndex = ({ taxId, initialData = {} }) => {
             </Grid>
 
             {tax.createdAt && (
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Created At
                 </Typography>
@@ -167,7 +167,7 @@ const ViewTaxSettingsIndex = ({ taxId, initialData = {} }) => {
             )}
 
             {tax.updatedAt && (
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Last Updated
                 </Typography>
