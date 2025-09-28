@@ -49,6 +49,11 @@ export async function getNotifications(skip = 0, limit = 50) {
 // Delete individual notification
 export async function deleteNotification(notificationId) {
      try {
+          // Validate input
+          if (!notificationId) {
+               throw new Error('Notification ID is required')
+          }
+
           const response = await fetchWithAuth('/notification/deleteNotification', {
                method: 'DELETE',
                body: JSON.stringify({ _id: [notificationId] })
@@ -72,7 +77,7 @@ export async function clearAllNotifications() {
      try {
           const response = await fetchWithAuth('/notification/deleteNotification', {
                method: 'DELETE',
-               body: JSON.stringify({ _id: [] })
+               body: JSON.stringify({ clearAll: true })
           })
 
           return {
@@ -81,6 +86,32 @@ export async function clearAllNotifications() {
           }
      } catch (error) {
           console.error('Error clearing all notifications:', error)
+          return {
+               success: false,
+               error: error.message
+          }
+     }
+}
+
+// Mark individual notification as read
+export async function markNotificationAsRead(notificationId) {
+     try {
+          // Validate input
+          if (!notificationId) {
+               throw new Error('Notification ID is required')
+          }
+
+          const response = await fetchWithAuth('/notification/markAsRead', {
+               method: 'PUT',
+               body: JSON.stringify({ notificationId })
+          })
+
+          return {
+               success: response.status === 'Success',
+               message: response.message || 'Notification marked as read'
+          }
+     } catch (error) {
+          console.error('Error marking notification as read:', error)
           return {
                success: false,
                error: error.message

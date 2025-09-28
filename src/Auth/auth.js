@@ -19,26 +19,12 @@ export const authOptions = {
 
         const data = await res.json();
 
-        // Recursive function to log all properties of an object
-        // function logObject(obj, indent = '') {
-        //   for (const key in obj) {
-        //     if (typeof obj[key] === 'object' && obj[key] !== null) {
-        //       console.log(`${indent}${key}:`);
-        //       logObject(obj[key], indent + '  ');
-        //     } else {
-        //       console.log(`${indent}${key}: ${obj[key]}`);
-        //     }
-        //   }
-        // }
-
-        // // Log the entire data object
-        // logObject(data);
-
         if (res.status === 200 && data.status === 'Success') {
-          // Log the modules array
-          // console.log('Modules:', data.data.permissionRes.modules);
-          // Assuming data.data contains user information including roles and permissions
-          return data.data;
+          // Add the email from credentials to the returned data for use in JWT callback
+          return {
+            ...data.data,
+            email: credentials.email
+          };
         } else {
           throw new Error(data.message || 'Invalid credentials');
         }
@@ -49,7 +35,7 @@ export const authOptions = {
 
   session: {
     strategy: 'jwt',
-    maxAge: 60 * 60 * 24 * 7 // 7 days for session
+    maxAge: 60 * 60 * 24 // 24 hours to match backend JWT expiration
   },
 
   pages: {
@@ -61,12 +47,27 @@ export const authOptions = {
     async jwt({ token, user, account }) {
       // Initial sign in
       if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
+        // Extract data from the backend response structure
+        const profileDetails = user.profileDetails || {};
+
+        token.id = user.profileDetails?.id || token.sub; // Use token.sub as fallback
+        token.email = token.email || user.email; // Email comes from credentials
+
+        // Construct full name from firstName and lastName
+        const firstName = profileDetails.firstName || '';
+        const lastName = profileDetails.lastName || '';
+        token.name = `${firstName} ${lastName}`.trim() || 'User';
+
+        token.image = profileDetails.image || '';
+        token.firstName = firstName;
+        token.lastName = lastName;
+        token.gender = profileDetails.gender || '';
+
         token.role = user.role;
-        token.permissionRes = user.permissionRes; // Assuming permissionRes contains permissions
+        token.permissionRes = user.permissionRes;
         token.token = user.token;
+        token.companyDetails = user.companyDetails;
+        token.currencySymbol = user.currencySymbol;
         token.iat = Date.now() / 1000; // Issued at time
       }
 
@@ -84,10 +85,15 @@ export const authOptions = {
         session.user.id = token.id;
         session.user.email = token.email;
         session.user.name = token.name;
+        session.user.image = token.image;
+        session.user.firstName = token.firstName;
+        session.user.lastName = token.lastName;
+        session.user.gender = token.gender;
         session.user.role = token.role;
         session.user.permissionRes = token.permissionRes;
         session.user.token = token.token;
-
+        session.user.companyDetails = token.companyDetails;
+        session.user.currencySymbol = token.currencySymbol;
       }
 
       return session

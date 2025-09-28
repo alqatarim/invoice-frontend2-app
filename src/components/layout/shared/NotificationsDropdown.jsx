@@ -1,272 +1,346 @@
-'use client'
+"use client";
 
 // React Imports
-import { useRef, useState } from 'react'
+import { useRef, useState } from "react";
 
 // MUI Imports
-import IconButton from '@mui/material/IconButton'
-import Badge from '@mui/material/Badge'
-import Popper from '@mui/material/Popper'
-import Fade from '@mui/material/Fade'
-import Paper from '@mui/material/Paper'
-import ClickAwayListener from '@mui/material/ClickAwayListener'
-import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
-import Tooltip from '@mui/material/Tooltip'
-import Divider from '@mui/material/Divider'
-import Avatar from '@mui/material/Avatar'
-import useMediaQuery from '@mui/material/useMediaQuery'
-import Button from '@mui/material/Button'
+import IconButton from "@mui/material/IconButton";
+import Badge from "@mui/material/Badge";
+import Popper from "@mui/material/Popper";
+import Fade from "@mui/material/Fade";
+import Paper from "@mui/material/Paper";
+import ClickAwayListener from "@mui/material/ClickAwayListener";
+import Typography from "@mui/material/Typography";
+import Chip from "@mui/material/Chip";
+import Tooltip from "@mui/material/Tooltip";
+import Divider from "@mui/material/Divider";
+import Avatar from "@mui/material/Avatar";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import Button from "@mui/material/Button";
 
 // Third Party Components
-import classnames from 'classnames'
-import PerfectScrollbar from 'react-perfect-scrollbar'
+import classnames from "classnames";
+import PerfectScrollbar from "react-perfect-scrollbar";
 
 // Component Imports
-import CustomAvatar from '@core/components/mui/Avatar'
+import CustomAvatar from "@core/components/mui/Avatar";
 
 // Config Imports
-import themeConfig from '@configs/themeConfig'
+import themeConfig from "@configs/themeConfig";
 
 // Hook Imports
-import { useSettings } from '@core/hooks/useSettings'
-import { useNotifications } from '@/hooks/useNotifications'
+import { useSettings } from "@core/hooks/useSettings";
+import { useNotifications } from "@/hooks/useNotifications";
 
 // Util Imports
-import { getInitials } from '@/utils/string'
+import { getInitials } from "@/utils/string";
 
 const ScrollWrapper = ({ children, hidden }) => {
-  if (hidden) {
-    return <div className='overflow-x-hidden max-bs-[420px]'>{children}</div>
-  } else {
-    return (
-      <PerfectScrollbar className='max-bs-[420px]' options={{ wheelPropagation: false, suppressScrollX: true }}>
-        {children}
-      </PerfectScrollbar>
-    )
-  }
-}
+	if (hidden) {
+		return <div className="overflow-x-hidden max-bs-[420px]">{children}</div>;
+	} else {
+		return (
+			<PerfectScrollbar
+				className="max-bs-[420px]"
+				options={{ wheelPropagation: false, suppressScrollX: true }}
+			>
+				{children}
+			</PerfectScrollbar>
+		);
+	}
+};
 
-const getAvatar = params => {
-  const { avatarImage, avatarIcon, avatarText, title, avatarColor, avatarSkin } = params
+const getAvatar = (params) => {
+	const {
+		avatarImage,
+		avatarIcon,
+		avatarText,
+		title,
+		avatarColor,
+		avatarSkin,
+	} = params;
 
-  if (avatarImage) {
-    return <Avatar src={avatarImage} />
-  } else if (avatarIcon) {
-    return (
-      <CustomAvatar color={avatarColor} skin={avatarSkin || 'light-static'}>
-        <i className={avatarIcon} />
-      </CustomAvatar>
-    )
-  } else {
-    return (
-      <CustomAvatar color={avatarColor} skin={avatarSkin || 'light-static'}>
-        {avatarText || getInitials(title)}
-      </CustomAvatar>
-    )
-  }
-}
+	if (avatarImage) {
+		return <Avatar src={avatarImage} />;
+	} else if (avatarIcon) {
+		return (
+			<CustomAvatar color={avatarColor} skin={avatarSkin || "light-static"}>
+				<i className={avatarIcon} />
+			</CustomAvatar>
+		);
+	} else {
+		return (
+			<CustomAvatar color={avatarColor} skin={avatarSkin || "light-static"}>
+				{avatarText || getInitials(title)}
+			</CustomAvatar>
+		);
+	}
+};
 
 const NotificationDropdown = () => {
-  // States
-  const [open, setOpen] = useState(false)
+	// States
+	const [open, setOpen] = useState(false);
 
-  // Hooks
-  const {
-    notifications,
-    loading,
-    notificationCount,
-    readAll,
-    markAsRead,
-    removeNotification,
-    markAllAsRead,
-    clearAll
-  } = useNotifications()
-  const hidden = useMediaQuery(theme => theme.breakpoints.down('lg'))
-  const isSmallScreen = useMediaQuery(theme => theme.breakpoints.down('sm'))
-  const { settings } = useSettings()
+	// Hooks
+	const {
+		notifications,
+		loading,
+		notificationCount,
+		readAll,
+		markAsRead,
+		removeNotification,
+		markAllAsRead,
+		clearAll,
+	} = useNotifications();
+	const hidden = useMediaQuery((theme) => theme.breakpoints.down("lg"));
+	const isSmallScreen = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+	const { settings } = useSettings();
 
-  // Refs
-  const anchorRef = useRef(null)
+	// Refs
+	const anchorRef = useRef(null);
 
-  const handleClose = () => {
-    setOpen(false)
-  }
+	const handleClose = () => {
+		setOpen(false);
+	};
 
-  const handleToggle = () => {
-    setOpen(prevOpen => !prevOpen)
-  }
+	const handleToggle = () => {
+		setOpen((prevOpen) => !prevOpen);
+	};
 
-  // Read notification when notification is clicked
-  const handleReadNotification = (event, value, notificationId) => {
-    event.stopPropagation()
-    if (value) {
-      markAsRead(notificationId)
-    }
-  }
+	// Read notification when notification is clicked
+	const handleReadNotification = (event, value, notificationId) => {
+		event.stopPropagation();
+		if (value) {
+			markAsRead(notificationId);
+		}
+	};
 
-  // Remove notification when close icon is clicked
-  const handleRemoveNotification = (event, notificationId) => {
-    event.stopPropagation()
-    removeNotification(notificationId)
-  }
+	// Remove notification when close icon is clicked
+	const handleRemoveNotification = (event, notificationId) => {
+		event.stopPropagation();
+		removeNotification(notificationId);
+	};
 
-  // Read or unread all notifications when read all icon is clicked
-  const readAllNotifications = () => {
-    if (!readAll) {
-      markAllAsRead()
-    }
-  }
+	// Read or unread all notifications when read all icon is clicked
+	const readAllNotifications = () => {
+		if (!readAll) {
+			markAllAsRead();
+		}
+	};
 
-  return (
-    <>
-      <IconButton ref={anchorRef} onClick={handleToggle} className='!text-textPrimary'>
-        <Badge
-          color='error'
-          className='cursor-pointer'
-          variant='dot'
-          overlap='circular'
-          invisible={notificationCount === 0}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          <i className='ri-notification-2-line' />
-        </Badge>
-      </IconButton>
-      <Popper
-        open={open}
-        transition
-        disablePortal
-        placement='bottom-end'
-        anchorEl={anchorRef.current}
-        {...(isSmallScreen
-          ? {
-            className: 'is-full !mbs-4 z-[1]',
-            modifiers: [
-              {
-                name: 'preventOverflow',
-                options: {
-                  padding: themeConfig.layoutPadding
-                }
-              }
-            ]
-          }
-          : { className: 'is-96 !mbs-4 z-[1]' })}
-      >
-        {({ TransitionProps, placement }) => (
-          <Fade {...TransitionProps} style={{ transformOrigin: placement === 'bottom-end' ? 'right top' : 'left top' }}>
-            <Paper className={settings.skin === 'bordered' ? 'border shadow-none' : 'shadow-lg'}>
-              <ClickAwayListener onClickAway={handleClose}>
-                <div>
-                  <div className='flex items-center justify-between plb-2 pli-4 is-full gap-4'>
-                    <Typography variant='h5' className='flex-auto'>
-                      Notifications
-                    </Typography>
-                    {notificationCount > 0 && (
-                      <Chip size='small' variant='tonal' color='primary' label={`${notificationCount} New`} />
-                    )}
-                    <Tooltip
-                      title={readAll ? 'Mark all as unread' : 'Mark all as read'}
-                      placement={placement === 'bottom-end' ? 'left' : 'right'}
-                      slotProps={{
-                        popper: {
-                          sx: {
-                            '& .MuiTooltip-tooltip': {
-                              transformOrigin:
-                                placement === 'bottom-end' ? 'right center !important' : 'right center !important'
-                            }
-                          }
-                        }
-                      }}
-                    >
-                      {notifications.length > 0 ? (
-                        <IconButton size='small' onClick={() => readAllNotifications()} className='text-textPrimary'>
-                          <i className={readAll ? 'ri-mail-line' : 'ri-mail-open-line'} />
-                        </IconButton>
-                      ) : (
-                        <></>
-                      )}
-                    </Tooltip>
-                  </div>
-                  <Divider />
-                  <ScrollWrapper hidden={hidden}>
-                    {notifications.length === 0 ? (
-                      <div className='flex items-center justify-center plb-12'>
-                        <Typography variant='body2' color='text.secondary'>
-                          No notifications
-                        </Typography>
-                      </div>
-                    ) : (
-                      notifications.map((notification, index) => {
-                        const {
-                          id,
-                          title,
-                          subtitle,
-                          time,
-                          read,
-                          avatarImage,
-                          avatarIcon,
-                          avatarText,
-                          avatarColor,
-                          avatarSkin
-                        } = notification
+	return (
+		<>
+			<IconButton
+				ref={anchorRef}
+				onClick={handleToggle}
+				className="!text-textPrimary"
+			>
+				<Badge
+					color="error"
+					className="cursor-pointer"
+					variant="dot"
+					overlap="circular"
+					invisible={notificationCount === 0}
+					anchorOrigin={{ vertical: "top", horizontal: "right" }}
+				>
+					<i
+						className={
+							notificationCount > 0
+								? "ri-notification-2-fill"
+								: "ri-notification-2-line"
+						}
+						style={{
+							color:
+								notificationCount > 0
+									? "var(--mui-palette-primary-main)"
+									: "inherit",
+						}}
+					/>
+				</Badge>
+			</IconButton>
+			<Popper
+				open={open}
+				transition
+				disablePortal
+				placement="bottom-end"
+				anchorEl={anchorRef.current}
+				{...(isSmallScreen
+					? {
+							className: "is-full !mbs-4 z-[1]",
+							modifiers: [
+								{
+									name: "preventOverflow",
+									options: {
+										padding: themeConfig.layoutPadding,
+									},
+								},
+							],
+					  }
+					: { className: "is-96 !mbs-4 z-[1]" })}
+			>
+				{({ TransitionProps, placement }) => (
+					<Fade
+						{...TransitionProps}
+						style={{
+							transformOrigin:
+								placement === "bottom-end" ? "right top" : "left top",
+						}}
+					>
+						<Paper
+							className={
+								settings.skin === "bordered"
+									? "border shadow-none"
+									: "shadow-lg"
+							}
+						>
+							<ClickAwayListener onClickAway={handleClose}>
+								<div>
+									<div className="flex items-center justify-between plb-2 pli-4 is-full gap-4">
+										<Typography variant="h5" className="flex-auto">
+											Notifications
+										</Typography>
+										{notificationCount > 0 && (
+											<Chip
+												size="small"
+												variant="tonal"
+												color="primary"
+												label={`${notificationCount} New`}
+											/>
+										)}
+										<Tooltip
+											title={
+												readAll ? "Mark all as unread" : "Mark all as read"
+											}
+											placement={placement === "bottom-end" ? "left" : "right"}
+											slotProps={{
+												popper: {
+													sx: {
+														"& .MuiTooltip-tooltip": {
+															transformOrigin:
+																placement === "bottom-end"
+																	? "right center !important"
+																	: "right center !important",
+														},
+													},
+												},
+											}}
+										>
+											{notifications.length > 0 ? (
+												<IconButton
+													size="small"
+													onClick={() => readAllNotifications()}
+													className="text-textPrimary"
+												>
+													<i
+														className={
+															readAll ? "ri-mail-line" : "ri-mail-open-line"
+														}
+													/>
+												</IconButton>
+											) : (
+												<></>
+											)}
+										</Tooltip>
+									</div>
+									<Divider />
+									<ScrollWrapper hidden={hidden}>
+										{notifications.length === 0 ? (
+											<div className="flex items-center justify-center plb-12">
+												<Typography variant="body2" color="text.secondary">
+													No notifications
+												</Typography>
+											</div>
+										) : (
+											notifications.map((notification, index) => {
+												const {
+													id,
+													title,
+													subtitle,
+													time,
+													read,
+													avatarImage,
+													avatarIcon,
+													avatarText,
+													avatarColor,
+													avatarSkin,
+												} = notification;
 
-                        return (
-                          <div
-                            key={id || index}
-                            className={classnames('flex plb-3 pli-4 gap-3 cursor-pointer hover:bg-actionHover group', {
-                              'border-be': index !== notifications.length - 1
-                            })}
-                            onClick={e => handleReadNotification(e, true, id)}
-                          >
-                            {getAvatar({ avatarImage, avatarIcon, title, avatarText, avatarColor, avatarSkin })}
-                            <div className='flex flex-col flex-auto'>
-                              <Typography className='font-medium mbe-1' color='text.primary'>
-                                {title}
-                              </Typography>
-                              <Typography variant='caption' color='text.secondary' className='mbe-2'>
-                                {subtitle}
-                              </Typography>
-                              <Typography variant='caption'>{time}</Typography>
-                            </div>
-                            <div className='flex flex-col items-end gap-2.5'>
-                              <Badge
-                                variant='dot'
-                                color={read ? 'secondary' : 'primary'}
-                                onClick={e => handleReadNotification(e, !read, id)}
-                                className={classnames('mbs-1 mie-1', {
-                                  'invisible group-hover:visible': read
-                                })}
-                              />
-                              <i
-                                className='ri-close-line text-xl invisible group-hover:visible text-textSecondary'
-                                onClick={e => handleRemoveNotification(e, id)}
-                              />
-                            </div>
-                          </div>
-                        )
-                      })
-                    )}
-                  </ScrollWrapper>
-                  <Divider />
-                  <div className='p-4'>
-                    <Button
-                      fullWidth
-                      variant='contained'
-                      size='small'
-                      onClick={clearAll}
-                      disabled={notifications.length === 0}
-                    >
-                      Clear All Notifications
-                    </Button>
-                  </div>
-                </div>
-              </ClickAwayListener>
-            </Paper>
-          </Fade>
-        )}
-      </Popper>
-    </>
-  )
-}
+												return (
+													<div
+														key={id || index}
+														className={classnames(
+															"flex plb-3 pli-4 gap-3 cursor-pointer hover:bg-actionHover group",
+															{
+																"border-be": index !== notifications.length - 1,
+															}
+														)}
+														onClick={(e) => handleReadNotification(e, true, id)}
+													>
+														{getAvatar({
+															avatarImage,
+															avatarIcon,
+															title,
+															avatarText,
+															avatarColor,
+															avatarSkin,
+														})}
+														<div className="flex flex-col flex-auto">
+															<Typography
+																className="font-medium mbe-1"
+																color="text.primary"
+															>
+																{title}
+															</Typography>
+															<Typography
+																variant="caption"
+																color="text.secondary"
+																className="mbe-2"
+															>
+																{subtitle}
+															</Typography>
+															<Typography variant="caption">{time}</Typography>
+														</div>
+														<div className="flex flex-col items-end gap-2.5">
+															<Badge
+																variant="dot"
+																color={read ? "secondary" : "primary"}
+																onClick={(e) =>
+																	handleReadNotification(e, !read, id)
+																}
+																className={classnames("mbs-1 mie-1", {
+																	"invisible group-hover:visible": read,
+																})}
+															/>
+															<i
+																className="ri-close-line text-xl invisible group-hover:visible text-textSecondary"
+																onClick={(e) => handleRemoveNotification(e, id)}
+															/>
+														</div>
+													</div>
+												);
+											})
+										)}
+									</ScrollWrapper>
+									<Divider />
+									<div className="p-4">
+										<Button
+											fullWidth
+											variant="contained"
+											size="small"
+											onClick={clearAll}
+											disabled={notifications.length === 0}
+										>
+											Clear All Notifications
+										</Button>
+									</div>
+								</div>
+							</ClickAwayListener>
+						</Paper>
+					</Fade>
+				)}
+			</Popper>
+		</>
+	);
+};
 
-export default NotificationDropdown
+export default NotificationDropdown;

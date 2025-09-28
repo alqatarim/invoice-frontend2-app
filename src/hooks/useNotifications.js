@@ -6,7 +6,8 @@ import {
      getNotifications,
      deleteNotification,
      clearAllNotifications,
-     markAllNotificationsAsRead
+     markAllNotificationsAsRead,
+     markNotificationAsRead
 } from '@/app/actions/notifications'
 
 export const useNotifications = () => {
@@ -33,25 +34,56 @@ export const useNotifications = () => {
           }
      }, [status, session?.user?.token])
 
-     // Mark notification as read (frontend only - no backend API for individual marking)
-     const markAsRead = useCallback((notificationId) => {
-          setNotifications(prev =>
-               prev.map(notification =>
-                    notification.id === notificationId
-                         ? { ...notification, read: true }
-                         : notification
+     // Mark notification as read (with backend persistence)
+     const markAsRead = useCallback(async (notificationId) => {
+          try {
+
+               // Optimistically update UI first
+               setNotifications(prev =>
+                    prev.map(notification =>
+                         notification.id === notificationId
+                              ? { ...notification, read: true }
+                              : notification
+                    )
                )
-          )
+
+               // Then persist to backend
+               const result = await markNotificationAsRead(notificationId)
+               if (!result.success) {
+                    console.error('Failed to mark notification as read:', result.error)
+                    // Revert optimistic update on failure
+                    setNotifications(prev =>
+                         prev.map(notification =>
+                              notification.id === notificationId
+                                   ? { ...notification, read: false }
+                                   : notification
+                         )
+                    )
+               } else {
+                 }
+          } catch (error) {
+               console.error('Error marking notification as read:', error)
+               // Revert optimistic update on error
+               setNotifications(prev =>
+                    prev.map(notification =>
+                         notification.id === notificationId
+                              ? { ...notification, read: false }
+                              : notification
+                    )
+               )
+          }
      }, [])
 
      // Remove notification
      const removeNotification = useCallback(async (notificationId) => {
           try {
+
                const result = await deleteNotification(notificationId)
                if (result.success) {
                     setNotifications(prev =>
                          prev.filter(notification => notification.id !== notificationId)
                     )
+
                } else {
                     console.error('Failed to delete notification:', result.error)
                }
