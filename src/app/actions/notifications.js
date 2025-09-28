@@ -54,9 +54,8 @@ export async function deleteNotification(notificationId) {
                throw new Error('Notification ID is required')
           }
 
-          const response = await fetchWithAuth('/notification/deleteNotification', {
-               method: 'DELETE',
-               body: JSON.stringify({ _id: [notificationId] })
+          const response = await fetchWithAuth(`/notification/deleteNotification/${notificationId}`, {
+               method: 'DELETE'
           })
 
           return {
@@ -75,9 +74,8 @@ export async function deleteNotification(notificationId) {
 // Clear all notifications
 export async function clearAllNotifications() {
      try {
-          const response = await fetchWithAuth('/notification/deleteNotification', {
-               method: 'DELETE',
-               body: JSON.stringify({ clearAll: true })
+          const response = await fetchWithAuth('/notification/clearAllNotifications', {
+               method: 'DELETE'
           })
 
           return {
@@ -101,9 +99,8 @@ export async function markNotificationAsRead(notificationId) {
                throw new Error('Notification ID is required')
           }
 
-          const response = await fetchWithAuth('/notification/markAsRead', {
-               method: 'PUT',
-               body: JSON.stringify({ notificationId })
+          const response = await fetchWithAuth(`/notification/markAsRead/${notificationId}`, {
+               method: 'PUT'
           })
 
           return {

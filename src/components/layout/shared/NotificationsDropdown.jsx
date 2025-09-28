@@ -166,16 +166,16 @@ const NotificationDropdown = () => {
 				anchorEl={anchorRef.current}
 				{...(isSmallScreen
 					? {
-							className: "is-full !mbs-4 z-[1]",
-							modifiers: [
-								{
-									name: "preventOverflow",
-									options: {
-										padding: themeConfig.layoutPadding,
-									},
+						className: "is-full !mbs-4 z-[1]",
+						modifiers: [
+							{
+								name: "preventOverflow",
+								options: {
+									padding: themeConfig.layoutPadding,
 								},
-							],
-					  }
+							},
+						],
+					}
 					: { className: "is-96 !mbs-4 z-[1]" })}
 			>
 				{({ TransitionProps, placement }) => (
@@ -339,6 +339,8 @@ const NotificationDropdown = () => {
 					</Fade>
 				)}
 			</Popper>
+
+
 		</>
 	);
 };
