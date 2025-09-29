@@ -72,9 +72,6 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
           <MenuItem icon={<i className='ri-home-smile-line' />} href={`/dashboard`}>Dashboard</MenuItem>
 
         </MenuSection>
-
-        <MenuItem icon={<i className='ri-user-line' />} href="/profile">Profile</MenuItem>
-
         <MenuSection label="Customers">
           <MenuItem icon={<i className='ri-user-3-line' />} href="/customers/customer-list">Customers</MenuItem>
           <MenuItem icon={<i className='ri-truck-line' />} href="/vendors/vendor-list">Vendors</MenuItem>
@@ -116,7 +113,6 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
           </SubMenu>
           <MenuItem href="/roles-permission/roles-permission-list">Roles & Permission</MenuItem>
         </MenuSection>
-        <MenuItem href="/login">Logout</MenuItem>
 
       </Menu>
     </ScrollWrapper>

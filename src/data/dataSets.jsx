@@ -32,51 +32,51 @@ export const statusOptions = [
 		value: "REFUND",
 		label: "Refund",
 		color: "secondary",
-		icon: "ri:refund-line",
+		get icon() { return getFormIcon("refund"); },
 	},
-	{ value: "SENT", label: "Sent", color: "info", icon: "ri:send-plane-line" },
-	{ value: "UNPAID", label: "Unpaid", color: "warning", icon: "ri:time-line" },
+	{ value: "SENT", label: "Sent", color: "info", get icon() { return getFormIcon("sent"); } },
+	{ value: "UNPAID", label: "Unpaid", color: "warning", get icon() { return getFormIcon("unpaid"); } },
 	{
 		value: "PARTIALLY_PAID",
 		label: "Partial Paid",
 		color: "warning",
-		icon: "mdi:invoice-text-clock-outline",
+		get icon() { return getFormIcon("partiallyPaid"); },
 	},
 	{
 		value: "PARTIALLY PAID",
 		label: "Partial Paid",
 		color: "warning",
-		icon: "mdi:invoice-text-clock-outline",
+		get icon() { return getFormIcon("partiallyPaid"); },
 	},
 	{
 		value: "CANCELLED",
 		label: "Cancelled",
 		color: "secondary",
-		icon: "ri:close-circle-line",
+		get icon() { return getFormIcon("cancelled"); },
 	},
 	{
 		value: "OVERDUE",
 		label: "Overdue",
 		color: "error",
-		icon: "mdi:invoice-text-clock-outline",
+		get icon() { return getFormIcon("overdue"); },
 	},
 	{
 		value: "PAID",
 		label: "Paid",
 		color: "success",
-		icon: "mdi:invoice-text-check-outline",
+		get icon() { return getFormIcon("paid"); },
 	},
 	{
 		value: "DRAFTED",
 		label: "Drafted",
 		color: "secondary",
-		icon: "mdi:invoice-text-edit-outline",
+		get icon() { return getFormIcon("drafted"); },
 	},
 	{
 		value: "Active",
 		label: "Active",
 		color: "info",
-		icon: "ri:check-double-line",
+		get icon() { return getFormIcon("active"); },
 	},
 ];
 
@@ -122,11 +122,11 @@ export const debitNoteTabs = [
 ];
 
 export const paymentMethodIcons = [
-	{ value: "Cash", label: "mdi:cash-multiple" },
-	{ value: "Cheque", label: "mdi:checkbook" },
-	{ value: "Bank", label: "mdi:bank" },
-	{ value: "Online", label: "mdi:web" },
-	{ value: "Credit Card", label: "bi:credit-card" },
+	{ value: "Cash", get label() { return getFormIcon("cash"); } },
+	{ value: "Cheque", get label() { return getFormIcon("cheque"); } },
+	{ value: "Bank", get label() { return getFormIcon("bank"); } },
+	{ value: "Online", get label() { return getFormIcon("online"); } },
+	{ value: "Credit Card", get label() { return getFormIcon("creditCard"); } },
 ];
 
 export const vendorBalanceTypes = [
@@ -283,32 +283,32 @@ export const quotationStatusOptions = [
 		value: "ACCEPTED",
 		label: "Accepted",
 		color: "success",
-		icon: "ri:check-double-line",
+		get icon() { return getFormIcon("accepted"); },
 	},
 	{
 		value: "DRAFTED",
 		label: "Draft",
 		color: "secondary",
-		icon: "mdi:invoice-text-edit-outline",
+		get icon() { return getFormIcon("drafted"); },
 	},
-	{ value: "SENT", label: "Sent", color: "info", icon: "ri:send-plane-line" },
+	{ value: "SENT", label: "Sent", color: "info", get icon() { return getFormIcon("sent"); } },
 	{
 		value: "EXPIRED",
 		label: "Expired",
 		color: "warning",
-		icon: "ri:time-line",
+		get icon() { return getFormIcon("expired"); },
 	},
 	{
 		value: "REJECTED",
 		label: "Rejected",
 		color: "error",
-		icon: "ri:close-circle-line",
+		get icon() { return getFormIcon("rejected"); },
 	},
 	{
 		value: "CONVERTED",
 		label: "Converted",
 		color: "primary",
-		icon: "mdi:invoice-text-check-outline",
+		get icon() { return getFormIcon("converted"); },
 	},
 ];
 
@@ -325,19 +325,19 @@ export const deliveryChallanStatusOptions = [
 		value: "ACTIVE",
 		label: "Active",
 		color: "success",
-		icon: "ri:check-double-line",
+		get icon() { return getFormIcon("active"); },
 	},
 	{
 		value: "CONVERTED",
 		label: "Converted",
 		color: "info",
-		icon: "mdi:invoice-text-check-outline",
+		get icon() { return getFormIcon("converted"); },
 	},
 	{
 		value: "CANCELLED",
 		label: "Cancelled",
 		color: "error",
-		icon: "ri:close-circle-line",
+		get icon() { return getFormIcon("cancelled"); },
 	},
 ];
 
@@ -501,8 +501,8 @@ export const actionButtons = [
 ];
 
 export const taxTypes = [
-	{ value: "1", label: "Percentage", icon: "lucide:percent" },
-	{ value: "2", label: "Fixed", icon: "lucide:saudi-riyal" },
+	{ value: "1", label: "Percentage", get icon() { return getFormIcon("1"); } },
+	{ value: "2", label: "Fixed", get icon() { return getFormIcon("fixed"); } },
 ];
 
 export const formIcons = [
@@ -524,7 +524,50 @@ export const formIcons = [
 	{ value: "status", label: "status", icon: "mdi:check-circle-outline" },
 	{ value: "customer", label: "customer", icon: "mdi:account-outline" },
 	{ value: "invoice", label: "invoice", icon: "mdi:file-document-outline" },
+	// Status icons
+	{ value: "refund", label: "refund", icon: "ri:refund-line" },
+	{ value: "sent", label: "sent", icon: "ri:send-plane-line" },
+	{ value: "unpaid", label: "unpaid", icon: "ri:time-line" },
+	{ value: "partiallyPaid", label: "partiallyPaid", icon: "mdi:invoice-text-clock-outline" },
+	{ value: "cancelled", label: "cancelled", icon: "ri:close-circle-line" },
+	{ value: "overdue", label: "overdue", icon: "mdi:invoice-text-clock-outline" },
+	{ value: "paid", label: "paid", icon: "mdi:invoice-text-check-outline" },
+	{ value: "drafted", label: "drafted", icon: "mdi:invoice-text-edit-outline" },
+	{ value: "active", label: "active", icon: "ri:check-double-line" },
+	{ value: "accepted", label: "accepted", icon: "ri:check-double-line" },
+	{ value: "expired", label: "expired", icon: "ri:time-line" },
+	{ value: "rejected", label: "rejected", icon: "ri:close-circle-line" },
+	{ value: "converted", label: "converted", icon: "mdi:invoice-text-check-outline" },
+	// Payment method icons
+	{ value: "cash", label: "cash", icon: "mdi:cash-multiple" },
+	{ value: "cheque", label: "cheque", icon: "mdi:checkbook" },
+	{ value: "bank", label: "bank", icon: "mdi:bank" },
+	{ value: "online", label: "online", icon: "mdi:web" },
+	{ value: "creditCard", label: "creditCard", icon: "bi:credit-card" },
+	// Tax type icons
+	{ value: "1", label: "percentage", icon: "lucide:percent" },
+	{ value: "fixed", label: "fixed", icon: "lucide:saudi-riyal" },
+	// User dialog icons
+	{ value: "accountDetails", label: "accountDetails", icon: "mdi:account-details" },
+	{ value: "account", label: "account", icon: "mdi:account" },
+	{ value: "at", label: "at", icon: "mdi:at" },
+	{ value: "email", label: "email", icon: "mdi:email" },
+	{ value: "phone", label: "phone", icon: "mdi:phone" },
+	{ value: "genderMaleFemale", label: "genderMaleFemale", icon: "mdi:gender-male-female" },
+	{ value: "shieldAccount", label: "shieldAccount", icon: "mdi:shield-account" },
+	{ value: "checkCircle", label: "checkCircle", icon: "mdi:check-circle-outline" },
+	{ value: "cakeVariant", label: "cakeVariant", icon: "mdi:cake-variant" },
+	{ value: "calendarPlus", label: "calendarPlus", icon: "mdi:calendar-plus" },
+	{ value: "update", label: "update", icon: "mdi:update" },
+	{ value: "mapMarker", label: "mapMarker", icon: "mdi:map-marker" },
+	{ value: "close", label: "close", icon: "mdi:close" },
 ];
+
+// Helper function to get icon from formIcons array
+export const getFormIcon = (value) => {
+	const iconData = formIcons.find((item) => item.value === value);
+	return iconData?.icon || null;
+};
 
 // User session status configurations for status indicator
 export const userSessionStatusOptions = [
@@ -596,5 +639,95 @@ export const sessionConfig = {
 		},
 		background:
 			"bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20",
+	},
+};
+
+// User related constants
+export const userStatusOptions = [
+	{ value: "Active", label: "Active", color: "success" },
+	{ value: "Inactive", label: "Inactive", color: "error" },
+];
+
+export const userTabs = [
+	{ value: "ALL", label: "All" },
+	{ value: "Active", label: "Active" },
+	{ value: "Inactive", label: "Inactive" },
+];
+
+export const userTableColumns = [
+	{ id: "name", label: "User Name", sortable: true, visible: true },
+	{ id: "email", label: "Email", sortable: true, visible: true },
+	{ id: "phone", label: "Phone", sortable: false, visible: true },
+	{ id: "role", label: "Role", sortable: true, visible: true },
+	{ id: "status", label: "Status", sortable: true, visible: true },
+	{ id: "createdAt", label: "Created Date", sortable: true, visible: false },
+	{ id: "actions", label: "Actions", sortable: false, visible: true },
+];
+
+// User filter options
+export const userFilterOptions = {
+	roles: [
+		{ value: "Adminss", label: "Admin" },
+		{ value: "Super Admin", label: "Super Admin" },
+		{ value: "admin", label: "Admin" },
+		{ value: "manager", label: "Manager" },
+		{ value: "user", label: "User" },
+		{ value: "accountant", label: "Accountant" },
+		{ value: "developer", label: "Developer" },
+		{ value: "guest", label: "Guest" },
+	],
+	statuses: [
+		{ value: "Active", label: "Active" },
+		{ value: "Inactive", label: "Inactive" },
+	],
+};
+
+// User form validation constants
+export const userValidationRules = {
+	firstName: {
+		required: "First name is required",
+		minLength: { value: 2, message: "First name must be at least 2 characters" },
+		maxLength: { value: 50, message: "First name must not exceed 50 characters" },
+	},
+	lastName: {
+		required: "Last name is required",
+		minLength: { value: 2, message: "Last name must be at least 2 characters" },
+		maxLength: { value: 50, message: "Last name must not exceed 50 characters" },
+	},
+	userName: {
+		required: "Username is required",
+		minLength: { value: 3, message: "Username must be at least 3 characters" },
+		maxLength: { value: 30, message: "Username must not exceed 30 characters" },
+		pattern: {
+			value: /^[a-zA-Z0-9_]+$/,
+			message: "Username can only contain letters, numbers, and underscores",
+		},
+	},
+	email: {
+		required: "Email is required",
+		pattern: {
+			value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+			message: "Please enter a valid email address",
+		},
+	},
+	mobileNumber: {
+		pattern: {
+			value: /^[\+]?[0-9\-\(\)\s]+$/,
+			message: "Please enter a valid phone number",
+		},
+	},
+	password: {
+		required: "Password is required",
+		minLength: { value: 8, message: "Password must be at least 8 characters" },
+		pattern: {
+			value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+			message: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+		},
+	},
+	role: {
+		required: "Role is required",
+	},
+	status: {
+		required: "Status is required",
 	},
 };

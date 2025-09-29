@@ -88,6 +88,7 @@ The project is actively migrating from React.js (frontend-Old) to Next.js 14 (fr
 4. Use MUI Materio components for consistency
 5. Minimize the usage of re-rendering functions such as useEffect and callback. Only apply when absolutely necessary
 
+
 ### Module Structure Pattern
 Each feature module follows this structure:
 ```
@@ -157,6 +158,7 @@ Both applications use environment variables:
 - Follow the invoices pattern as reference
 - Make sure to apply the roles and permissions code found in the frontend-Old app
 - keep it simple and follow existing patterns. When in doubt, copy the working pattern from DebitNoteList or another working component rather than creating new complex patterns
+- When using the mui Grid, use the new grid props "<Grid size = {{}}>
 
 ### Frontend Action Rules:
 - Always Check Actual Backend Response: Look at the controller code to see what data structure is returned

@@ -87,9 +87,9 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
   const handleAddCategory = useCallback(async (formData, preparedImage) => {
     try {
       onSuccess('Adding category...');
-      
+
       const response = await addCategory(formData, preparedImage);
-      
+
       if (!response.success) {
         const errorMessage = response.error?.message || response.message || 'Failed to add category';
         onError(errorMessage);
@@ -115,9 +115,9 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
   const handleUpdateCategory = useCallback(async (categoryId, formData, preparedImage) => {
     try {
       onSuccess('Updating category...');
-      
+
       const response = await updateCategory(categoryId, formData, preparedImage);
-      
+
       if (!response.success) {
         const errorMessage = response.error?.message || response.message || 'Failed to update category';
         onError(errorMessage);
@@ -199,7 +199,7 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
       handleEdit: handlers.handleEdit,
       permissions,
       pagination: handlers.pagination,
-    };
+    }
 
     return columnsState
       .filter(col => col.visible)
@@ -249,7 +249,7 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
       </div>
 
       <Grid container spacing={3}>
-        <Grid size={{xs:12}}>
+        <Grid size={{ xs: 12 }}>
           <CustomListTable
             columns={tableColumns}
             rows={handlers.categories}
