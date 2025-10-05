@@ -1,58 +1,67 @@
-'use client'
-
 // MUI Imports
-import MuiCard from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Typography from '@mui/material/Typography'
-import { styled } from '@mui/material/styles'
-import { Icon } from '@iconify/react'
-//Component Imports
-import CustomAvatar from '@core/components/mui/Avatar'
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+// Third-party Imports
+import classnames from "classnames";
 
-const Card = styled(MuiCard)(({ color }) => ({
-  transition: 'border 0.3s ease-in-out, box-shadow 0.3s ease-in-out, margin 0.3s ease-in-out',
-  borderBottomWidth: '2px',
-  borderBottomColor: `var(--mui-palette-${color}-darkerOpacity)`,
-  '[data-skin="bordered"] &:hover': {
-    boxShadow: 'none'
-  },
-  '&:hover': {
-    borderBottomWidth: '3px',
-    borderBottomColor: `var(--mui-palette-${color}-main) !important`,
-    boxShadow: 'var(--mui-customShadows-xl)',
-    marginBlockEnd: '-1px'
-  }
-}))
+// Component Imports
+import CustomAvatar from "@core/components/mui/Avatar";
 
-const HorizontalWithBorder = props => {
-  // Props
-  const { title, subtitle,  titleVariant, subtitleVariant, stats, trendNumber, avatarIcon, color, iconSize, statsVariant,trendNumberVariant } = props
+const HorizontalWithSubtitle = (props) => {
+	// Props
+	const {
+		title,
+		stats,
+		symbol = "",
+		avatarIcon,
+		avatarColor,
+		trend: trend,
+		trendNumber: trendNumber,
+		subtitle: subtitle,
+	} = props;
 
-  return (
-    <Card color={color || 'primary'}>
-      <CardContent className='flex flex-col gap-4 p-4 pb-2'>
-        <div className='flex items-center gap-4 '>
-          <CustomAvatar color={color} skin='light' variant='rounded' size='small' className='p-1'>
-            <Icon icon={avatarIcon} style={{fontSize: iconSize}}/>
+	return (
+		<Box>
+			<CardContent className="flex justify-between gap-1">
+				<div className="flex flex-col gap-2 flex-grow">
+					<Typography color="text.primary">{title}</Typography>
+					<div className="flex items-center gap-2 flex-wrap">
+						<Box sx={{ display: "flex", alignItems: "center" }}>
+							<Typography
+								variant="h4"
+								sx={{ whiteSpace: "pre", lineHeight: 1 }}
+							>
+								{stats}
+							</Typography>
+							<Typography
+								variant="h6"
+								sx={{ whiteSpace: "pre", lineHeight: 1 }}
+							>
+								{symbol}
+							</Typography>
+						</Box>
 
-          </CustomAvatar>
-          <Typography variant={ statsVariant || 'h4'}>{stats}</Typography>
-        </div>
-        <div className='flex flex-col justify-center gap-0'>
-          <Typography variant={ titleVariant || 'h4'}>{title}</Typography>
-          <div className='flex items-center gap-2 '>
+						<Typography
+							color={trend === "negative" ? "error.main" : "success.main"}
+						>
+							{`(${trend === "negative" ? "-" : "+"}${trendNumber})`}
+						</Typography>
+					</div>
+					<Typography variant="body2">{subtitle}</Typography>
+				</div>
+				<CustomAvatar
+					color={avatarColor}
+					skin="light"
+					variant="rounded"
+					size={42}
+				>
+					<i className={classnames(avatarIcon, "text-[26px]")} />
+				</CustomAvatar>
+			</CardContent>
+		</Box>
+	);
+};
 
-          {/* <i className={trendNumber > 0 ? 'icon-[mdi--keyboard-arrow-up]' : trendNumber < 0 ? 'mdi--keyboard-arrow-down' : 'mdi--minus-thick'} style={{fontSize: iconSize}}/> */}
-
-            <Typography variant={ subtitleVariant || 'body2'} >
-              {subtitle}
-            </Typography>
-            <Typography variant={ trendNumberVariant || 'body2'}>{trendNumber}</Typography>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-export default HorizontalWithBorder
+export default HorizontalWithSubtitle;
