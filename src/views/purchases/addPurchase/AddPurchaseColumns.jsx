@@ -122,9 +122,27 @@ export const getAddPurchaseColumns = ({
                                         onChange={e => {
                                              const raw = e.target.value;
                                              const quantity = Math.max(0, Math.floor(Number(raw)));
-                                             setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
+                                             
+                                             // When quantity changes, update form_updated values for proper recalculation
                                              const item = getValues(`items.${index}`);
-                                             updateCalculatedFields(index, { ...item, quantity }, setValue);
+                                             const currentRate = Number(item.rate || item.purchasePrice || 0);
+                                             const oldQuantity = Number(item.quantity || 1);
+                                             
+                                             // Calculate base rate (per unit) from current total rate and old quantity
+                                             const baseRate = oldQuantity > 0 ? (currentRate / oldQuantity) : currentRate;
+                                             
+                                             // Set quantity first
+                                             setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
+                                             
+                                             // Set form_updated values to ensure proper calculation
+                                             setValue(`items.${index}.form_updated_rate`, baseRate);
+                                             setValue(`items.${index}.form_updated_discount`, Number(item.form_updated_discount || item.discount || 0));
+                                             setValue(`items.${index}.form_updated_discounttype`, Number(item.form_updated_discounttype || item.discountType || 3));
+                                             setValue(`items.${index}.isRateFormUpadted`, true);
+                                             
+                                             // Recalculate with new quantity
+                                             const updatedItem = { ...item, quantity };
+                                             updateCalculatedFields(index, updatedItem, setValue);
                                         }}
                                         error={!!errors.items?.[index]?.quantity}
                                    />

@@ -80,7 +80,7 @@ const EditSalesReturnContent = ({
       const response = await updateSalesReturn({
         ...data,
         id: id,
-        credit_note_id: salesReturnData._id
+        credit_note_id: data.credit_note_id || salesReturnData.credit_note_id
       });
 
       closeSnackbar(loadingKey);

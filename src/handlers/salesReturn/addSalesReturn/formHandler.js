@@ -1,4 +1,4 @@
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { salesReturnSchema } from '@/views/salesReturn/SalesReturnSchema';
 
@@ -43,8 +43,8 @@ export function useFormHandler({ salesReturnNumber }) {
     name: 'items'
   });
 
-  const watchItems = watch('items');
-  const watchRoundOff = watch('roundOff');
+  const watchItems = useWatch({ control, name: 'items' });
+  const watchRoundOff = useWatch({ control, name: 'roundOff' });
 
   return {
     control,

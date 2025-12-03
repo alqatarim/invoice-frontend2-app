@@ -198,6 +198,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                   const raw = e.target.value;
                   const quantity = Math.max(0, Math.floor(Number(raw)));
                   setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
+                  setValue(`items.${index}.isRateFormUpadted`, true);
                   const item = getValues(`items.${index}`);
                   updateCalculatedFields(index, { ...item, quantity }, setValue);
                 }}
@@ -553,7 +554,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
   return (
     <Grid container rowSpacing={4} columnSpacing={3}>
       {/* Header Section */}
-      <Grid item xs={12} md={12}>
+      <Grid size={{ xs: 12, md: 12 }}>
         <div className="flex justify-start items-center mb-5">
           <div className="flex items-center gap-2">
             <div className='bg-primary/12 text-primary bg-primaryLight w-12 h-12 rounded-full flex items-center justify-center'>
@@ -566,12 +567,12 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
         </div>
       </Grid>
       {/* Top Section - Invoice Details */}
-      <Grid item xs={12} md={12}>
+      <Grid size={{ xs: 12, md: 12 }}>
         <Card>
           <CardContent className='py-3.5'>
             <Grid container columnSpacing={3} rowSpacing={4} >
               {/* Invoice Details Header */}
-              <Grid item xs={12} className='flex flex-col gap-2'>
+              <Grid size={{ xs: 12 }} className='flex flex-col gap-2'>
                 <Box className='flex flex-row gap-1.5 items-center'>
                   <Box className='w-2 h-8 bg-secondaryLight rounded-md' />
                   <Typography variant="caption" fontWeight={500} fontSize='1rem'>
@@ -581,7 +582,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 <Divider light textAlign='left' width='400px' />
               </Grid>
               {/* Invoice Number (read-only, styled like EditInvoice) */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Box className="flex flex-row items-center px-3 justify-between bg-tableHeader rounded-md w-full h-full">
                   <Typography variant="caption" className='text-[0.9rem]' color="text.secondary">
                     Invoice Number
@@ -592,7 +593,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 </Box>
               </Grid>
               {/* Invoice Date */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="invoiceDate"
                   control={control}
@@ -613,7 +614,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 />
               </Grid>
               {/* Due Date */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="dueDate"
                   control={control}
@@ -634,7 +635,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 />
               </Grid>
               {/* Payment Method */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="payment_method"
                   control={control}
@@ -656,7 +657,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 />
               </Grid>
               {/* Bank Selection */}
-              <Grid item xs={12} sm={6} md={4} lg={3} className="flex flex-row gap-1 justify-between">
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} className="flex flex-row gap-1 justify-between">
                 <Controller
                   name="bank"
                   control={control}
@@ -695,7 +696,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 </CustomIconButton>
               </Grid>
               {/* Reference No */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="referenceNo"
                   control={control}
@@ -713,7 +714,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 />
               </Grid>
               {/* Signature Section */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Controller
                     name="signatureId"
@@ -745,7 +746,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 </Box>
               </Grid>
               {/* Notes TextField */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Controller
                   name="notes"
                   control={control}
@@ -777,11 +778,11 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                 />
               </Grid>
               {/* Customer */}
-              <Grid item xs={12} sm={6} md={8} lg={6}>
+              <Grid size={{ xs: 12, sm: 6, md: 8, lg: 6 }}>
                 <CustomerAutocomplete control={control} errors={errors} customersData={customersData} />
               </Grid>
               {/* Terms & Conditions */}
-              <Grid item xs={12} sm={6} md={4} lg={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <Button
                   fullWidth className="flex flex-row items-center gap-0 justify-center" variant="text" color="primary" size="small"
                   startIcon={<Icon icon="mdi:file-document-outline" width={24} color={theme.palette.primary.main} />}
@@ -795,7 +796,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
         </Card>
       </Grid>
       {/* Middle Section - Products Table */}
-      <Grid item xs={12} md={9.5}>
+      <Grid size={{ xs: 12, md: 9.5 }}>
         <form onSubmit={handleSubmit(handleFormSubmit, handleError)}>
           <Card>
             <CardContent spacing={12} className='flex flex-col gap-2 px-0 pt-0'>
@@ -813,7 +814,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
         </form>
       </Grid>
       {/* Left side totals card */}
-      <Grid item xs={12} md={2.5}>
+      <Grid size={{ xs: 12, md: 2.5 }}>
         <InvoiceTotals
           control={control}
           handleSubmit={handleSubmit}

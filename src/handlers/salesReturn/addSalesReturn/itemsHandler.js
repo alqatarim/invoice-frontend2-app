@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { calculateItemTotals } from '@/utils/itemCalculations';
+import { calculateItemValues } from '@/utils/itemCalculations';
+import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 
 export function useItemsHandler({
   control,
@@ -16,101 +17,107 @@ export function useItemsHandler({
   const [discountMenu, setDiscountMenu] = useState({ anchorEl: null, rowIndex: null });
   const [taxMenu, setTaxMenu] = useState({ anchorEl: null, rowIndex: null });
 
-  const updateCalculatedFields = (index, item, setValue) => {
-    const calculated = calculateItemTotals(item);
-    
-    setValue(`items.${index}.discount`, calculated.discount);
-    setValue(`items.${index}.tax`, calculated.tax);
-    setValue(`items.${index}.amount`, calculated.amount);
+  const updateCalculatedFields = (index, values) => {
+    const computed = calculateItemValues(values);
+    setValue(`items.${index}.rate`, computed.rate);
+    setValue(`items.${index}.discount`, computed.discount);
+    setValue(`items.${index}.tax`, computed.tax);
+    setValue(`items.${index}.amount`, computed.amount);
+    setValue(`items.${index}.taxableAmount`, computed.taxableAmount);
   };
 
   const handleUpdateItemProduct = (index, productId, previousProductId) => {
-    const product = productData.find(p => p._id === productId);
-    
-    if (!product) {
-      setValue(`items.${index}.productId`, '');
+    if (!productId) {
+      closeSnackbar();
+      enqueueSnackbar('Please select a product', { variant: 'error' });
       return;
     }
 
-    // Update form fields with product data
-    setValue(`items.${index}.productId`, productId);
-    setValue(`items.${index}.name`, product.name);
-    setValue(`items.${index}.units`, product.units?.name || '');
-    setValue(`items.${index}.rate`, product.sellingPrice || 0);
-    setValue(`items.${index}.form_updated_rate`, product.sellingPrice || 0);
-    setValue(`items.${index}.discountType`, product.discountType || 3);
-    setValue(`items.${index}.form_updated_discounttype`, product.discountType || 3);
-    setValue(`items.${index}.discount`, product.discountValue || 0);
-    setValue(`items.${index}.form_updated_discount`, product.discountValue || 0);
-    setValue(`items.${index}.taxInfo`, product.tax || { taxRate: 0 });
-    setValue(`items.${index}.form_updated_tax`, product.tax?.taxRate || 0);
-    setValue(`items.${index}.isRateFormUpadted`, false);
-
-    // Set default quantity if not set
-    const currentQuantity = getValues(`items.${index}.quantity`);
-    if (!currentQuantity) {
-      setValue(`items.${index}.quantity`, 1);
+    const product = productData.find((p) => p._id === productId);
+    if (!product) {
+      closeSnackbar();
+      enqueueSnackbar('Invalid product selected', { variant: 'error' });
+      return;
     }
 
-    // Update calculated fields
-    const item = getValues(`items.${index}`);
-    updateCalculatedFields(index, item, setValue);
-
-    // Update available products
-    const updatedProducts = productsCloneData.filter(p => p._id !== productId);
-    if (previousProductId) {
-      const prevProduct = productData.find(p => p._id === previousProductId);
-      if (prevProduct) {
-        updatedProducts.push(prevProduct);
-      }
+    const newData = formatInvoiceItem(product);
+    if (!newData) {
+      closeSnackbar();
+      enqueueSnackbar('Error formatting product data', { variant: 'error' });
+      return;
     }
-    setProductsCloneData(updatedProducts);
+
+    // Set all product fields
+    Object.keys(newData).forEach(key => {
+      setValue(`items.${index}.${key}`, newData[key]);
+    });
+
+    // Update products clone data
+    if (setProductsCloneData) {
+      setProductsCloneData(prev => {
+        let updatedProducts = [...prev];
+        // Re-add the previous product if it existed
+        if (previousProductId) {
+          const previousProduct = productData.find(p => p._id === previousProductId);
+          if (previousProduct) {
+            updatedProducts.push(previousProduct);
+          }
+        }
+        // Remove the newly selected product
+        return updatedProducts.filter(p => p._id !== productId);
+      });
+    }
   };
 
   const handleDeleteItem = (index) => {
-    const item = getValues(`items.${index}`);
-    if (item.productId) {
-      const product = productData.find(p => p._id === item.productId);
+    const currentItems = getValues('items');
+    const deletedItem = currentItems[index];
+    remove(index);
+
+    // Add the deleted product back to available products
+    if (deletedItem && deletedItem.productId && setProductsCloneData) {
+      const product = productData.find((p) => p._id === deletedItem.productId);
       if (product) {
-        setProductsCloneData([...productsCloneData, product]);
+        setProductsCloneData((prev) => [...prev, product]);
       }
     }
-    remove(index);
   };
 
   const handleAddEmptyRow = () => {
     append({
       productId: '',
       name: '',
-      quantity: 1,
       units: '',
+      unit: '',
+      quantity: 1,
       rate: 0,
-      form_updated_rate: 0,
       discount: 0,
-      form_updated_discount: 0,
-      discountType: 3,
-      form_updated_discounttype: 3,
+      discountType: 2,
       tax: 0,
-      form_updated_tax: 0,
-      taxInfo: { taxRate: 0 },
+      taxInfo: {
+        _id: '',
+        name: '',
+        taxRate: 0
+      },
       amount: 0,
-      isRateFormUpadted: false
+      taxableAmount: 0,
+      key: Date.now(),
+      isRateFormUpadted: false,
+      form_updated_rate: '',
+      form_updated_discount: '',
+      form_updated_discounttype: '',
+      form_updated_tax: ''
     });
   };
 
-  const handleMenuItemClick = (index, discountType) => {
-    setValue(`items.${index}.discountType`, discountType);
-    setValue(`items.${index}.form_updated_discounttype`, discountType);
-    setValue(`items.${index}.isRateFormUpadted`, true);
-    
-    if (discountType === 2) {
-      setValue(`items.${index}.form_updated_discount`, 0);
-    } else {
-      setValue(`items.${index}.discount`, 0);
+  const handleMenuItemClick = (index, newValue) => {
+    if (newValue !== null) {
+      setValue(`items.${index}.discountType`, newValue);
+      setValue(`items.${index}.form_updated_discounttype`, newValue);
+      setValue(`items.${index}.isRateFormUpadted`, true);
+      const item = getValues(`items.${index}`);
+      updateCalculatedFields(index, item);
     }
-    
-    const item = getValues(`items.${index}`);
-    updateCalculatedFields(index, item, setValue);
   };
 
   const handleTaxClick = (event, index) => {
@@ -123,11 +130,10 @@ export function useItemsHandler({
 
   const handleTaxMenuItemClick = (index, tax) => {
     setValue(`items.${index}.taxInfo`, tax);
-    setValue(`items.${index}.form_updated_tax`, tax.taxRate);
-    setValue(`items.${index}.isRateFormUpadted`, true);
-    
+    setValue(`items.${index}.tax`, Number(tax.taxRate || 0));
+    setValue(`items.${index}.form_updated_tax`, Number(tax.taxRate || 0));
     const item = getValues(`items.${index}`);
-    updateCalculatedFields(index, item, setValue);
+    updateCalculatedFields(index, item);
     handleTaxClose();
   };
 

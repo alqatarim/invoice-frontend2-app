@@ -45,19 +45,22 @@ export function useSubmissionHandler({
         items: data.items.map(item => ({
           productId: item.productId,
           name: item.name,
-          quantity: Number(item.quantity),
           units: item.units,
-          rate: Number(item.rate),
-          discount: Number(item.discount),
-          discountType: Number(item.discountType),
-          tax: Number(item.tax),
-          taxInfo: item.taxInfo,
-          amount: Number(item.amount),
+          unit: item.unit,
+          quantity: item.quantity,
+          rate: item.rate,
+          discount: item.discount,
+          discountType: item.discountType,
+          amount: item.amount,
+          key: item.key,
+          isRateFormUpadted: item.isRateFormUpadted,
           form_updated_rate: item.form_updated_rate,
           form_updated_discount: item.form_updated_discount,
           form_updated_discounttype: item.form_updated_discounttype,
           form_updated_tax: item.form_updated_tax,
-          isRateFormUpadted: item.isRateFormUpadted
+          tax: item.tax,
+          taxInfo: item.taxInfo,
+          images: item.images || null,
         }))
       };
 
@@ -88,10 +91,10 @@ export function useSubmissionHandler({
 
   const handleError = (errors) => {
     console.error('Form validation errors:', errors);
-    
+
     // Find the first error message
     let firstError = 'Please check all required fields';
-    
+
     if (errors.customerId) {
       firstError = 'Please select a customer';
     } else if (errors.items && errors.items.length > 0) {

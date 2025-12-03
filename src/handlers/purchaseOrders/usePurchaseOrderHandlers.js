@@ -3,7 +3,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useState, useEffect } from 'react';
 import { editPurchaseOrderSchema } from '@/views/purchase-orders/addOrder/PurchaseOrderSchema';
 import { paymentMethods } from '@/data/dataSets';
-import { calculateItemTotals } from '@/utils/itemCalculations';
+import { calculatePurchaseItemValues } from '@/utils/purchaseItemCalculations';
 import { formatDateForInput } from '@/utils/dateUtils';
 import { formatNewBuyItem } from '@/utils/formatNewBuyItem';
 import { useRouter } from 'next/navigation';
@@ -114,11 +114,13 @@ export default function usePurchaseOrderHandlers({
 
   // Item handlers
   const updateCalculatedFields = (index, item, setValue) => {
-    const calculated = calculateItemTotals(item);
+    const calculated = calculatePurchaseItemValues(item);
 
+    setValue(`items.${index}.rate`, calculated.rate);
     setValue(`items.${index}.discount`, calculated.discount);
     setValue(`items.${index}.tax`, calculated.tax);
     setValue(`items.${index}.amount`, calculated.amount);
+    setValue(`items.${index}.taxableAmount`, calculated.taxableAmount);
   };
 
   const handleUpdateItemProduct = (index, productId, previousProductId) => {

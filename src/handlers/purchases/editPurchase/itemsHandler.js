@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { calculateItemTotals } from '@/utils/itemCalculations';
+import { calculatePurchaseItemValues } from '@/utils/purchaseItemCalculations';
 import { formatNewBuyItem } from '@/utils/formatNewBuyItem';
 
 export function useItemsHandler({
@@ -18,11 +18,13 @@ export function useItemsHandler({
      const [taxMenu, setTaxMenu] = useState({ anchorEl: null, rowIndex: null });
 
      const updateCalculatedFields = (index, item, setValue) => {
-          const calculated = calculateItemTotals(item);
+          const calculated = calculatePurchaseItemValues(item);
 
+          setValue(`items.${index}.rate`, calculated.rate);
           setValue(`items.${index}.discount`, calculated.discount);
           setValue(`items.${index}.tax`, calculated.tax);
           setValue(`items.${index}.amount`, calculated.amount);
+          setValue(`items.${index}.taxableAmount`, calculated.taxableAmount);
      };
 
      const handleUpdateItemProduct = (index, productId, previousProductId) => {

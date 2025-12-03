@@ -1,4 +1,4 @@
-import { calculateItemValues } from './itemCalculations';
+import { calculatePurchaseItemValues } from './purchaseItemCalculations';
 
 /**
  * Calculate totals across all debit note items
@@ -17,7 +17,7 @@ export function calculateTotals(items) {
     return initialTotals;
   }
   return items.reduce((acc, item) => {
-    const { rate, discount, tax, amount, taxableAmount } = calculateItemValues(item);
+    const { rate, discount, tax, amount, taxableAmount } = calculatePurchaseItemValues(item);
     return {
       subTotal: Number(acc.subTotal) + Number(rate),
       totalDiscount: Number(acc.totalDiscount) + Number(discount),
@@ -46,7 +46,7 @@ export function calculateDebitNoteTotals(items, shouldRoundOff) {
   }
   const { taxableAmount, totalDiscount, vat } = items.reduce(
     (acc, item) => {
-      const { rate, discount, tax } = calculateItemValues(item);
+      const { rate, discount, tax } = calculatePurchaseItemValues(item);
       return {
         taxableAmount: acc.taxableAmount + rate,
         totalDiscount: acc.totalDiscount + discount,

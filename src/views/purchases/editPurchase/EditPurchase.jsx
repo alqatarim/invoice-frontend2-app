@@ -32,7 +32,7 @@ import useEditPurchaseHandlers from '@/handlers/purchases/editPurchase/useEditPu
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
-import { calculatePurchaseTotals } from '@/utils/purchaseCalculations';
+import { calculatePurchaseInvoiceTotals } from '@/utils/purchaseTotals';
 import { getEditPurchaseColumns } from './EditPurchaseColumns';
 
 const EditPurchase = ({ vendorsData, productData, taxRates, initialBanks, signatures, onSave, enqueueSnackbar, closeSnackbar, purchaseData }) => {
@@ -105,7 +105,7 @@ const EditPurchase = ({ vendorsData, productData, taxRates, initialBanks, signat
 
      useEffect(() => {
           if (watchItems) {
-               const { taxableAmount, totalDiscount, vat, TotalAmount, roundOffValue } = calculatePurchaseTotals(
+               const { taxableAmount, totalDiscount, vat, TotalAmount, roundOffValue } = calculatePurchaseInvoiceTotals(
                     watchItems,
                     watchRoundOff
                );

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { calculateItemValues } from '@/utils/itemCalculations';
-import { formatInvoiceItem } from '@/utils/formatNewSellItem';
+import { calculatePurchaseItemValues } from '@/utils/purchaseItemCalculations';
+import { formatPurchaseItem } from '@/utils/formatNewBuyItem';
 
 export function useItemsHandler({ 
   control, 
@@ -21,7 +21,7 @@ export function useItemsHandler({
 
   // Helper to update all calculated fields for an item row
   const updateCalculatedFields = (index, values) => {
-    const computed = calculateItemValues(values);
+    const computed = calculatePurchaseItemValues(values);
     setValue(`items.${index}.rate`, computed.rate);
     setValue(`items.${index}.discount`, computed.discount);
     setValue(`items.${index}.tax`, computed.tax);
@@ -73,7 +73,7 @@ export function useItemsHandler({
       return;
     }
     
-    const newData = formatInvoiceItem(product);
+    const newData = formatPurchaseItem(product);
     if (!newData) {
       closeSnackbar();
       enqueueSnackbar('Error formatting product data', { variant: 'error' });

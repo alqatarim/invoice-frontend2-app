@@ -23,7 +23,7 @@ const ENDPOINTS = {
     PDF_DOWNLOAD: '/invoice/pdfDownload',
     CONVERT_SALES_RETURN: '/invoice',
     // CUSTOMER_LIST: '/invoice/customer-list',
-        CUSTOMERS: '/drop_down/customer',
+    CUSTOMERS: '/drop_down/customer',
 
   },
   PAYMENT: {
@@ -60,8 +60,7 @@ export async function getInvoiceById(id) {
   try {
     // Add cache: 'no-store' option to disable caching and always fetch fresh data
     const response = await fetchWithAuth(`${ENDPOINTS.INVOICE.VIEW}/${id}`, {
-      cache: 'no-store',
-      next: { revalidate: 0 } // This ensures data is not cached
+      cache: 'no-store'
     });
 
     // Assuming a successful response contains a 'data' property
@@ -250,59 +249,59 @@ async function fetchInvoicesWithSingleStatus(status, page, pageSize, filters, so
   // Apply single status filter
   if (status && status !== 'ALL') {
     url += `&status=${encodeURIComponent(status)}`;
-    }
+  }
 
   // Apply additional filters (excluding status since we handle it separately)
   if (filters.customer && Array.isArray(filters.customer) && filters.customer.length > 0) {
-      url += `&customer=${filters.customer.map(id => encodeURIComponent(id)).join(',')}`;
+    url += `&customer=${filters.customer.map(id => encodeURIComponent(id)).join(',')}`;
   }
   if (filters.invoiceNumber && Array.isArray(filters.invoiceNumber) && filters.invoiceNumber.length > 0) {
-      url += `&invoiceNumber=${filters.invoiceNumber.map(num => encodeURIComponent(num)).join(',')}`;
+    url += `&invoiceNumber=${filters.invoiceNumber.map(num => encodeURIComponent(num)).join(',')}`;
   }
   if (filters.fromDate) {
-      url += `&fromDate=${encodeURIComponent(filters.fromDate)}`;
+    url += `&fromDate=${encodeURIComponent(filters.fromDate)}`;
   }
   if (filters.toDate) {
-      url += `&toDate=${encodeURIComponent(filters.toDate)}`;
+    url += `&toDate=${encodeURIComponent(filters.toDate)}`;
   }
 
   // Apply sorting
   if (sortBy) {
-      url += `&sortBy=${encodeURIComponent(sortBy)}&sortDirection=${encodeURIComponent(sortDirection)}`;
+    url += `&sortBy=${encodeURIComponent(sortBy)}&sortDirection=${encodeURIComponent(sortDirection)}`;
   }
 
   const response = await fetchWithAuth(url);
 
   if (response.code === 200) {
-      return {
-          invoices: response.data || [],
-          pagination: {
-              current: page,
-              pageSize,
-              total: response.totalRecords || 0,
-          },
-      };
+    return {
+      invoices: response.data || [],
+      pagination: {
+        current: page,
+        pageSize,
+        total: response.totalRecords || 0,
+      },
+    };
   } else {
-      console.error('Failed to fetch filtered invoices:', response.message);
-      throw new Error(response.message || 'Failed to fetch filtered invoices');
+    console.error('Failed to fetch filtered invoices:', response.message);
+    throw new Error(response.message || 'Failed to fetch filtered invoices');
   }
 }
 
 
 export async function cloneInvoice(id) {
   if (!id || typeof id !== 'string') {
-      console.error('Invalid invoice ID for cloning:', id);
-      throw new Error('Invalid invoice ID');
+    console.error('Invalid invoice ID for cloning:', id);
+    throw new Error('Invalid invoice ID');
   }
 
   try {
-      const response = await fetchWithAuth(`${ENDPOINTS.INVOICE.CLONE}/${id}/clone`, { method: 'POST' });
-      if (response.code === 200) {
-          return response.invoice || response.data; // Adjust based on backend response
-      } else {
-          console.error('Failed to clone invoice:', error);
-          throw new Error(error || 'Failed to clone invoice');
-      }
+    const response = await fetchWithAuth(`${ENDPOINTS.INVOICE.CLONE}/${id}/clone`, { method: 'POST' });
+    if (response.code === 200) {
+      return response.invoice || response.data; // Adjust based on backend response
+    } else {
+      console.error('Failed to clone invoice:', error);
+      throw new Error(error || 'Failed to clone invoice');
+    }
   } catch (error) {
     console.error('Error in cloneInvoice:', error);
     throw new Error(error.message || 'Failed to clone invoice');
@@ -710,8 +709,7 @@ export async function addInvoice(invoiceData) {
   } else if (invoiceData.sign_type === "manualSignature") {
     if (invoiceData.signatureId) {
       formData.append("signatureId", invoiceData.signatureId);
-    } else
-    {
+    } else {
       formData.append("signatureId", '');
     }
   }

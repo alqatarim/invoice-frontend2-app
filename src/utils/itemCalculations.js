@@ -16,10 +16,10 @@ export function calculateItemValues(item) {
   const rate = Number((quantity * Number(item.form_updated_rate || 0)).toFixed(2));
 
   let discountX;
-  if (item.isRateFormUpadted === true || item.isRateFormUpadted === "true"){
+  if (item.isRateFormUpadted === true || item.isRateFormUpadted === "true") {
     if ((item.discountType) === 2 || (item.discountType) === "2") {
       discountX = Number((rate * (Number(item.form_updated_discount || 0) / 100)).toFixed(2));
-    } else{
+    } else {
       discountX = Number(Number(item.form_updated_discount || 0).toFixed(2));
     }
   } else {
@@ -35,7 +35,7 @@ export function calculateItemValues(item) {
     baseRate: Number(item.form_updated_rate || 0),
     discount: discountX,
     form_updated_discount: Number(item.form_updated_discount || 0),
-    discountType:discountType,
+    discountType: discountType,
     tax,
     amount,
     taxableAmount,

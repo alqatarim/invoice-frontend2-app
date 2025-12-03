@@ -1,18 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function useSignatureHandler({ signatures, setValue }) {
-  const [signOptions] = useState(signatures || []);
+  const [signOptions, setSignOptions] = useState([]);
+
+  useEffect(() => {
+    if (signatures && signatures.length > 0) {
+      const signArray = signatures.map((item) => ({
+        value: item?._id,
+        label: item?.signatureName,
+        ...item
+      }));
+      setSignOptions(signArray);
+    }
+  }, [signatures]);
 
   const handleSignatureSelection = (selected, field) => {
     if (selected) {
       field.onChange(selected._id);
-      setValue('signatureName', selected.signatureName);
-      setValue('signatureImage', selected.signatureImage);
-      setValue('sign_type', 'manualSignature');
+      if (setValue) {
+        setValue('sign_type', 'manualSignature');
+      }
     } else {
       field.onChange('');
-      setValue('signatureName', '');
-      setValue('signatureImage', '');
     }
   };
 

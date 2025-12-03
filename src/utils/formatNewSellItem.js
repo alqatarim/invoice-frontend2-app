@@ -31,6 +31,7 @@ export function formatInvoiceItem(product) {
     form_updated_discounttype: product.discountType,
     form_updated_discount: Number(product.discountValue).toFixed(2),
     form_updated_rate: Number(product.sellingPrice).toFixed(2),
-    form_updated_tax: Number(product.tax?.taxRate || 0).toFixed(2)
+    form_updated_tax: Number(product.tax?.taxRate || 0).toFixed(2),
+    images: product.images || null
   };
 }

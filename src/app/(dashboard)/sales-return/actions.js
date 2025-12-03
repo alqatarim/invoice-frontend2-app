@@ -31,7 +31,10 @@ export async function getSalesReturnList(page = 1, pageSize = 10) {
     const skipSize = page === 1 ? 0 : (page - 1) * pageSize;
 
     const response = await fetchWithAuth(
-      `${ENDPOINTS.CREDIT_NOTE.LIST}?limit=${pageSize}&skip=${skipSize}`
+      `${ENDPOINTS.CREDIT_NOTE.LIST}?limit=${pageSize}&skip=${skipSize}`,
+      {
+        cache: 'no-store'
+      }
     );
 
     if (response.code !== 200) {
@@ -52,7 +55,8 @@ export async function getSalesReturnList(page = 1, pageSize = 10) {
 export async function deleteSalesReturn(id) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.DELETE}/${id}`, {
-      method: 'PATCH'
+      method: 'PATCH',
+      cache: 'no-store'
     });
 
     if (response.code === 200) {
@@ -71,7 +75,9 @@ export async function deleteSalesReturn(id) {
 
 export async function getSalesReturnNumber() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.CREDIT_NOTE.GET_NUMBER);
+    const response = await fetchWithAuth(ENDPOINTS.CREDIT_NOTE.GET_NUMBER, {
+      cache: 'no-store'
+    });
     return {
       success: response.code === 200,
       data: response.data
@@ -84,7 +90,9 @@ export async function getSalesReturnNumber() {
 
 export async function getCustomers() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER, {
+      cache: 'no-store'
+    });
     return response.data || [];
   } catch (error) {
     console.error('Error fetching customers:', error);
@@ -94,7 +102,9 @@ export async function getCustomers() {
 
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, {
+      cache: 'no-store'
+    });
     return response.data || [];
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -104,7 +114,9 @@ export async function getProducts() {
 
 export async function getTaxRates() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, {
+      cache: 'no-store'
+    });
     return response.data || [];
   } catch (error) {
     console.error('Error fetching tax rates:', error);
@@ -114,7 +126,9 @@ export async function getTaxRates() {
 
 export async function getBanks() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK, {
+      cache: 'no-store'
+    });
     return response.data || [];
   } catch (error) {
     console.error('Error fetching banks:', error);
@@ -124,7 +138,9 @@ export async function getBanks() {
 
 export async function getSignatures() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, {
+      cache: 'no-store'
+    });
     return response.data || [];
   } catch (error) {
     console.error('Error fetching signatures:', error);
@@ -138,32 +154,51 @@ export async function addSalesReturn(data, signatureURL) {
 
     // Add items data with proper format
     data.items.forEach((item, i) => {
-      Object.keys(item).forEach(key => {
-        if (item[key] !== undefined && item[key] !== null) {
-          if (key === 'taxInfo') {
-            const taxInfoStr = typeof item[key] === 'string'
-              ? item[key]
-              : JSON.stringify(item[key]);
-            formData.append(`items[${i}][${key}]`, taxInfoStr);
-          } else {
-            formData.append(`items[${i}][${key}]`, item[key]);
-          }
-        }
-      });
-    });
-
-    // Add all other fields with proper formatting
-    Object.keys(data).forEach(key => {
-      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
-        if (key === 'dueDate' || key === 'salesReturnDate') {
-          formData.append(key, new Date(data[key]).toISOString());
-        } else if (key === 'taxableAmount' || key === 'TotalAmount' || key === 'vat' || key === 'totalDiscount') {
-          formData.append(key, Number(data[key]).toString());
-        } else {
-          formData.append(key, data[key]);
+      formData.append(`items[${i}][name]`, item.name || '');
+      formData.append(`items[${i}][key]`, i);
+      formData.append(`items[${i}][productId]`, item.productId);
+      formData.append(`items[${i}][quantity]`, item.quantity);
+      formData.append(`items[${i}][units]`, item.units || '');
+      formData.append(`items[${i}][unit]`, item.unit || '');
+      formData.append(`items[${i}][rate]`, item.rate);
+      formData.append(`items[${i}][discount]`, item.discount);
+      formData.append(`items[${i}][tax]`, item.tax);
+      let taxIfoFormdata = item.taxInfo;
+      if (typeof item.taxInfo !== "string")
+        taxIfoFormdata = JSON.stringify(item.taxInfo);
+      formData.append(`items[${i}][taxInfo]`, taxIfoFormdata);
+      formData.append(`items[${i}][amount]`, item.amount);
+      formData.append(`items[${i}][discountType]`, item.discountType);
+      formData.append(`items[${i}][isRateFormUpadted]`, item.isRateFormUpadted);
+      formData.append(`items[${i}][form_updated_discounttype]`, item.form_updated_discounttype);
+      formData.append(`items[${i}][form_updated_discount]`, item.form_updated_discount);
+      formData.append(`items[${i}][form_updated_rate]`, item.form_updated_rate);
+      formData.append(`items[${i}][form_updated_tax]`, item.form_updated_tax);
+      // Add images field - send first image URL as string (not JSON stringified array)
+      if (item.images) {
+        if (Array.isArray(item.images) && item.images.length > 0) {
+          // Take first image URL from array
+          formData.append(`items[${i}][images]`, item.images[0]);
+        } else if (typeof item.images === 'string') {
+          formData.append(`items[${i}][images]`, item.images);
         }
       }
     });
+
+    // Add all other fields with proper formatting (map frontend fields to backend fields)
+    // Backend expects: credit_note_id, credit_note_date, due_date, reference_no
+    formData.append('credit_note_id', data.salesReturnNumber || data.credit_note_id);
+    formData.append('credit_note_date', new Date(data.salesReturnDate).toISOString());
+    formData.append('due_date', new Date(data.dueDate).toISOString());
+    formData.append('reference_no', data.referenceNo || '');
+    formData.append('customerId', data.customerId);
+    formData.append('taxableAmount', Number(data.taxableAmount).toString());
+    formData.append('TotalAmount', Number(data.TotalAmount).toString());
+    formData.append('vat', Number(data.vat).toString());
+    formData.append('totalDiscount', Number(data.totalDiscount).toString());
+    formData.append('bank', data.bank || '');
+    formData.append('notes', data.notes || '');
+    formData.append('termsAndCondition', data.termsAndCondition || '');
 
     // Ensure required fields are present
     formData.append('roundOff', data.roundOff || false);
@@ -182,7 +217,8 @@ export async function addSalesReturn(data, signatureURL) {
 
     const response = await fetchWithAuth(ENDPOINTS.CREDIT_NOTE.ADD, {
       method: 'POST',
-      body: formData
+      body: formData,
+      cache: 'no-store'
     });
 
     if (!response || response.code !== 200) {
@@ -206,7 +242,9 @@ export async function addSalesReturn(data, signatureURL) {
 
 export async function getSalesReturnDetails(id) {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.VIEW}/${id}`);
+    const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.VIEW}/${id}`, {
+      cache: 'no-store'
+    });
     return response.data;
   } catch (error) {
     console.error('Error fetching sales return details:', error);
@@ -221,40 +259,50 @@ export async function updateSalesReturn(data) {
     // Add items data with proper format
     if (Array.isArray(data.items)) {
       data.items.forEach((item, i) => {
-        Object.keys(item).forEach(key => {
-          formData.append(`items[${i}][productId]`, item.productId);
-          formData.append(`items[${i}][quantity]`, item.quantity);
-          formData.append(`items[${i}][unit]`, item?.unit);
-          formData.append(`items[${i}][rate]`, item?.rate);
-          formData.append(`items[${i}][discount]`, item?.discount);
-          formData.append(`items[${i}][tax]`, item?.tax);
-          formData.append(`items[${i}][amount]`, item?.amount);
-          formData.append(`items[${i}][name]`, item?.name);
-
-          if (item[key] !== undefined && item[key] !== null) {
-            if (key === 'taxInfo') {
-              const taxInfoStr = typeof item[key] === 'string'
-                ? item[key]
-                : JSON.stringify(item[key]);
-              formData.append(`items[${i}][${key}]`, taxInfoStr);
-            }
+        formData.append(`items[${i}][name]`, item.name || '');
+        formData.append(`items[${i}][key]`, i);
+        formData.append(`items[${i}][productId]`, item.productId);
+        formData.append(`items[${i}][quantity]`, item.quantity);
+        formData.append(`items[${i}][units]`, item.units || '');
+        formData.append(`items[${i}][unit]`, item.unit || '');
+        formData.append(`items[${i}][rate]`, item.rate);
+        formData.append(`items[${i}][discount]`, item.discount);
+        formData.append(`items[${i}][tax]`, item.tax);
+        let taxIfoFormdata = item.taxInfo;
+        if (typeof item.taxInfo !== "string")
+          taxIfoFormdata = JSON.stringify(item.taxInfo);
+        formData.append(`items[${i}][taxInfo]`, taxIfoFormdata);
+        formData.append(`items[${i}][amount]`, item.amount);
+        formData.append(`items[${i}][discountType]`, item.discountType);
+        formData.append(`items[${i}][isRateFormUpadted]`, item.isRateFormUpadted);
+        formData.append(`items[${i}][form_updated_discounttype]`, item.form_updated_discounttype);
+        formData.append(`items[${i}][form_updated_discount]`, item.form_updated_discount);
+        formData.append(`items[${i}][form_updated_rate]`, item.form_updated_rate);
+        formData.append(`items[${i}][form_updated_tax]`, item.form_updated_tax);
+        // Add images field - send first image URL as string (not JSON stringified array)
+        if (item.images) {
+          if (Array.isArray(item.images) && item.images.length > 0) {
+            // Take first image URL from array
+            formData.append(`items[${i}][images]`, item.images[0]);
+          } else if (typeof item.images === 'string') {
+            formData.append(`items[${i}][images]`, item.images);
           }
-        });
+        }
       });
     }
 
-    // Ensure required fields are present
-    formData.append('salesReturnDate', dayjs(data?.salesReturnDate || new Date()).toISOString());
-    formData.append('credit_note_id', data.credit_note_id);
-    formData.append("dueDate", dayjs(data?.dueDate || new Date()).toISOString());
-    formData.append("referenceNo", data.referenceNo);
+    // Ensure required fields are present (map frontend fields to backend fields)
+    formData.append('credit_note_date', dayjs(data?.salesReturnDate || new Date()).toISOString());
+    formData.append('credit_note_id', data.credit_note_id || data.salesReturnNumber);
+    formData.append("due_date", dayjs(data?.dueDate || new Date()).toISOString());
+    formData.append("reference_no", data.referenceNo || '');
     formData.append("taxableAmount", data.taxableAmount);
     formData.append("TotalAmount", data.TotalAmount);
     formData.append("vat", data.vat);
     formData.append("totalDiscount", data.totalDiscount);
-    formData.append("bank", data.bank?._id || "");
-    formData.append("notes", data.notes);
-    formData.append("termsAndCondition", data.termsAndCondition);
+    formData.append("bank", data.bank || "");
+    formData.append("notes", data.notes || '');
+    formData.append("termsAndCondition", data.termsAndCondition || '');
     formData.append('customerId', data.customerId);
     formData.append('roundOff', data.roundOff || false);
     formData.append('sign_type', data.sign_type);
@@ -297,7 +345,8 @@ export async function updateSalesReturn(data) {
 
     const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.UPDATE}/${data.id}`, {
       method: 'PUT',
-      body: formData
+      body: formData,
+      cache: 'no-store'
     });
 
     if (!response || response.code !== 200) {
@@ -349,7 +398,8 @@ export async function addBank(bankData) {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(bankData)
+      body: JSON.stringify(bankData),
+      cache: 'no-store'
     });
 
     if (!response || response.code !== 200) {
@@ -370,7 +420,8 @@ export async function filterSalesReturns(searchData) {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(searchData)
+      body: JSON.stringify(searchData),
+      cache: 'no-store'
     });
 
     if (response.code !== 200) {
