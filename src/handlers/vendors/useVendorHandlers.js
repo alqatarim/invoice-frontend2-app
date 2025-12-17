@@ -39,12 +39,22 @@ export default function useVendorHandlers({
   // Populate form with vendor data when in edit mode
   useEffect(() => {
     if (mode === 'edit' && vendorData) {
+      // IMPORTANT: Use openingBalance if available (from list API), 
+      // otherwise use balance (from view API where balance IS the opening balance)
+      const rawBalance = vendorData.openingBalance ?? vendorData.balance ?? 0;
+      const rawBalanceType = vendorData.openingBalanceType ?? vendorData.balanceType ?? 'Credit';
+
+      // Handle negative balance: convert to positive with Debit type
+      const isNegative = rawBalance < 0;
+      const absoluteBalance = Math.abs(rawBalance);
+      const resolvedType = isNegative ? 'Debit' : rawBalanceType;
+
       const formData = {
         vendor_name: vendorData.vendor_name || '',
         vendor_email: vendorData.vendor_email || '',
         vendor_phone: vendorData.vendor_phone || '',
-        balance: vendorData.balance || '',
-        balanceType: vendorData.balanceType || 'Credit',
+        balance: absoluteBalance || '',
+        balanceType: resolvedType,
         status: vendorData.status !== undefined ? vendorData.status : true,
       };
       reset(formData);
@@ -56,10 +66,17 @@ export default function useVendorHandlers({
 
     setIsSubmitting(true);
     try {
+      // Parse balance and ensure it's positive (DB doesn't accept negative values)
+      const rawBalance = data.balance ? parseFloat(data.balance) : 0;
+      const absoluteBalance = Math.abs(rawBalance);
+      // If user entered negative, flip to Debit type
+      const resolvedType = rawBalance < 0 ? 'Debit' : data.balanceType;
+
       // Prepare data for submission
       const submitData = {
         ...data,
-        balance: data.balance ? parseFloat(data.balance) : 0,
+        balance: absoluteBalance,
+        balanceType: resolvedType,
       };
 
       // If balance is 0 or empty, don't send balanceType

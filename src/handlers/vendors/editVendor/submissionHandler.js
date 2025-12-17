@@ -16,10 +16,17 @@ export function useSubmissionHandler({
 
     setIsSubmitting(true);
     try {
+      // Parse balance and ensure it's positive (DB doesn't accept negative values)
+      const rawBalance = data.balance ? parseFloat(data.balance) : 0;
+      const absoluteBalance = Math.abs(rawBalance);
+      // If user entered negative, flip to Debit type
+      const resolvedType = rawBalance < 0 ? 'Debit' : data.balanceType;
+
       // Prepare data for submission
       const submitData = {
         ...data,
-        balance: data.balance ? parseFloat(data.balance) : 0,
+        balance: absoluteBalance,
+        balanceType: resolvedType,
       };
 
       // If balance is 0 or empty, don't send balanceType
