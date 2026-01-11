@@ -231,6 +231,11 @@ export async function getPaymentDetails(id) {
 
 export async function addPayment(data) {
   try {
+    // Format date to string (backend expects string for received_on)
+    const formattedDate = data.date ? 
+      (typeof data.date === 'string' ? data.date : data.date.format?.('YYYY-MM-DD') || data.date.toISOString?.().split('T')[0]) 
+      : new Date().toISOString().split('T')[0];
+
     const response = await fetchWithAuth(ENDPOINTS.PAYMENT.ADD, {
       method: 'POST',
       headers: {
@@ -239,11 +244,11 @@ export async function addPayment(data) {
       body: JSON.stringify({
         invoiceId: data.invoiceId,
         payment_number: data.paymentNumber,
-        payment_method: data.payment_method,
-        amount: data.amount,
-        received_on: data.received_on,
-        notes: data.notes,
-        status: data.status
+        payment_method: data.paymentMethod, // Map from form field name
+        amount: parseFloat(data.amount),
+        received_on: formattedDate, // Map from form's date field
+        notes: data.description || '' // Map from form's description field
+        // Note: status is auto-determined by backend based on payment_method
       })
     });
 

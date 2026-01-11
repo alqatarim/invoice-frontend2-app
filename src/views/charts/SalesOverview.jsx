@@ -183,16 +183,16 @@ const CardWidgetsSalesOverview = ({
 										Total
 									</Typography>
 								</Box>
-								<Box className="flex items-center flex-row gap-1">
-									<Icon
-										icon="lucide:saudi-riyal"
-										width="1.2rem"
-										color={theme.palette.secondary.light}
-									/>
-									<Typography className="text-textPrimary font-medium text-[1.1rem]">
-										{Number(amounts.reduce((a, b) => a + b, 0)).toFixed(2)}
-									</Typography>
-								</Box>
+							<Box className="flex items-center flex-row gap-1">
+								<Icon
+									icon="lucide:saudi-riyal"
+									width="17px"
+									color={theme.palette.secondary.light}
+								/>
+								<Typography className="text-textPrimary font-medium text-[15.5px]">
+									{Number(amounts.reduce((a, b) => a + b, 0)).toFixed(2)}
+								</Typography>
+							</Box>
 							</Grid>
 
 							{statusData.map((status, i) => (
@@ -219,16 +219,16 @@ const CardWidgetsSalesOverview = ({
 											{status.label}
 										</Typography>
 									</Box>
-									<Box className="flex items-center flex-row gap-1">
-										<Icon
-											icon="lucide:saudi-riyal"
-											width="1.2rem"
-											color={theme.palette.secondary.light}
-										/>
-										<Typography className="text-textPrimary font-medium text-[1.1rem]">
-											{Number(status.amount).toFixed(2)}
-										</Typography>
-									</Box>
+								<Box className="flex items-center flex-row gap-1">
+									<Icon
+										icon="lucide:saudi-riyal"
+										width="17px"
+										color={theme.palette.secondary.light}
+									/>
+									<Typography className="text-textPrimary font-medium text-[15.5px]">
+										{Number(status.amount).toFixed(2)}
+									</Typography>
+								</Box>
 								</Grid>
 							))}
 						</Grid>

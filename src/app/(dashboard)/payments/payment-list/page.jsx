@@ -18,7 +18,7 @@ async function PaymentListPage() {
       <ProtectedComponent>
         <PaymentListIndex
           initialData={initialData}
-          customers={customers}
+          initialCustomerOptions={customers || []}
         />
       </ProtectedComponent>
     );

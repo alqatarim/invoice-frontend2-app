@@ -27,16 +27,21 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { useAddPaymentHandlers } from '@/handlers/payments/addPayment/useAddPaymentHandlers';
 import { formIcons } from '@/data/dataSets';
+import { getInvoices } from '@/app/(dashboard)/payments/actions';
 
+// Must match backend enum: ["Cash", "Cheque", "Online", "Bank"]
 const paymentModes = [
-     { value: 'cash', label: 'Cash' },
-     { value: 'credit', label: 'Credit' },
-     { value: 'cheque', label: 'Cheque' }
+     { value: 'Cash', label: 'Cash' },
+     { value: 'Cheque', label: 'Cheque' },
+     { value: 'Online', label: 'Online' },
+     { value: 'Bank', label: 'Bank Transfer' }
 ];
 
 const AddPaymentDialog = ({ open, onClose, onSave, paymentNumber, customerOptions = [] }) => {
      const theme = useTheme();
      const [loading, setLoading] = useState(false);
+     const [allInvoices, setAllInvoices] = useState([]);
+     const [invoicesLoading, setInvoicesLoading] = useState(false);
 
      const {
           control,
@@ -46,20 +51,74 @@ const AddPaymentDialog = ({ open, onClose, onSave, paymentNumber, customerOption
           isSubmitting,
           handleFormSubmit,
           reset,
+          setValue,
      } = useAddPaymentHandlers({
           paymentNumber,
           onSave: async (data) => {
                const result = await onSave(data);
                if (result.success) {
                     reset();
+                    setAllInvoices([]);
                     onClose();
                }
                return result;
           },
      });
 
+     // Watch selections
+     const selectedCustomerId = watch('customerId');
+     const selectedInvoiceId = watch('invoiceId');
+
+     // Fetch all invoices when dialog opens
+     useEffect(() => {
+          const fetchAllInvoices = async () => {
+               if (open) {
+                    setInvoicesLoading(true);
+                    try {
+                         const invoices = await getInvoices();
+                         setAllInvoices(invoices || []);
+                    } catch (error) {
+                         console.error('Error fetching invoices:', error);
+                         setAllInvoices([]);
+                    } finally {
+                         setInvoicesLoading(false);
+                    }
+               }
+          };
+
+          fetchAllInvoices();
+     }, [open]);
+
+     // Get filtered invoices based on selected customer
+     const filteredInvoices = selectedCustomerId
+          ? allInvoices.filter(inv => inv.customerId === selectedCustomerId)
+          : allInvoices;
+
+     // Handle invoice selection - auto-set customer
+     const handleInvoiceChange = (newValue) => {
+          setValue('invoiceId', newValue?._id || '');
+          if (newValue?.customerId) {
+               setValue('customerId', newValue.customerId);
+          }
+     };
+
+     // Handle customer change - reset invoice if it doesn't belong to new customer
+     const handleCustomerChange = (newValue) => {
+          const newCustomerId = newValue?._id || '';
+          setValue('customerId', newCustomerId);
+
+          // If current invoice doesn't belong to new customer, reset it
+          if (selectedInvoiceId && newCustomerId) {
+               const currentInvoice = allInvoices.find(inv => inv._id === selectedInvoiceId);
+               if (currentInvoice && currentInvoice.customerId !== newCustomerId) {
+                    setValue('invoiceId', '');
+               }
+          }
+     };
+
      const handleClose = () => {
           reset();
+          setAllInvoices([]);
           onClose();
      };
 
@@ -152,14 +211,37 @@ const AddPaymentDialog = ({ open, onClose, onSave, paymentNumber, customerOption
                                                                  getOptionLabel={(option) => option?.name || ''}
                                                                  value={customerOptions.find(customer => customer._id === value) || null}
                                                                  onChange={(event, newValue) => {
-                                                                      onChange(newValue?._id || '');
+                                                                      handleCustomerChange(newValue);
+                                                                 }}
+                                                                 isOptionEqualToValue={(option, value) => option?._id === value?._id}
+                                                                 filterOptions={(options, { inputValue }) => {
+                                                                      const search = inputValue.toLowerCase();
+                                                                      return options.filter(opt =>
+                                                                           (opt.name || '').toLowerCase().includes(search) ||
+                                                                           (opt.phone || '').toLowerCase().includes(search) ||
+                                                                           (opt.email || '').toLowerCase().includes(search)
+                                                                      );
                                                                  }}
                                                                  disabled={isSubmitting}
+                                                                 renderOption={(props, option) => (
+                                                                      <li {...props} key={option._id}>
+                                                                           <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                                                                                <Typography variant="body2" fontWeight={500}>
+                                                                                     {option.name}
+                                                                                </Typography>
+                                                                                {option.phone && (
+                                                                                     <Typography variant="caption" color="text.secondary">
+                                                                                          {option.phone}
+                                                                                     </Typography>
+                                                                                )}
+                                                                           </Box>
+                                                                      </li>
+                                                                 )}
                                                                  renderInput={(params) => (
                                                                       <TextField
                                                                            {...params}
                                                                            label="Customer"
-                                                                           placeholder="Select customer"
+                                                                           placeholder="Type to search customer..."
                                                                            error={!!errors.customerId}
                                                                            helperText={errors.customerId?.message}
                                                                            required
@@ -184,32 +266,105 @@ const AddPaymentDialog = ({ open, onClose, onSave, paymentNumber, customerOption
                                                   />
                                              </Grid>
 
-                                             {/* Invoice ID */}
+                                             {/* Invoice Number */}
                                              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                                                   <Controller
                                                        name="invoiceId"
                                                        control={control}
-                                                       render={({ field }) => (
-                                                            <TextField
+                                                       render={({ field: { onChange, value, ...field } }) => (
+                                                            <Autocomplete
                                                                  {...field}
-                                                                 fullWidth
-                                                                 label="Invoice ID"
-                                                                 placeholder="Enter invoice ID"
-                                                                 error={!!errors.invoiceId}
-                                                                 helperText={errors.invoiceId?.message}
-                                                                 disabled={isSubmitting}
-                                                                 required
-                                                                 InputProps={{
-                                                                      startAdornment: (
-                                                                           <Icon
-                                                                                style={{ marginRight: '5px' }}
-                                                                                icon={formIcons.find(icon => icon.value === 'invoice')?.icon || 'mdi:file-document-outline'}
-                                                                                width={23}
-                                                                                color={theme.palette.secondary.light}
-                                                                           />
-                                                                      ),
+                                                                 options={filteredInvoices}
+                                                                 getOptionLabel={(option) => {
+                                                                      if (typeof option === 'string') {
+                                                                           const found = allInvoices.find(inv => inv._id === option);
+                                                                           return found?.invoiceNumber || '';
+                                                                      }
+                                                                      return option?.invoiceNumber || '';
                                                                  }}
-                                                                 variant="outlined"
+                                                                 value={allInvoices.find(inv => inv._id === value) || null}
+                                                                 onChange={(event, newValue) => {
+                                                                      handleInvoiceChange(newValue);
+                                                                 }}
+                                                                 isOptionEqualToValue={(option, value) => option?._id === value?._id}
+                                                                 filterOptions={(options, { inputValue }) => {
+                                                                      if (!inputValue) return options;
+                                                                      const searchTerm = inputValue.toLowerCase();
+                                                                      return options.filter(option =>
+                                                                           option?.invoiceNumber?.toLowerCase().includes(searchTerm) ||
+                                                                           option?.CustomerName?.toLowerCase().includes(searchTerm)
+                                                                      );
+                                                                 }}
+                                                                 disabled={isSubmitting || invoicesLoading}
+                                                                 loading={invoicesLoading}
+                                                                 renderOption={(props, option) => (
+                                                                      <li {...props} key={option._id}>
+                                                                           <Box sx={{
+                                                                                display: 'flex',
+                                                                                flexDirection: 'column',
+                                                                                width: '100%',
+                                                                                py: 0.5
+                                                                           }}>
+                                                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                                                                                     <Typography variant="body2" fontWeight={600} color="primary.main">
+                                                                                          {option.invoiceNumber}
+                                                                                     </Typography>
+                                                                                     <Typography
+                                                                                          variant="caption"
+                                                                                          sx={{
+                                                                                               bgcolor: option.balanceAmount > 0 ? 'warning.lighter' : 'success.lighter',
+                                                                                               color: option.balanceAmount > 0 ? 'warning.dark' : 'success.dark',
+                                                                                               px: 1,
+                                                                                               py: 0.25,
+                                                                                               borderRadius: 1,
+                                                                                               fontWeight: 500
+                                                                                          }}
+                                                                                     >
+                                                                                          Balance: {option.balanceAmount?.toFixed(2)}
+                                                                                     </Typography>
+                                                                                </Box>
+                                                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                     <Typography variant="caption" color="text.secondary">
+                                                                                          <Icon icon="mdi:account-outline" width={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                                                                                          {option.CustomerName || 'N/A'}
+                                                                                     </Typography>
+                                                                                     <Typography variant="caption" color="text.secondary">
+                                                                                          Total: {option.totalAmount?.toFixed(2)}
+                                                                                     </Typography>
+                                                                                </Box>
+                                                                           </Box>
+                                                                      </li>
+                                                                 )}
+                                                                 renderInput={(params) => (
+                                                                      <TextField
+                                                                           {...params}
+                                                                           label="Invoice Number"
+                                                                           placeholder="Type to search invoice..."
+                                                                           error={!!errors.invoiceId}
+                                                                           helperText={errors.invoiceId?.message || (!selectedCustomerId ? 'Or select invoice to auto-fill customer' : '')}
+                                                                           required
+                                                                           InputProps={{
+                                                                                ...params.InputProps,
+                                                                                startAdornment: (
+                                                                                     <>
+                                                                                          <Icon
+                                                                                               style={{ marginRight: '5px' }}
+                                                                                               icon={formIcons.find(icon => icon.value === 'invoice')?.icon || 'mdi:file-document-outline'}
+                                                                                               width={23}
+                                                                                               color={theme.palette.secondary.light}
+                                                                                          />
+                                                                                          {params.InputProps.startAdornment}
+                                                                                     </>
+                                                                                ),
+                                                                                endAdornment: (
+                                                                                     <>
+                                                                                          {invoicesLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                                                                          {params.InputProps.endAdornment}
+                                                                                     </>
+                                                                                ),
+                                                                           }}
+                                                                      />
+                                                                 )}
                                                             />
                                                        )}
                                                   />
@@ -313,37 +468,7 @@ const AddPaymentDialog = ({ open, onClose, onSave, paymentNumber, customerOption
                                                   />
                                              </Grid>
 
-                                             {/* Status */}
-                                             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                                                  <Controller
-                                                       name="status"
-                                                       control={control}
-                                                       render={({ field }) => (
-                                                            <FormControl fullWidth error={!!errors.status} required>
-                                                                 <InputLabel>Status</InputLabel>
-                                                                 <Select
-                                                                      {...field}
-                                                                      label="Status"
-                                                                      disabled={isSubmitting}
-                                                                      startAdornment={
-                                                                           <Icon
-                                                                                style={{ marginRight: '5px' }}
-                                                                                icon={formIcons.find(icon => icon.value === 'status')?.icon || 'mdi:check-circle-outline'}
-                                                                                width={23}
-                                                                                color={theme.palette.secondary.light}
-                                                                           />
-                                                                      }
-                                                                 >
-                                                                      <MenuItem value="success">Success</MenuItem>
-                                                                      <MenuItem value="processing">Processing</MenuItem>
-                                                                      <MenuItem value="pending">Pending</MenuItem>
-                                                                      <MenuItem value="cancelled">Cancelled</MenuItem>
-                                                                 </Select>
-                                                                 {errors.status && <FormHelperText>{errors.status.message}</FormHelperText>}
-                                                            </FormControl>
-                                                       )}
-                                                  />
-                                             </Grid>
+                                             {/* Note: Status is auto-determined by backend based on payment_method */}
 
                                              {/* Reference */}
                                              <Grid size={{ xs: 12, sm: 6, md: 4 }}>

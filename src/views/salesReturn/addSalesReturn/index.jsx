@@ -129,10 +129,10 @@ const AddSalesReturnContent = ({ customers, products, taxRates, banks, signature
   };
 
   return <AddSalesReturn 
-    customers={customers}
-    products={products}
+    customersData={customers}
+    productData={products}
     taxRates={taxRates}
-    banks={banks}
+    initialBanks={banks}
     signatures={signatures}
     salesReturnNumber={salesReturnNumber}
     onSave={handleSave}

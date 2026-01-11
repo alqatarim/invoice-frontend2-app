@@ -72,13 +72,13 @@ const EditPurchaseIndex = ({ purchaseData, vendors = [], products = [], taxRates
   return (
     <>
       <EditPurchase
-        vendors={vendors}
-        products={products}
+        vendorsData={vendors}
+        productData={products}
         taxRates={taxRates}
-        banks={banks}
+        initialBanks={banks}
         signatures={signatures}
-        units={units}
         purchaseData={purchaseData}
+        onSave={handleSave}
       />
 
       <Snackbar

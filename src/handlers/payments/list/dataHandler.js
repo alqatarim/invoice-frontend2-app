@@ -161,6 +161,13 @@ export function dataHandler({
           }
      }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+     // Set initial customer options on mount
+     useEffect(() => {
+          if (initialCustomerOptions?.length > 0 && setCustomerOptions) {
+               setCustomerOptions(initialCustomerOptions);
+          }
+     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
      return {
           // State
           payments,
