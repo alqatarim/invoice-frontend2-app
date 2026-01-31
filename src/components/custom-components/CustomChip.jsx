@@ -12,7 +12,7 @@ import { styled } from '@mui/material/styles'
  * @param {...other} other - All other MUI Chip props
  */
 
- const StyledChip = styled(Chip, {
+const StyledChip = styled(Chip, {
   shouldForwardProp: (prop) => !['rounded', 'colorVariant', 'chipCustomSize'].includes(prop),
 })(({ theme, rounded, colorVariant, chipCustomSize }) => {
   // Handle border radius
@@ -198,9 +198,37 @@ import { styled } from '@mui/material/styles'
       return {}
     }
 
+    // Determine text color based on variant (following MUI chip tonal pattern)
+    const getTextColor = () => {
+      const paletteColor = theme.palette[colorName]
+
+      // For lighter/lightest backgrounds: use the dark or main color of that palette
+      if (variant === 'lighter' || variant === 'lightest' || variant === 'lightestOpacity' || variant === 'lighterOpacity') {
+        return paletteColor?.dark || paletteColor?.main || theme.palette.getContrastText(color)
+      }
+
+      // For darker/darkest backgrounds: use white (like MUI's contrastText)
+      if (variant === 'darker' || variant === 'darkest' || variant === 'darkerOpacity' || variant === 'darkestOpacity') {
+        return paletteColor?.contrastText || '#fff'
+      }
+
+      // For light variant: use dark color of that palette
+      if (variant === 'light' || variant === 'lightOpacity') {
+        return paletteColor?.dark || theme.palette.getContrastText(color)
+      }
+
+      // For dark variant: use white
+      if (variant === 'dark' || variant === 'darkOpacity') {
+        return paletteColor?.contrastText || '#fff'
+      }
+
+      // For main or other variants: use standard contrast calculation
+      return paletteColor?.contrastText || theme.palette.getContrastText(color)
+    }
+
     return {
       backgroundColor: color,
-      color: theme.palette.getContrastText(color),
+      color: getTextColor(),
       '&:hover': {
         backgroundColor: color,
         opacity: 0.8,

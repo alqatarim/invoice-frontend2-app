@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Controller } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
 import {
   Card,
   CardContent,
@@ -19,6 +19,9 @@ const InvoiceTotals = ({
   handleFormSubmit,
   handleError
 }) => {
+  const roundOffValue = useWatch({ control, name: 'roundOffValue' });
+  const showRoundOff = Number(roundOffValue || 0) !== 0;
+
   return (
     <Card>
       <CardContent className='px-4 py-3'>
@@ -67,6 +70,18 @@ const InvoiceTotals = ({
               )}
             />
           </Grid>
+          {showRoundOff && (
+            <>
+              <Grid size={{ xs: 6 }}>
+                <Typography variant="body1">Round Off:</Typography>
+              </Grid>
+              <Grid size={{ xs: 6 }} sx={{ textAlign: 'right' }}>
+                <Typography variant="body1" fontWeight="medium">
+                  {Number(roundOffValue || 0).toFixed(2)}
+                </Typography>
+              </Grid>
+            </>
+          )}
 
           <Grid size={{ xs: 12 }}>
             <Divider sx={{ my: 1 }} />

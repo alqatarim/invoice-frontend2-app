@@ -1,8 +1,8 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
-import { Typography, Chip, IconButton, Box, Avatar } from '@mui/material';
-import moment from 'moment';
+import { Typography, Chip, IconButton, Box, Avatar, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { parseProductDescription } from '@/utils/productMeta';
 
 // Action cell extracted into its own component so hooks are used at the top level
 const ActionCell = ({ row, handlers, permissions }) => {
@@ -51,6 +51,40 @@ const ActionCell = ({ row, handlers, permissions }) => {
  * Product table column definitions
  */
 export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
+  {
+    key: 'expand',
+    label: '',
+    visible: true,
+    align: 'center',
+    sortable: false,
+    width: '50px',
+    renderCell: (row, handlers) => {
+      const { meta } = parseProductDescription(row.productDescription);
+      const variantsCount = Array.isArray(meta?.variants) ? meta.variants.length : 0;
+      if (!variantsCount) return null;
+      const isExpanded = handlers?.expandedRows?.[row._id];
+      return (
+        <Tooltip title={isExpanded ? 'Collapse variants' : 'Expand variants'}>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlers?.toggleRow?.(row._id);
+            }}
+          >
+            <Icon
+              icon="mdi:chevron-down"
+              width={22}
+              style={{
+                transition: 'transform 200ms ease',
+                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              }}
+            />
+          </IconButton>
+        </Tooltip>
+      );
+    }
+  },
 
   {
     key: 'image',
@@ -59,13 +93,13 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     align: 'center',
     renderCell: (row) => (
       <Box>
-      <Avatar
-        src={row.images || ''}
-        variant="rounded"
-        sx={{ width: 40, height: 40 }}
-      >
-        <Icon icon="mdi:package-variant-closed" />
-      </Avatar>
+        <Avatar
+          src={row.images || ''}
+          variant="rounded"
+          sx={{ width: 40, height: 40 }}
+        >
+          <Icon icon="mdi:package-variant-closed" />
+        </Avatar>
       </Box>
     ),
   },
@@ -96,9 +130,13 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     label: 'Category',
     sortable: true,
     renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
-        {row.category?.name || 'N/A'}
-      </Typography>
+      <Chip
+        size="small"
+        variant="outlined"
+        color="secondary"
+        label={row.category?.name || 'N/A'}
+        sx={{ fontSize: '0.75rem' }}
+      />
     ),
   },
   {
@@ -185,10 +223,10 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     visible: true,
     align: 'right',
     renderCell: (row, handlers) => (
-      <ActionCell 
-        row={row} 
-        handlers={handlers} 
-        permissions={permissions} 
+      <ActionCell
+        row={row}
+        handlers={handlers}
+        permissions={permissions}
       />
     ),
   },

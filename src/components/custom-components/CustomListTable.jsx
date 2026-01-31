@@ -22,7 +22,9 @@ import {
   Button,
   TableContainer,
   CircularProgress,
+  Collapse,
 } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import classnames from 'classnames';
 
@@ -89,7 +91,20 @@ function CustomListTable({
   searchPlaceholder = 'Search...',
   headerActions,
   title,
+  onRowClick,
+  getRowClassName,
+  expandedRows = {},
+  expandableRowRender,
 }) {
+  const theme = useTheme();
+  // Use a distinct light info tint for expanded rows (different from header background)
+  const expandedRowBackground = theme.palette.secondary.lightestOpacity;
+
+  // Simplified selector for interactive elements
+  // .MuiFormControl-root covers almost all MUI inputs (Select, TextField, etc.)
+  // [role="option"] covers the dropdown menu items bubbling from Portals
+  const interactiveSelector = 'a, button, input, select, textarea, [role="button"], [role="option"], .MuiFormControl-root';
+
   // Selection helpers
   const allSelected =
     rows.length > 0 && selectedRows && selectedRows.length === rows.length;
@@ -135,12 +150,12 @@ function CustomListTable({
                   className='max-sm:is-full'
                 />
                 {loading && (
-                  <CircularProgress 
-                    size={20} 
+                  <CircularProgress
+                    size={20}
                     thickness={4}
-                    sx={{ 
+                    sx={{
                       color: 'primary.main',
-                      opacity: 0.7 
+                      opacity: 0.7
                     }}
                   />
                 )}
@@ -153,8 +168,8 @@ function CustomListTable({
           </div>
         </CardContent>
       )}
-      
-      <TableContainer 
+
+      <TableContainer
         sx={{
           maxHeight: '70vh', // Enables vertical scrolling for large datasets
           '& .MuiTableHead-root': {
@@ -165,16 +180,16 @@ function CustomListTable({
           }
         }}
       >
-        <Table 
+        <Table
           className={classnames(tableStyles.table, tableClassName)}
-          sx={{ 
+          sx={{
             minWidth: '900px', // TableContainer handles width: 100% automatically
             tableLayout: 'auto' // Explicit for better browser optimization
           }}
           stickyHeader // Works with TableContainer for sticky headers
         >
           <TableHead
-          align={'end'}
+            align={'end'}
           >
             <TableRow>
               {onRowSelect && (
@@ -188,19 +203,19 @@ function CustomListTable({
                 </TableCell>
               )}
               {columns.map((col) => (
-                <TableCell 
-                  key={col.key} 
+                <TableCell
+                  key={col.key}
                   align={col.align}
-                  // sx={{
-                  //   ...(col.minWidth && { minWidth: col.minWidth }),
-                  //   ...(col.width && { width: col.width })
-                  // }}
-                  // className={tableCellClassName}
-                  
-                >
-           
+                // sx={{
+                //   ...(col.minWidth && { minWidth: col.minWidth }),
+                //   ...(col.width && { width: col.width })
+                // }}
+                // className={tableCellClassName}
 
-{col.label}
+                >
+
+
+                  {col.label}
                 </TableCell>
               ))}
             </TableRow>
@@ -217,42 +232,100 @@ function CustomListTable({
             <TableBody>
               {rows.map((row, rowIdx) => {
                 const key = rowKey ? rowKey(row, rowIdx) : rowIdx;
+                const isExpanded = expandedRows?.[row._id || key];
                 return (
-                  <TableRow key={key} className={classnames(tableRowClassName, { selected: selectedRows.includes(key) })}>
-                    {onRowSelect && (
-                      <TableCell sx={{ minWidth: 50 }}>
-                        <Checkbox
-                          checked={selectedRows.includes(key)}
-                          onChange={handleSelectRow(key)}
-                          inputProps={{ 'aria-label': `select row ${rowIdx + 1}` }}
-                        />
-                      </TableCell>
-                    )}
-                    {columns.map((col) => (
-                      <TableCell
-                        key={col.key}
-                        align={col.align || 'left'}
+                  <React.Fragment key={key}>
+                    <TableRow
+                      className={classnames(
+                        tableRowClassName,
+                        getRowClassName ? getRowClassName(row, rowIdx) : '',
+                        { selected: selectedRows.includes(key) }
+                      )}
+                      onClick={(event) => {
+                        if (!onRowClick) return;
+                        const target = event?.target;
+                        // Check if click is on an interactive element
+                        if (target?.closest?.(interactiveSelector)) return;
+                        onRowClick(row, rowIdx, event);
+                      }}
+                      sx={{
+                        transition: 'background-color 200ms ease',
+                        // MUI pattern: remove bottom border from all children when expanded
+                        ...(isExpanded && {
+                          backgroundColor: expandedRowBackground,
+                          '& > *': { borderBottom: 'unset' },
+                          borderBlockEnd: 'none !important', // Remove CSS module border on TR
+                        }),
+                      }}
+                    >
+                      {onRowSelect && (
+                        <TableCell sx={{ minWidth: 50 }}>
+                          <Checkbox
+                            checked={selectedRows.includes(key)}
+                            onChange={handleSelectRow(key)}
+                            inputProps={{ 'aria-label': `select row ${rowIdx + 1}` }}
+                          />
+                        </TableCell>
+                      )}
+                      {columns.map((col) => (
+                        <TableCell
+                          key={col.key}
+                          align={col.align || 'left'}
+                          sx={{
+                            ...(col.minWidth && { minWidth: col.minWidth }),
+                            ...(col.width && { width: col.width })
+                          }}
+                          className={tableCellClassName}
+                        >
+                          {col.renderCell
+                            ? col.renderCell(row, rowIdx)
+                            : renderCell
+                              ? renderCell(row, col, rowIdx)
+                              : row[col.key] ?? ''}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                    {/* Expandable row content - follows MUI collapsible table pattern */}
+                    {expandableRowRender && (
+                      <TableRow
                         sx={{
-                          ...(col.minWidth && { minWidth: col.minWidth }),
-                          ...(col.width && { width: col.width })
+                          ...(isExpanded && { backgroundColor: expandedRowBackground }),
                         }}
-                        className={tableCellClassName}
                       >
-                        {col.renderCell
-                          ? col.renderCell(row, rowIdx)
-                          : renderCell
-                          ? renderCell(row, col, rowIdx)
-                          : row[col.key] ?? ''}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                        <TableCell
+                          colSpan={columns.length + (onRowSelect ? 1 : 0)}
+                          style={{ paddingBottom: 0, paddingTop: 0 }}
+                          sx={{
+                            border: 0,
+                            // Ensure cell height follows content (Collapse animation)
+                            // and overrides the fixed 50px height from css module
+                            blockSize: 'auto !important',
+                            '& > .MuiCollapse-root': {
+                              minHeight: '0 !important',
+                            }
+                          }}
+                          onClick={(event) => {
+                            if (!onRowClick || !isExpanded) return;
+                            const target = event?.target;
+                            // Check if click is on an interactive element
+                            if (target?.closest?.(interactiveSelector)) return;
+                            onRowClick(row, rowIdx, event);
+                          }}
+                        >
+                          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                            {expandableRowRender(row, rowIdx)}
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </TableBody>
           )}
         </Table>
       </TableContainer>
-      
+
       {pagination && (
         <TablePagination
           rowsPerPageOptions={[10, 25, 50, 100]}

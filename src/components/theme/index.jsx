@@ -56,9 +56,10 @@ const CustomThemeProvider = props => {
             primary: {
               main: settings.primaryColor,
               light: lighten(settings.primaryColor, 0.2),
-              lighter: lighten(settings.primaryColor, 0.1),
-              lightest: lighten(settings.primaryColor, 0.05),
-              dark: darken(settings.primaryColor, 0.1)
+              lighter: lighten(settings.primaryColor, 0.4),
+              lightest: lighten(settings.primaryColor, 0.6),
+              dark: darken(settings.primaryColor, 0.1),
+              contrastText: '#fff'
             }
           }
         },
@@ -67,9 +68,10 @@ const CustomThemeProvider = props => {
             primary: {
               main: settings.primaryColor,
               light: lighten(settings.primaryColor, 0.2),
-              lighter: lighten(settings.primaryColor, 0.1),
-              lightest: lighten(settings.primaryColor, 0.05),
-              dark: darken(settings.primaryColor, 0.1)
+              lighter: lighten(settings.primaryColor, 0.4),
+              lightest: lighten(settings.primaryColor, 0.6),
+              dark: darken(settings.primaryColor, 0.1),
+              contrastText: '#fff'
             }
           }
         }

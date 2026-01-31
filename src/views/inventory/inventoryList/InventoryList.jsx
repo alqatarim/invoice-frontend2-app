@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import {
   Card,
@@ -13,16 +13,30 @@ import {
   Typography,
   IconButton,
   Popover,
-  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Divider,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { usePermission } from '@/Auth/usePermission';
-import { Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 
 import InventoryHead from '@/views/inventory/inventoryList/inventoryHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { useInventoryListHandlers } from '@/handlers/inventory/useInventoryListHandlers';
+import { useBranchInventoryHandlers } from '@/handlers/inventory/useBranchInventoryHandlers';
 import { getInventoryColumns } from './inventoryColumns';
+import { getBranchInventoryColumns } from './branchInventoryColumns';
+import { getBranchesForDropdown, getProvincesCities } from '@/app/(dashboard)/branches/actions';
+import BranchStockTable from './BranchStockTable';
+import BranchInventoryTable from './BranchInventoryTable';
 
 /**
  * InventoryList Component
@@ -51,17 +65,31 @@ const InventoryList = ({
     message: '',
     severity: 'success',
   });
+  const [branches, setBranches] = useState([]);
+  const [provincesCities, setProvincesCities] = useState([]);
+  const [expandedRows, setExpandedRows] = useState({});
+  const [expandedBranchRows, setExpandedBranchRows] = useState({});
+  const [activeTab, setActiveTab] = useState('inventory');
 
-  // Stock management dialog state
+  // Simplified stock dialog state (for branch-level add/remove)
   const [stockDialog, setStockDialog] = useState({
     open: false,
     type: null, // 'add' or 'remove'
-    item: null,
+    branchRow: null, // The branch being modified
     anchorEl: null,
-    data: {
-      quantity: '',
-      notes: '',
-    },
+    quantity: '',
+  });
+
+  // Enhanced transfer dialog state
+  const [transferDialog, setTransferDialog] = useState({
+    open: false,
+    branchRow: null,
+    // Location filters for destination
+    toProvince: '',
+    toCity: '',
+    toDistrict: '',
+    toBranchId: '',
+    quantity: '',
   });
 
   const handleSnackbarClose = (event, reason) => {
@@ -87,58 +115,307 @@ const InventoryList = ({
     onSuccess,
   });
 
+  const branchHandlers = useBranchInventoryHandlers({
+    initialBranches: [],
+    initialPagination: { current: 1, pageSize: 10, total: 0 },
+    onError,
+  });
 
-  // Stock dialog handlers
-  const openStockDialog = (type, item, anchorEl) => {
+  useEffect(() => {
+    const loadMetadata = async () => {
+      const [branchList, provincesList] = await Promise.all([
+        getBranchesForDropdown(),
+        getProvincesCities(),
+      ]);
+      setBranches(Array.isArray(branchList) ? branchList : []);
+      setProvincesCities(Array.isArray(provincesList) ? provincesList : []);
+    };
+    loadMetadata();
+  }, []);
+
+  const toggleRow = (rowId) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [rowId]: !prev[rowId],
+    }));
+  };
+
+  const handleRowClick = (row) => {
+    toggleRow(row._id);
+  };
+
+  const toggleBranchRow = (rowId) => {
+    setExpandedBranchRows((prev) => ({
+      ...prev,
+      [rowId]: !prev[rowId],
+    }));
+  };
+
+  const handleBranchRowClick = (row) => {
+    toggleBranchRow(row._id);
+  };
+
+  // Simplified stock dialog handlers (branch-level only)
+  const openStockDialog = (type, branchRow, anchorEl) => {
     setStockDialog({
       open: true,
       type,
-      item,
+      branchRow,
       anchorEl,
-      data: {
-        quantity: '',
-        notes: '',
-      },
+      quantity: '',
     });
   };
 
   const closeStockDialog = () => {
     setStockDialog({
-      ...stockDialog,
       open: false,
+      type: null,
+      branchRow: null,
       anchorEl: null,
+      quantity: '',
     });
   };
 
   const handleStockSubmit = async () => {
     try {
-      const currentStock = stockDialog.item?.inventory_Info?.[0]?.quantity || 0;
+      const { branchRow, type, quantity: qtyStr } = stockDialog;
+      const quantity = Number(qtyStr || 0);
 
-      if (!stockDialog.data.quantity || stockDialog.data.quantity <= 0) {
-        onError('Please enter a valid quantity greater than zero');
+      if (!quantity || quantity <= 0) {
+        onError('Enter a valid quantity');
         return;
       }
 
-      if (stockDialog.type === 'remove' && stockDialog.data.quantity > currentStock) {
-        onError(`Cannot remove more than current stock (${currentStock} units)`);
+      const currentBranchStock = Number(branchRow?.quantity || 0);
+
+      if (type === 'remove' && quantity > currentBranchStock) {
+        onError(`Cannot remove more than branch stock (${currentBranchStock} units)`);
         return;
       }
 
       const stockData = {
-        productId: stockDialog.item._id,
-        quantity: Number(stockDialog.data.quantity),
-        notes: stockDialog.data.notes || ""
+        productId: branchRow?.parentItem?._id,
+        quantity,
+        notes: '',
+        branchEntries: [
+          {
+            branchId: branchRow.branchId,
+            branchName: branchRow.branchName,
+            branchType: branchRow.branchType,
+            province: branchRow.province,
+            city: branchRow.city,
+            district: branchRow.district,
+            quantity,
+          },
+        ],
       };
 
-      if (stockDialog.type === 'add') {
+      if (type === 'add') {
         await handlers.handleAddStock(stockData);
       } else {
         await handlers.handleRemoveStock(stockData);
       }
 
       closeStockDialog();
+      await branchHandlers.fetchData();
     } catch (error) {
       onError(error.message || `Failed to ${stockDialog.type} stock`);
+    }
+  };
+
+  // Enhanced transfer dialog handlers
+  const openTransferDialog = (branchRow) => {
+    setTransferDialog({
+      open: true,
+      branchRow,
+      toProvince: '',
+      toCity: '',
+      toDistrict: '',
+      toBranchId: '',
+      quantity: '',
+    });
+  };
+
+  const closeTransferDialog = () => {
+    setTransferDialog({
+      open: false,
+      branchRow: null,
+      toProvince: '',
+      toCity: '',
+      toDistrict: '',
+      toBranchId: '',
+      quantity: '',
+    });
+  };
+
+  const updateTransferDialog = (field, value) => {
+    setTransferDialog((prev) => {
+      const updated = { ...prev, [field]: value };
+      // Reset dependent fields
+      if (field === 'toProvince') {
+        updated.toCity = '';
+        updated.toDistrict = '';
+        updated.toBranchId = '';
+      } else if (field === 'toCity') {
+        updated.toDistrict = '';
+        updated.toBranchId = '';
+      } else if (field === 'toDistrict') {
+        updated.toBranchId = '';
+      }
+      return updated;
+    });
+  };
+
+  // Get transfer dialog options
+  const transferProvinceDoc = useMemo(() =>
+    provincesCities.find((p) => p.province === transferDialog.toProvince),
+    [provincesCities, transferDialog.toProvince]
+  );
+  const transferCityOptions = transferProvinceDoc?.cities || [];
+  const transferCityDoc = useMemo(() =>
+    transferCityOptions.find((c) => c.name === transferDialog.toCity),
+    [transferCityOptions, transferDialog.toCity]
+  );
+  const transferDistrictOptions = transferCityDoc?.districts || [];
+  const transferFilteredBranches = useMemo(() =>
+    branches.filter((branch) => {
+      // Exclude source branch
+      if (branch.branchId === transferDialog.branchRow?.branchId) return false;
+      // Filter by location selections
+      if (transferDialog.toProvince && branch.province !== transferDialog.toProvince) return false;
+      if (transferDialog.toCity && branch.city !== transferDialog.toCity) return false;
+      if (transferDialog.toDistrict && branch.district !== transferDialog.toDistrict) return false;
+      return true;
+    }),
+    [branches, transferDialog.branchRow?.branchId, transferDialog.toProvince, transferDialog.toCity, transferDialog.toDistrict]
+  );
+
+  // Get destination branch current stock for this item
+  const getDestinationBranchStock = () => {
+    if (!transferDialog.toBranchId || !transferDialog.branchRow?.parentItem) return 0;
+    const inventoryBranches = transferDialog.branchRow.parentItem?.inventory_Info?.[0]?.branches || [];
+    const destBranch = inventoryBranches.find((b) => b.branchId === transferDialog.toBranchId);
+    return Number(destBranch?.quantity || 0);
+  };
+
+  const handleTransferSubmit = async () => {
+    try {
+      const fromBranch = transferDialog.branchRow;
+      const toBranch = branches.find((branch) => branch.branchId === transferDialog.toBranchId);
+      const quantity = Number(transferDialog.quantity || 0);
+
+      if (!fromBranch || !toBranch) {
+        onError('Select a destination branch');
+        return;
+      }
+
+      if (fromBranch.branchId === toBranch.branchId) {
+        onError('Select a different branch for transfer');
+        return;
+      }
+
+      if (!quantity || quantity <= 0) {
+        onError('Enter a valid transfer quantity');
+        return;
+      }
+
+      const sourceStock = Number(fromBranch.quantity || 0);
+      if (quantity > sourceStock) {
+        onError(`Cannot transfer more than branch stock (${sourceStock} units)`);
+        return;
+      }
+
+      const removePayload = {
+        productId: fromBranch.parentItem?._id,
+        quantity,
+        notes: `Transfer to ${toBranch.name}`,
+        branchEntries: [
+          {
+            branchId: fromBranch.branchId,
+            branchName: fromBranch.branchName,
+            branchType: fromBranch.branchType,
+            province: fromBranch.province,
+            city: fromBranch.city,
+            district: fromBranch.district,
+            quantity,
+          },
+        ],
+      };
+
+      const addPayload = {
+        productId: fromBranch.parentItem?._id,
+        quantity,
+        notes: `Transfer from ${fromBranch.branchName}`,
+        branchEntries: [
+          {
+            branchId: toBranch.branchId,
+            branchName: toBranch.name,
+            branchType: toBranch.branchType,
+            province: toBranch.province,
+            city: toBranch.city,
+            district: toBranch.district,
+            quantity,
+          },
+        ],
+      };
+
+      await handlers.handleRemoveStock(removePayload);
+      await handlers.handleAddStock(addPayload);
+      closeTransferDialog();
+      await branchHandlers.fetchData();
+    } catch (error) {
+      onError(error.message || 'Failed to transfer stock');
+    }
+  };
+
+  // Handler for inline branch entry save from BranchStockTable
+  const handleSaveBranchEntry = async (entryData) => {
+    try {
+      const stockData = {
+        productId: entryData.productId,
+        quantity: entryData.quantity,
+        notes: 'Initial stock allocation',
+        branchEntries: [
+          {
+            branchId: entryData.branchId,
+            branchName: entryData.branchName,
+            branchType: entryData.branchType,
+            province: entryData.province,
+            city: entryData.city,
+            district: entryData.district,
+            quantity: entryData.quantity,
+          },
+        ],
+      };
+      await handlers.handleAddStock(stockData);
+      await branchHandlers.fetchData();
+    } catch (error) {
+      onError(error.message || 'Failed to add branch stock');
+    }
+  };
+
+  const handleSaveBranchInventoryEntry = async (entryData) => {
+    try {
+      const stockData = {
+        productId: entryData.productId,
+        quantity: entryData.quantity,
+        notes: 'Initial stock allocation',
+        branchEntries: [
+          {
+            branchId: entryData.branchId,
+            branchName: entryData.branchName,
+            branchType: entryData.branchType,
+            province: entryData.province,
+            city: entryData.city,
+            district: entryData.district,
+            quantity: entryData.quantity,
+          },
+        ],
+      };
+      await handlers.handleAddStock(stockData);
+      await branchHandlers.fetchData();
+    } catch (error) {
+      onError(error.message || 'Failed to add branch inventory');
     }
   };
 
@@ -152,10 +429,73 @@ const InventoryList = ({
           permissions,
           openStockDialog,
           stockLoading: handlers.stockLoading,
+          expandedRows,
+          toggleRow,
+          openTransferDialog,
         }) : undefined
     })),
-    [columns, handlers, permissions]
+    [columns, handlers, permissions, expandedRows]
   );
+
+  const branchColumns = useMemo(() => getBranchInventoryColumns(), []);
+
+  const branchTableColumns = useMemo(() =>
+    branchColumns.map(col => ({
+      ...col,
+      renderCell: col.renderCell ?
+        (row, rowIndex) => col.renderCell(row, rowIndex, {
+          permissions,
+          expandedRows: expandedBranchRows,
+          toggleRow: toggleBranchRow,
+        }) : undefined
+    })),
+    [branchColumns, permissions, expandedBranchRows]
+  );
+
+  const filteredInventory = useMemo(() => (
+    Array.isArray(handlers.inventory) ? handlers.inventory : []
+  ), [handlers.inventory]);
+
+  // Render function for expanded row content (branch sub-table)
+  const renderExpandableRow = (row) => (
+    <BranchStockTable
+      inventoryItem={row}
+      branches={branches}
+      provincesCities={provincesCities}
+      permissions={permissions}
+      onAddStock={openStockDialog}
+      onRemoveStock={openStockDialog}
+      onTransfer={openTransferDialog}
+      onSaveBranchEntry={handleSaveBranchEntry}
+      stockLoading={handlers.stockLoading}
+    />
+  );
+
+  const renderBranchExpandableRow = (branch) => (
+    <BranchInventoryTable
+      branch={branch}
+      permissions={permissions}
+      onAddStock={openStockDialog}
+      onRemoveStock={openStockDialog}
+      onTransfer={openTransferDialog}
+      onSaveBranchEntry={handleSaveBranchInventoryEntry}
+      stockLoading={handlers.stockLoading}
+    />
+  );
+
+  // Stock dialog calculations
+  const stockDialogQuantity = Number(stockDialog.quantity || 0);
+  const currentBranchStock = Number(stockDialog.branchRow?.quantity || 0);
+  const projectedBranchStock = stockDialog.type === 'add'
+    ? currentBranchStock + stockDialogQuantity
+    : Math.max(0, currentBranchStock - stockDialogQuantity);
+
+  // Transfer dialog calculations
+  const transferQuantity = Number(transferDialog.quantity || 0);
+  const sourceStock = Number(transferDialog.branchRow?.quantity || 0);
+  const destStock = getDestinationBranchStock();
+  const projectedSourceStock = Math.max(0, sourceStock - transferQuantity);
+  const projectedDestStock = destStock + transferQuantity;
 
   return (
     <div className='flex flex-col gap-5'>
@@ -164,35 +504,84 @@ const InventoryList = ({
         inventoryListData={initialCardCounts}
       />
 
-      <Grid container spacing={3}>
-        {/* Inventory Table */}
-        <Grid size={12}>
-          <CustomListTable
-            columns={tableColumns}
-            rows={handlers.inventory}
-            loading={handlers.loading}
-            showSearch={true}
-            searchValue={handlers.searchTerm || ''}
-            onSearchChange={handlers.handleSearchInputChange}
-            searchPlaceholder="Search inventory..."
-            pagination={{
-              page: handlers.pagination.current - 1,
-              pageSize: handlers.pagination.pageSize,
-              total: handlers.pagination.total,
-            }}
-            onPageChange={(newPage) => handlers.handlePageChange(null, newPage)}
-            onRowsPerPageChange={handlers.handlePageSizeChange}
-            onSort={handlers.handleSortRequest}
-            sortBy={handlers.sortBy}
-            sortDirection={handlers.sortDirection}
-            noDataText="No inventory items found."
-            rowKey={(row) => row._id || row.id}
-          />
+      <Box sx={{ mb: 2 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, value) => setActiveTab(value)}
+          textColor="primary"
+          indicatorColor="primary"
+        >
+          <Tab label="Inventory" value="inventory" />
+          <Tab label="Distribution" value="distribution" />
+        </Tabs>
+      </Box>
+
+      {activeTab === 'inventory' && (
+        <Grid container spacing={3}>
+          {/* Inventory Table */}
+          <Grid size={12}>
+            <CustomListTable
+              columns={tableColumns}
+              rows={filteredInventory}
+              loading={handlers.loading}
+              showSearch={true}
+              searchValue={handlers.searchTerm || ''}
+              onSearchChange={handlers.handleSearchInputChange}
+              searchPlaceholder="Search inventory..."
+              pagination={{
+                page: handlers.pagination.current - 1,
+                pageSize: handlers.pagination.pageSize,
+                total: handlers.pagination.total,
+              }}
+              onPageChange={(newPage) => handlers.handlePageChange(null, newPage)}
+              onRowsPerPageChange={handlers.handlePageSizeChange}
+              onSort={handlers.handleSortRequest}
+              sortBy={handlers.sortBy}
+              sortDirection={handlers.sortDirection}
+              noDataText="No inventory items found."
+              rowKey={(row) => row._id || row.id}
+              onRowClick={handleRowClick}
+              getRowClassName={() => 'cursor-pointer'}
+              expandedRows={expandedRows}
+              expandableRowRender={renderExpandableRow}
+            />
+          </Grid>
         </Grid>
-      </Grid>
+      )}
 
+      {activeTab === 'distribution' && (
+        <Grid container spacing={3}>
+          <Grid size={12}>
+            <CustomListTable
+              columns={branchTableColumns}
+              rows={branchHandlers.branches}
+              loading={branchHandlers.loading}
+              showSearch={true}
+              searchValue={branchHandlers.searchTerm || ''}
+              onSearchChange={branchHandlers.handleSearchInputChange}
+              searchPlaceholder="Search distribution..."
+              pagination={{
+                page: branchHandlers.pagination.current - 1,
+                pageSize: branchHandlers.pagination.pageSize,
+                total: branchHandlers.pagination.total,
+              }}
+              onPageChange={(newPage) => branchHandlers.handlePageChange(null, newPage)}
+              onRowsPerPageChange={branchHandlers.handlePageSizeChange}
+              onSort={branchHandlers.handleSortRequest}
+              sortBy={branchHandlers.sortBy}
+              sortDirection={branchHandlers.sortDirection}
+              noDataText="No distribution locations found."
+              rowKey={(row) => row._id || row.id}
+              onRowClick={handleBranchRowClick}
+              getRowClassName={() => 'cursor-pointer'}
+              expandedRows={expandedBranchRows}
+              expandableRowRender={renderBranchExpandableRow}
+            />
+          </Grid>
+        </Grid>
+      )}
 
-      {/* Stock Management Popover */}
+      {/* Simplified Stock Management Popover (Branch-level) */}
       <Popover
         open={stockDialog.open}
         anchorEl={stockDialog.anchorEl}
@@ -208,159 +597,438 @@ const InventoryList = ({
         PaperProps={{
           sx: {
             width: 280,
-            maxWidth: '90vw',
-            borderRadius: 3,
-            boxShadow: theme.shadows[12],
+            maxWidth: '95vw',
+            borderRadius: 2,
+            boxShadow: theme.shadows[8],
             border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
           }
         }}
       >
-        <Box className="px-4 py-3">
-          {/* Compact Header with Product Info */}
-          <Box className="flex items-center justify-between mb-3">
-            <Box className="flex flex-col min-w-0 gap-2">
-            <Box className="flex flex-row items-center gap-1 min-w-0">
-              <Typography variant="body1" className=" truncate">
-                {stockDialog.type === 'add' ? 'Add' : 'Remove'}
-              </Typography>
-              <Typography variant="body1" color='primary.main' className="font-semibold">
-              {Number(stockDialog.data.quantity)}
-              </Typography>
-              <Typography variant="body1" className=" truncate">
-                {stockDialog.item?.name}
-              </Typography>
-
-              </Box>
-
-              <Box className="flex flex-row gap-1 items-center min-w-0">
-              <Typography variant="h6" color="text.primary" className="font-semibold">
-                {stockDialog.item?.inventory_Info?.[0]?.quantity || 0}
-              </Typography>
-          
-              <Icon 
-                icon={stockDialog.type === 'add' ? "mdi:arrow-up-right-thick" : 'mdi:arrow-down-right-thick'} 
-                width={23} 
-                color={stockDialog.type === 'add' ? theme.palette.success.dark : theme.palette.error.dark} 
+        <Box className="px-3 py-2.5">
+          {/* Header */}
+          <Box className="flex items-center justify-between mb-2">
+            <Box className="flex items-center gap-1.5">
+              <Icon
+                icon={stockDialog.type === 'add' ? 'mdi:plus-circle' : 'mdi:minus-circle'}
+                width={18}
+                color={stockDialog.type === 'add' ? theme.palette.success.main : theme.palette.error.main}
               />
-
-
-                  {/* Real-time Result */}
-            {stockDialog.data.quantity && (
-               <Typography variant="h6" color="text.primary" className="font-semibold">
-                {
-                  stockDialog.type === 'add'
-                    ? (stockDialog.item?.inventory_Info?.[0]?.quantity || 0) + Number(stockDialog.data.quantity)
-                    : Math.max(0, (stockDialog.item?.inventory_Info?.[0]?.quantity || 0) - Number(stockDialog.data.quantity))
-                }
+              <Typography variant="subtitle2" fontWeight={600}>
+                {stockDialog.type === 'add' ? 'Add Stock' : 'Remove Stock'}
               </Typography>
-            )}
-
-
-
-
-
-              </Box>
             </Box>
             <IconButton
               size="small"
               onClick={closeStockDialog}
-              className="p-1 ml-2 opacity-70 hover:opacity-100"
-              disabled={handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
+              sx={{ p: 0.25 }}
             >
-              <Icon icon="tabler:x" className="text-lg" />
+              <Icon icon="mdi:close" width={16} />
             </IconButton>
           </Box>
 
-          {/* Horizontal Quantity Controls */}
-          <Box className="flex items-center gap-3 mb-3">
-            <Typography variant="body2" className="text-sm font-medium whitespace-nowrap">
-              Quantity
+          {/* Branch Info */}
+          <Box className="mb-2 p-2 rounded" sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04) }}>
+            <Typography variant="caption" color="text.secondary" fontSize="0.7rem">
+              Branch
             </Typography>
-            
-            <Box className="flex items-center gap-1 flex-1">
-              <IconButton
-                size="small"
-                onClick={() => setStockDialog({
-                  ...stockDialog,
-                  data: { ...stockDialog.data, quantity: Math.max(1, Number(stockDialog.data.quantity || 0) - 1) }
-                })}
-                className="p-1.5 border border-gray-300 hover:border-gray-400 rounded-lg"
-                disabled={Number(stockDialog.data.quantity || 0) <= 1 || handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
-              >
-                <RemoveIcon className="text-base" />
-              </IconButton>
-              
-              <TextField
-                size="small"
-                type="number"
-                inputProps={{ 
-                  min: 1, 
-                  style: { textAlign: 'center', fontSize: '0.875rem' },
-                  className: 'py-2'
-                }}
-                className="w-20"
-                value={stockDialog.data.quantity}
-                onChange={(e) => setStockDialog({
-                  ...stockDialog,
-                  data: { ...stockDialog.data, quantity: Math.max(1, Number(e.target.value) || 1) }
-                })}
-                disabled={handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '8px',
-                  }
-                }}
-              />
-              
-              <IconButton
-                size="small"
-                onClick={() => setStockDialog({
-                  ...stockDialog,
-                  data: { ...stockDialog.data, quantity: Number(stockDialog.data.quantity || 0) + 1 }
-                })}
-                className="p-1.5 border border-gray-300 hover:border-gray-400 rounded-lg"
-                disabled={handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
-              >
-                <AddIcon className="text-base" />
-              </IconButton>
-            </Box>
-
-        
+            <Typography variant="body2" fontWeight={500}>
+              {stockDialog.branchRow?.branchName}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" fontSize="0.7rem">
+              {stockDialog.branchRow?.province}, {stockDialog.branchRow?.city}
+              {stockDialog.branchRow?.district ? `, ${stockDialog.branchRow.district}` : ''}
+            </Typography>
           </Box>
 
-          {/* Compact Actions */}
-          <Box className="flex gap-2">
-            <Button 
-              size="small" 
-              onClick={closeStockDialog}
-              className="flex-1 py-1.5 text-sm"
+          {/* Stock Preview */}
+          <Box className="flex items-center justify-center gap-2 mb-3">
+            <Box className="text-center">
+              <Typography variant="caption" color="text.secondary" fontSize="0.65rem">Current</Typography>
+              <Typography variant="h6" fontWeight={600}>{currentBranchStock}</Typography>
+            </Box>
+            <Icon
+              icon={stockDialog.type === 'add' ? 'mdi:arrow-right-thick' : 'mdi:arrow-right-thick'}
+              width={20}
+              color={stockDialog.type === 'add' ? theme.palette.success.main : theme.palette.error.main}
+            />
+            <Box className="text-center">
+              <Typography variant="caption" color="text.secondary" fontSize="0.65rem">After</Typography>
+              <Typography
+                variant="h6"
+                fontWeight={600}
+                color={stockDialog.type === 'add' ? 'success.main' : 'error.main'}
+              >
+                {stockDialogQuantity > 0 ? projectedBranchStock : '-'}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Quantity Input */}
+          <TextField
+            size="small"
+            fullWidth
+            label="Quantity"
+            type="number"
+            value={stockDialog.quantity}
+            onChange={(e) => {
+              const value = e.target.value;
+              // For remove operation, limit to current branch stock
+              if (stockDialog.type === 'remove') {
+                const numValue = Number(value);
+                if (numValue > currentBranchStock) {
+                  setStockDialog((prev) => ({ ...prev, quantity: String(currentBranchStock) }));
+                  return;
+                }
+              }
+              setStockDialog((prev) => ({ ...prev, quantity: value }));
+            }}
+            inputProps={{
+              min: 1,
+              ...(stockDialog.type === 'remove' && { max: currentBranchStock }),
+            }}
+            helperText={stockDialog.type === 'remove' ? `Max: ${currentBranchStock} units` : ''}
+            sx={{ mb: 2 }}
+          />
+
+          {/* Actions */}
+          <Box className="flex gap-1.5">
+            <Button
+              size="small"
               variant="outlined"
-              color="secondary"
-              disabled={handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock}
+              onClick={closeStockDialog}
+              sx={{ flex: 1, fontSize: '0.75rem' }}
             >
               Cancel
             </Button>
             <Button
               size="small"
               variant="contained"
+              color={stockDialog.type === 'add' ? 'success' : 'error'}
               onClick={handleStockSubmit}
               disabled={
-                !stockDialog.data.quantity || 
-                parseInt(stockDialog.data.quantity, 10) <= 0 ||
-                handlers.stockLoading?.addStock || 
+                stockDialogQuantity <= 0 ||
+                handlers.stockLoading?.addStock ||
                 handlers.stockLoading?.removeStock
               }
-              className="flex-1 py-1.5 text-sm font-medium"
-              color="primary"
+              sx={{ flex: 1, fontSize: '0.75rem' }}
             >
-              {handlers.stockLoading?.[stockDialog.type === 'add' ? 'addStock' : 'removeStock'] 
-                ? 'Processing...' 
+              {handlers.stockLoading?.[stockDialog.type === 'add' ? 'addStock' : 'removeStock']
+                ? 'Processing...'
                 : (stockDialog.type === 'add' ? 'Add' : 'Remove')
               }
             </Button>
           </Box>
         </Box>
       </Popover>
+
+      {/* Enhanced Transfer Stock Dialog */}
+      <Dialog
+        open={transferDialog.open}
+        onClose={closeTransferDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box className="flex items-center gap-1.5">
+            <Icon icon="mdi:swap-horizontal" width={22} color={theme.palette.info.main} />
+            <Typography variant="h6">Transfer Stock</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent className="flex flex-col gap-4">
+          {/* Source -> Transfer Icon -> Destination Layout */}
+          <Box
+            className="flex items-stretch gap-3"
+            sx={{
+              mt: 1,
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: alpha(theme.palette.background.default, 0.5),
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            }}
+          >
+            {/* Source Branch (Left) */}
+            <Box
+              className="flex-1 p-3 rounded-lg"
+              sx={{
+                backgroundColor: alpha(theme.palette.error.main, 0.04),
+                border: `1px solid ${alpha(theme.palette.error.main, 0.15)}`,
+              }}
+            >
+              <Box className="flex items-center gap-1 mb-2">
+                <Icon icon="mdi:store-marker" width={16} color={theme.palette.error.main} />
+                <Typography variant="caption" color="error.main" fontWeight={600} textTransform="uppercase">
+                  From
+                </Typography>
+              </Box>
+              <Typography variant="subtitle2" fontWeight={600} color="text.primary">
+                {transferDialog.branchRow?.branchName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                {transferDialog.branchRow?.province}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {transferDialog.branchRow?.city}
+                {transferDialog.branchRow?.district ? `, ${transferDialog.branchRow.district}` : ''}
+              </Typography>
+              <Box
+                className="mt-2 pt-2 flex items-center gap-1"
+                sx={{ borderTop: `1px dashed ${alpha(theme.palette.error.main, 0.2)}` }}
+              >
+                <Icon icon="mdi:package-variant" width={14} color={theme.palette.text.secondary} />
+                <Typography variant="caption" color="text.secondary">
+                  Stock:
+                </Typography>
+                <Typography variant="body2" fontWeight={600} color="error.main">
+                  {sourceStock} units
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Transfer Icon (Center) */}
+            <Box className="flex flex-col items-center justify-center px-2">
+              <Box
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  backgroundColor: alpha(theme.palette.info.main, 0.1),
+                  border: `2px solid ${alpha(theme.palette.info.main, 0.3)}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon icon="mdi:arrow-right-bold" width={24} color={theme.palette.info.main} />
+              </Box>
+              {transferQuantity > 0 && (
+                <Typography
+                  variant="caption"
+                  fontWeight={600}
+                  color="info.main"
+                  sx={{ mt: 1 }}
+                >
+                  {transferQuantity} units
+                </Typography>
+              )}
+            </Box>
+
+            {/* Destination Branch (Right) */}
+            <Box
+              className="flex-1 p-3 rounded-lg"
+              sx={{
+                backgroundColor: alpha(theme.palette.success.main, 0.04),
+                border: `1px solid ${alpha(theme.palette.success.main, 0.15)}`,
+              }}
+            >
+              <Box className="flex items-center gap-1 mb-2">
+                <Icon icon="mdi:store-check" width={16} color={theme.palette.success.main} />
+                <Typography variant="caption" color="success.main" fontWeight={600} textTransform="uppercase">
+                  To
+                </Typography>
+              </Box>
+              {transferDialog.toBranchId ? (
+                <>
+                  <Typography variant="subtitle2" fontWeight={600} color="text.primary">
+                    {branches.find((b) => b.branchId === transferDialog.toBranchId)?.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    {branches.find((b) => b.branchId === transferDialog.toBranchId)?.province}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {branches.find((b) => b.branchId === transferDialog.toBranchId)?.city}
+                    {branches.find((b) => b.branchId === transferDialog.toBranchId)?.district
+                      ? `, ${branches.find((b) => b.branchId === transferDialog.toBranchId)?.district}`
+                      : ''}
+                  </Typography>
+                  <Box
+                    className="mt-2 pt-2 flex items-center gap-1"
+                    sx={{ borderTop: `1px dashed ${alpha(theme.palette.success.main, 0.2)}` }}
+                  >
+                    <Icon icon="mdi:package-variant" width={14} color={theme.palette.text.secondary} />
+                    <Typography variant="caption" color="text.secondary">
+                      Stock:
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600} color="success.main">
+                      {destStock} → {projectedDestStock} units
+                    </Typography>
+                  </Box>
+                </>
+              ) : (
+                <Box className="flex flex-col items-center justify-center py-3">
+                  <Icon icon="mdi:store-search" width={24} color={theme.palette.text.disabled} />
+                  <Typography variant="caption" color="text.disabled" sx={{ mt: 1 }}>
+                    Select destination
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+
+          {/* Destination Selection Section */}
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ mb: 1.5, display: 'block' }}>
+              Filter Destination by Location
+            </Typography>
+            <Box className="flex gap-2 mb-2">
+              <FormControl size="small" sx={{ flex: 1 }}>
+                <InputLabel sx={{ fontSize: '0.75rem' }}>Province</InputLabel>
+                <Select
+                  label="Province"
+                  value={transferDialog.toProvince}
+                  onChange={(e) => updateTransferDialog('toProvince', e.target.value)}
+                  sx={{ fontSize: '0.8rem' }}
+                >
+                  <MenuItem value=""><em>All</em></MenuItem>
+                  {provincesCities.map((p) => (
+                    <MenuItem key={p.province} value={p.province}>
+                      {p.province}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ flex: 1 }} disabled={!transferDialog.toProvince}>
+                <InputLabel sx={{ fontSize: '0.75rem' }}>City</InputLabel>
+                <Select
+                  label="City"
+                  value={transferDialog.toCity}
+                  onChange={(e) => updateTransferDialog('toCity', e.target.value)}
+                  sx={{ fontSize: '0.8rem' }}
+                >
+                  <MenuItem value=""><em>All</em></MenuItem>
+                  {transferCityOptions.map((c) => (
+                    <MenuItem key={c.name} value={c.name}>
+                      {c.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ flex: 1 }} disabled={!transferDialog.toCity}>
+                <InputLabel sx={{ fontSize: '0.75rem' }}>District</InputLabel>
+                <Select
+                  label="District"
+                  value={transferDialog.toDistrict}
+                  onChange={(e) => updateTransferDialog('toDistrict', e.target.value)}
+                  sx={{ fontSize: '0.8rem' }}
+                >
+                  <MenuItem value=""><em>All</em></MenuItem>
+                  {transferDistrictOptions.map((d) => (
+                    <MenuItem key={d} value={d}>
+                      {d}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Destination Branch Selection */}
+            <FormControl size="small" fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Destination Branch *</InputLabel>
+              <Select
+                label="Destination Branch *"
+                value={transferDialog.toBranchId}
+                onChange={(e) => setTransferDialog((prev) => ({ ...prev, toBranchId: e.target.value }))}
+              >
+                {transferFilteredBranches.length === 0 ? (
+                  <MenuItem value="" disabled>No branches available</MenuItem>
+                ) : (
+                  transferFilteredBranches.map((branch) => (
+                    <MenuItem key={branch.branchId} value={branch.branchId}>
+                      {branch.name} ({branch.branchType})
+                    </MenuItem>
+                  ))
+                )}
+              </Select>
+            </FormControl>
+
+            {/* Transfer Quantity */}
+            <TextField
+              size="small"
+              label="Transfer Quantity *"
+              type="number"
+              fullWidth
+              value={transferDialog.quantity}
+              onChange={(e) => {
+                const value = e.target.value;
+                const numValue = Number(value);
+                // Limit to source stock
+                if (numValue > sourceStock) {
+                  setTransferDialog((prev) => ({ ...prev, quantity: String(sourceStock) }));
+                  return;
+                }
+                setTransferDialog((prev) => ({ ...prev, quantity: value }));
+              }}
+              inputProps={{ min: 1, max: sourceStock }}
+              helperText={`Max: ${sourceStock} units available`}
+            />
+          </Box>
+
+          {/* Stock Preview */}
+          {transferDialog.toBranchId && transferQuantity > 0 && (
+            <Box
+              className="flex gap-4 p-3 rounded-lg"
+              sx={{
+                backgroundColor: alpha(theme.palette.info.main, 0.04),
+                border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`,
+              }}
+            >
+              {/* Source Stock Change */}
+              <Box className="flex-1 text-center">
+                <Typography variant="caption" color="text.secondary" fontSize="0.65rem" textTransform="uppercase">
+                  Source After Transfer
+                </Typography>
+                <Box className="flex items-center justify-center gap-1.5 mt-0.5">
+                  <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                    {sourceStock}
+                  </Typography>
+                  <Icon icon="mdi:arrow-right" width={16} color={theme.palette.error.main} />
+                  <Typography variant="h6" fontWeight={700} color="error.main">
+                    {projectedSourceStock}
+                  </Typography>
+                </Box>
+              </Box>
+              {/* Destination Stock Change */}
+              <Box className="flex-1 text-center">
+                <Typography variant="caption" color="text.secondary" fontSize="0.65rem" textTransform="uppercase">
+                  Destination After Transfer
+                </Typography>
+                <Box className="flex items-center justify-center gap-1.5 mt-0.5">
+                  <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                    {destStock}
+                  </Typography>
+                  <Icon icon="mdi:arrow-right" width={16} color={theme.palette.success.main} />
+                  <Typography variant="h6" fontWeight={700} color="success.main">
+                    {projectedDestStock}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={closeTransferDialog} color="secondary" size="small">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleTransferSubmit}
+            variant="contained"
+            color="info"
+            size="small"
+            startIcon={<Icon icon="mdi:swap-horizontal" width={18} />}
+            disabled={
+              !transferDialog.toBranchId ||
+              transferQuantity <= 0 ||
+              transferQuantity > sourceStock ||
+              handlers.stockLoading?.addStock ||
+              handlers.stockLoading?.removeStock
+            }
+          >
+            {handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock
+              ? 'Processing...'
+              : 'Transfer Stock'
+            }
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar */}
       <Snackbar

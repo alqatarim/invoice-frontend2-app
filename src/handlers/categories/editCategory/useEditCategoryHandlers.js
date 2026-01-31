@@ -8,7 +8,10 @@ import { validateProductImage } from '@/utils/fileUtils'
 
 const editCategorySchema = yup.object().shape({
   name: yup.string().required('Category name is required').min(2, 'Category name must be at least 2 characters'),
-  slug: yup.string().required('Category slug is required').min(2, 'Category slug must be at least 2 characters')
+  slug: yup.string().required('Category slug is required').min(2, 'Category slug must be at least 2 characters'),
+  parentCategory: yup.string().nullable(),
+  tax: yup.string().nullable(),
+  status: yup.boolean()
 })
 
 export const useEditCategoryHandlers = ({ categoryData, onSave }) => {
@@ -28,7 +31,10 @@ export const useEditCategoryHandlers = ({ categoryData, onSave }) => {
     resolver: yupResolver(editCategorySchema),
     defaultValues: {
       name: '',
-      slug: ''
+      slug: '',
+      parentCategory: '',
+      tax: '',
+      status: true
     }
   })
 
@@ -42,7 +48,10 @@ export const useEditCategoryHandlers = ({ categoryData, onSave }) => {
       
       reset({
         name: categoryData.name || '',
-        slug: categoryData.slug || ''
+        slug: categoryData.slug || '',
+        parentCategory: categoryData.parentCategory?._id || categoryData.parentCategory || '',
+        tax: categoryData.tax?._id || categoryData.tax || '',
+        status: categoryData.status !== false
       })
     }
   }, [categoryData, reset])

@@ -15,11 +15,14 @@ import {
   Avatar,
   Skeleton,
   Chip,
+  MenuItem,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import  CustomIconButton  from '@core/components/mui/CustomOriginalIconButton';
 import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
-import { getCategoryById } from '@/app/(dashboard)/categories/actions';
+import { getCategoryById, getCategoryDropdownData } from '@/app/(dashboard)/categories/actions';
 import { useEditCategoryHandlers } from '@/handlers/categories/editCategory';
 import { formIcons } from '@/data/dataSets';
 import { getNameFromPath } from '@/utils/fileUtils';
@@ -58,6 +61,34 @@ const EditCategoryDialog = ({ open, categoryId, onClose, onSave }) => {
       return result;
     },
   });
+
+  const [dropdownOptions, setDropdownOptions] = useState({ categories: [], taxes: [] });
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const parentOptions = (dropdownOptions.categories || []).filter(
+    (category) => category._id !== categoryId
+  );
+
+  useEffect(() => {
+    const loadDropdowns = async () => {
+      if (!open) return;
+      setOptionsLoading(true);
+      try {
+        const response = await getCategoryDropdownData();
+        if (response?.success) {
+          setDropdownOptions({
+            categories: response.data?.categories || [],
+            taxes: response.data?.taxes || [],
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load category dropdown data', err);
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+
+    loadDropdowns();
+  }, [open]);
 
   // Fetch category data when dialog opens
   useEffect(() => {
@@ -439,6 +470,76 @@ const EditCategoryDialog = ({ open, categoryId, onClose, onSave }) => {
                         placeholder="Enter category slug"
                         disabled={isSubmitting}
                          variant="outlined"
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Parent Category */}
+                <Grid size={{xs:12, sm:6, md:6}}>
+                  <Controller
+                    name="parentCategory"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        select
+                        fullWidth
+                        label="Parent Category"
+                        disabled={isSubmitting || optionsLoading}
+                        variant="outlined"
+                      >
+                        <MenuItem value="">None</MenuItem>
+                        {parentOptions.map(category => (
+                          <MenuItem key={category._id} value={category._id}>
+                            {category.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </Grid>
+
+                {/* Tax Classification */}
+                <Grid size={{xs:12, sm:6, md:6}}>
+                  <Controller
+                    name="tax"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        select
+                        fullWidth
+                        label="Tax Classification"
+                        disabled={isSubmitting || optionsLoading}
+                        variant="outlined"
+                      >
+                        <MenuItem value="">No Tax</MenuItem>
+                        {(dropdownOptions.taxes || []).map(tax => (
+                          <MenuItem key={tax._id} value={tax._id}>
+                            {tax.name} {tax.taxRate ? `(${tax.taxRate}%)` : ''}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </Grid>
+
+                {/* Status */}
+                <Grid size={{xs:12}}>
+                  <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={!!field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            color="success"
+                          />
+                        }
+                        label={field.value ? 'Active' : 'Inactive'}
                       />
                     )}
                   />

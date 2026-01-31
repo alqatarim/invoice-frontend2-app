@@ -8,7 +8,10 @@ import { validateProductImage } from '@/utils/fileUtils'
 
 const addCategorySchema = yup.object().shape({
   name: yup.string().required('Category name is required').min(2, 'Category name must be at least 2 characters'),
-  slug: yup.string().required('Category slug is required').min(2, 'Category slug must be at least 2 characters')
+  slug: yup.string().required('Category slug is required').min(2, 'Category slug must be at least 2 characters'),
+  parentCategory: yup.string().nullable(),
+  tax: yup.string().nullable(),
+  status: yup.boolean()
 })
 
 export const useAddCategoryHandlers = ({ onSave }) => {
@@ -28,7 +31,10 @@ export const useAddCategoryHandlers = ({ onSave }) => {
     resolver: yupResolver(addCategorySchema),
     defaultValues: {
       name: '',
-      slug: ''
+      slug: '',
+      parentCategory: '',
+      tax: '',
+      status: true
     }
   })
 

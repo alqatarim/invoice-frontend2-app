@@ -21,6 +21,9 @@ import {
   InputAdornment,
   Menu,
   Divider,
+  ToggleButton,
+  ToggleButtonGroup,
+  Chip,
 } from '@mui/material';
 import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
 import { Clear } from '@mui/icons-material';
@@ -38,6 +41,9 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
   const theme = useTheme();
   const [openBankModal, setOpenBankModal] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [quickEntryMode, setQuickEntryMode] = useState('standard');
+  const [barcodeDraft, setBarcodeDraft] = useState('');
+  const [tenderedAmount, setTenderedAmount] = useState('');
 
   const handlers = useAddInvoiceHandlers({
     invoiceNumber,
@@ -55,6 +61,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
     handleSubmit,
     setValue,
     getValues,
+    watch,
     errors,
     fields,
     watchItems,
@@ -84,6 +91,7 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
     handleTaxClick,
     handleTaxClose,
     handleTaxMenuItemClick,
+    handleQuickAddProduct,
     handleToggleNotes,
     handleOpenTermsDialog,
     handleCloseTermsDialog,
@@ -96,6 +104,28 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
       data.invoiceNumber = invoiceNumber;
     }
     return originalHandleFormSubmit(data);
+  };
+
+  const totalAmount = Number(watch('TotalAmount') || 0);
+  const changeAmount = Math.max(0, Number(tenderedAmount || 0) - totalAmount);
+  const quickProducts = Array.isArray(productsCloneData) ? productsCloneData.slice(0, 8) : [];
+
+  const handleBarcodeQuickAdd = () => {
+    const barcode = barcodeDraft.trim();
+    if (!barcode) {
+      setSnackbar({ open: true, message: 'Enter a barcode first', severity: 'error' });
+      return;
+    }
+    const match = (Array.isArray(productData) ? productData : []).find(
+      (product) => String(product?.barcode || '').trim() === barcode
+    );
+    if (!match) {
+      setSnackbar({ open: true, message: 'No product found for this barcode', severity: 'error' });
+      return;
+    }
+    handleQuickAddProduct(match);
+    setBarcodeDraft('');
+    setSnackbar({ open: true, message: 'Product added', severity: 'success' });
   };
 
   useEffect(() => {
@@ -791,6 +821,113 @@ const AddInvoice = ({ customersData, productData, taxRates, initialBanks, signat
                   Terms & Conditions
                 </Button>
               </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+      {/* POS & Quick Entry */}
+      <Grid size={{ xs: 12, md: 12 }}>
+        <Card>
+          <CardContent className='py-3.5'>
+            <Grid container columnSpacing={3} rowSpacing={3}>
+              <Grid size={{ xs: 12 }} className='flex flex-col gap-2'>
+                <Box className='flex flex-row gap-1.5 items-center'>
+                  <Box className='w-2 h-8 bg-primaryLight rounded-md' />
+                  <Typography variant="caption" fontWeight={500} fontSize='1rem'>
+                    POS & Quick Entry
+                  </Typography>
+                </Box>
+                <Divider light textAlign='left' width='400px' />
+              </Grid>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <ToggleButtonGroup
+                  value={quickEntryMode}
+                  exclusive
+                  onChange={(_, value) => value && setQuickEntryMode(value)}
+                  size="small"
+                  fullWidth
+                >
+                  <ToggleButton value="standard">Standard</ToggleButton>
+                  <ToggleButton value="quick">Quick</ToggleButton>
+                </ToggleButtonGroup>
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Box className='flex flex-row gap-2 items-center'>
+                  <TextField
+                    fullWidth
+                    label="Barcode"
+                    size="small"
+                    value={barcodeDraft}
+                    onChange={(e) => setBarcodeDraft(e.target.value)}
+                    placeholder="Enter barcode"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Icon icon="mdi:barcode-scan" width={20} color={theme.palette.primary.main} />
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleBarcodeQuickAdd}
+                    startIcon={<Icon icon="mdi:plus" width={18} />}
+                  >
+                    Add
+                  </Button>
+                </Box>
+              </Grid>
+              {quickEntryMode === 'quick' && (
+                <>
+                  <Grid size={{ xs: 12 }}>
+                    <Box className='flex flex-row flex-wrap gap-2'>
+                      {quickProducts.map((product) => (
+                        <Chip
+                          key={product._id}
+                          label={product.name}
+                          color="primary"
+                          variant="outlined"
+                          onClick={() => handleQuickAddProduct(product)}
+                        />
+                      ))}
+                    </Box>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Tendered Amount"
+                      size="small"
+                      value={tenderedAmount}
+                      onChange={(e) => setTenderedAmount(e.target.value)}
+                      placeholder="Enter tendered amount"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Icon icon="lucide:saudi-riyal" width={18} color={theme.palette.secondary.main} />
+                          </InputAdornment>
+                        )
+                      }}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Change"
+                      size="small"
+                      value={changeAmount.toFixed(2)}
+                      InputProps={{
+                        readOnly: true,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Icon icon="lucide:saudi-riyal" width={18} color={theme.palette.secondary.main} />
+                          </InputAdornment>
+                        )
+                      }}
+                    />
+                  </Grid>
+                </>
+              )}
             </Grid>
           </CardContent>
         </Card>

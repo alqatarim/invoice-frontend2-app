@@ -15,6 +15,7 @@ const ENDPOINTS = {
 
 const DROPDOWN = {
   CATEGORY: '/drop_down/category',
+  TAX: '/drop_down/tax',
 }
 
 
@@ -285,17 +286,22 @@ export async function deleteCategory(id) {
  */
 export async function getCategoryDropdownData() {
   try {
-    const response = await fetchWithAuth(DROPDOWN.CATEGORY);
+    const [categories, taxes] = await Promise.all([
+      fetchWithAuth(DROPDOWN.CATEGORY),
+      fetchWithAuth(DROPDOWN.TAX),
+    ]);
 
     // Check for authentication errors
-    if (response?.error) {
-      throw new Error(response.error || 'Authentication failed');
+    if (categories?.error || taxes?.error) {
+      const errorMsg = categories?.error || taxes?.error || 'Authentication failed';
+      throw new Error(errorMsg);
     }
 
     return {
       success: true,
       data: {
-        categories: Array.isArray(response?.data) ? response.data : [],
+        categories: Array.isArray(categories?.data) ? categories.data : [],
+        taxes: Array.isArray(taxes?.data) ? taxes.data : [],
       },
     };
   } catch (error) {
@@ -304,7 +310,8 @@ export async function getCategoryDropdownData() {
       success: false, 
       message: error.message || 'Failed to fetch category dropdown data',
       data: {
-        categories: []
+        categories: [],
+        taxes: []
       }
     };
   }

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import {
   Card,
@@ -17,24 +18,22 @@ import {
   ButtonGroup,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
+import { buildProductDescription, parseProductDescription } from '@/utils/productMeta';
 
 import ProductHead from '@/views/products/listProduct/ProductHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { useProductListHandlers } from '@/handlers/products/useProductListHandlers';
 import { getProductColumns } from './productColumns';
-import AddProductDialog from '@/views/products/addProduct';
-import EditProductDialog from '@/views/products/editProduct';
-import ViewProductDialog from '@/views/products/viewProduct';
-import { addProduct, updateProduct } from '@/app/(dashboard)/products/actions';
+import ProductVariantsTable from './ProductVariantsTable';
+import { updateProduct } from '@/app/(dashboard)/products/actions';
 
 /**
  * Simplified ProductList Component - eliminates redundant state and complexity
  */
 const ProductList = ({ initialProducts, initialPagination }) => {
   const theme = useTheme();
-  const { data: session } = useSession();
+  const router = useRouter();
 
   // Permissions
   const permissions = {
@@ -51,15 +50,6 @@ const ProductList = ({ initialProducts, initialPagination }) => {
     severity: 'success',
   });
 
-  // Dialog states
-  const [dialogStates, setDialogStates] = useState({
-    add: false,
-    edit: false,
-    view: false,
-    editProductId: null,
-    viewProductId: null,
-  });
-
   // Notification handlers
   const onError = useCallback(msg => {
     setSnackbar({ open: true, message: msg, severity: 'error' });
@@ -69,87 +59,14 @@ const ProductList = ({ initialProducts, initialPagination }) => {
     setSnackbar({ open: true, message: msg, severity: 'success' });
   }, []);
 
-  // Dialog handlers
-  const handleOpenAddDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, add: true }));
-  }, []);
+  const handleOpenViewPage = useCallback((productId) => {
+    router.push(`/products/product-view/${productId}`);
+  }, [router]);
 
-  const handleCloseAddDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, add: false }));
-  }, []);
+  const handleOpenEditPage = useCallback((productId) => {
+    router.push(`/products/product-edit/${productId}`);
+  }, [router]);
 
-  const handleOpenEditDialog = useCallback((productId) => {
-    setDialogStates(prev => ({ ...prev, edit: true, editProductId: productId }));
-  }, []);
-
-  const handleCloseEditDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, edit: false, editProductId: null }));
-  }, []);
-
-  const handleOpenViewDialog = useCallback((productId) => {
-    setDialogStates(prev => ({ ...prev, view: true, viewProductId: productId }));
-  }, []);
-
-  const handleCloseViewDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, view: false, viewProductId: null }));
-  }, []);
-
-  // CRUD operation handlers
-  const handleAddProduct = useCallback(async (formData, preparedImage) => {
-    try {
-      onSuccess('Adding product...');
-      
-      const response = await addProduct(formData, preparedImage);
-      
-      if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to add product';
-        onError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      onSuccess('Product added successfully!');
-      // Refresh the list to show the new product
-      try {
-        await handlers.refreshData();
-      } catch (refreshError) {
-        console.warn('Failed to refresh product list after add:', refreshError);
-        // Continue anyway - the operation was successful
-      }
-      return response;
-    } catch (error) {
-      const errorMessage = error.message || 'An unexpected error occurred';
-      onError(errorMessage);
-      return { success: false, message: errorMessage };
-    }
-  }, [onSuccess, onError, handlers]);
-
-  const handleUpdateProduct = useCallback(async (productId, formData, preparedImage) => {
-    try {
-      onSuccess('Updating product...');
-      
-      const response = await updateProduct(productId, formData, preparedImage);
-      
-      if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to update product';
-        onError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      onSuccess('Product updated successfully!');
-      // Refresh the list to show the updated product
-      try {
-        await handlers.refreshData();
-      } catch (refreshError) {
-        console.warn('Failed to refresh product list after update:', refreshError);
-        // Continue anyway - the operation was successful
-      }
-      return response;
-    } catch (error) {
-      const errorMessage = error.message || 'An unexpected error occurred';
-      onError(errorMessage);
-      return { success: false, message: errorMessage };
-    }
-  }, [onSuccess, onError, handlers]);
 
   // Initialize simplified handlers
   const handlers = useProductListHandlers({
@@ -158,8 +75,8 @@ const ProductList = ({ initialProducts, initialPagination }) => {
     onError,
     onSuccess,
     // Override handlers to use dialogs instead of navigation
-    onView: handleOpenViewDialog,
-    onEdit: handleOpenEditDialog,
+    onView: handleOpenViewPage,
+    onEdit: handleOpenEditPage,
   });
 
   // Column management
@@ -184,6 +101,60 @@ const ProductList = ({ initialProducts, initialPagination }) => {
   });
 
   const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
+  const [expandedRows, setExpandedRows] = useState({});
+
+  const toggleRow = useCallback((rowId) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [rowId]: !prev[rowId],
+    }));
+  }, []);
+
+  const handleRowClick = useCallback((row) => {
+    const { meta } = parseProductDescription(row.productDescription);
+    const variantsCount = Array.isArray(meta?.variants) ? meta.variants.length : 0;
+    if (!variantsCount) return;
+    toggleRow(row._id);
+  }, [toggleRow]);
+
+  const handleSaveVariants = useCallback(async (product, nextVariants) => {
+    try {
+      const { description, meta } = parseProductDescription(product.productDescription);
+      const updatedMeta = { ...meta, variants: nextVariants };
+      const updatedDescription = buildProductDescription(description, updatedMeta);
+
+      const payload = {
+        name: product.name || '',
+        type: product.type || 'product',
+        sku: product.sku || '',
+        discountValue: product.discountValue || 0,
+        barcode: product.barcode || '',
+        units: product.units?._id || product.units || '',
+        category: product.category?._id || product.category || '',
+        sellingPrice: product.sellingPrice || '',
+        purchasePrice: product.purchasePrice || '',
+        discountType: product.discountType || '',
+        alertQuantity: product.alertQuantity || '',
+        tax: product.tax?._id || product.tax || '',
+        productDescription: updatedDescription,
+      };
+
+      onSuccess('Updating variant details...');
+      const response = await updateProduct(product._id, payload);
+      if (!response.success) {
+        const errorMessage = response.message || 'Failed to update variants';
+        onError(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+      onSuccess('Variants updated successfully!');
+      await handlers.refreshData();
+      return response;
+    } catch (error) {
+      const errorMessage = error.message || 'Failed to update variants';
+      onError(errorMessage);
+      return { success: false, message: errorMessage };
+    }
+  }, [handlers, onError, onSuccess]);
 
   React.useEffect(() => {
     if (columns.length > 0 && columnsState.length === 0) {
@@ -212,6 +183,8 @@ const ProductList = ({ initialProducts, initialPagination }) => {
       handleEdit: handlers.handleEdit,
       permissions,
       pagination: handlers.pagination,
+      expandedRows,
+      toggleRow,
     };
 
     return columnsState
@@ -220,13 +193,27 @@ const ProductList = ({ initialProducts, initialPagination }) => {
         ...col,
         renderCell: col.renderCell ? (row, index) => col.renderCell(row, cellHandlers, index) : undefined
       }));
-  }, [columnsState, handlers, permissions]);
+  }, [columnsState, handlers, permissions, expandedRows, toggleRow]);
 
   const tablePagination = useMemo(() => ({
     page: handlers.pagination.current - 1,
     pageSize: handlers.pagination.pageSize,
     total: handlers.pagination.total
   }), [handlers.pagination]);
+
+  const renderVariantsRow = useCallback((row) => {
+    const { meta } = parseProductDescription(row.productDescription);
+    const variants = Array.isArray(meta?.variants) ? meta.variants : [];
+    if (!variants.length) return null;
+    return (
+      <ProductVariantsTable
+        product={row}
+        variants={variants}
+        canEdit={permissions.canUpdate}
+        onSaveVariants={handleSaveVariants}
+      />
+    );
+  }, [handleSaveVariants, permissions.canUpdate]);
 
   return (
     <div className='flex flex-col gap-5'>
@@ -262,7 +249,7 @@ const ProductList = ({ initialProducts, initialPagination }) => {
       </div>
 
       <Grid container spacing={3}>
-        <Grid size={{xs:12}}>
+        <Grid size={{ xs: 12 }}>
           <CustomListTable
             columns={tableColumns}
             rows={handlers.products}
@@ -278,10 +265,15 @@ const ProductList = ({ initialProducts, initialPagination }) => {
             showSearch={true}
             searchValue={handlers.searchTerm || ''}
             onSearchChange={handlers.handleSearchInputChange}
+            onRowClick={handleRowClick}
+            getRowClassName={() => 'cursor-pointer'}
+            expandedRows={expandedRows}
+            expandableRowRender={renderVariantsRow}
             headerActions={
               permissions.canCreate && (
                 <Button
-                  onClick={handleOpenAddDialog}
+                  component={Link}
+                  href="/products/product-add"
                   variant="contained"
                   startIcon={<Icon icon="tabler:plus" />}
                 >
@@ -342,28 +334,6 @@ const ProductList = ({ initialProducts, initialPagination }) => {
         </Alert>
       </Snackbar>
 
-      {/* Product Dialogs */}
-      <AddProductDialog
-        open={dialogStates.add}
-        onClose={handleCloseAddDialog}
-        onSave={handleAddProduct}
-      />
-
-      <EditProductDialog
-        open={dialogStates.edit}
-        productId={dialogStates.editProductId}
-        onClose={handleCloseEditDialog}
-        onSave={handleUpdateProduct}
-      />
-
-      <ViewProductDialog
-        open={dialogStates.view}
-        productId={dialogStates.viewProductId}
-        onClose={handleCloseViewDialog}
-        onEdit={handleOpenEditDialog}
-        onError={onError}
-        onSuccess={onSuccess}
-      />
     </div>
   );
 };

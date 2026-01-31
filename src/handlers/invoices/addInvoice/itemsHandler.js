@@ -2,17 +2,17 @@ import { useState } from 'react';
 import { calculateItemValues } from '@/utils/itemCalculations';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 
-export function useItemsHandler({ 
-  control, 
-  setValue, 
-  getValues, 
-  append, 
-  remove, 
-  productData, 
-  enqueueSnackbar, 
+export function useItemsHandler({
+  control,
+  setValue,
+  getValues,
+  append,
+  remove,
+  productData,
+  enqueueSnackbar,
   closeSnackbar,
   productsCloneData,
-  setProductsCloneData 
+  setProductsCloneData
 }) {
   // Discount menu state
   const [discountMenu, setDiscountMenu] = useState({ anchorEl: null, rowIndex: null });
@@ -65,21 +65,21 @@ export function useItemsHandler({
       enqueueSnackbar('Please select a product', { variant: 'error' });
       return;
     }
-    
+
     const product = productData.find((p) => p._id === productId);
     if (!product) {
       closeSnackbar();
       enqueueSnackbar('Invalid product selected', { variant: 'error' });
       return;
     }
-    
+
     const newData = formatInvoiceItem(product);
     if (!newData) {
       closeSnackbar();
       enqueueSnackbar('Error formatting product data', { variant: 'error' });
       return;
     }
-    
+
     // Set all product fields
     Object.keys(newData).forEach(key => {
       setValue(`items.${index}.${key}`, newData[key]);
@@ -107,7 +107,7 @@ export function useItemsHandler({
     const currentItems = getValues('items');
     const deletedItem = currentItems[index];
     remove(index);
-    
+
     // Add the deleted product back to available products
     if (deletedItem && deletedItem.productId && setProductsCloneData) {
       const product = productData.find((p) => p._id === deletedItem.productId);
@@ -144,6 +144,40 @@ export function useItemsHandler({
     });
   };
 
+  const handleQuickAddProduct = (product) => {
+    if (!product) return;
+    const currentItems = Array.isArray(getValues('items')) ? getValues('items') : [];
+    const existingIndex = currentItems.findIndex((item) => item?.productId === product._id);
+    if (existingIndex >= 0) {
+      const existingItem = currentItems[existingIndex];
+      const nextQuantity = Number(existingItem?.quantity || 0) + 1;
+      const updatedItem = {
+        ...existingItem,
+        quantity: nextQuantity,
+        isRateFormUpadted: true
+      };
+      setValue(`items.${existingIndex}.quantity`, nextQuantity, { shouldValidate: true, shouldDirty: true });
+      updateCalculatedFields(existingIndex, updatedItem);
+      return;
+    }
+
+    const newItem = formatInvoiceItem(product);
+    if (!newItem) {
+      closeSnackbar();
+      enqueueSnackbar('Unable to add product', { variant: 'error' });
+      return;
+    }
+
+    append({
+      ...newItem,
+      key: Date.now(),
+    });
+
+    if (setProductsCloneData) {
+      setProductsCloneData((prev) => prev.filter((item) => item._id !== product._id));
+    }
+  };
+
   return {
     discountMenu,
     setDiscountMenu,
@@ -156,6 +190,7 @@ export function useItemsHandler({
     handleTaxMenuItemClick,
     handleUpdateItemProduct,
     handleDeleteItem,
-    handleAddEmptyRow
+    handleAddEmptyRow,
+    handleQuickAddProduct
   };
 }

@@ -28,7 +28,6 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
   const [selectedFile, setSelectedFile] = useState(null)
   const [imageError, setImageError] = useState('')
   const [isDragging, setIsDragging] = useState(false)
-
   const {
     control,
     handleSubmit,
@@ -175,9 +174,8 @@ export const useEditProductHandlers = ({ productData, dropdownData, onSave }) =>
       }
 
       // Remove images from data object
-      const { images, ...productData } = data;
-
-      const result = await onSave(productData, preparedImage)
+      const { images, ...productPayload } = data;
+      const result = await onSave(productPayload, preparedImage)
       return result
     } catch (error) {
       console.error('Error updating product:', error)

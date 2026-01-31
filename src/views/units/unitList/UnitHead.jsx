@@ -25,7 +25,7 @@ const UnitHead = ({ unitListData }) => {
           acc.totalUnits++;
           
           // Count active/inactive units
-          if (!unit.isDeleted) {
+          if (unit.status !== false) {
             acc.activeUnits++;
           } else {
             acc.inactiveUnits++;

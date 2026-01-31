@@ -25,7 +25,7 @@ const CategoryHead = ({ categoryListData }) => {
           acc.totalCategories++;
           
           // Count active/inactive categories
-          if (!category.isDeleted) {
+          if (category.status !== false) {
             acc.activeCategories++;
           } else {
             acc.inactiveCategories++;

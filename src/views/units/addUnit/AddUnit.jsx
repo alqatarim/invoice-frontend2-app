@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import {
   Dialog,
@@ -14,10 +14,14 @@ import {
   Typography,
   Avatar,
   Skeleton,
+  MenuItem,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { useAddUnitHandlers } from '@/handlers/units/addUnit';
+import { getUnitDropdownData } from '@/app/(dashboard)/units/actions';
 import { formIcons } from '@/data/dataSets';
 
 const AddUnitDialog = ({ open, onClose, onSave }) => {
@@ -42,6 +46,30 @@ const AddUnitDialog = ({ open, onClose, onSave }) => {
       return result;
     },
   });
+
+  const [dropdownOptions, setDropdownOptions] = useState({ units: [] });
+  const [optionsLoading, setOptionsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadDropdowns = async () => {
+      if (!open) return;
+      setOptionsLoading(true);
+      try {
+        const response = await getUnitDropdownData();
+        if (response?.success) {
+          setDropdownOptions({
+            units: response.data?.units || [],
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load unit dropdown data', err);
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+
+    loadDropdowns();
+  }, [open]);
 
   const handleClose = () => {
     reset();
@@ -155,6 +183,133 @@ const AddUnitDialog = ({ open, onClose, onSave }) => {
                   />
                 </Grid>
 
+                {/* Base Unit */}
+                <Grid size={{xs:12, sm:6, md:6}}>
+                  <Controller
+                    name="baseUnit"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        select
+                        fullWidth
+                        label="Base Unit"
+                        disabled={isSubmitting || optionsLoading}
+                        variant="outlined"
+                      >
+                        <MenuItem value="">None</MenuItem>
+                        {(dropdownOptions.units || []).map(unit => (
+                          <MenuItem key={unit._id} value={unit._id}>
+                            {unit.name} ({unit.symbol})
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </Grid>
+
+                {/* Conversion Factor */}
+                <Grid size={{xs:12, sm:6, md:6}}>
+                  <Controller
+                    name="conversionFactor"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        type="number"
+                        fullWidth
+                        label="Conversion Factor"
+                        placeholder="e.g., 12"
+                        error={!!errors.conversionFactor}
+                        helperText={errors.conversionFactor?.message}
+                        disabled={isSubmitting}
+                        variant="outlined"
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Decimal Precision */}
+                <Grid size={{xs:12, sm:6, md:6}}>
+                  <Controller
+                    name="decimalPrecision"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        type="number"
+                        fullWidth
+                        label="Decimal Precision"
+                        placeholder="0 - 6"
+                        error={!!errors.decimalPrecision}
+                        helperText={errors.decimalPrecision?.message}
+                        disabled={isSubmitting}
+                        variant="outlined"
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Rounding Method */}
+                <Grid size={{xs:12, sm:6, md:6}}>
+                  <Controller
+                    name="roundingMethod"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        select
+                        fullWidth
+                        label="Rounding Method"
+                        disabled={isSubmitting}
+                        variant="outlined"
+                      >
+                        <MenuItem value="round">Round</MenuItem>
+                        <MenuItem value="floor">Floor</MenuItem>
+                        <MenuItem value="ceil">Ceil</MenuItem>
+                        <MenuItem value="none">None</MenuItem>
+                      </TextField>
+                    )}
+                  />
+                </Grid>
+
+                {/* Standard Unit Code */}
+                <Grid size={{xs:12, sm:6, md:6}}>
+                  <Controller
+                    name="standardUnitCode"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Standard Unit Code"
+                        placeholder="e.g., KGM"
+                        disabled={isSubmitting}
+                        variant="outlined"
+                      />
+                    )}
+                  />
+                </Grid>
+
+                {/* Status */}
+                <Grid size={{xs:12}}>
+                  <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={!!field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            color="success"
+                          />
+                        }
+                        label={field.value ? 'Active' : 'Inactive'}
+                      />
+                    )}
+                  />
+                </Grid>
               
               </Grid>
             </form>

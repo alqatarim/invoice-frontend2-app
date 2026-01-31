@@ -1,14 +1,20 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
 import { Typography, Chip, IconButton, Box } from '@mui/material';
-import moment from 'moment';
-import { useTheme } from '@mui/material/styles';
 
-// Action cell extracted into its own component so hooks are used at the top level
 const ActionCell = ({ row, handlers, permissions }) => {
   return (
     <Box>
-      {/* Edit Button */}
+      {permissions?.canView && (
+        <IconButton
+          size="small"
+          onClick={() => handlers?.handleView?.(row._id)}
+          title='View'
+          color="info"
+        >
+          <Icon icon='mdi:eye-outline' />
+        </IconButton>
+      )}
       {permissions?.canUpdate && (
         <IconButton
           size="small"
@@ -19,12 +25,10 @@ const ActionCell = ({ row, handlers, permissions }) => {
           <Icon icon='mdi:edit-outline' />
         </IconButton>
       )}
-
-      {/* Delete Button */}
       {permissions?.canDelete && (
         <IconButton
           size="small"
-          onClick={() => handlers.handleDelete(row._id)}
+          onClick={() => handlers?.handleDelete?.(row._id)}
           title='Delete'
           color="error"
         >
@@ -35,22 +39,17 @@ const ActionCell = ({ row, handlers, permissions }) => {
   );
 };
 
-/**
- * Unit table column definitions
- */
-export const getUnitColumns = ({ theme = {}, permissions = {} } = {}) => [
+export const getBranchColumns = ({ permissions = {} } = {}) => [
   {
     key: 'serial',
     visible: true,
     label: '#',
-    align: 'middle',
+    align: 'center',
     renderCell: (row, handlers, index) => {
       const currentPage = Number(handlers?.pagination?.current || handlers?.pagination?.page || 1);
       const pageSize = Number(handlers?.pagination?.pageSize || handlers?.pagination?.limit || 10);
       const rowIndex = Number(index >= 0 ? index : 0);
-
       const serialNumber = (currentPage - 1) * pageSize + rowIndex + 1;
-
       return (
         <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
           {!isNaN(serialNumber) ? serialNumber : rowIndex + 1}
@@ -59,97 +58,87 @@ export const getUnitColumns = ({ theme = {}, permissions = {} } = {}) => [
     },
   },
   {
-    key: 'unit',
+    key: 'branchId',
     visible: true,
-    label: 'Unit Name',
+    label: 'Branch ID',
+    align: 'left',
     sortable: true,
     renderCell: (row) => (
-    
-        <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-          {row.name || 'N/A'}
-        </Typography>
-    
+      <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
+        {row.branchId || 'N/A'}
+      </Typography>
     ),
   },
   {
-    key: 'symbol',
-    label: 'Symbol',
+    key: 'name',
     visible: true,
-    align: 'middle',
+    label: 'Branch Name',
     sortable: true,
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-          {row.symbol}
-        </Typography>
-      )
-
-  },
-  {
-    key: 'baseUnit',
-    label: 'Base Unit',
-    visible: false,
-    align: 'middle',
-    renderCell: (row) => (
-      <Typography variant="body2" color='text.primary'>
-        {row.baseUnit?.name || 'None'}
+        {row.name || 'N/A'}
       </Typography>
     ),
   },
   {
-    key: 'conversionFactor',
-    label: 'Conversion Factor',
-    visible: false,
-    align: 'middle',
+    key: 'branchType',
+    visible: true,
+    label: 'Type',
+    align: 'center',
+    renderCell: (row) => {
+      const isStore = row.branchType === 'Store';
+      return (
+        <Chip
+          size='small'
+          variant='tonal'
+          label={isStore ? 'Store' : 'Warehouse'}
+          color={isStore ? 'info' : 'success'}
+        />
+      );
+    },
+  },
+  {
+    key: 'province',
+    visible: true,
+    label: 'Province',
+    align: 'left',
     renderCell: (row) => (
       <Typography variant="body2" color='text.primary'>
-        {row.conversionFactor ?? 1}
+        {row.province || 'N/A'}
       </Typography>
     ),
   },
   {
-    key: 'decimalPrecision',
-    label: 'Precision',
-    visible: false,
-    align: 'middle',
+    key: 'city',
+    visible: true,
+    label: 'City',
+    align: 'left',
     renderCell: (row) => (
       <Typography variant="body2" color='text.primary'>
-        {row.decimalPrecision ?? 2}
+        {row.city || 'N/A'}
       </Typography>
     ),
   },
   {
-    key: 'roundingMethod',
-    label: 'Rounding',
-    visible: false,
-    align: 'middle',
+    key: 'district',
+    visible: true,
+    label: 'District',
+    align: 'left',
     renderCell: (row) => (
       <Typography variant="body2" color='text.primary'>
-        {row.roundingMethod || 'round'}
-      </Typography>
-    ),
-  },
-  {
-    key: 'standardUnitCode',
-    label: 'Std Code',
-    visible: false,
-    align: 'middle',
-    renderCell: (row) => (
-      <Typography variant="body2" color='text.primary'>
-        {row.standardUnitCode || '-'}
+        {row.district || '-'}
       </Typography>
     ),
   },
   {
     key: 'status',
+    visible: false,
     label: 'Status',
-    visible: true,
-    align: 'middle',
-    sortable: true,
+    align: 'center',
     renderCell: (row) => {
       const isActive = row.status !== false;
       return (
         <Chip
-          className='mx-0'
           size='small'
           variant='tonal'
           label={isActive ? 'Active' : 'Inactive'}
@@ -164,11 +153,7 @@ export const getUnitColumns = ({ theme = {}, permissions = {} } = {}) => [
     visible: true,
     align: 'right',
     renderCell: (row, handlers) => (
-      <ActionCell 
-        row={row} 
-        handlers={handlers} 
-        permissions={permissions} 
-      />
+      <ActionCell row={row} handlers={handlers} permissions={permissions} />
     ),
   },
 ];

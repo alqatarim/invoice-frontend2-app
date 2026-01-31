@@ -125,20 +125,45 @@ export const getCategoryColumns = ({ theme = {}, permissions = {} } = {}) => [
      ),
   },
   {
+    key: 'parentCategory',
+    label: 'Parent Category',
+    visible: false,
+    align: 'center',
+    renderCell: (row) => (
+      <Typography variant="body2" color='text.primary'>
+        {row.parentCategory?.name || 'None'}
+      </Typography>
+    ),
+  },
+  {
+    key: 'tax',
+    label: 'Tax Classification',
+    visible: false,
+    align: 'center',
+    renderCell: (row) => (
+      <Typography variant="body2" color='text.primary'>
+        {row.tax?.name ? `${row.tax.name}${row.tax.taxRate ? ` (${row.tax.taxRate}%)` : ''}` : 'None'}
+      </Typography>
+    ),
+  },
+  {
     key: 'status',
     label: 'Status',
     visible: true,
     align: 'center',
     sortable: true,
-    renderCell: (row) => (
-      <Chip
-        className='mx-0'
-        size='small'
-        variant='tonal'
-        label={row.isDeleted ? 'Inactive' : 'Active'}
-        color={row.isDeleted ? 'error' : 'success'}
-      />
-    ),
+    renderCell: (row) => {
+      const isActive = row.status !== false;
+      return (
+        <Chip
+          className='mx-0'
+          size='small'
+          variant='tonal'
+          label={isActive ? 'Active' : 'Inactive'}
+          color={isActive ? 'success' : 'error'}
+        />
+      );
+    },
   },
   {
     key: 'action',

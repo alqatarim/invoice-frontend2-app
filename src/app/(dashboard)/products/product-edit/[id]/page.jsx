@@ -19,10 +19,7 @@ const EditProductPage = async ({ params }) => {
 
     return (
       <ProtectedComponent>
-        <EditProductIndex
-          id={id}
-          productData={productData}
-        />
+        <EditProductIndex id={id} />
       </ProtectedComponent>
     );
   } catch (error) {
