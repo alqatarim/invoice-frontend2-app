@@ -13,8 +13,6 @@ import {
   Card,
   CardContent,
   Grid,
-  Snackbar,
-  Alert,
   Dialog,
   DialogContent,
   FormHelperText,
@@ -32,6 +30,7 @@ import useAddPurchaseOrderHandlers from '@/handlers/purchaseOrders/addPurchaseOr
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 import { calculatePurchaseInvoiceTotals } from '@/utils/purchaseTotals';
 import { getAddPurchaseOrderColumns } from './AddPurchaseOrderColumns';
 
@@ -456,6 +455,7 @@ const AddPurchaseOrder = ({ vendorsData, productData, taxRates, initialBanks, si
           handleSubmit={handleSubmit}
           handleFormSubmit={handleFormSubmit}
           handleError={handleError}
+          cancelHref="/purchase-orders/purchase-order-list"
         />
       </Grid>
       {/* Add Bank Modal */}
@@ -466,22 +466,13 @@ const AddPurchaseOrder = ({ vendorsData, productData, taxRates, initialBanks, si
         setNewBank={setNewBank}
         handleAddBank={handleAddBank}
       />
-      {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          variant="filled"
-          size="small"
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          className="is-full shadow-xs p-2 text-md"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={3000}
+      />
       {/* Notes Dialog */}
       <Dialog
         open={termsDialogOpen}

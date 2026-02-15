@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { calculateItemValues } from '@/utils/itemCalculations';
+import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 export function useInvoiceItemsHandlers({ control, setValue, getValues, append, remove, productData, enqueueSnackbar, closeSnackbar, setProductsCloneData }) {
   // Discount menu state
@@ -10,7 +10,6 @@ export function useInvoiceItemsHandlers({ control, setValue, getValues, append, 
   // Helper to update all calculated fields for an item row
   const updateCalculatedFields = (index, values) => {
     const computed = calculateItemValues(values);
-    setValue(`items.${index}.rate`, computed.rate);
     setValue(`items.${index}.discount`, computed.discount);
     setValue(`items.${index}.tax`, computed.tax);
     setValue(`items.${index}.amount`, computed.amount);
@@ -105,6 +104,7 @@ export function useInvoiceItemsHandlers({ control, setValue, getValues, append, 
     append({
       productId: '',
       name: '',
+      sku: '',
       units: '',
       quantity: 1,
       rate: 0,

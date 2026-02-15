@@ -170,9 +170,7 @@ export const getAddSalesReturnColumns = ({
                                         onChange={e => {
                                              const rate = Number(e.target.value);
                                              setValue(`items.${index}.rate`, rate);
-                                             setValue(`items.${index}.form_updated_rate`, (Number(rate) / Number(watchItems[index]?.quantity)).toFixed(4))
-                                             setValue(`items.${index}.form_updated_discount`, Number(watchItems[index]?.discount))
-                                             setValue(`items.${index}.form_updated_discounttype`, Number(watchItems[index]?.discountType))
+                                             setValue(`items.${index}.form_updated_rate`, Number(rate || 0).toFixed(4))
                                              setValue(`items.${index}.isRateFormUpadted`, 'true')
                                              const item = getValues(`items.${index}`);
                                              updateCalculatedFields(index, item, setValue);

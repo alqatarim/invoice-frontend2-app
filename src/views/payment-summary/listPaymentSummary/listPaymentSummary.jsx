@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -11,14 +11,10 @@ import {
      Button,
      Card,
      Chip,
-     IconButton,
-     Menu,
-     MenuItem,
      Typography,
      useMediaQuery,
      Grid,
-     Snackbar,
-     Alert
+     
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { useSession } from 'next-auth/react';
@@ -30,6 +26,8 @@ import { paymentSummaryStatus } from '@/data/dataSets';
 import { amountFormat } from '@/utils/numberUtils';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 import { getPaymentSummaryColumns } from './paymentSummaryColumns';
+import AppSnackbar from '@/components/shared/AppSnackbar';
+import { getFilteredPaymentSummaries } from '@/app/(dashboard)/payment-summary/actions';
 
 // Helper function to get status color
 const getStatusColor = (status) => {
@@ -62,9 +60,13 @@ const ListPaymentSummary = ({ initialData, customers }) => {
      const [searchTerm, setSearchTerm] = useState('');
      const [filteredPaymentSummaries, setFilteredPaymentSummaries] = useState(initialData?.data || []);
      const [loading, setLoading] = useState(false);
+     const [pagination, setPagination] = useState({
+          current: 1,
+          pageSize: 10,
+          total: initialData?.totalRecords || initialData?.data?.length || 0
+     });
 
-     const [selectedPayment, setSelectedPayment] = useState(null);
-     const [actionAnchorEl, setActionAnchorEl] = useState(null);
+     
 
      // Snackbar state
      const [snackbar, setSnackbar] = useState({
@@ -102,6 +104,30 @@ const ListPaymentSummary = ({ initialData, customers }) => {
           }
      };
 
+     const fetchPaymentSummaries = useCallback(async ({ page = pagination.current, pageSize = pagination.pageSize } = {}) => {
+          setLoading(true);
+          try {
+               const response = await getFilteredPaymentSummaries(page, pageSize, {});
+               const nextData = response?.payments || [];
+               setPaymentSummaries(nextData);
+               setFilteredPaymentSummaries(nextData);
+               setPagination(response?.pagination || {
+                    current: page,
+                    pageSize,
+                    total: response?.totalRecords || nextData.length
+               });
+          } catch (error) {
+               onError(error.message || 'Failed to load payment summaries');
+          } finally {
+               setLoading(false);
+          }
+     }, [onError, pagination.current, pagination.pageSize]);
+
+     useEffect(() => {
+          if ((initialData?.data || []).length > 0) return;
+          fetchPaymentSummaries();
+     }, [fetchPaymentSummaries, initialData?.data]);
+
      // Search functionality
      useEffect(() => {
           if (!searchTerm) {
@@ -120,15 +146,6 @@ const ListPaymentSummary = ({ initialData, customers }) => {
           }
      }, [searchTerm, paymentSummaries]);
 
-     const handleActionClick = (event, payment) => {
-          setSelectedPayment(payment);
-          setActionAnchorEl(event.currentTarget);
-     };
-
-     const handleActionClose = () => {
-          setActionAnchorEl(null);
-     };
-
      const handleExport = () => {
           // Export functionality would be implemented here
           console.log('Export payment summary');
@@ -137,8 +154,16 @@ const ListPaymentSummary = ({ initialData, customers }) => {
 
      // Get columns from external file
      const columns = useMemo(() =>
-          getPaymentSummaryColumns(theme, handleActionClick),
-          [theme, handleActionClick]
+          getPaymentSummaryColumns({
+               theme,
+               permissions,
+               onView: (row) => router.push(`/payment-summary/payment-summary-view/${row?._id}`),
+               onExport: () => {
+                    console.log('Export single payment');
+               },
+               onPrint: () => window.print(),
+          }),
+          [theme, permissions, router]
      );
 
      // Table columns with proper cell handlers  
@@ -150,10 +175,10 @@ const ListPaymentSummary = ({ initialData, customers }) => {
      }, [columns, permissions]);
 
      const tablePagination = useMemo(() => ({
-          page: 0,
-          pageSize: 10,
-          total: filteredPaymentSummaries.length
-     }), [filteredPaymentSummaries.length]);
+          page: Math.max(0, pagination.current - 1),
+          pageSize: pagination.pageSize,
+          total: pagination.total
+     }), [pagination.current, pagination.pageSize, pagination.total]);
 
      return (
           <div className='flex flex-col gap-5'>
@@ -245,13 +270,20 @@ const ListPaymentSummary = ({ initialData, customers }) => {
                               rows={filteredPaymentSummaries}
                               loading={loading}
                               pagination={tablePagination}
-                              onPageChange={(page) => {/* pagination handler if needed */ }}
-                              onRowsPerPageChange={(size) => {/* page size handler if needed */ }}
+                              onPageChange={(page) => fetchPaymentSummaries({ page: page + 1 })}
+                              onRowsPerPageChange={(size) => fetchPaymentSummaries({ page: 1, pageSize: size })}
                               noDataText="No payment summaries found"
                               rowKey={(row) => row._id || row.id}
                               showSearch={true}
                               searchValue={searchTerm}
                               onSearchChange={(value) => setSearchTerm(value)}
+                              searchPlaceholder="Search payment summaries..."
+                              onRowClick={
+                                   permissions.canView
+                                        ? (row) => router.push(`/payment-summary/payment-summary-view/${row._id}`)
+                                        : undefined
+                              }
+                              enableHover
                               headerActions={
                                    permissions.canExport && (
                                         <Button
@@ -267,71 +299,14 @@ const ListPaymentSummary = ({ initialData, customers }) => {
                     </Grid>
                </Grid>
 
-               {/* Action Menu */}
-               <Menu
-                    anchorEl={actionAnchorEl}
-                    open={Boolean(actionAnchorEl)}
-                    onClose={handleActionClose}
-                    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                    slotProps={{
-                         paper: {
-                              sx: {
-                                   width: 220,
-                                   borderRadius: '12px',
-                                   boxShadow: theme => `0 4px 14px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-                                   mt: 1
-                              }
-                         }
-                    }}
-               >
-                    <MenuItem
-                         component={Link}
-                         href={`/payment-summary/payment-summary-view/${selectedPayment?._id}`}
-                         onClick={handleActionClose}
-                         sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}
-                    >
-                         <Icon icon="tabler:eye" fontSize={20} style={{ marginRight: '12px' }} />
-                         View Details
-                    </MenuItem>
-                    <MenuItem
-                         onClick={() => {
-                              console.log('Export single payment');
-                              handleActionClose();
-                         }}
-                         sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}
-                    >
-                         <Icon icon="tabler:download" fontSize={20} style={{ marginRight: '12px' }} />
-                         Export Details
-                    </MenuItem>
-                    <MenuItem
-                         onClick={() => {
-                              window.print();
-                              handleActionClose();
-                         }}
-                         sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}
-                    >
-                         <Icon icon="tabler:printer" fontSize={20} style={{ marginRight: '12px' }} />
-                         Print
-                    </MenuItem>
-               </Menu>
 
-               {/* Snackbar */}
-               <Snackbar
+               <AppSnackbar
                     open={snackbar.open}
-                    autoHideDuration={6000}
+                    message={snackbar.message}
+                    severity={snackbar.severity}
                     onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-               >
-                    <Alert
-                         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-                         severity={snackbar.severity}
-                         variant="filled"
-                         sx={{ width: '100%' }}
-                    >
-                         {snackbar.message}
-                    </Alert>
-               </Snackbar>
+                    autoHideDuration={6000}
+               />
           </div>
      );
 };

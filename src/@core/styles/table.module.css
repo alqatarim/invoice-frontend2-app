@@ -74,6 +74,15 @@
     :global(th.MuiTableCell-alignLeft) {
       text-align: start;
     }
+
+    /* Remove the divider between thead and first tbody row */
+    tr:last-of-type {
+      th,
+      td {
+        border-block-end: 0 !important;
+        border-bottom: 0 !important;
+      }
+    }
   }
 
   tbody {
@@ -109,6 +118,15 @@
 
     tr:not(:last-child) {
       border-block-end: 1px solid var(--border-color);
+    }
+
+    /* Remove the divider between thead and first tbody row */
+    tr:first-of-type {
+      th,
+      td {
+        border-block-start: 0;
+        border-top: 0;
+      }
     }
   }
 }

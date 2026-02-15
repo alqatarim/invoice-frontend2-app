@@ -5,7 +5,7 @@ import { dataHandler } from '@/handlers/settings/signatureLists/dataHandler'
 import { actionsHandler } from '@/handlers/settings/signatureLists/actionsHandler'
 import SignatureListView from './SignatureListView'
 import SettingsLayout from '../../shared/SettingsLayout'
-import { Snackbar, Alert } from '@mui/material'
+import AppSnackbar from '@/components/shared/AppSnackbar'
 
 const SignatureListIndex = ({ initialData = [] }) => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -62,17 +62,13 @@ const SignatureListIndex = ({ initialData = [] }) => {
         />
       </SettingsLayout>
 
-      {/* Global Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </>
   )
 }

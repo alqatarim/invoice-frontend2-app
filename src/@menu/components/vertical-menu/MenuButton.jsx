@@ -21,6 +21,7 @@ export const menuButtonStyles = props => {
     minBlockSize: '30px',
     textDecoration: 'none',
     color: 'inherit',
+    fontFamily: 'inherit',
     boxSizing: 'border-box',
     cursor: 'pointer',
     paddingInlineEnd: '20px',

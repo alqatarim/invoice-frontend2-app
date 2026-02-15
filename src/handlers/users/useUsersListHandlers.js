@@ -82,7 +82,7 @@ export const useUsersListHandlers = ({
           loadRoles();
      }, []);
 
-     // Load users data - only fetch when explicitly called (not on initial mount)
+    // Load users data - only fetch when explicitly called (not on initial mount)
      const loadUsers = useCallback(async (page, pageSize) => {
           setLoading(true);
           try {
@@ -105,6 +105,11 @@ export const useUsersListHandlers = ({
           }
      }, [pagination.current, pagination.pageSize, filterValues, sortBy, sortDirection, onError]);
 
+    useEffect(() => {
+         if (hasInitialData) return;
+         loadUsers(1, pagination.pageSize);
+    }, [hasInitialData, loadUsers, pagination.pageSize]);
+
      // Filter handlers
      const handleFilterValueChange = useCallback((field, value) => {
           setFilterValues(prev => ({
@@ -112,6 +117,15 @@ export const useUsersListHandlers = ({
                [field]: value,
           }));
      }, []);
+
+    const handleSearchInputChange = useCallback((value) => {
+         const nextValue = value ?? '';
+         setFilterValues(prev => ({
+              ...prev,
+              search: nextValue,
+         }));
+         loadUsers(1, pagination.pageSize);
+    }, [loadUsers, pagination.pageSize]);
 
      const handleFilterApply = useCallback(async () => {
           try {
@@ -145,14 +159,19 @@ export const useUsersListHandlers = ({
      }, [handleFilterValueChange]);
 
      // Pagination handlers
-     const handlePageChange = useCallback((event, page) => {
-          loadUsers(page + 1, pagination.pageSize);
-     }, [loadUsers, pagination.pageSize]);
+    const handlePageChange = useCallback((eventOrPage, maybePage) => {
+         const nextPage = typeof maybePage === 'number' ? maybePage : eventOrPage;
+         if (typeof nextPage !== 'number') return;
+         loadUsers(nextPage + 1, pagination.pageSize);
+    }, [loadUsers, pagination.pageSize]);
 
-     const handlePageSizeChange = useCallback((event) => {
-          const newPageSize = parseInt(event.target.value, 10);
-          loadUsers(1, newPageSize);
-     }, [loadUsers]);
+    const handlePageSizeChange = useCallback((eventOrSize) => {
+         const newPageSize = typeof eventOrSize === 'number'
+              ? eventOrSize
+              : parseInt(eventOrSize.target.value, 10);
+         if (!Number.isFinite(newPageSize)) return;
+         loadUsers(1, newPageSize);
+    }, [loadUsers]);
 
      // Sorting handler
      const handleSortRequest = useCallback((property) => {
@@ -328,6 +347,7 @@ export const useUsersListHandlers = ({
           filterValues,
           sortBy,
           sortDirection,
+          searchTerm: filterValues.search || '',
           availableColumns,
           manageColumnsOpen,
           deleteDialogOpen,
@@ -354,6 +374,7 @@ export const useUsersListHandlers = ({
 
           // Handlers
           handleFilterValueChange,
+          handleSearchInputChange,
           handleFilterApply,
           handleFilterReset,
           handleTabChange,

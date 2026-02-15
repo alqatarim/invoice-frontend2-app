@@ -22,7 +22,6 @@ import { styled } from '@mui/material/styles'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import CloseIcon from '@mui/icons-material/Close'
-
 // Third-party Imports
 import { signIn } from 'next-auth/react'
 import { Controller, useForm } from 'react-hook-form'
@@ -174,21 +173,21 @@ const Login = ({ mode }) => {
       <div className='flex justify-center items-center bs-full bg-backgroundPaper !min-is-full p-6 md:!min-is-[unset] md:p-12 md:is-[480px]'>
         <div className='absolute block-start-5 sm:block-start-[33px] inline-start-6 sm:inline-start-[38px]'>
           <div className='flex justify-center items-center gap-3 mbe-6'>
-            <Logo className='text-primary' height={28} width={35} />
+            <Logo className='text-primary' width={50} height={50} />
             <Typography variant='h4' className='font-semibold tracking-[0.15px]'>
-              {themeConfig.templateName}
+              Invoices
             </Typography>
           </div>
         </div>
         <div className='flex flex-col gap-5 is-full sm:is-auto md:is-full sm:max-is-[400px] md:max-is-[unset]'>
           <div>
-            <Typography variant='h4'>{`Welcome to ${themeConfig.templateName}!👋🏻`}</Typography>
+            <Typography variant='h4'>{`Welcome to Invoices Raymond!👋🏻`}</Typography>
             <Typography>Please sign-in to your account and start the adventure</Typography>
           </div>
           <Alert icon={false} className='bg-[var(--mui-palette-primary-lightOpacity)]'>
             <Typography variant='body2' color='primary'>
-              Email: <span className='font-medium'>admin@materio.com</span> / Pass:{' '}
-              <span className='font-medium'>admin</span>
+              Email: <span className='font-medium'>superadmin@dreamstechnologies.com</span> / Pass:{' '}
+              <span className='font-medium'>Dgt@2023</span>
             </Typography>
           </Alert>
 
@@ -241,17 +240,17 @@ const Login = ({ mode }) => {
               </Typography>
             </div>
             <Button fullWidth variant='contained' type='submit'>
-              Log Inz
+              Log In
             </Button>
-            <div className='flex justify-center items-center flex-wrap gap-2'>
+            {/* <div className='flex justify-center items-center flex-wrap gap-2'>
               <Typography>New on our platform?</Typography>
               <Typography component={Link} href='/register' color='primary'>
                 Create an account
               </Typography>
-            </div>
+            </div> */}
           </form>
 
-          <Divider className='gap-3'>or</Divider>
+          {/* <Divider className='gap-3'>or</Divider>
           <Button
             color='secondary'
             className='self-center text-textPrimary'
@@ -260,7 +259,7 @@ const Login = ({ mode }) => {
             onClick={() => signIn('google')}
           >
             Sign in with Google
-          </Button>
+          </Button> */}
         </div>
       </div>
 

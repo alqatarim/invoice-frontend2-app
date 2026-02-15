@@ -82,12 +82,22 @@ export function branchInventoryDataHandler({
   }, [onError]);
 
   const handlePageChange = useCallback(
-    (event, newPage) => fetchData({ page: newPage + 1 }),
+    (eventOrPage, maybePage) => {
+      const nextPage = typeof maybePage === 'number' ? maybePage : eventOrPage;
+      if (typeof nextPage !== 'number') return;
+      fetchData({ page: nextPage + 1 });
+    },
     [fetchData]
   );
 
   const handlePageSizeChange = useCallback(
-    event => fetchData({ page: 1, pageSize: parseInt(event.target.value, 10) }),
+    (eventOrSize) => {
+      const nextSize = typeof eventOrSize === 'number'
+        ? eventOrSize
+        : parseInt(eventOrSize.target.value, 10);
+      if (!Number.isFinite(nextSize)) return;
+      fetchData({ page: 1, pageSize: nextSize });
+    },
     [fetchData]
   );
 

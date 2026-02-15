@@ -35,6 +35,8 @@ export default function useInvoiceHandlers({
       referenceNo: invoiceData?.referenceNo || '',
       customerId: invoiceData?.customerId?._id || '',
       payment_method: invoiceData?.payment_method || '',
+      posMode: Boolean(invoiceData?.posMode),
+      isWalkIn: Boolean(invoiceData?.isWalkIn),
       invoiceDate: formatDateForInput(invoiceData?.invoiceDate || new Date()),
       dueDate: formatDateForInput(invoiceData?.dueDate || new Date()),
       taxableAmount: invoiceData?.taxableAmount || 0,

@@ -4,8 +4,6 @@ import { Icon } from '@iconify/react';
 import {
   Card,
   Button,
-  Snackbar,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -28,6 +26,7 @@ import AddVendorDialog from '@/views/vendors/addVendor';
 import EditVendorDialog from '@/views/vendors/editVendor';
 import ViewVendorDialog from '@/views/vendors/viewVendor';
 import { addVendor, updateVendor } from '@/app/(dashboard)/vendors/actions';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * Simplified VendorList Component - eliminates redundant state and complexity
@@ -247,6 +246,17 @@ const VendorList = ({ initialVendors, initialPagination }) => {
 
         <Grid size={{xs:12}}>
           <CustomListTable
+            addRowButton={
+              permissions.canCreate && (
+                <Button
+                  onClick={handleOpenAddDialog}
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                >
+                  New Vendor
+                </Button>
+              )
+            }
             columns={tableColumns}
             rows={handlers.vendors}
             loading={handlers.loading}
@@ -261,17 +271,13 @@ const VendorList = ({ initialVendors, initialPagination }) => {
             showSearch={true}
             searchValue={handlers.searchTerm || ''}
             onSearchChange={handlers.handleSearchInputChange}
-            headerActions={
-              permissions.canCreate && (
-                <Button
-                  onClick={handleOpenAddDialog}
-                  variant="contained"
-                  startIcon={<Icon icon="tabler:plus" />}
-                >
-                  New Vendor
-                </Button>
-              )
+            searchPlaceholder="Search vendors..."
+            onRowClick={
+              permissions.canView
+                ? (row) => handlers.handleView(row._id)
+                : undefined
             }
+            enableHover
           />
         </Grid>
       </Grid>
@@ -309,21 +315,13 @@ const VendorList = ({ initialVendors, initialPagination }) => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
 
       {/* Vendor Dialogs */}
       <AddVendorDialog

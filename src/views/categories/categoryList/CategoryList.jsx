@@ -4,8 +4,6 @@ import { Icon } from '@iconify/react';
 import {
   Card,
   Button,
-  Snackbar,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -27,6 +25,7 @@ import { getCategoryColumns } from './categoryColumns';
 import AddCategoryDialog from '@/views/categories/addCategory';
 import EditCategoryDialog from '@/views/categories/editCategory';
 import { addCategory, updateCategory } from '@/app/(dashboard)/categories/actions';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * Simplified CategoryList Component - eliminates redundant state and complexity
@@ -251,6 +250,17 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
           <CustomListTable
+            addRowButton={
+              permissions.canCreate && (
+                <Button
+                  onClick={handleOpenAddDialog}
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                >
+                  New Category
+                </Button>
+              )
+            }
             columns={tableColumns}
             rows={handlers.categories}
             loading={handlers.loading}
@@ -265,17 +275,8 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
             showSearch={true}
             searchValue={handlers.searchTerm || ''}
             onSearchChange={handlers.handleSearchInputChange}
-            headerActions={
-              permissions.canCreate && (
-                <Button
-                  onClick={handleOpenAddDialog}
-                  variant="contained"
-                  startIcon={<Icon icon="tabler:plus" />}
-                >
-                  New Category
-                </Button>
-              )
-            }
+            searchPlaceholder="Search categories..."
+            enableHover
           />
         </Grid>
       </Grid>
@@ -313,21 +314,13 @@ const CategoryList = ({ initialCategories, initialPagination }) => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
 
       {/* Category Dialogs */}
       <AddCategoryDialog

@@ -13,8 +13,6 @@ import {
   Card,
   CardContent,
   Grid,
-  Snackbar,
-  Alert,
   Dialog,
   DialogContent,
   FormHelperText,
@@ -35,7 +33,8 @@ import useAddSalesReturnHandlers from '@/handlers/salesReturn/addSalesReturn/use
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
-import { calculateInvoiceTotals } from '@/utils/invoiceTotals';
+import AppSnackbar from '@/components/shared/AppSnackbar';
+import { calculateInvoiceTotals } from '@/utils/salesTotals';
 import { getAddSalesReturnColumns } from './addSalesReturnColumns';
 
 const AddSalesReturn = ({ customersData, productData, taxRates, initialBanks, signatures, onSave, enqueueSnackbar, closeSnackbar, salesReturnNumber }) => {
@@ -467,6 +466,7 @@ const AddSalesReturn = ({ customersData, productData, taxRates, initialBanks, si
           handleSubmit={handleSubmit}
           handleFormSubmit={handleFormSubmit}
           handleError={handleError}
+          cancelHref="/sales-return/sales-return-list"
         />
       </Grid>
       {/* Add Bank Modal */}
@@ -477,22 +477,13 @@ const AddSalesReturn = ({ customersData, productData, taxRates, initialBanks, si
         setNewBank={setNewBank}
         handleAddBank={handleAddBank}
       />
-      {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          variant="filled"
-          size="small"
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          className="is-full shadow-xs p-2 text-md"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={3000}
+      />
       {/* Notes Dialog */}
       <Dialog
         open={termsDialogOpen}

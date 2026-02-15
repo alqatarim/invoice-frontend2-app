@@ -4,8 +4,6 @@ import { Icon } from '@iconify/react';
 import {
   Card,
   Button,
-  Snackbar,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -27,6 +25,7 @@ import { getUnitColumns } from './unitColumns';
 import AddUnitDialog from '@/views/units/addUnit';
 import EditUnitDialog from '@/views/units/editUnit';
 import { addUnit, updateUnit } from '@/app/(dashboard)/units/actions';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * Simplified UnitList Component - eliminates redundant state and complexity
@@ -251,6 +250,17 @@ const UnitList = ({ initialUnits, initialPagination }) => {
       <Grid container spacing={3}>
         <Grid size={{xs:12}}>
           <CustomListTable
+            addRowButton={
+              permissions.canCreate && (
+                <Button
+                  onClick={handleOpenAddDialog}
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                >
+                  New Unit
+                </Button>
+              )
+            }
             columns={tableColumns}
             rows={handlers.units}
             loading={handlers.loading}
@@ -265,17 +275,8 @@ const UnitList = ({ initialUnits, initialPagination }) => {
             showSearch={true}
             searchValue={handlers.searchTerm || ''}
             onSearchChange={handlers.handleSearchInputChange}
-            headerActions={
-              permissions.canCreate && (
-                <Button
-                  onClick={handleOpenAddDialog}
-                  variant="contained"
-                  startIcon={<Icon icon="tabler:plus" />}
-                >
-                  New Unit
-                </Button>
-              )
-            }
+            searchPlaceholder="Search units..."
+            enableHover
           />
         </Grid>
       </Grid>
@@ -313,21 +314,13 @@ const UnitList = ({ initialUnits, initialPagination }) => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
 
       {/* Unit Dialogs */}
       <AddUnitDialog

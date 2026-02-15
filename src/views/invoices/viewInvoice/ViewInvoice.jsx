@@ -17,8 +17,6 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Snackbar,
-  Alert,
   CircularProgress,
 } from '@mui/material';
 import { Print, Download, QrCode2 } from '@mui/icons-material';
@@ -31,6 +29,7 @@ import { formatCurrency } from '@/utils/currencyUtils'; // Assuming you have thi
 import { alpha } from '@mui/material/styles';
 import tableStyles from '@core/styles/table.module.css'
 import { getCompanySettings } from '@/app/(dashboard)/settings/actions';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 const toBase64 = (value) => {
   if (typeof window === 'undefined') return '';
@@ -703,20 +702,13 @@ const ViewInvoice = ({ invoiceData, loading }) => {
           </Button>
         </DialogActions>
       </Dialog>
-      <Snackbar
+      <AppSnackbar
         open={zatcaSnackbar.open}
-        autoHideDuration={3000}
+        message={zatcaSnackbar.message}
+        severity={zatcaSnackbar.severity}
         onClose={() => setZatcaSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setZatcaSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={zatcaSnackbar.severity}
-          className="w-full"
-        >
-          {zatcaSnackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={3000}
+      />
     </div>
   );
 };

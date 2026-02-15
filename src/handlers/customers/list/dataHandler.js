@@ -92,9 +92,11 @@ export const useDataHandler = ({
   }, [onError])
 
   // Handle pagination change
-  const handlePageChange = useCallback((newPage) => {
-    setPagination(prev => ({ ...prev, current: newPage }))
-    fetchCustomers({ page: newPage })
+  const handlePageChange = useCallback((newPageZeroBased) => {
+    const nextPage = Number(newPageZeroBased) + 1
+    if (!Number.isFinite(nextPage)) return
+    setPagination(prev => ({ ...prev, current: nextPage }))
+    fetchCustomers({ page: nextPage })
   }, [fetchCustomers])
 
   // Handle page size change

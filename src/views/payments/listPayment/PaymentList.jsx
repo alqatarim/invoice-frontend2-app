@@ -6,21 +6,18 @@ import {
   Box,
   Typography,
   Button,
-  Snackbar,
-  Alert,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
 import { usePaymentListHandlers } from '@/handlers/payments/usePaymentListHandlers';
-import PaymentHead from './paymentHead';
-import PaymentFilter from './paymentFilter';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { paymentColumns } from './paymentColumns';
 import AddPaymentDialog from '@/views/payments/addPayment/AddPaymentDialog';
 import EditPaymentDialog from '@/views/payments/editPayment/EditPaymentDialog';
 import ViewPaymentDialog from '@/views/payments/viewPayment/ViewPaymentDialog';
 import { addPayment, updatePayment } from '@/app/(dashboard)/payments/actions';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 const PaymentList = ({
   initialPayments = [],
@@ -180,29 +177,19 @@ const PaymentList = ({
 
   return (
     <Box className="flex flex-col gap-4 p-4">
-      <Box className="flex justify-between items-center">
-        <Typography variant="h5" color="primary">
-          Payments
-        </Typography>
-        {permissions.canCreate && (
-          <Button
-            onClick={handleOpenAddDialog}
-            variant="contained"
-            startIcon={<Icon icon="tabler:plus" />}
-          >
-            Add Payment
-          </Button>
-        )}
-      </Box>
-
-      <PaymentHead
-        onFilterToggle={handlers.handleFilterToggle}
-        isFilterApplied={handlers.isFilterApplied()}
-        filterCount={handlers.getFilterCount()}
-        onFilterReset={handlers.handleFilterReset}
-      />
-
       <CustomListTable
+        title="Payments"
+        addRowButton={
+          permissions.canCreate && (
+            <Button
+              onClick={handleOpenAddDialog}
+              variant="contained"
+              startIcon={<Icon icon="tabler:plus" />}
+            >
+              Add Payment
+            </Button>
+          )
+        }
         columns={tableColumns}
         rows={handlers.payments || []}
         loading={handlers.loading}
@@ -218,18 +205,16 @@ const PaymentList = ({
         sortDirection={handlers.sortDirection}
         rowKey={(row, index) => row?._id || row?.id || `payment-${index}`}
         noDataText="No payments found"
-      />
-
-      <PaymentFilter
-        open={handlers.filterOpen}
-        onClose={handlers.handleFilterToggle}
-        filterValues={handlers.filterValues}
-        onFilterChange={handlers.handleFilterValueChange}
-        onApply={handlers.handleFilterApply}
-        onReset={handlers.handleFilterReset}
-        customerOptions={handlers.customerOptions || []}
-        customerSearchLoading={handlers.customerSearchLoading}
-        onCustomerSearch={handlers.handleCustomerSearch}
+        showSearch
+        searchValue={handlers.searchTerm || ''}
+        onSearchChange={handlers.handleSearchInputChange}
+        searchPlaceholder="Search payments..."
+        onRowClick={
+          permissions.canView
+            ? (row) => handlers.handleView(row._id)
+            : undefined
+        }
+        enableHover
       />
 
       {/* Add Payment Dialog */}
@@ -260,21 +245,13 @@ const PaymentList = ({
         onSuccess={onSuccess}
       />
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </Box>
   );
 };

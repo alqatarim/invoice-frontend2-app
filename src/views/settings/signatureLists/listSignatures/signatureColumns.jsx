@@ -1,6 +1,7 @@
 import React from 'react';
-import { Typography, Chip, Switch, Avatar, IconButton, Tooltip } from '@mui/material';
-import { Star, StarBorder, Edit, Delete } from '@mui/icons-material';
+import { Typography, Chip, Switch, Avatar, Tooltip, Box } from '@mui/material';
+import { Star, StarBorder, Edit, Delete, MoreVert } from '@mui/icons-material';
+import OptionMenu from '@core/components/option-menu';
 
 /**
  * Signature table column definitions
@@ -65,39 +66,46 @@ export const getSignatureColumns = ({ theme, permissions = {} }) => [
   },
   {
     key: 'action',
-    label: 'Actions',
+    label: '',
     visible: true,
-    align: 'center',
-    renderCell: (row, handlers) => (
-      <div className="flex items-center justify-center gap-1">
-        <Tooltip title={row.markAsDefault ? 'Unset as Default' : 'Set as Default'}>
-          <IconButton
-            size="small"
-            onClick={() => handlers.onSetDefault(row._id)}
-            color={row.markAsDefault ? 'warning' : 'default'}
-          >
-            {row.markAsDefault ? <Star /> : <StarBorder />}
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Edit Signature">
-          <IconButton
-            size="small"
-            onClick={() => handlers.onEdit(row)}
-            color="primary"
-          >
-            <Edit />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Delete Signature">
-          <IconButton
-            size="small"
-            onClick={() => handlers.onDelete(row._id)}
-            color="error"
-          >
-            <Delete />
-          </IconButton>
-        </Tooltip>
-      </div>
-    ),
+    align: 'right',
+    renderCell: (row, handlers) => {
+      const menuOptions = [
+        {
+          text: row.markAsDefault ? 'Unset Default' : 'Set Default',
+          icon: row.markAsDefault ? <Star /> : <StarBorder />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.onSetDefault(row._id)
+          }
+        },
+        {
+          text: 'Edit',
+          icon: <Edit />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.onEdit(row)
+          }
+        },
+        {
+          text: 'Delete',
+          icon: <Delete />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.onDelete(row._id)
+          }
+        }
+      ];
+
+      return (
+        <Box className="flex items-center justify-end">
+          <OptionMenu
+            icon={<MoreVert />}
+            iconButtonProps={{ size: 'small', 'aria-label': 'signature actions' }}
+            options={menuOptions}
+          />
+        </Box>
+      );
+    },
   }
 ];

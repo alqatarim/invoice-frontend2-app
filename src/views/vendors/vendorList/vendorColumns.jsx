@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
-import { Typography, Chip, IconButton, Box } from '@mui/material';
+import { Typography, Chip, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
 import { vendorStatusOptions, actionButtons } from '@/data/dataSets';
@@ -13,67 +13,64 @@ const ActionCell = ({ row, handlers, permissions, ledgerPermissions }) => {
   const editAction = actionButtons.find(action => action.id === 'edit');
   const deleteAction = actionButtons.find(action => action.id === 'delete');
 
-  // Prepare menu options for ledger
+  // Prepare menu options
   const theme = useTheme();
   const menuOptions = [];
-  // if (ledgerPermissions?.canCreate) {
+  
+  if (permissions?.canView) {
+    menuOptions.push({
+      text: viewAction?.label || 'View',
+      icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleView?.(row._id)
+      }
+    });
+  }
+
+  if (permissions?.canUpdate) {
+    menuOptions.push({
+      text: editAction?.label || 'Edit',
+      icon: <Icon icon={editAction?.icon || 'mdi:edit-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleEdit?.(row._id)
+      }
+    });
+  }
+
+  if (permissions?.canDelete) {
+    menuOptions.push({
+      text: deleteAction?.label || 'Delete',
+      icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleDelete?.(row._id)
+      }
+    });
+  }
+
+  if (ledgerPermissions?.canView || ledgerPermissions?.canCreate) {
     menuOptions.push({
       text: 'Ledger',
       icon: <Icon icon="mdi:book-outline" />,
-      onClick: () => handlers?.handleLedger?.(row._id),
       menuItemProps: {
-        className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleLedger?.(row._id)
       }
     });
-  // }
+  }
 
   return (
-    <Box >
-      {/* View Button */}
-      {permissions?.canView && (
-        <IconButton
-          color='primary'
-          size="small"
-          onClick={() => handlers?.handleView?.(row._id)}
-          title={viewAction?.title || 'View'}
-        >
-          <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />
-        </IconButton>
-      )}
-
-      {/* Edit Button */}
-      {permissions?.canUpdate && (
-        <IconButton
-          size="small"
-          onClick={() => handlers?.handleEdit?.(row._id)}
-          title={editAction?.title || 'Edit'}
-          color="primary"
-        >
-          <Icon icon={editAction?.icon || 'mdi:edit-outline'} />
-        </IconButton>
-      )}
-
-      {/* Delete Button */}
-      {permissions?.canDelete && (
-        <IconButton
-          size="small"
-          onClick={() => handlers.handleDelete(row._id)}
-          title={deleteAction?.title || 'Delete'}
-          color="error"
-        >
-          <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />
-        </IconButton>
-      )}
-
-      {/* Menu for Ledger - only show if there are menu options */}
-      {menuOptions.length > 0 && (
+    menuOptions.length > 0 ? (
+      <Box className='flex items-center justify-end'>
         <OptionMenu
           icon={<MoreVertIcon />}
-          iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
+          iconButtonProps={{ size: 'small', 'aria-label': 'vendor actions' }}
           options={menuOptions}
         />
-      )}
-    </Box>
+      </Box>
+    ) : null
   );
 };
 

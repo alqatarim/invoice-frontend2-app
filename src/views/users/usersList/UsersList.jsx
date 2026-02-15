@@ -4,8 +4,6 @@ import { Icon } from '@iconify/react';
 import {
      Card,
      Button,
-     Snackbar,
-     Alert,
      Dialog,
      DialogTitle,
      DialogContent,
@@ -22,12 +20,12 @@ import { usePermission } from '@/Auth/usePermission';
 import { useSearchParams } from 'next/navigation';
 
 import UsersHead from './UsersHead';
-import UsersFilter from './UsersFilter';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import UserDialog from '@/components/dialogs/user-dialog';
 import UserViewDialog from '@/components/dialogs/user-view-dialog';
 import { useUsersListHandlers } from '@/handlers/users/useUsersListHandlers';
 import { userTabs, userTableColumns } from '@/data/dataSets';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * UsersList Component
@@ -105,57 +103,47 @@ const UsersList = ({
                <UsersHead users={handlers.users} />
 
                <Grid container spacing={3}>
-                    {/* New User Button */}
-                    {permissions.canCreate && (
-                         <Grid size={{ xs: 12 }}>
-                              <div className="flex justify-end">
-                                   <Button
-                                        onClick={handlers.handleAdd}
-                                        variant="contained"
-                                        startIcon={<Icon icon="tabler:plus" />}
-                                   >
-                                        New User
-                                   </Button>
-                              </div>
-                         </Grid>
-                    )}
-
-                    {/* Filter Component */}
-                    <Grid size={{ xs: 12 }}>
-                         <UsersFilter
-                              onChange={handlers.handleFilterValueChange}
-                              onApply={handlers.handleFilterApply}
-                              onReset={handlers.handleFilterReset}
-                              roleOptions={handlers.roleOptions}
-                              statusOptions={handlers.statusOptions}
-                              values={handlers.filterValues}
-                              tab={handlers.filterValues.status || []}
-                              onTabChange={handlers.handleTabChange}
-                              onManageColumns={columnActions.open}
-                         />
-                    </Grid>
-
                     {/* Users Table */}
                     <Grid size={{ xs: 12 }}>
-                         <Card>
-                              <CustomListTable
-                                   columns={tableColumns}
-                                   rows={handlers.users}
-                                   loading={showLoading}
-                                   pagination={{
-                                        page: handlers.pagination.current - 1,
-                                        pageSize: handlers.pagination.pageSize,
-                                        total: handlers.pagination.total
-                                   }}
-                                   onPageChange={handlers.handlePageChange}
-                                   onRowsPerPageChange={handlers.handlePageSizeChange}
-                                   onSort={handlers.handleSortRequest}
-                                   sortBy={handlers.sortBy}
-                                   sortDirection={handlers.sortDirection}
-                                   noDataText="No users found."
-                                   rowKey={(row) => row._id || row.id}
-                              />
-                         </Card>
+                         <CustomListTable
+                              title="Users"
+                              addRowButton={
+                                   permissions.canCreate && (
+                                        <Button
+                                             onClick={handlers.handleAdd}
+                                             variant="contained"
+                                             startIcon={<Icon icon="tabler:plus" />}
+                                        >
+                                             New User
+                                        </Button>
+                                   )
+                              }
+                              columns={tableColumns}
+                              rows={handlers.users}
+                              loading={showLoading}
+                              pagination={{
+                                   page: handlers.pagination.current - 1,
+                                   pageSize: handlers.pagination.pageSize,
+                                   total: handlers.pagination.total
+                              }}
+                              onPageChange={handlers.handlePageChange}
+                              onRowsPerPageChange={handlers.handlePageSizeChange}
+                              onSort={handlers.handleSortRequest}
+                              sortBy={handlers.sortBy}
+                              sortDirection={handlers.sortDirection}
+                              noDataText="No users found."
+                              rowKey={(row) => row._id || row.id}
+                              showSearch
+                              searchValue={handlers.searchTerm || ''}
+                              onSearchChange={handlers.handleSearchInputChange}
+                              searchPlaceholder="Search users..."
+                              onRowClick={
+                                   permissions.canView
+                                        ? (row) => handlers.handleView(row._id)
+                                        : undefined
+                              }
+                              enableHover
+                         />
                     </Grid>
                </Grid>
 
@@ -186,17 +174,13 @@ const UsersList = ({
                     </DialogActions>
                </Dialog>
 
-               {/* Snackbar */}
-               <Snackbar
+               <AppSnackbar
                     open={snackbar.open}
-                    autoHideDuration={6000}
+                    message={snackbar.message}
+                    severity={snackbar.severity}
                     onClose={handleSnackbarClose}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-               >
-                    <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
-                         {snackbar.message}
-                    </Alert>
-               </Snackbar>
+                    autoHideDuration={6000}
+               />
 
                {/* Delete Confirmation Dialog */}
                <Dialog

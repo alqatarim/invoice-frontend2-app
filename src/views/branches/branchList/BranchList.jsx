@@ -9,7 +9,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Snackbar,
   Grid
 } from '@mui/material';
 import { usePermission } from '@/Auth/usePermission';
@@ -18,6 +17,7 @@ import CustomListTable from '@/components/custom-components/CustomListTable';
 import BranchHead from './BranchHead';
 import BranchDialog from './BranchDialog';
 import { getBranchColumns } from './branchColumns';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 import { useBranchListHandlers } from '@/handlers/branches/useBranchListHandlers';
 import { addBranch, updateBranch, getProvincesCities } from '@/app/(dashboard)/branches/actions';
 
@@ -142,6 +142,17 @@ const BranchList = ({ initialBranches = [], initialPagination = { current: 1, pa
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
           <CustomListTable
+            addRowButton={
+              permissions.canCreate && (
+                <Button
+                  onClick={() => setDialogState({ open: true, mode: 'add', branchId: null })}
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                >
+                  New Branch
+                </Button>
+              )
+            }
             columns={tableColumns}
             rows={handlers.branches}
             loading={handlers.loading}
@@ -156,17 +167,8 @@ const BranchList = ({ initialBranches = [], initialPagination = { current: 1, pa
             showSearch={true}
             searchValue={handlers.searchTerm || ''}
             onSearchChange={handlers.handleSearchInputChange}
-            headerActions={
-              permissions.canCreate && (
-                <Button
-                  onClick={() => setDialogState({ open: true, mode: 'add', branchId: null })}
-                  variant="contained"
-                  startIcon={<Icon icon="tabler:plus" />}
-                >
-                  New Branch
-                </Button>
-              )
-            }
+            searchPlaceholder="Search branches..."
+            enableHover
           />
         </Grid>
       </Grid>
@@ -200,21 +202,13 @@ const BranchList = ({ initialBranches = [], initialPagination = { current: 1, pa
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </div>
   );
 };

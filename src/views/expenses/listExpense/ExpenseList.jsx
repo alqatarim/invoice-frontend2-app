@@ -5,8 +5,6 @@ import { Icon } from '@iconify/react';
 import {
      Card,
      Button,
-     Snackbar,
-     Alert,
      Dialog,
      DialogTitle,
      DialogContent,
@@ -31,6 +29,7 @@ import AddExpenseDialog from '@/views/expenses/addExpense/AddExpenseDialog';
 import EditExpenseDialog from '@/views/expenses/editExpense/EditExpenseDialog';
 import ViewExpenseDialog from '@/views/expenses/viewExpense/ViewExpenseDialog';
 import { addExpense, updateExpense } from '@/app/(dashboard)/expenses/actions';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * Simplified ExpenseList Component - matches purchase list structure
@@ -243,6 +242,17 @@ const ExpenseList = ({ initialExpenses, initialPagination }) => {
                <Grid container spacing={3}>
                     <Grid size={{ xs: 12 }}>
                          <CustomListTable
+                              addRowButton={
+                                   permissions.canCreate && (
+                                        <Button
+                                             onClick={handleOpenAddDialog}
+                                             variant="contained"
+                                             startIcon={<Icon icon="tabler:plus" />}
+                                        >
+                                             Add Expense
+                                        </Button>
+                                   )
+                              }
                               columns={tableColumns}
                               rows={handlers.expenses}
                               loading={handlers.loading}
@@ -257,17 +267,13 @@ const ExpenseList = ({ initialExpenses, initialPagination }) => {
                               showSearch={true}
                               searchValue={handlers.searchTerm || ''}
                               onSearchChange={handlers.handleSearchInputChange}
-                              headerActions={
-                                   permissions.canCreate && (
-                                        <Button
-                                             onClick={handleOpenAddDialog}
-                                             variant="contained"
-                                             startIcon={<Icon icon="tabler:plus" />}
-                                        >
-                                             Add Expense
-                                        </Button>
-                                   )
+                              searchPlaceholder="Search expenses..."
+                              onRowClick={
+                                   permissions.canView
+                                        ? (row) => handlers.handleView(row._id)
+                                        : undefined
                               }
+                              enableHover
                          />
                     </Grid>
                </Grid>
@@ -331,21 +337,13 @@ const ExpenseList = ({ initialExpenses, initialPagination }) => {
                     onSuccess={onSuccess}
                />
 
-               <Snackbar
+               <AppSnackbar
                     open={snackbar.open}
-                    autoHideDuration={6000}
+                    message={snackbar.message}
+                    severity={snackbar.severity}
                     onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-               >
-                    <Alert
-                         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-                         severity={snackbar.severity}
-                         variant="filled"
-                         sx={{ width: '100%' }}
-                    >
-                         {snackbar.message}
-                    </Alert>
-               </Snackbar>
+                    autoHideDuration={6000}
+               />
 
           </div>
      );

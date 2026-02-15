@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Snackbar, Alert } from '@mui/material';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 import AddPurchase from '@/views/purchases/addPurchase/AddPurchase';
 import { addPurchase } from '@/app/(dashboard)/purchases/actions';
 
@@ -78,22 +78,13 @@ const AddPurchaseIndex = ({ vendors, products, taxRates, banks, signatures, purc
         purchaseNumber={purchaseNumber}
       />
 
-      <Snackbar
-        className='size-sm'
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </>
   );
 };

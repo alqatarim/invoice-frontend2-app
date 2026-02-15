@@ -5,8 +5,6 @@ import { Icon } from '@iconify/react';
 import {
   Card,
   Button,
-  Snackbar,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -27,6 +25,7 @@ import { useProductListHandlers } from '@/handlers/products/useProductListHandle
 import { getProductColumns } from './productColumns';
 import ProductVariantsTable from './ProductVariantsTable';
 import { updateProduct } from '@/app/(dashboard)/products/actions';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * Simplified ProductList Component - eliminates redundant state and complexity
@@ -251,6 +250,18 @@ const ProductList = ({ initialProducts, initialPagination }) => {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
           <CustomListTable
+            addRowButton={
+              permissions.canCreate && (
+                <Button
+                  component={Link}
+                  href="/products/product-add"
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                >
+                  New Product
+                </Button>
+              )
+            }
             columns={tableColumns}
             rows={handlers.products}
             loading={handlers.loading}
@@ -265,22 +276,10 @@ const ProductList = ({ initialProducts, initialPagination }) => {
             showSearch={true}
             searchValue={handlers.searchTerm || ''}
             onSearchChange={handlers.handleSearchInputChange}
+            searchPlaceholder="Search products..."
             onRowClick={handleRowClick}
-            getRowClassName={() => 'cursor-pointer'}
             expandedRows={expandedRows}
             expandableRowRender={renderVariantsRow}
-            headerActions={
-              permissions.canCreate && (
-                <Button
-                  component={Link}
-                  href="/products/product-add"
-                  variant="contained"
-                  startIcon={<Icon icon="tabler:plus" />}
-                >
-                  New Product
-                </Button>
-              )
-            }
           />
         </Grid>
       </Grid>
@@ -318,21 +317,13 @@ const ProductList = ({ initialProducts, initialPagination }) => {
         </DialogActions>
       </Dialog>
 
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
 
     </div>
   );

@@ -3,30 +3,20 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import {
-  Card,
   Button,
-  Snackbar,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControlLabel,
-  Checkbox,
-  FormGroup,
-  Grid,
 } from '@mui/material';
 
 import { useTheme } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
-import { useSearchParams } from 'next/navigation';
 
 import InvoiceHead from '@/views/invoices/invoiceList/invoiceHead';
-import InvoiceFilter from '@/views/invoices/invoiceList/invoiceFilter';
 import CustomListTable from '@/components/custom-components/CustomListTable';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 import { useInvoiceListHandlers } from '@/handlers/invoices/useInvoiceListHandlers';
-import { formatCurrency } from '@/utils/currencyUtils';
 import { getInvoiceColumns } from './invoiceColumns';
 
 /**
@@ -43,8 +33,7 @@ const InvoiceList = ({
   initialCustomers = [],
 }) => {
   const theme = useTheme();
-  const { data: session } = useSession();
-  const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Permissions
   const permissions = {
@@ -86,27 +75,19 @@ const InvoiceList = ({
     onSuccess,
   });
 
-  // Column state management
-  const [columnsState, setColumns] = useState(columns);
-
-  // Column actions
-  const columnActions = {
-    open: () => handlers.handleManageColumnsOpen(),
-    close: () => handlers.handleManageColumnsClose(),
-    save: () => handlers.handleManageColumnsSave(setColumns),
-  };
-
   // Build table columns with action handlers
   const tableColumns = useMemo(() =>
-    columnsState.map(col => ({
-      ...col,
-      renderCell: col.renderCell ?
-        (row) => col.renderCell(row, {
-          ...handlers,
-          permissions,
-        }) : undefined
-    })),
-    [columnsState, handlers, permissions]
+    (columns || [])
+      .filter(col => col.visible !== false)
+      .map(col => ({
+        ...col,
+        renderCell: col.renderCell ?
+          (row) => col.renderCell(row, {
+            ...handlers,
+            permissions,
+          }) : undefined
+      })),
+    [columns, handlers, permissions]
   );
 
   return (
@@ -116,100 +97,55 @@ const InvoiceList = ({
         invoiceListData={initialCardCounts}
       />
 
-      <Grid container spacing={3}>
-        {/* New Invoice Button */}
-        {permissions.canCreate && (
-          <Grid size={{ xs: 12 }}>
-            <div className="flex justify-end">
-              <Button
-                component={Link}
-                href="/invoices/add"
-                variant="contained"
-                startIcon={<Icon icon="tabler:plus" />}
-              >
-                New Invoice
-              </Button>
-            </div>
-          </Grid>
-        )}
-
-        {/* Filter Component */}
-        <Grid size={{ xs: 12 }}>
-          <InvoiceFilter
-            onChange={handlers.handleFilterValueChange}
-            onApply={handlers.handleFilterApply}
-            onReset={handlers.handleFilterReset}
-            customerOptions={handlers.customerOptions}
-            invoiceOptions={handlers.invoiceOptions}
-            values={handlers.filterValues}
-            tab={handlers.filterValues.status || []}
-            onTabChange={handlers.handleTabChange}
-            onManageColumns={columnActions.open}
-          />
-        </Grid>
-
-        {/* Invoice Table */}
-        <Grid size={{ xs: 12 }}>
-          <Card>
-            <CustomListTable
-              columns={tableColumns}
-              rows={handlers.invoices}
-              loading={handlers.loading}
-              pagination={{
-                page: handlers.pagination.current - 1,
-                pageSize: handlers.pagination.pageSize,
-                total: handlers.pagination.total
-              }}
-              onPageChange={handlers.handlePageChange}
-              onRowsPerPageChange={handlers.handlePageSizeChange}
-              onSort={handlers.handleSortRequest}
-              sortBy={handlers.sortBy}
-              sortDirection={handlers.sortDirection}
-              noDataText="No invoices found."
-              rowKey={(row) => row._id || row.id}
-            />
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Manage Columns Dialog */}
-      <Dialog open={handlers.manageColumnsOpen} onClose={columnActions.close}>
-        <DialogTitle>Select Columns</DialogTitle>
-        <DialogContent>
-          <FormGroup>
-            {handlers.availableColumns.map((column) => (
-              <FormControlLabel
-                key={column.key}
-                control={
-                  <Checkbox
-                    checked={column.visible}
-                    onChange={(e) => handlers.handleColumnCheckboxChange(column.key, e.target.checked)}
-                  />
-                }
-                label={column.label}
-              />
-            ))}
-          </FormGroup>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={columnActions.close}>Cancel</Button>
-          <Button onClick={columnActions.save} color="primary">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Main Invoice Table */}
+      <CustomListTable
+        addRowButton={
+          permissions.canCreate && (
+            <Button
+              component={Link}
+              href="/invoices/add"
+              variant="contained"
+              startIcon={<Icon icon="tabler:plus" />}
+            >
+              New Invoice
+            </Button>
+          )
+        }
+        showSearch
+        searchValue={handlers.searchTerm || ''}
+        onSearchChange={handlers.handleSearchInputChange}
+        searchPlaceholder="Search invoices..."
+        columns={tableColumns}
+        rows={handlers.invoices}
+        loading={handlers.loading}
+        pagination={{
+          page: handlers.pagination.current - 1,
+          pageSize: handlers.pagination.pageSize,
+          total: handlers.pagination.total
+        }}
+        onPageChange={handlers.handlePageChange}
+        onRowsPerPageChange={handlers.handlePageSizeChange}
+        onSort={handlers.handleSortRequest}
+        sortBy={handlers.sortBy}
+        sortDirection={handlers.sortDirection}
+        noDataText="No invoices found."
+        rowKey={(row) => row._id || row.id}
+        onRowClick={
+          permissions.canView
+            ? (row) => router.push(`/invoices/invoice-view/${row._id || row.id}`)
+            : undefined
+        }
+      />
 
       {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      />
 
       {/* Convert to Sales Return Dialog */}
       <Dialog

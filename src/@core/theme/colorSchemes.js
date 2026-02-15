@@ -6,10 +6,10 @@ const colorSchemes = skin => {
           main: '#8C57FF',
           light: '#A379FF',
           dark: '#7E4EE6',
-
-           lighter: '#C3A6FF', // real lighter hex
+          contrastText: '#fff',
+          lighter: '#C3A6FF', // real lighter hex
           lightest: '#E3DBFF', // real lightest hex
-     
+
           lighterOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.11)',
           lightOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.16)',
           lightestOpacity: 'rgb(var(--mui-palette-primary-mainChannel) / 0.06)',

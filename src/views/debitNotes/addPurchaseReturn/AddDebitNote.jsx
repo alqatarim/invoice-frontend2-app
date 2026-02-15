@@ -13,8 +13,6 @@ import {
   Card,
   CardContent,
   Grid,
-  Snackbar,
-  Alert,
   Dialog,
   DialogContent,
   FormHelperText,
@@ -32,6 +30,7 @@ import useAddDebitNoteHandlers from '@/handlers/debitNotes/addDebitNote/useAddDe
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 import { calculateDebitNoteTotals } from '@/utils/debitNoteTotals';
 import { getAddDebitNoteColumns } from './AddDebitNoteColumns';
 
@@ -436,6 +435,7 @@ const AddDebitNote = ({ vendorsData, productData, taxRates, initialBanks, signat
           handleSubmit={handleSubmit}
           handleFormSubmit={handleFormSubmit}
           handleError={handleError}
+          cancelHref="/debitNotes/purchaseReturn-list"
         />
       </Grid>
       {/* Add Bank Modal */}
@@ -446,22 +446,13 @@ const AddDebitNote = ({ vendorsData, productData, taxRates, initialBanks, signat
         setNewBank={setNewBank}
         handleAddBank={handleAddBank}
       />
-      {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          variant="filled"
-          size="small"
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          className="is-full shadow-xs p-2 text-md"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={3000}
+      />
       {/* Notes Dialog */}
       <Dialog
         open={termsDialogOpen}

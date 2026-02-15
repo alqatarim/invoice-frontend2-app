@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTheme, alpha } from '@mui/material/styles';
@@ -17,35 +17,30 @@ import {
      DialogContent,
      DialogContentText,
      DialogTitle,
-     IconButton,
-     Menu,
-     MenuItem,
+     
      Pagination,
      Stack,
-     Table,
-     TableBody,
-     TableCell,
-     TableContainer,
-     TableHead,
-     TableRow,
+     
      Typography,
      Paper,
      useMediaQuery,
      Grid,
-     Snackbar,
-     Alert,
+     
      FormControl,
      InputLabel,
      Select
 } from '@mui/material';
 import { Icon } from '@iconify/react';
+import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
 import { formatDate } from '@/utils/dateUtils';
 import dayjs from 'dayjs';
 import { formatCurrency } from '@/utils/currencyUtils';
-import { deleteQuotation, convertToInvoice, updateQuotationStatus } from '@/app/(dashboard)/quotations/actions';
+import { deleteQuotation, convertToInvoice, updateQuotationStatus, getQuotationsList } from '@/app/(dashboard)/quotations/actions';
 import CustomListTable from '@/components/custom-components/CustomListTable';
+import OptionMenu from '@core/components/option-menu';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 import { quotationStatusOptions } from '@/data/dataSets';
 import { amountFormat } from '@/utils/numberUtils';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
@@ -100,13 +95,12 @@ const ListQuotation = ({ initialData, customers }) => {
      const [loading, setLoading] = useState(false);
 
      const [pagination, setPagination] = useState({
-          page: 1,
+          current: 1,
           pageSize: 10,
-          totalPages: Math.ceil((initialData?.totalRecords || 0) / 10)
+          total: initialData?.totalRecords || initialData?.data?.length || 0
      });
 
      const [selectedQuotation, setSelectedQuotation] = useState(null);
-     const [actionAnchorEl, setActionAnchorEl] = useState(null);
      const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
      const [openConvertDialog, setOpenConvertDialog] = useState(false);
      const [loadingAction, setLoadingAction] = useState(false);
@@ -148,6 +142,34 @@ const ListQuotation = ({ initialData, customers }) => {
           }
      };
 
+     const fetchQuotations = useCallback(async ({ page = pagination.current, pageSize = pagination.pageSize } = {}) => {
+          setLoading(true);
+          try {
+               const response = await getQuotationsList(page, pageSize, {});
+               if (response?.success) {
+                    const nextData = response.data || [];
+                    setQuotations(nextData);
+                    setFilteredQuotations(nextData);
+                    setPagination({
+                         current: page,
+                         pageSize,
+                         total: response.totalRecords || nextData.length
+                    });
+               } else {
+                    onError(response?.message || 'Failed to load quotations');
+               }
+          } catch (error) {
+               onError(error.message || 'Failed to load quotations');
+          } finally {
+               setLoading(false);
+          }
+     }, [onError, pagination.current, pagination.pageSize]);
+
+     useEffect(() => {
+          if ((initialData?.data || []).length > 0) return;
+          fetchQuotations();
+     }, [fetchQuotations, initialData?.data]);
+
      // Search functionality
      useEffect(() => {
           if (!searchTerm) {
@@ -181,18 +203,9 @@ const ListQuotation = ({ initialData, customers }) => {
           }
      }, [successParam, onSuccess]);
 
-     const handleActionClick = (event, quotation) => {
+     const handleDeleteClick = (quotation) => {
           setSelectedQuotation(quotation);
-          setActionAnchorEl(event.currentTarget);
-     };
-
-     const handleActionClose = () => {
-          setActionAnchorEl(null);
-     };
-
-     const handleDeleteClick = () => {
           setOpenDeleteDialog(true);
-          handleActionClose();
      };
 
      const handleDeleteConfirm = async () => {
@@ -217,10 +230,10 @@ const ListQuotation = ({ initialData, customers }) => {
           }
      };
 
-     const handleConvertClick = () => {
+     const handleConvertClick = (quotation) => {
+          setSelectedQuotation(quotation);
           setSelectedPaymentMethod('Cash'); // Reset to default
           setOpenConvertDialog(true);
-          handleActionClose();
      };
 
      const handleConvertConfirm = async () => {
@@ -391,28 +404,70 @@ const ListQuotation = ({ initialData, customers }) => {
           },
           {
                key: 'actions',
-               label: 'Actions',
+               label: '',
                visible: true,
-               align: 'center',
-               renderCell: (row) => (
-                    <IconButton
-                         size="small"
-                         onClick={(e) => {
-                              e.stopPropagation();
-                              handleActionClick(e, row);
-                         }}
-                         sx={{
-                              borderRadius: '8px',
-                              backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                              color: 'primary.main',
-                              '&:hover': {
-                                   backgroundColor: alpha(theme.palette.primary.main, 0.12),
+               align: 'right',
+               renderCell: (row) => {
+                    const menuOptions = [];
+
+                    if (permissions.canView) {
+                         menuOptions.push({
+                              text: 'View',
+                              icon: <Icon icon="tabler:eye" />,
+                              menuItemProps: {
+                                   className: 'flex items-center gap-2 text-textSecondary',
+                                   onClick: () => router.push(`/quotations/quotation-view/${row._id}`)
                               }
-                         }}
-                    >
-                         <Icon icon="tabler:dots-vertical" fontSize={20} />
-                    </IconButton>
-               ),
+                         });
+                    }
+
+                    if (permissions.canUpdate) {
+                         menuOptions.push({
+                              text: 'Edit',
+                              icon: <Icon icon="tabler:edit" />,
+                              menuItemProps: {
+                                   className: 'flex items-center gap-2 text-textSecondary',
+                                   onClick: () => router.push(`/quotations/quotation-edit/${row._id}`)
+                              }
+                         });
+                    }
+
+                    if (permissions.canUpdate) {
+                         const convertCheck = canConvertQuotation(row);
+                         menuOptions.push({
+                              text: convertCheck.canConvert ? 'Convert to Invoice' : convertCheck.reason,
+                              icon: <Icon icon="tabler:arrow-right" />,
+                              menuItemProps: {
+                                   className: 'flex items-center gap-2 text-textSecondary',
+                                   disabled: !convertCheck.canConvert,
+                                   onClick: convertCheck.canConvert ? () => handleConvertClick(row) : undefined
+                              }
+                         });
+                    }
+
+                    if (permissions.canDelete) {
+                         menuOptions.push({
+                              text: 'Delete',
+                              icon: <Icon icon="tabler:trash" />,
+                              menuItemProps: {
+                                   className: 'flex items-center gap-2 text-textSecondary',
+                                   onClick: () => handleDeleteClick(row)
+                              }
+                         });
+                    }
+
+                    if (menuOptions.length === 0) return null;
+
+                    return (
+                         <Box className="flex items-center justify-end">
+                              <OptionMenu
+                                   icon={<MoreVertIcon />}
+                                   iconButtonProps={{ size: 'small', 'aria-label': 'quotation actions' }}
+                                   options={menuOptions}
+                              />
+                         </Box>
+                    );
+               },
           }
      ];
 
@@ -422,8 +477,7 @@ const ListQuotation = ({ initialData, customers }) => {
                handleDelete: (id) => {
                     const quotation = quotations.find(q => q._id === id);
                     if (quotation) {
-                         setSelectedQuotation(quotation);
-                         handleDeleteClick();
+                         handleDeleteClick(quotation);
                     }
                },
                handleView: (id) => router.push(`/quotations/quotation-view/${id}`),
@@ -431,8 +485,7 @@ const ListQuotation = ({ initialData, customers }) => {
                handleConvert: (id) => {
                     const quotation = quotations.find(q => q._id === id);
                     if (quotation) {
-                         setSelectedQuotation(quotation);
-                         handleConvertClick();
+                         handleConvertClick(quotation);
                     }
                },
                permissions,
@@ -445,10 +498,10 @@ const ListQuotation = ({ initialData, customers }) => {
      }, [columns, permissions, quotations, router]);
 
      const tablePagination = useMemo(() => ({
-          page: pagination.page - 1,
+          page: Math.max(0, pagination.current - 1),
           pageSize: pagination.pageSize,
-          total: filteredQuotations.length
-     }), [pagination, filteredQuotations.length]);
+          total: pagination.total
+     }), [pagination.current, pagination.pageSize, pagination.total]);
 
      return (
           <div className='flex flex-col gap-5'>
@@ -536,18 +589,7 @@ const ListQuotation = ({ initialData, customers }) => {
                <Grid container spacing={3}>
                     <Grid size={{ xs: 12 }}>
                          <CustomListTable
-                              columns={tableColumns}
-                              rows={filteredQuotations}
-                              loading={loading}
-                              pagination={tablePagination}
-                              onPageChange={(newPage) => setPagination(prev => ({ ...prev, page: newPage + 1 }))}
-                              onRowsPerPageChange={(pageSize) => setPagination(prev => ({ ...prev, pageSize, page: 1 }))}
-                              noDataText="No quotations found"
-                              rowKey={(row) => row._id || row.id}
-                              showSearch={true}
-                              searchValue={searchTerm}
-                              onSearchChange={(value) => setSearchTerm(value)}
-                              headerActions={
+                              addRowButton={
                                    permissions.canCreate && (
                                         <Button
                                              component={Link}
@@ -559,85 +601,28 @@ const ListQuotation = ({ initialData, customers }) => {
                                         </Button>
                                    )
                               }
+                              columns={tableColumns}
+                              rows={filteredQuotations}
+                              loading={loading}
+                              pagination={tablePagination}
+                              onPageChange={(newPage) => fetchQuotations({ page: newPage + 1 })}
+                              onRowsPerPageChange={(pageSize) => fetchQuotations({ page: 1, pageSize })}
+                              noDataText="No quotations found"
+                              rowKey={(row) => row._id || row.id}
+                              showSearch={true}
+                              searchValue={searchTerm}
+                              onSearchChange={(value) => setSearchTerm(value)}
+                              searchPlaceholder="Search quotations..."
+                              onRowClick={
+                                   permissions.canView
+                                        ? (row) => router.push(`/quotations/quotation-view/${row._id}`)
+                                        : undefined
+                              }
+                              enableHover
                          />
                     </Grid>
                </Grid>
 
-               {/* Action Menu */}
-               <Menu
-                    anchorEl={actionAnchorEl}
-                    open={Boolean(actionAnchorEl)}
-                    onClose={handleActionClose}
-                    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                    slotProps={{
-                         paper: {
-                              sx: {
-                                   width: 220,
-                                   borderRadius: '12px',
-                                   boxShadow: theme => `0 4px 14px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-                                   mt: 1
-                              }
-                         }
-                    }}
-               >
-                    <MenuItem
-                         component={Link}
-                         href={`/quotations/quotation-view/${selectedQuotation?._id}`}
-                         onClick={handleActionClose}
-                         sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}
-                    >
-                         <Icon icon="tabler:eye" fontSize={20} style={{ marginRight: '12px' }} />
-                         View Details
-                    </MenuItem>
-                    <MenuItem
-                         component={Link}
-                         href={`/quotations/quotation-edit/${selectedQuotation?._id}`}
-                         onClick={handleActionClose}
-                         sx={{ py: 1.5, pl: 2.5, pr: 3, borderRadius: '8px', mx: 1, my: 0.5 }}
-                    >
-                         <Icon icon="tabler:edit" fontSize={20} style={{ marginRight: '12px' }} />
-                         Edit
-                    </MenuItem>
-                    {(() => {
-                         const convertCheck = canConvertQuotation(selectedQuotation);
-                         return (
-                              <MenuItem
-                                   onClick={convertCheck.canConvert ? handleConvertClick : undefined}
-                                   disabled={!convertCheck.canConvert}
-                                   sx={{
-                                        py: 1.5,
-                                        pl: 2.5,
-                                        pr: 3,
-                                        borderRadius: '8px',
-                                        mx: 1,
-                                        my: 0.5,
-                                        color: convertCheck.canConvert ? 'text.primary' : 'text.disabled'
-                                   }}
-                              >
-                                   <Icon icon="tabler:arrow-right" fontSize={20} style={{ marginRight: '12px' }} />
-                                   {convertCheck.canConvert ? 'Convert to Invoice' : convertCheck.reason}
-                              </MenuItem>
-                         );
-                    })()}
-                    <Divider sx={{ my: 1.5 }} />
-                    <MenuItem
-                         onClick={handleDeleteClick}
-                         sx={{
-                              py: 1.5,
-                              pl: 2.5,
-                              pr: 3,
-                              borderRadius: '8px',
-                              mx: 1,
-                              my: 0.5,
-                              color: 'error.main',
-                              '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.08) }
-                         }}
-                    >
-                         <Icon icon="tabler:trash" fontSize={20} style={{ marginRight: '12px' }} />
-                         Delete
-                    </MenuItem>
-               </Menu>
 
                {/* Delete Confirmation Dialog */}
                <Dialog
@@ -775,22 +760,13 @@ const ListQuotation = ({ initialData, customers }) => {
                     </DialogActions>
                </Dialog>
 
-               {/* Snackbar */}
-               <Snackbar
+               <AppSnackbar
                     open={snackbar.open}
-                    autoHideDuration={6000}
+                    message={snackbar.message}
+                    severity={snackbar.severity}
                     onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-               >
-                    <Alert
-                         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-                         severity={snackbar.severity}
-                         variant="filled"
-                         sx={{ width: '100%' }}
-                    >
-                         {snackbar.message}
-                    </Alert>
-               </Snackbar>
+                    autoHideDuration={6000}
+               />
           </div>
      );
 };

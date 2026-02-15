@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { Icon } from "@iconify/react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
@@ -42,15 +43,10 @@ import {
 	CardHeader,
 	Grid,
 	Typography,
-	Snackbar,
 	Avatar,
-	IconButton,
-	Menu,
-	MenuItem,
-	ListItemIcon,
-	ListItemText,
 } from "@mui/material";
-
+import { alpha, useTheme } from '@mui/material/styles';
+import OptionMenu from "@core/components/option-menu";
 // Dynamic imports for icons to reduce initial bundle size
 import SendIcon from "@mui/icons-material/Send";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
@@ -68,8 +64,12 @@ import {
 	sendInvoice,
 	cloneInvoice,
 } from "@/app/(dashboard)/actions";
+import AppSnackbar from "@/components/shared/AppSnackbar";
 
 const Dashboard = () => {
+
+	const theme = useTheme();
+
 	const [dashboardData, setDashboardData] = useState({});
 	const [filterValue, setFilterValue] = useState("month");
 	const [invoiceData, setInvoiceData] = useState([]);
@@ -80,8 +80,6 @@ const Dashboard = () => {
 		message: "",
 		type: "",
 	});
-	const [anchorEl, setAnchorEl] = useState(null);
-	const [selectedInvoice, setSelectedInvoice] = useState(null);
 
 	// Memoized fetch function to prevent unnecessary re-renders
 	const fetchDashboardData = useCallback(async (filter = "") => {
@@ -218,17 +216,6 @@ const Dashboard = () => {
 		}
 	};
 
-	// Handle menu open/close for action items
-	const handleMenuOpen = (event, invoice) => {
-		setAnchorEl(event.currentTarget);
-		setSelectedInvoice(invoice);
-	};
-
-	const handleMenuClose = () => {
-		setAnchorEl(null);
-		setSelectedInvoice(null);
-	};
-
 	// Helper function to get the appropriate badge based on invoice status
 	const getStatusBadge = (status) => {
 		let color;
@@ -282,8 +269,8 @@ const Dashboard = () => {
 				dashboardData?.amountDuePercentage?.percentage === "Increased"
 					? "positive" // Due amount decreased = good
 					: dashboardData?.amountDuePercentage?.percentage === "Decreased"
-					? "negative" // Due amount increased = bad
-					: "neutral",
+						? "negative" // Due amount increased = bad
+						: "neutral",
 			changeNumber: dashboardData?.amountDuePercentage?.value || "0 %",
 			subTitle: "since last week",
 		},
@@ -296,8 +283,8 @@ const Dashboard = () => {
 				dashboardData?.customerPercentage?.percentage === "Increased"
 					? "positive"
 					: dashboardData?.customerPercentage?.percentage === "Decreased"
-					? "negative"
-					: "neutral",
+						? "negative"
+						: "neutral",
 			changeNumber: dashboardData?.customerPercentage?.value || "0 %",
 			subTitle: "since last week",
 
@@ -313,8 +300,8 @@ const Dashboard = () => {
 				dashboardData?.invoicedPercentage?.percentage === "Increased"
 					? "positive"
 					: dashboardData?.invoicedPercentage?.percentage === "Decreased"
-					? "negative"
-					: "neutral",
+						? "negative"
+						: "neutral",
 			changeNumber: dashboardData?.invoicedPercentage?.value || "0 %",
 			subTitle: "since last week",
 			src: "/images/illustrations/characters/14.png", // Optional: Provide src if needed
@@ -328,8 +315,8 @@ const Dashboard = () => {
 				dashboardData?.quotationPercentage?.percentage === "Increased"
 					? "positive"
 					: dashboardData?.quotationPercentage?.percentage === "Decreased"
-					? "negative"
-					: "neutral",
+						? "negative"
+						: "neutral",
 			changeNumber: dashboardData?.quotationPercentage?.value || "0 %",
 			subTitle: "since last week",
 			src: "/images/illustrations/characters/14.png", // Optional: Provide src if needed
@@ -435,264 +422,234 @@ const Dashboard = () => {
 				</Grid>
 			</Grid>
 
-			{/* Recent Invoices and Invoice Analytics */}
-			<Grid item size={{ xs: 12 }}>
-				<Grid container spacing={6}>
-					{/* Recent Invoices Card */}
-					<Grid item size={{ xs: 12, md: 7 }}>
-						<Card>
-							<CardHeader
-								title="Recent Invoices"
-								action={
-									<Box>
-										<Link href="/invoices/invoice-list" passHref>
-											<Button
-												variant="text"
-												size="medium"
-												color="primary"
-												className="ml-2"
-											>
-												View All
-											</Button>
-										</Link>
-									</Box>
-								}
-							/>
-							<CardContent>
-								<Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-									{/* Multi-segment Progress Bar */}
-									<Box sx={{ width: "100%" }}>
+
+
+			{/* Recent Invoices Card */}
+			<Grid item size={{ xs: 12, md: 8 }}>
+				<Card>
+					<CardHeader
+						title="Recent Invoices"
+						action={
+							<Box>
+								<Link href="/invoices/invoice-list" passHref>
+									<Button
+										variant="text"
+										size="medium"
+										color="primary"
+										className="ml-2"
+									>
+										View All
+									</Button>
+								</Link>
+							</Box>
+						}
+					/>
+					<CardContent className="pb-0">
+						<Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+							{/* Multi-segment Progress Bar */}
+							<Box sx={{ width: "100%" }}>
+								<Box
+									sx={{
+										display: "flex",
+										height: "10px",
+										borderRadius: "10px",
+										overflow: "hidden",
+										backgroundColor: "grey.300",
+										padding: "0px",
+										marginBottom: "13px",
+									}}
+								>
+									{progressBars.map((bar, index) => (
 										<Box
+											key={index}
 											sx={{
-												display: "flex",
-												height: "20px",
-												borderRadius: "10px",
-												overflow: "hidden",
-												backgroundColor: "grey.300",
-												padding: "0px",
-												marginBottom: "20px",
+												width: `${bar.value}%`,
+												backgroundColor: (theme) =>
+													theme.palette[bar.color].main,
+												transition: "width 0.75s ease-in-out",
 											}}
+										/>
+									))}
+								</Box>
+
+								{/* Legend */}
+								<Box
+									sx={{
+										display: "flex",
+										justifyContent: "space-between",
+										mt: 1,
+									}}
+								>
+									{progressBars.map((bar, index) => (
+										<Box
+											key={index}
+											sx={{ display: "flex", alignItems: "center", gap: 1 }}
 										>
-											{progressBars.map((bar, index) => (
-												<Box
-													key={index}
+											<Box
+												sx={{
+													width: "10px",
+													height: "10px",
+													backgroundColor: (theme) =>
+														theme.palette[bar.color].light,
+													borderRadius: "50%",
+												}}
+											/>
+											<Typography variant="body1" className="text-[0.85rem]">{bar.label}</Typography>
+										</Box>
+									))}
+								</Box>
+							</Box>
+
+							{/* Invoices Table */}
+							<Box sx={{ overflowX: "auto", mx: -5 }}>
+								<Table size="small">
+									<TableHead className="bg-tableHeader">
+										<TableRow sx={{ "& th": { fontSize: "14px" } }}>
+											<TableCell>Customer</TableCell>
+											<TableCell>Amount</TableCell>
+											<TableCell>Due Date</TableCell>
+											<TableCell>Status</TableCell>
+											<TableCell className="text-center">Action</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
+										{invoiceData.map((item, index) => {
+											const status = getStatusBadge(item.status);
+											return (
+												<TableRow
+													key={item._id || index}
 													sx={{
-														width: `${bar.value}%`,
-														backgroundColor: (theme) =>
-															theme.palette[bar.color].main,
-														transition: "width 0.75s ease-in-out",
+														"& td": {
+															"& .MuiTypography-root": {
+																fontSize: "13px",
+															},
+														},
 													}}
-												/>
-											))}
-										</Box>
-
-										{/* Legend */}
-										<Box
-											sx={{
-												display: "flex",
-												justifyContent: "space-between",
-												mt: 1,
-											}}
-										>
-											{progressBars.map((bar, index) => (
-												<Box
-													key={index}
-													sx={{ display: "flex", alignItems: "center", gap: 1 }}
 												>
-													<Box
-														sx={{
-															width: "10px",
-															height: "10px",
-															backgroundColor: (theme) =>
-																theme.palette[bar.color].light,
-															borderRadius: "50%",
-														}}
-													/>
-													<Typography variant="body1">{bar.label}</Typography>
-												</Box>
-											))}
-										</Box>
-									</Box>
-
-									{/* Invoices Table */}
-									<Box sx={{ overflowX: "auto" }}>
-										<Table size="small">
-											<TableHead className="border border-solid border-gray-200 rounded-md">
-												<TableRow sx={{ "& th": { fontSize: "14px" } }}>
-													<TableCell>Customer</TableCell>
-													<TableCell>Amount</TableCell>
-													<TableCell>Due Date</TableCell>
-													<TableCell>Status</TableCell>
-													<TableCell className="text-center">Action</TableCell>
-												</TableRow>
-											</TableHead>
-											<TableBody>
-												{invoiceData.map((item, index) => {
-													const status = getStatusBadge(item.status);
-													return (
-														<TableRow
-															key={item._id || index}
+													<TableCell>
+														<Box
 															sx={{
-																"& td": {
-																	"& .MuiTypography-root": {
-																		fontSize: "14px",
-																	},
-																},
+																display: "flex",
+																alignItems: "center",
+																gap: 2,
 															}}
 														>
-															<TableCell>
-																<Box
-																	sx={{
-																		display: "flex",
-																		alignItems: "center",
-																		gap: 2,
-																	}}
-																>
-																	<Avatar
-																		src={
-																			item.customerId?.image ||
-																			"/images/default-avatar.png"
-																		}
-																		alt={
-																			item.customerId?.name ||
-																			"Deleted Customer"
-																		}
-																	/>
-																	<Link
-																		href={`/view-customer/${item.customerId?._id}`}
-																		passHref
-																	>
-																		<Typography sx={{ cursor: "pointer" }}>
-																			{item.customerId?.name ||
-																				"Deleted Customer"}
-																		</Typography>
-																	</Link>
-																</Box>
-															</TableCell>
-															<TableCell>
-																<Typography className="text-[14px]">
-																	{amountFormat(item.TotalAmount)}{" "}
-																	{currencyData}
+															<Avatar
+																src={
+																	item.customerId?.image ||
+																	"/images/default-avatar.png"
+																}
+																alt={
+																	item.customerId?.name ||
+																	"Deleted Customer"
+																}
+															/>
+															<Link
+																href={`/view-customer/${item.customerId?._id}`}
+																passHref
+															>
+																<Typography sx={{ cursor: "pointer" }}>
+																	{item.customerId?.name ||
+																		"Deleted Customer"}
 																</Typography>
-															</TableCell>
-															<TableCell>
-																<Typography variant="body1">
-																	{moment(item.dueDate).format("DD MMM YYYY")}
-																</Typography>
-															</TableCell>
-															<TableCell>{status}</TableCell>
-															<TableCell className="text-center">
-																<IconButton
-																	onClick={(e) => handleMenuOpen(e, item)}
-																>
-																	<i className="ri-more-fill text-[22px]" />
-																</IconButton>
+															</Link>
+														</Box>
+													</TableCell>
 
-																<Menu
-																	anchorEl={anchorEl}
-																	open={Boolean(anchorEl)}
-																	onClose={handleMenuClose}
-																	PaperProps={{
-																		elevation: 1,
-																		style: { width: "200px" },
-																	}}
-																>
-																	<MenuItem
-																		onClick={() => {
-																			handleSendInvoice(selectedInvoice._id);
-																			handleMenuClose();
-																		}}
-																	>
-																		<ListItemIcon>
-																			<SendIcon fontSize="small" />
-																		</ListItemIcon>
-																		<ListItemText primary="Send Invoice" />
-																	</MenuItem>
-																	<MenuItem
-																		onClick={() => {
-																			handleCloneInvoice(selectedInvoice._id);
-																			handleMenuClose();
-																		}}
-																	>
-																		<ListItemIcon>
-																			<FileCopyIcon fontSize="small" />
-																		</ListItemIcon>
-																		<ListItemText primary="Duplicate Invoice" />
-																	</MenuItem>
-																	<MenuItem
-																		onClick={() => {
-																			handleConvertToSalesReturn(
-																				selectedInvoice._id
-																			);
-																			handleMenuClose();
-																		}}
-																	>
-																		<ListItemIcon>
-																			<RefundIcon fontSize="small" />
-																		</ListItemIcon>
-																		<ListItemText primary="Return Invoice" />
-																	</MenuItem>
+													<TableCell>
+														<Typography variant="body1" className="text-[0.85rem]">
+															{moment(item.dueDate).format("DD MMM YY")}
+														</Typography>
+													</TableCell>
 
-																	<Link
-																		href={`/invoices/invoice-view/${item._id}`}
-																		passHref
-																		legacyBehavior
-																	>
-																		<MenuItem
-																			component="a"
-																			target="_blank"
-																			onClick={(e) => {
-																				e.preventDefault(); // Prevent the MenuItem's default click behavior
-																				window.open(
-																					`/invoices/invoice-view/${item._id}`,
-																					"_blank"
-																				); // Open in a new tab
-																			}}
-																		>
-																			<ListItemIcon>
-																				<ViewIcon fontSize="small" />
-																			</ListItemIcon>
-																			<ListItemText primary="View" />
-																		</MenuItem>
-																	</Link>
-																</Menu>
-															</TableCell>
-														</TableRow>
-													);
-												})}
-											</TableBody>
-										</Table>
-									</Box>
-								</Box>
-							</CardContent>
-						</Card>
-					</Grid>
+													<TableCell>
+														<Box className="flex items-center gap-0.5">
+															<Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
+															<Typography className="text-[14px]">
+																{amountFormat(item.TotalAmount)}{" "}
 
-					{/* Invoice Analytics Card */}
-					<Grid item size={{ xs: 12, md: 5 }}>
-						<SalesOverview
-							series={dashboardData.series || []}
-							amounts={[
-								dashboardData.paidAmt,
-								dashboardData.draftedAmt,
-								dashboardData.overdueAmt,
-								dashboardData.partiallyPaidAmt,
-							]}
-							currencyData={currencyData}
-							labels={dashboardData.labels || []}
-							height={250}
-							width={250}
-						/>
-					</Grid>
-				</Grid>
+															</Typography>
+														</Box>
+													</TableCell>
+													<TableCell>{status}</TableCell>
+													<TableCell className="text-center">
+														<OptionMenu
+															icon="ri-more-fill text-[22px]"
+															iconButtonProps={{ size: "small", "aria-label": "invoice actions" }}
+															options={[
+																{
+																	text: "Send Invoice",
+																	icon: <SendIcon fontSize="small" />,
+																	menuItemProps: {
+																		className: "flex items-center gap-2 text-textSecondary",
+																		onClick: () => handleSendInvoice(item._id),
+																	},
+																},
+																{
+																	text: "Duplicate Invoice",
+																	icon: <FileCopyIcon fontSize="small" />,
+																	menuItemProps: {
+																		className: "flex items-center gap-2 text-textSecondary",
+																		onClick: () => handleCloneInvoice(item._id),
+																	},
+																},
+																{
+																	text: "Return Invoice",
+																	icon: <RefundIcon fontSize="small" />,
+																	menuItemProps: {
+																		className: "flex items-center gap-2 text-textSecondary",
+																		onClick: () => handleConvertToSalesReturn(item._id),
+																	},
+																},
+																{
+																	text: "View",
+																	icon: <ViewIcon fontSize="small" />,
+																	href: `/invoices/invoice-view/${item._id}`,
+																	linkProps: {
+																		className:
+																			"flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary",
+																		target: "_blank",
+																		rel: "noopener noreferrer",
+																	},
+																},
+															]}
+														/>
+													</TableCell>
+												</TableRow>
+											);
+										})}
+									</TableBody>
+								</Table>
+							</Box>
+						</Box>
+					</CardContent>
+				</Card>
 			</Grid>
 
-			{/* Snackbar for notifications */}
-			<Snackbar
+			{/* Invoice Analytics Card */}
+			<Grid item size={{ xs: 12, md: 4 }}>
+				<SalesOverview
+					series={dashboardData.series || []}
+					amounts={[
+						dashboardData.paidAmt || 0,
+						dashboardData.draftedAmt || 0,
+						dashboardData.overdueAmt || 0,
+						dashboardData.partiallyPaidAmt || 0,
+					]}
+					currencyData={currencyData}
+					labels={dashboardData.labels || []}
+					height={250}
+					width={250}
+				/>
+			</Grid>
+
+
+			<AppSnackbar
 				open={openSnackbar.open}
-				autoHideDuration={6000}
-				onClose={handleSnackbarClose}
 				message={openSnackbar.message}
+				severity={openSnackbar.type || "success"}
+				onClose={handleSnackbarClose}
+				autoHideDuration={6000}
 				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
 			/>
 		</Grid>

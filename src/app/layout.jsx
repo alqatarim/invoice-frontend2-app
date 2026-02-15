@@ -1,14 +1,14 @@
 import { Inter } from 'next/font/google'
 import { i18n } from '@configs/i18n'
-
-import AuthWrapper from '@/Auth/AuthWrapper'
-import Providers from '@components/Providers'
 import { NextAuthProvider } from '@/Auth/nextAuthProvider'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-inter',
+  display: 'swap'
+})
 
-// Util Imports
-import { getSystemMode } from '@core/utils/serverHelpers'
 // Style Imports
 import '@/app/globals.css'
 
@@ -19,12 +19,11 @@ import '@assets/iconify-icons/generated-icons.css'
 import 'react-perfect-scrollbar/dist/css/styles.css'
 
 export default function RootLayout({ children, params }) {
-  const direction = i18n.langDirection[params.lang]
+  const direction = i18n.langDirection[params?.lang] || i18n.langDirection.en || 'ltr'
 
-  const systemMode = getSystemMode()
   return (
-    <html id='__next'>
-      <body className='flex is-full min-bs-full flex-auto flex-col'>
+    <html id='__next' dir={direction}>
+      <body className={`${inter.className} ${inter.variable} flex is-full min-bs-full flex-auto flex-col`}>
         <NextAuthProvider basePath={process.env.NEXTAUTH_BASEPATH}>
           {children}
         </NextAuthProvider>

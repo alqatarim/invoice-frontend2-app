@@ -1,12 +1,22 @@
 // Third-party Imports
 import { getServerSession } from 'next-auth'
+import { redirect } from 'next/navigation'
 
-// Component Imports
-import AuthRedirect from '@/Auth/AuthRedirect'
+// Auth Imports
+import { authOptions } from '@/Auth/auth'
+import { isTokenExpired } from '@/Auth/tokenUtils'
 
-export default async function AuthGuard({ children, locale }) {
-  const session = await getServerSession()
+export default async function AuthGuard({ children }) {
+  const session = await getServerSession(authOptions)
+  const token = session?.user?.token
 
-  // Use AuthRedirect to handle redirection if no session
-  return <>{session ? children : <AuthRedirect lang={locale} />}</>
+  if (!token) {
+    redirect('/login')
+  }
+
+  if (isTokenExpired(token)) {
+    redirect('/login?expired=true')
+  }
+
+  return <>{children}</>
 }

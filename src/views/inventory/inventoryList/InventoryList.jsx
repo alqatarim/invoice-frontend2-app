@@ -5,8 +5,6 @@ import { Icon } from '@iconify/react';
 import {
   Card,
   Button,
-  Snackbar,
-  Alert,
   Grid,
   Box,
   TextField,
@@ -37,6 +35,7 @@ import { getBranchInventoryColumns } from './branchInventoryColumns';
 import { getBranchesForDropdown, getProvincesCities } from '@/app/(dashboard)/branches/actions';
 import BranchStockTable from './BranchStockTable';
 import BranchInventoryTable from './BranchInventoryTable';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * InventoryList Component
@@ -1030,17 +1029,13 @@ const InventoryList = ({
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </div>
   );
 };

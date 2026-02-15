@@ -13,8 +13,6 @@ import {
      Card,
      CardContent,
      Grid,
-     Snackbar,
-     Alert,
      Dialog,
      DialogContent,
      FormHelperText,
@@ -32,6 +30,7 @@ import useEditPurchaseHandlers from '@/handlers/purchases/editPurchase/useEditPu
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 import { calculatePurchaseInvoiceTotals } from '@/utils/purchaseTotals';
 import { getEditPurchaseColumns } from './EditPurchaseColumns';
 
@@ -462,7 +461,8 @@ const EditPurchase = ({ vendorsData, productData, taxRates, initialBanks, signat
                          handleSubmit={handleSubmit}
                          handleFormSubmit={handleFormSubmit}
                          handleError={handleError}
-                         buttonText="Update Purchase"
+                        saveLabel="Update Purchase"
+                        cancelHref="/purchases/purchase-list"
                     />
                </Grid>
                {/* Add Bank Modal */}
@@ -473,22 +473,13 @@ const EditPurchase = ({ vendorsData, productData, taxRates, initialBanks, signat
                     setNewBank={setNewBank}
                     handleAddBank={handleAddBank}
                />
-               {/* Snackbar */}
-               <Snackbar
+               <AppSnackbar
                     open={snackbar.open}
-                    autoHideDuration={3000}
+                    message={snackbar.message}
+                    severity={snackbar.severity}
                     onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-               >
-                    <Alert
-                         variant="filled"
-                         size="small"
-                         severity={snackbar.severity}
-                         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                         className="is-full shadow-xs p-2 text-md"
-                    >
-                         {snackbar.message}
-                    </Alert>
-               </Snackbar>
+                    autoHideDuration={3000}
+               />
                {/* Notes Dialog */}
                <Dialog
                     open={termsDialogOpen}

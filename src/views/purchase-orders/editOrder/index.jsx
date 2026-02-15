@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Snackbar, Alert, CircularProgress, Box, Typography } from '@mui/material';
+import { CircularProgress, Box, Typography } from '@mui/material';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 import EditPurchaseOrder from '@/views/purchase-orders/editOrder/EditPurchaseOrder';
 import { updatePurchaseOrder } from '@/app/(dashboard)/purchase-orders/actions';
 
@@ -81,22 +82,13 @@ const EditPurchaseOrderIndex = ({ orderId, purchaseOrderData, vendorsData, produ
         signatures={signatures}
       />
 
-      <Snackbar
-        className='size-sm'
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </>
   );
 };

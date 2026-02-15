@@ -1,7 +1,9 @@
 import React from 'react'
 import Link from 'next/link'
-import { Chip, Avatar, Typography, IconButton, Box } from '@mui/material'
+import { Chip, Avatar, Typography, Box } from '@mui/material'
 import { Icon } from '@iconify/react'
+import { MoreVert as MoreVertIcon } from '@mui/icons-material'
+import OptionMenu from '@core/components/option-menu'
 
 import { formatCurrency } from '@/utils/currencyUtils'
 import { formatDate } from '@/utils/dateUtils'
@@ -14,54 +16,61 @@ const ActionCell = ({ row, handlers, permissions }) => {
   const activateAction = actionButtons.find(action => action.id === 'activate')
   const deactivateAction = actionButtons.find(action => action.id === 'deactivate')
 
+  const menuOptions = []
+
+  if (permissions.canView) {
+    menuOptions.push({
+      text: viewAction?.label || 'View',
+      icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers.handleView(row)
+      }
+    })
+  }
+
+  if (permissions.canEdit && row.status === 'Deactive') {
+    menuOptions.push({
+      text: activateAction?.label || 'Activate',
+      icon: <Icon icon={activateAction?.icon || 'mdi:check-circle-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: (event) => handlers.handleActivateClick(row, event.currentTarget)
+      }
+    })
+  }
+
+  if (permissions.canEdit && row.status === 'Active') {
+    menuOptions.push({
+      text: deactivateAction?.label || 'Deactivate',
+      icon: <Icon icon={deactivateAction?.icon || 'mdi:minus-circle-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: (event) => handlers.handleDeactivateClick(row, event.currentTarget)
+      }
+    })
+  }
+
+  if (permissions.canDelete) {
+    menuOptions.push({
+      text: deleteAction?.label || 'Delete',
+      icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers.handleDeleteClick(row)
+      }
+    })
+  }
+
+  if (menuOptions.length === 0) return null
+
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end' }}>
-      {/* View Button */}
-      {permissions.canView && (
-        <IconButton
-          size="small"
-          component={Link}
-          href={`/customers/customer-view/${row._id}`}
-          title={viewAction.title}
-        >
-          <Icon icon={viewAction.icon} />
-        </IconButton>
-      )}
-
-      {/* Activate/Deactivate Button */}
-      {permissions.canEdit && row.status === 'Deactive' && (
-        <IconButton
-          size="small"
-          onClick={() => handlers.handleActivateClick(row, null)}
-          title={activateAction.title}
-          color="success"
-        >
-          <Icon icon={activateAction.icon} />
-        </IconButton>
-      )}
-
-      {permissions.canEdit && row.status === 'Active' && (
-        <IconButton
-          size="small"
-          onClick={() => handlers.handleDeactivateClick(row, null)}
-          title={deactivateAction.title}
-          color="warning"
-        >
-          <Icon icon={deactivateAction.icon} />
-        </IconButton>
-      )}
-
-      {/* Delete Button */}
-      {permissions.canDelete && (
-        <IconButton
-          size="small"
-          onClick={() => handlers.handleDeleteClick(row)}
-          title={deleteAction.title}
-          color="error"
-        >
-          <Icon icon={deleteAction.icon} />
-        </IconButton>
-      )}
+    <Box className='flex items-center justify-end'>
+      <OptionMenu
+        icon={<MoreVertIcon />}
+        iconButtonProps={{ size: 'small', 'aria-label': 'customer actions' }}
+        options={menuOptions}
+      />
     </Box>
   )
 }

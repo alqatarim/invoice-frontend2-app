@@ -10,6 +10,7 @@ const StyledVerticalMenuSection = styled.li`
   position: relative;
   overflow: hidden;
   margin-block-start: 15px;
+  font-family: inherit;
 
   & .${menuClasses.menuSectionContent} {
     font-size: 14px;

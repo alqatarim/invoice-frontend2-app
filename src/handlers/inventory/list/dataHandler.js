@@ -97,11 +97,19 @@ export function dataHandler({
     }
   }, [onError]);
 
-  const handlePageChange = useCallback((event, newPage) =>
-    fetchData({ page: newPage + 1 }), [fetchData]);
+  const handlePageChange = useCallback((eventOrPage, maybePage) => {
+    const nextPage = typeof maybePage === 'number' ? maybePage : eventOrPage;
+    if (typeof nextPage !== 'number') return;
+    fetchData({ page: nextPage + 1 });
+  }, [fetchData]);
 
-  const handlePageSizeChange = useCallback(event =>
-    fetchData({ page: 1, pageSize: parseInt(event.target.value, 10) }), [fetchData]);
+  const handlePageSizeChange = useCallback((eventOrSize) => {
+    const nextSize = typeof eventOrSize === 'number'
+      ? eventOrSize
+      : parseInt(eventOrSize.target.value, 10);
+    if (!Number.isFinite(nextSize)) return;
+    fetchData({ page: 1, pageSize: nextSize });
+  }, [fetchData]);
 
   const handleSortRequest = useCallback(columnKey => {
     const currentSorting = stateRef.current.sorting;

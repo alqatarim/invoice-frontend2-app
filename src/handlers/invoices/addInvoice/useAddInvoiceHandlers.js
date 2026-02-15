@@ -131,6 +131,16 @@ export default function useAddInvoiceHandlers({
 
     // Form submission methods
     handleFormSubmit: submissionHandler.handleFormSubmit,
-    handleError: submissionHandler.handleError
+    handleError: submissionHandler.handleError,
+
+    // Field array helpers (POS mode)
+    appendItem: append,
+    removeItem: remove,
+    clearItems: () => {
+      const currentItems = Array.isArray(getValues('items')) ? getValues('items') : [];
+      if (currentItems.length > 0) {
+        remove(currentItems.map((_, index) => index));
+      }
+    }
   };
 }

@@ -15,8 +15,6 @@ import {
   Card,
   CardContent,
   Grid,
-  Snackbar,
-  Alert,
   Dialog,
   DialogContent,
   FormHelperText,
@@ -29,7 +27,7 @@ import { Clear } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import Link from 'next/link';
 import { useTheme } from '@mui/material/styles';
-import { calculateInvoiceTotals } from '@/utils/invoiceTotals';
+import { calculateInvoiceTotals } from '@/utils/salesTotals';
 import { formatDateForInput } from '@/utils/dateUtils';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
@@ -37,7 +35,8 @@ import CustomerAutocomplete from '@/components/custom-components/CustomerAutocom
 import useDeliveryChallanHandlers from '@/handlers/deliveryChallans/useDeliveryChallanHandlers';
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
-import DeliveryChallanTotals from '@/components/custom-components/DeliveryChallanTotals';
+import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 const EditDeliveryChallan = (props) => {
   // Destructure props for clarity
@@ -276,9 +275,7 @@ const EditDeliveryChallan = (props) => {
                 onChange={e => {
                   const rate = Number(e.target.value);
                   setValue(`items.${index}.rate`, rate);
-                  setValue(`items.${index}.form_updated_rate`, (Number(rate) / Number(watchItems[index].quantity)).toFixed(4))
-                  setValue(`items.${index}.form_updated_discount`, Number(watchItems[index].discount))
-                  setValue(`items.${index}.form_updated_discounttype`, Number(watchItems[index].discountType))
+                  setValue(`items.${index}.form_updated_rate`, Number(rate || 0).toFixed(4))
                   setValue(`items.${index}.isRateFormUpadted`, 'true')
                   const item = getValues(`items.${index}`);
                   updateCalculatedFields(index, item, setValue);
@@ -850,11 +847,13 @@ const EditDeliveryChallan = (props) => {
 
       {/* Left side totals card */}
       <Grid size={{ xs: 12, md: 2.5 }}>
-        <DeliveryChallanTotals
+        <InvoiceTotals
           control={control}
           handleSubmit={handleSubmit}
           handleFormSubmit={handleFormSubmit}
           handleError={handleError}
+          saveLabel="Update Delivery Challan"
+          cancelHref="/deliveryChallans/deliveryChallans-list"
         />
       </Grid>
 
@@ -867,22 +866,13 @@ const EditDeliveryChallan = (props) => {
         handleAddBank={handleAddBank}
       />
 
-      {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          variant="filled"
-          size="small"
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          className="is-full shadow-xs p-2 text-md"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={3000}
+      />
 
       {/* Terms Dialog */}
       <Dialog

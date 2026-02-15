@@ -15,8 +15,6 @@ import {
      Card,
      CardContent,
      Grid,
-     Snackbar,
-     Alert,
      Dialog,
      DialogContent,
      FormHelperText,
@@ -33,13 +31,15 @@ import CustomerAutocomplete from '@/components/custom-components/CustomerAutocom
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
-import { calculateInvoiceTotals } from '@/utils/invoiceTotals';
+import { calculateInvoiceTotals } from '@/utils/salesTotals';
+import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { paymentMethods } from '@/data/dataSets';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { quotationSchema } from './QuotationSchema';
 import { formatDateForInput } from '@/utils/dateUtils';
 import { createQuotationColumns } from './quotationColumns';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 const EditQuotation = ({
      quotation,
@@ -167,26 +167,11 @@ const EditQuotation = ({
 
      // Utility functions
      const updateCalculatedFields = (index, item, setValue) => {
-          const quantity = Number(item.quantity) || 0;
-          const rate = Number(item.rate) || 0;
-          const discountValue = Number(item.discount) || 0;
-          const discountType = Number(item.discountType) || 3;
-          const taxRate = Number(item.taxInfo?.taxRate) || 0;
-
-          let discountAmount = 0;
-          if (discountType === 2) {
-               discountAmount = (quantity * rate * discountValue) / 100;
-          } else {
-               discountAmount = discountValue;
-          }
-
-          const taxableAmount = (quantity * rate) - discountAmount;
-          const taxAmount = (taxableAmount * taxRate) / 100;
-          const totalAmount = taxableAmount + taxAmount;
-
-          setValue(`items.${index}.amount`, totalAmount);
-          setValue(`items.${index}.tax`, taxAmount);
-          setValue(`items.${index}.discount`, discountAmount);
+          const computed = calculateItemValues(item);
+          setValue(`items.${index}.discount`, computed.discount);
+          setValue(`items.${index}.tax`, computed.tax);
+          setValue(`items.${index}.amount`, computed.amount);
+          setValue(`items.${index}.taxableAmount`, computed.taxableAmount);
      };
 
      const handleUpdateItemProduct = (index, productId, previousProductId) => {
@@ -204,14 +189,22 @@ const EditQuotation = ({
                     setValue(`items.${index}.name`, selectedProduct.name);
                     setValue(`items.${index}.description`, selectedProduct.description || '');
                     setValue(`items.${index}.units`, selectedProduct.units?.name || '');
-                    setValue(`items.${index}.rate`, selectedProduct.sellingPrice || 0);
-                    setValue(`items.${index}.quantity`, 1);
-                    setValue(`items.${index}.discountType`, selectedProduct.discountType || 3);
-                    setValue(`items.${index}.discount`, selectedProduct.discountValue || 0);
-                    setValue(`items.${index}.taxInfo`, selectedProduct.tax || {});
+                    const nextValues = {
+                         rate: selectedProduct.sellingPrice || 0,
+                         quantity: 1,
+                         discountType: selectedProduct.discountType || 3,
+                         discount: selectedProduct.discountValue || 0,
+                         form_updated_discounttype: selectedProduct.discountType || 3,
+                         form_updated_discount: Number(selectedProduct.discountValue || 0),
+                         taxInfo: selectedProduct.tax || {},
+                         form_updated_tax: Number(selectedProduct.tax?.taxRate || 0)
+                    };
+                    Object.entries(nextValues).forEach(([key, value]) => {
+                         setValue(`items.${index}.${key}`, value);
+                    });
 
                     setProductsCloneData(prev => prev.filter(p => p._id !== productId));
-                    const item = getValues(`items.${index}`);
+                    const item = { ...getValues(`items.${index}`), ...nextValues };
                     updateCalculatedFields(index, item, setValue);
                }
           }
@@ -238,9 +231,13 @@ const EditQuotation = ({
                rate: 0,
                discountType: 3,
                discount: 0,
+               form_updated_discount: 0,
+               form_updated_discounttype: 3,
+               form_updated_tax: 0,
                taxInfo: {},
                tax: 0,
                amount: 0,
+               taxableAmount: 0
           });
      };
 
@@ -296,6 +293,7 @@ const EditQuotation = ({
      // Menu handlers
      const handleMenuItemClick = (index, discountType) => {
           setValue(`items.${index}.discountType`, discountType);
+          setValue(`items.${index}.form_updated_discounttype`, discountType);
           setValue(`items.${index}.discount`, 0);
           setValue(`items.${index}.form_updated_discount`, 0);
      };
@@ -309,8 +307,14 @@ const EditQuotation = ({
      };
 
      const handleTaxMenuItemClick = (index, tax) => {
-          setValue(`items.${index}.taxInfo`, tax);
-          const item = getValues(`items.${index}`);
+          const nextValues = {
+               taxInfo: tax,
+               form_updated_tax: Number(tax?.taxRate || 0)
+          };
+          Object.entries(nextValues).forEach(([key, value]) => {
+               setValue(`items.${index}.${key}`, value);
+          });
+          const item = { ...getValues(`items.${index}`), ...nextValues };
           updateCalculatedFields(index, item, setValue);
           handleTaxClose();
      };
@@ -658,7 +662,8 @@ const EditQuotation = ({
                          handleSubmit={handleSubmit}
                          handleFormSubmit={handleFormSubmit}
                          handleError={handleError}
-                         buttonText="Update Quotation"
+                         saveLabel="Update Quotation"
+                         cancelHref="/quotations/quotation-list"
                          isSubmitting={isSubmitting}
                     />
                </Grid>
@@ -670,22 +675,13 @@ const EditQuotation = ({
                     setNewBank={setNewBank}
                     handleAddBank={handleAddBank}
                />
-               {/* Snackbar */}
-               <Snackbar
+               <AppSnackbar
                     open={snackbar.open}
-                    autoHideDuration={3000}
+                    message={snackbar.message}
+                    severity={snackbar.severity}
                     onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-               >
-                    <Alert
-                         variant="filled"
-                         size="small"
-                         severity={snackbar.severity}
-                         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-                         className="is-full shadow-xs p-2 text-md"
-                    >
-                         {snackbar.message}
-                    </Alert>
-               </Snackbar>
+                    autoHideDuration={3000}
+               />
                {/* Terms Dialog */}
                <Dialog
                     open={termsDialogOpen}

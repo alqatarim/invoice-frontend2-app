@@ -9,8 +9,8 @@ import { styled, useColorScheme, useTheme } from '@mui/material/styles'
 // Component Imports
 import VerticalNav, { NavHeader, NavCollapseIcons } from '@menu/vertical-menu'
 import VerticalMenu from './VerticalMenu'
-import Logo from '@components/layout/shared/Logo'
-
+import Logo from '@core/svg/Logo'
+import { Typography, Box } from '@mui/material'
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
@@ -91,16 +91,21 @@ const Navigation = props => {
       customStyles={navigationCustomStyles(verticalNavOptions, theme)}
       collapsedWidth={68}
       backgroundColor={isSkinBordered ? 'var(--mui-palette-background-paper)' : 'var(--mui-palette-background-default)'}
-      // eslint-disable-next-line lines-around-comment
-      // Remove the problematic semiDark override that was preventing mode switching
-      // {...(isSemiDark &&
-      //   !isDark && {
-      //     'data-mui-color-scheme': 'dark'
-      //   })}
+    // eslint-disable-next-line lines-around-comment
+    // Remove the problematic semiDark override that was preventing mode switching
+    // {...(isSemiDark &&
+    //   !isDark && {
+    //     'data-mui-color-scheme': 'dark'
+    //   })}
     >
       {/* Nav Header including Logo & nav toggle icons  */}
       <NavHeader>
-        <Logo />
+        <Box className='flex items-center gap-2'>
+          <Logo className='text-primary' width={36} height={36} />
+          {!(isCollapsed && !isHovered) && (
+            <Typography variant='h5' className='font-semibold tracking-[0.2px]'>Invoices</Typography>
+          )}
+        </Box>
         {!(isCollapsed && !isHovered) && (
           <NavCollapseIcons
             lockedIcon={<i className='ri-radio-button-line text-xl' />}

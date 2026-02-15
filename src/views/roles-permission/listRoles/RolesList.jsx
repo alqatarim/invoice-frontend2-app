@@ -6,8 +6,6 @@ import { Icon } from '@iconify/react'
 import {
   Card,
   Button,
-  Snackbar,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -21,11 +19,11 @@ import { useTheme } from '@mui/material/styles'
 import { usePermission } from '@/Auth/usePermission'
 
 import RolesHead from './rolesHead'
-import RolesFilter from './rolesFilter'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import RoleDialog from '@/components/dialogs/role-dialog'
 import PermissionsDialog from '@/components/dialogs/permissions-dialog'
 import { useRolesListHandlers } from '@/handlers/roles-permission/useRolesListHandlers'
+import AppSnackbar from '@/components/shared/AppSnackbar'
 import rolesColumns from './rolesColumns'
 
 const RolesList = ({ initialData }) => {
@@ -133,53 +131,44 @@ const RolesList = ({ initialData }) => {
       <RolesHead cardCounts={handlers.cardCounts} />
 
       <Grid container spacing={3}>
-        {/* New Role Button */}
-        {permissions.canCreate && (
-          <Grid item siz={12}>
-            <div className="flex justify-end">
-              <Button
-                variant="contained"
-                startIcon={<Icon icon="tabler:plus" />}
-                onClick={handlers.handleAdd}
-              >
-                New Role
-              </Button>
-            </div>
-          </Grid>
-        )}
-
-        {/* Filter Component */}
-        <Grid item size={12}>
-          <RolesFilter
-            onChange={handleFilterValueChange}
-            onApply={handleFilterApply}
-            onReset={handleFilterReset}
-            values={filterValues}
-            onManageColumns={columnActions.open}
-            searchQuery={handlers.searchQuery}
-            onSearchChange={handlers.handleSearchChange}
-            onClearSearch={handlers.clearSearch}
-          />
-        </Grid>
-
         {/* Roles Table */}
         <Grid item size={12}>
-          <Card>
-            <CustomListTable
-              columns={tableColumns}
-              rows={formattedRoles}
-              loading={handlers.loading}
-              pagination={{
-                page: handlers.paginationModel?.page || 0,
-                pageSize: handlers.paginationModel?.pageSize || 10,
-                total: handlers.totalCount || 0
-              }}
-              onPageChange={handlers.handlePageChange}
-              onRowsPerPageChange={handlers.handlePageSizeChange}
-              noDataText="No roles found."
-              rowKey={(row) => row._id || row.id}
-            />
-          </Card>
+          <CustomListTable
+            title="Roles"
+            addRowButton={
+              permissions.canCreate && (
+                <Button
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                  onClick={handlers.handleAdd}
+                >
+                  New Role
+                </Button>
+              )
+            }
+            columns={tableColumns}
+            rows={formattedRoles}
+            loading={handlers.loading}
+            pagination={{
+              page: handlers.paginationModel?.page || 0,
+              pageSize: handlers.paginationModel?.pageSize || 10,
+              total: handlers.totalCount || 0
+            }}
+            onPageChange={handlers.handlePageChange}
+            onRowsPerPageChange={handlers.handlePageSizeChange}
+            noDataText="No roles found."
+            rowKey={(row) => row._id || row.id}
+            showSearch
+            searchValue={handlers.searchQuery || ''}
+            onSearchChange={handlers.handleSearchChange}
+            searchPlaceholder="Search roles..."
+            onRowClick={
+              permissions.canView
+                ? (row) => handlers.handleViewPermissions(row._id)
+                : undefined
+            }
+            enableHover
+          />
         </Grid>
       </Grid>
 
@@ -227,17 +216,13 @@ const RolesList = ({ initialData }) => {
         roleName={handlers.selectedRoleForPermissions?.roleName}
       />
 
-      {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </div>
   )
 }

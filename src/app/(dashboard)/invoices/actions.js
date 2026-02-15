@@ -159,7 +159,15 @@ export async function getInitialInvoiceData() {
   }
 }
 
-export async function getFilteredInvoices(tab, page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc') {
+export async function getFilteredInvoices(
+  tab,
+  page,
+  pageSize,
+  filters = {},
+  sortBy = '',
+  sortDirection = 'asc',
+  searchInvoiceNumber = ''
+) {
   // Handle multiple status filtering
   const statusFilters = filters.status && Array.isArray(filters.status) && filters.status.length > 0
     ? filters.status
@@ -167,12 +175,28 @@ export async function getFilteredInvoices(tab, page, pageSize, filters = {}, sor
 
   // If no specific status filters or ALL is selected, fetch all invoices
   if (statusFilters.length === 0 || statusFilters.includes('ALL')) {
-    return await fetchInvoicesWithSingleStatus(null, page, pageSize, filters, sortBy, sortDirection);
+    return await fetchInvoicesWithSingleStatus(
+      null,
+      page,
+      pageSize,
+      filters,
+      sortBy,
+      sortDirection,
+      searchInvoiceNumber
+    );
   }
 
   // If only one status filter, use the existing logic
   if (statusFilters.length === 1) {
-    return await fetchInvoicesWithSingleStatus(statusFilters[0], page, pageSize, filters, sortBy, sortDirection);
+    return await fetchInvoicesWithSingleStatus(
+      statusFilters[0],
+      page,
+      pageSize,
+      filters,
+      sortBy,
+      sortDirection,
+      searchInvoiceNumber
+    );
   }
 
   // For multiple status filters, we need to fetch each status separately and combine
@@ -183,7 +207,15 @@ export async function getFilteredInvoices(tab, page, pageSize, filters = {}, sor
 
     // Fetch data for each status
     for (const status of statusFilters) {
-      const result = await fetchInvoicesWithSingleStatus(status, 1, 1000, filters, sortBy, sortDirection);
+      const result = await fetchInvoicesWithSingleStatus(
+        status,
+        1,
+        1000,
+        filters,
+        sortBy,
+        sortDirection,
+        searchInvoiceNumber
+      );
       allResults.push(...result.invoices);
       // Note: totalRecords will be the sum of all status results, which might not be accurate for pagination
     }
@@ -242,7 +274,15 @@ export async function getFilteredInvoices(tab, page, pageSize, filters = {}, sor
   }
 }
 
-async function fetchInvoicesWithSingleStatus(status, page, pageSize, filters, sortBy, sortDirection) {
+async function fetchInvoicesWithSingleStatus(
+  status,
+  page,
+  pageSize,
+  filters,
+  sortBy,
+  sortDirection,
+  searchInvoiceNumber
+) {
   // Build the URL with single status
   let url = ENDPOINTS.INVOICE.LIST + `?page=${page}&pageSize=${pageSize}`;
 
@@ -255,7 +295,10 @@ async function fetchInvoicesWithSingleStatus(status, page, pageSize, filters, so
   if (filters.customer && Array.isArray(filters.customer) && filters.customer.length > 0) {
     url += `&customer=${filters.customer.map(id => encodeURIComponent(id)).join(',')}`;
   }
-  if (filters.invoiceNumber && Array.isArray(filters.invoiceNumber) && filters.invoiceNumber.length > 0) {
+  // Search (invoice number) - prefer search over exact invoiceNumber filters
+  if (typeof searchInvoiceNumber === 'string' && searchInvoiceNumber.trim()) {
+    url += `&search_invoiceNumber=${encodeURIComponent(searchInvoiceNumber.trim())}`;
+  } else if (filters.invoiceNumber && Array.isArray(filters.invoiceNumber) && filters.invoiceNumber.length > 0) {
     url += `&invoiceNumber=${filters.invoiceNumber.map(num => encodeURIComponent(num)).join(',')}`;
   }
   if (filters.fromDate) {

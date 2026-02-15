@@ -25,7 +25,6 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { Icon } from '@iconify/react'
 import CustomListTable from '@/components/custom-components/CustomListTable'
-import SignatureFilter from './signatureFilter'
 import { getSignatureColumns } from './signatureColumns'
 
 const signatureSchema = yup.object({
@@ -52,11 +51,7 @@ const SignatureListView = ({
   const [markAsDefault, setMarkAsDefault] = useState(false)
   const [status, setStatus] = useState(true)
 
-  // Filter states
-  const [filterValues, setFilterValues] = useState({
-    signatureName: [],
-    status: ['ALL']
-  });
+  const [searchTerm, setSearchTerm] = useState('');
   const [signatures, setSignatures] = useState(initialSignatures);
 
   // Update signatures when initial signatures change
@@ -186,46 +181,12 @@ const SignatureListView = ({
     }
   }
 
-  // Filter handlers
-  const handleFilterValueChange = (field, value) => {
-    setFilterValues(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleFilterApply = (filters) => {
-    setFilterValues({
-      signatureName: filters.signatureName || [],
-      status: filters.status || ['ALL']
-    });
-  };
-
-  const handleFilterReset = () => {
-    setFilterValues({
-      signatureName: [],
-      status: ['ALL']
-    });
-  };
-
-  const handleTabChange = (event, newTab) => {
-    setFilterValues(prev => ({ ...prev, status: newTab }));
-  };
-
-  // Apply filters to get filtered signatures
   const getFilteredSignatures = () => {
     let filtered = signatures;
 
-    // Filter by status
-    if (filterValues.status && filterValues.status.length > 0 && !filterValues.status.includes('ALL')) {
-      filtered = filtered.filter(sig => {
-        if (filterValues.status.includes('ACTIVE') && sig.status) return true;
-        if (filterValues.status.includes('INACTIVE') && !sig.status) return true;
-        if (filterValues.status.includes('DEFAULT') && sig.markAsDefault) return true;
-        return false;
-      });
-    }
-
-    // Filter by signature name
-    if (filterValues.signatureName && filterValues.signatureName.length > 0) {
-      filtered = filtered.filter(sig => filterValues.signatureName.includes(sig._id));
+    if (searchTerm.trim()) {
+      const lowered = searchTerm.toLowerCase();
+      filtered = filtered.filter(sig => sig.signatureName?.toLowerCase().includes(lowered));
     }
 
     return filtered;
@@ -234,7 +195,6 @@ const SignatureListView = ({
   const filteredSignatures = getFilteredSignatures();
 
   // Simple computed values - no memoization needed for these
-  const signatureNameOptions = (signatures || []).map(sig => ({ value: sig._id, label: sig.signatureName }));
   const columns = getSignatureColumns({ theme });
 
   // Table columns with handlers
@@ -253,48 +213,34 @@ const SignatureListView = ({
   return (
     <div className='flex flex-col gap-5'>
       <Grid container spacing={3}>
-        {/* Add Signature Button */}
-        <Grid size={{ xs: 12 }}>
-          <div className="flex justify-end">
-            <Button
-              variant="contained"
-              startIcon={<Icon icon="tabler:plus" />}
-              onClick={handleAddClick}
-            >
-              Add Signature
-            </Button>
-          </div>
-        </Grid>
-
-        {/* Filter Component */}
-        <Grid size={{ xs: 12 }}>
-          <SignatureFilter
-            onChange={handleFilterValueChange}
-            onApply={handleFilterApply}
-            onReset={handleFilterReset}
-            signatureNameOptions={signatureNameOptions}
-            values={filterValues}
-            tab={filterValues.status}
-            onTabChange={handleTabChange}
-          />
-        </Grid>
-
         {/* Signatures Table */}
         <Grid size={{ xs: 12 }}>
-          <Card>
-            <CustomListTable
-              columns={tableColumns}
-              rows={filteredSignatures}
-              loading={loading}
-              pagination={{
-                page: 0,
-                pageSize: 10,
-                total: filteredSignatures.length
-              }}
-              noDataText="No signatures found. Add your first signature to get started."
-              rowKey={(row) => row._id}
-            />
-          </Card>
+          <CustomListTable
+            addRowButton={
+              <Button
+                variant="contained"
+                startIcon={<Icon icon="tabler:plus" />}
+                onClick={handleAddClick}
+              >
+                Add Signature
+              </Button>
+            }
+            columns={tableColumns}
+            rows={filteredSignatures}
+            loading={loading}
+            pagination={{
+              page: 0,
+              pageSize: 10,
+              total: filteredSignatures.length
+            }}
+            noDataText="No signatures found. Add your first signature to get started."
+            rowKey={(row) => row._id}
+            showSearch
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search signatures..."
+            enableHover
+          />
         </Grid>
       </Grid>
 

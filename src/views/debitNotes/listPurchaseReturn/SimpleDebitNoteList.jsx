@@ -5,8 +5,6 @@ import { Icon } from '@iconify/react';
 import {
      Card,
      Button,
-     Snackbar,
-     Alert,
      Dialog,
      DialogTitle,
      DialogContent,
@@ -27,6 +25,7 @@ import CustomListTable from '@/components/custom-components/CustomListTable';
 import { useDebitNoteListHandlers } from '@/handlers/debitNotes/useDebitNoteListHandlers';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { getDebitNoteColumns } from './debitNoteColumns';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * SimpleDebitNoteList Component - matches purchase order list structure
@@ -148,6 +147,18 @@ const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination, vendors = [
                <Grid container spacing={3}>
                     <Grid size={{ xs: 12 }}>
                          <CustomListTable
+                              addRowButton={
+                                   permissions.canCreate && (
+                                        <Button
+                                             component={Link}
+                                             href="/debitNotes/purchaseReturn-add"
+                                             variant="contained"
+                                             startIcon={<Icon icon="tabler:plus" />}
+                                        >
+                                             New Debit Note
+                                        </Button>
+                                   )
+                              }
                               columns={tableColumns}
                               rows={handlers.debitNotes}
                               loading={handlers.loading}
@@ -162,18 +173,13 @@ const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination, vendors = [
                               showSearch={true}
                               searchValue={handlers.searchTerm || ''}
                               onSearchChange={handlers.handleSearchInputChange}
-                              headerActions={
-                                   permissions.canCreate && (
-                                        <Button
-                                             component={Link}
-                                             href="/debitNotes/purchaseReturn-add"
-                                             variant="contained"
-                                             startIcon={<Icon icon="tabler:plus" />}
-                                        >
-                                             New Debit Note
-                                        </Button>
-                                   )
+                              searchPlaceholder="Search debit notes..."
+                              onRowClick={
+                                   permissions.canView
+                                        ? (row) => handlers.handleView(row._id)
+                                        : undefined
                               }
+                              enableHover
                          />
                     </Grid>
                </Grid>
@@ -211,21 +217,13 @@ const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination, vendors = [
                     </DialogActions>
                </Dialog>
 
-               <Snackbar
+               <AppSnackbar
                     open={snackbar.open}
-                    autoHideDuration={6000}
+                    message={snackbar.message}
+                    severity={snackbar.severity}
                     onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-               >
-                    <Alert
-                         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-                         severity={snackbar.severity}
-                         variant="filled"
-                         sx={{ width: '100%' }}
-                    >
-                         {snackbar.message}
-                    </Alert>
-               </Snackbar>
+                    autoHideDuration={6000}
+               />
 
           </div>
      );

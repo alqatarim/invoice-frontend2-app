@@ -5,18 +5,24 @@
  */
 export function formatInvoiceItem(product) {
   if (!product) return null;
-  let discountX;
-  if ((product.discountType) === 2 || (product.discountType) === "2") {
-    discountX = (Number(product.sellingPrice) * (Number(product.discountValue) / 100));
-  } else {
-    discountX = (Number(product.discountValue)).toFixed(2);
-  }
-  const taxableAmount = Number(product.sellingPrice) - discountX;
+  const rate = Number(product.sellingPrice || 0);
+  const discountTypeRaw = product.discountType;
+  const isPercentDiscount = discountTypeRaw === 2 || discountTypeRaw === '2';
+
+  const parsedDiscountValue = Number(product.discountValue || 0);
+  const discountValue = Number.isFinite(parsedDiscountValue) ? parsedDiscountValue : 0;
+
+  const discountX = isPercentDiscount
+    ? (rate * (discountValue / 100))
+    : discountValue;
+
+  const taxableAmount = rate - Number(discountX || 0);
   const tax = (taxableAmount * ((product.tax?.taxRate || 0)) / 100);
   const amount = (taxableAmount + tax).toFixed(2);
   return {
     productId: product._id,
     name: product.name,
+    sku: product.sku || '',
     quantity: 1,
     units: product.units?.name,
     unit: product.units?._id,
@@ -29,7 +35,9 @@ export function formatInvoiceItem(product) {
     tax: Number(tax).toFixed(2),
     isRateFormUpadted: false,
     form_updated_discounttype: product.discountType,
-    form_updated_discount: Number(product.discountValue).toFixed(2),
+    // Keep discount inputs clean: show 0 instead of 0.00 when no discount exists.
+    // Also prevents leading-zero strings from showing up in the UI.
+    form_updated_discount: discountValue,
     form_updated_rate: Number(product.sellingPrice).toFixed(2),
     form_updated_tax: Number(product.tax?.taxRate || 0).toFixed(2),
     images: product.images || null

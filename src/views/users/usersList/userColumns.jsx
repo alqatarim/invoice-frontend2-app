@@ -1,5 +1,5 @@
 import { Icon } from '@iconify/react';
-import { Typography, Avatar, Chip, IconButton, Box } from '@mui/material';
+import { Typography, Avatar, Chip, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
 import { userStatusOptions, actionButtons } from '@/data/dataSets';
@@ -170,46 +170,15 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
                     });
                }
 
+               if (menuOptions.length === 0) return null;
+
                return (
-                    <Box className='flex items-center justify-start gap-1'>
-                         {/* Direct action buttons */}
-                         <Box className='flex gap-1'>
-                              {permissions.canView && (
-                                   <IconButton
-                                        size="small"
-                                        onClick={() => handleView(row._id)}
-                                        title="View User"
-                                        sx={{ color: 'primary.main' }}
-                                   >
-                                        <Icon icon={actionButtons.find(action => action.id === 'view').icon} />
-                                   </IconButton>
-                              )}
-                              {permissions.canUpdate && row.role !== 'Super Admin' && (
-                                   <IconButton
-                                        size="small"
-                                        onClick={() => handleEdit(row)}
-                                        title="Edit User"
-                                        sx={{ color: 'primary.main' }}
-                                   >
-                                        <Icon icon={actionButtons.find(action => action.id === 'edit').icon} />
-                                   </IconButton>
-                              )}
-
-                              {permissions.canDelete && row.role !== 'Super Admin' && (
-                                   <IconButton
-                                        size="small"
-                                        onClick={() => handleDelete(row)}
-                                        title="Delete User"
-                                        color='error'
-                                   >
-                                        <Icon icon={actionButtons.find(action => action.id === 'delete').icon} />
-                                   </IconButton>
-                              )}
-
-                         </Box>
-
-
-
+                    <Box className='flex items-center justify-end'>
+                         <OptionMenu
+                              icon={<MoreVertIcon />}
+                              iconButtonProps={{ size: 'small', 'aria-label': 'user actions' }}
+                              options={menuOptions}
+                         />
                     </Box>
                );
           },

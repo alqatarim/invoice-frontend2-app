@@ -19,6 +19,8 @@ export function useFormHandler({ invoiceNumber }) {
       referenceNo: '',
       customerId: '',
       payment_method: '',
+      posMode: false,
+      isWalkIn: false,
       invoiceDate: formatDateForInput(new Date()),
       dueDate: formatDateForInput(new Date()),
       taxableAmount: 0,

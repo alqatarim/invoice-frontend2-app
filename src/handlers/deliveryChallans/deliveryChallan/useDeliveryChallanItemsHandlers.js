@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { calculateItemValues } from '@/utils/itemCalculations';
+import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 
 export function useDeliveryChallanItemsHandlers({ 
@@ -22,7 +22,6 @@ export function useDeliveryChallanItemsHandlers({
   // Helper to update all calculated fields for an item row
   const updateCalculatedFields = (index, values) => {
     const computed = calculateItemValues(values);
-    setValue(`items.${index}.rate`, computed.rate);
     setValue(`items.${index}.discount`, computed.discount);
     setValue(`items.${index}.tax`, computed.tax);
     setValue(`items.${index}.amount`, computed.amount);

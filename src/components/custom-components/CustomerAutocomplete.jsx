@@ -6,8 +6,6 @@ import {
   Typography,
   Box,
   useTheme,
-  Grid,
-  MenuItem,
   alpha
 } from '@mui/material'
 import { Icon } from '@iconify/react'
@@ -15,70 +13,36 @@ import { Icon } from '@iconify/react'
 const CustomerAutocomplete = ({
   control,
   errors,
-  customersData
+  customersData,
+  includeWalkInOption = false,
+  walkInLabel = 'Walk-in Customer',
+  onCustomerChange,
+  size = 'small'
 }) => {
   const theme = useTheme()
+  const customers = Array.isArray(customersData) ? customersData : []
 
-  // Simple customer row with name, phone, and email
-  const renderCustomerRow = (customer) => {
-    return (
-      <Grid container spacing={2} alignItems="center" sx={{ width: '100%' }}>
-        {/* Customer Name */}
-        <Grid size={{ xs: 4 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 600,
-              color: 'text.primary',
-              fontSize: '0.875rem',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {customer.name}
-          </Typography>
-        </Grid>
+  // If a real "Walk-in Customer" exists in DB, prefer it (avoid duplicates).
+  const walkInFromData = includeWalkInOption
+    ? customers.find((customer) => String(customer?.name || '').trim().toLowerCase() === String(walkInLabel || '').trim().toLowerCase())
+    : null
 
-        {/* Phone */}
-        <Grid size={{ xs: 3 }}>
-          <Typography
-            variant="body2"
-            sx={{
-              color: 'text.secondary',
-              fontSize: '0.8rem',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {customer.phone || '—'}
-          </Typography>
-        </Grid>
+  const walkInOption = includeWalkInOption
+    ? (walkInFromData ? { ...walkInFromData, isWalkIn: true } : { _id: 'walk-in', name: walkInLabel, phone: '', email: '', isWalkIn: true })
+    : null
 
-        {/* Email */}
-        <Grid size={{ xs: 5 }}>
-          <Typography
-            variant="body2"
-            sx={{
-              color: 'text.secondary',
-              fontSize: '0.8rem',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {customer.email || '—'}
-          </Typography>
-        </Grid>
-      </Grid>
-    )
-  }
+  const options = includeWalkInOption
+    ? [walkInOption, ...customers.filter((customer) => customer?._id !== walkInOption?._id)]
+    : customers
 
   // Custom value rendering in the input
   const getSelectedCustomer = (value) => {
     if (!value) return null;
-    if (typeof value === 'string') return customersData.find(c => c._id === value) || null;
+    if (typeof value === 'string') {
+      // Back-compat: some screens still set customerId to "walk-in"
+      if (includeWalkInOption && value === 'walk-in') return walkInOption;
+      return options.find(c => c?._id === value) || null;
+    }
     if (value._id) return value;
     return null;
   };
@@ -89,58 +53,126 @@ const CustomerAutocomplete = ({
       control={control}
       render={({ field }) => {
         const selectedCustomer = getSelectedCustomer(field.value)
+        const optionGridColumns = 'minmax(0, 1.2fr) minmax(0, 0.85fr) minmax(0, 1.25fr)'
+
+        const CustomerOptionsListbox = React.forwardRef(function CustomerOptionsListbox(listboxProps, ref) {
+          const { children, sx, ...other } = listboxProps
+
+          return (
+            <Box
+              component="ul"
+              ref={ref}
+              {...other}
+              sx={[
+                { m: 0, p: 0, listStyle: 'none' },
+                sx
+              ]}
+            >
+              <Box
+                component="li"
+                role="presentation"
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: optionGridColumns,
+                  columnGap: 2,
+                  alignItems: 'center',
+                  px: 6,
+                  py: 2.5,
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 2,
+                  bgcolor: theme.palette.background.default,
+                  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`
+                }}
+              >
+                <Typography
+                  variant="overline"
+                  sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
+                >
+                  Name
+                </Typography>
+                <Typography
+                  variant="overline"
+                  sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
+                >
+                  Phone
+                </Typography>
+                <Typography
+                  variant="overline"
+                  sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
+                >
+                  Email
+                </Typography>
+              </Box>
+              {children}
+            </Box>
+          )
+        })
 
         return (
           <Autocomplete
             fullWidth
-            options={customersData}
-            getOptionLabel={option => option.name}
+            size={size}
+            options={options}
+            getOptionLabel={option => option?.name || walkInLabel}
             filterOptions={(options, { inputValue }) => {
-              const search = inputValue.toLowerCase()
-              return options.filter(opt =>
-                opt.name.toLowerCase().includes(search) ||
-                opt.phone.toLowerCase().includes(search) ||
-                opt.email.toLowerCase().includes(search)
-              )
+              const search = inputValue.trim().toLowerCase()
+              if (!search) return options
+              return options.filter((option) => {
+                const name = option?.name || ''
+                const phone = option?.phone || ''
+                const email = option?.email || ''
+                return [name, phone, email]
+                  .filter(Boolean)
+                  .some((value) => String(value).toLowerCase().includes(search))
+              })
             }}
             value={selectedCustomer}
-            onChange={(_, newValue) => field.onChange(newValue?._id || '')}
+            onChange={(_, newValue) => {
+              field.onChange(newValue?._id || '')
+              if (onCustomerChange) onCustomerChange(newValue || null)
+            }}
             renderInput={params => (
               <TextField
                 {...params}
                 label="Customer"
                 error={!!errors.customerId}
                 helperText={errors.customerId?.message}
-                size="small"
+                size={size}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: selectedCustomer ? (
                     <Box
 
+                      className='flex flex-col items-start justify-end gap-0 bg-secondaryLightest rounded-md py-0.5 px-2'
                       sx={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 4,
+                        // Give the input value priority over this endAdornment.
+                        // This keeps the adornment from consuming too much horizontal space.
+                        flex: '0 1 auto',
                         minWidth: 0,
-                        maxWidth: '80%',
-                        ml: 1
+                        maxWidth: 'min(240px, 50%)',
+                        overflow: 'hidden',
+                        // ml: 1
                       }}
-                      className='bg-secondaryLighter rounded-md py-0.5 px-2'
                     >
                       <Box sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 0.5,
+                        gap: 1.2,
                         minWidth: 0,
+                        maxWidth: '100%',
+                        overflow: 'hidden',
                         justifyContent: 'flex-end'
-                      }}>
+                      }}
+
+                      >
+
                         <Icon icon="mdi:phone" width={14} color={theme.palette.text.secondary} />
                         <Typography
                           variant="body2"
                           sx={{
                             color: 'text.secondary',
-                            fontSize: '0.75rem',
+                            fontSize: '0.72rem',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -162,15 +194,17 @@ const CustomerAutocomplete = ({
                             }
                           }}
                         >
-                          {selectedCustomer.phone || 'No phone'}
+                          {selectedCustomer.phone || ''}
                         </Typography>
                       </Box>
 
                       <Box sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 0.5,
+                        gap: 1.2,
                         minWidth: 0,
+                        maxWidth: '100%',
+                        overflow: 'hidden',
                         justifyContent: 'flex-end'
                       }}>
                         <Icon icon="mdi:email-outline" width={14} color={theme.palette.text.secondary} />
@@ -178,7 +212,7 @@ const CustomerAutocomplete = ({
                           variant="body2"
                           sx={{
                             color: 'text.secondary',
-                            fontSize: '0.75rem',
+                            fontSize: '0.72rem',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -200,7 +234,7 @@ const CustomerAutocomplete = ({
                             }
                           }}
                         >
-                          {selectedCustomer.email || 'No email'}
+                          {selectedCustomer.email || ''}
                         </Typography>
                       </Box>
                     </Box>
@@ -209,66 +243,91 @@ const CustomerAutocomplete = ({
                 sx={{
                   '& .MuiFormHelperText-root': {
                     color: !errors.customerId ? theme.palette.text.secondary : undefined,
-                    fontSize: '0.75rem'
+                    fontSize: '0.72rem'
                   },
-                  '& .MuiInputBase-root': {
-                    paddingRight: selectedCustomer ? '4px' : undefined
-                  },
-                  '& .MuiInputBase-input': {
-                    paddingRight: selectedCustomer ? '0px' : undefined
-                  }
+                  ...(selectedCustomer
+                    ? {
+                      // Autocomplete reserves extra right padding for popup/clear icons.
+                      // When we replace endAdornment, that reserved space becomes blank.
+                      '& .MuiAutocomplete-inputRoot': {
+                        paddingRight: '12px !important'
+                      },
+                      '& .MuiAutocomplete-input': {
+                        paddingRight: '0 !important'
+                      }
+                    }
+                    : {})
                 }}
               />
             )}
-            renderOption={(props, option, { index }) => (
-              <>
-                {index === 0 && (
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      borderBottom: `1px solid ${theme.palette.divider}`,
-                      bgcolor: alpha(theme.palette.primary.main, 0.02)
-                    }}
-                  >
-                    <Grid container spacing={2}>
-                      <Grid size={{ xs: 4 }}>
-                        <Typography variant="caption" fontWeight={600} color="text.secondary">
-                          Name
-                        </Typography>
-                      </Grid>
-                      <Grid size={{ xs: 3 }}>
-                        <Typography variant="caption" fontWeight={600} color="text.secondary">
-                          Phone
-                        </Typography>
-                      </Grid>
-                      <Grid size={{ xs: 5 }}>
-                        <Typography variant="caption" fontWeight={600} color="text.secondary">
-                          Email
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Box>
-                )}
-                <MenuItem
-                  {...props}
+            renderOption={(props, option, { index: optionIndex }) => {
+              const { key, ...optionProps } = props
+              const zebraBg = optionIndex % 2 ? alpha(theme.palette.primary.main, 0.015) : 'transparent'
+
+              return (
+                <Box
+                  key={key}
+                  component="li"
+                  {...optionProps}
                   sx={{
-                    py: 1,
-                    px: 2,
-                    display: 'block',
-                    width: '100%',
+                    display: 'grid',
+                    gridTemplateColumns: optionGridColumns,
+                    columnGap: 2,
+                    alignItems: 'center',
+                    px: 6,
+                    py: 0.9,
+                    minHeight: 38,
+                    backgroundColor: zebraBg,
+                    borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+                    transition: 'background-color 120ms ease',
+                    '&:last-of-type': { borderBottom: 'none' },
                     '&:hover': {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.04)
+                      backgroundColor: theme.palette.secondary.lightestOpacity
                     },
-                    '&.Mui-focused': {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.08)
+                    '&[data-focus="true"]': {
+                      backgroundColor: theme.palette.primary.main
+                    },
+                    '&[aria-selected="true"]': {
+                      backgroundColor: theme.palette.primary.lightOpacity
+                    },
+                    '&[aria-selected="true"][data-focus="true"]': {
+                      backgroundColor: theme.palette.primary.main
                     }
                   }}
                 >
-                  {renderCustomerRow(option)}
-                </MenuItem>
-              </>
-            )}
+                  <Typography
+                    variant="h6"
+                    noWrap
+                    sx={{
+                      minWidth: 0,
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    {option?.name || walkInLabel}
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    noWrap
+                    sx={{
+                      minWidth: 0,
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    {option?.phone || '—'}
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    noWrap
+                    sx={{
+                      minWidth: 0,
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    {option?.email || '—'}
+                  </Typography>
+                </Box>
+              )
+            }}
             noOptionsText={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2, px: 1 }}>
                 <Icon icon="mdi:account-search" width={24} color={theme.palette.text.secondary} />
@@ -285,26 +344,30 @@ const CustomerAutocomplete = ({
                 </Typography>
               </Box>
             }
-            ListboxProps={{
-              sx: {
-                maxHeight: '300px',
-                '& .MuiAutocomplete-option': {
-                  padding: '8px 16px'
-                },
-                '& .MuiAutocomplete-noOptions': {
-                  padding: '16px'
-                },
-                '& .MuiAutocomplete-loading': {
-                  padding: '16px'
-                }
-              }
-            }}
+            slots={{ listbox: CustomerOptionsListbox }}
             PaperProps={{
               sx: {
                 borderRadius: '12px',
                 boxShadow: theme.shadows[8],
                 border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
-                mt: 1
+                mt: 1,
+                overflow: 'hidden'
+              }
+            }}
+            slotProps={{
+              popper: {
+                placement: 'bottom-start',
+                sx: {
+                  width: 'auto !important',
+                  minWidth: 520,
+                  maxWidth: 'min(760px, calc(100vw - 32px))'
+                }
+              },
+              listbox: {
+                sx: {
+                  maxHeight: 320,
+                  py: 0
+                }
               }
             }}
             isOptionEqualToValue={(option, value) => option._id === value._id}

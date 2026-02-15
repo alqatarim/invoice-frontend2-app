@@ -8,9 +8,7 @@ import {
      Tab,
      IconButton,
      Typography,
-     Box,
-     Alert,
-     Snackbar
+     Box
 } from '@mui/material'
 import TabPanel from '@mui/lab/TabPanel'
 import TabContext from '@mui/lab/TabContext'
@@ -21,6 +19,7 @@ import { Icon } from '@iconify/react'
 // Component Imports
 import CustomTabList from '@core/components/mui/TabList'
 import { settingsTabs } from '@/data/dataSets'
+import AppSnackbar from '@/components/shared/AppSnackbar'
 
 // Settings Components
 import AccountSettingsTab from './accountSettings/AccountSettingsTab'
@@ -236,22 +235,13 @@ const UnifiedSettingsIndex = ({ initialData = {} }) => {
                     </TabPanel>
                </TabContext>
 
-               {/* Global Snackbar */}
-               <Snackbar
+               <AppSnackbar
                     open={snackbar.open}
-                    autoHideDuration={6000}
+                    message={snackbar.message}
+                    severity={snackbar.severity}
                     onClose={handleSnackbarClose}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-               >
-                    <Alert
-                         onClose={handleSnackbarClose}
-                         severity={snackbar.severity}
-                         variant="filled"
-                         className="w-full"
-                    >
-                         {snackbar.message}
-                    </Alert>
-               </Snackbar>
+                    autoHideDuration={6000}
+               />
           </Box>
      )
 }

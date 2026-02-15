@@ -92,6 +92,7 @@ function CustomListTable({
   headerActions,
   title,
   onRowClick,
+  enableHover = true,
   getRowClassName,
   expandedRows = {},
   expandableRowRender,
@@ -233,9 +234,11 @@ function CustomListTable({
               {rows.map((row, rowIdx) => {
                 const key = rowKey ? rowKey(row, rowIdx) : rowIdx;
                 const isExpanded = expandedRows?.[row._id || key];
+                const shouldHover = Boolean(onRowClick || enableHover);
                 return (
                   <React.Fragment key={key}>
                     <TableRow
+                      hover={shouldHover}
                       className={classnames(
                         tableRowClassName,
                         getRowClassName ? getRowClassName(row, rowIdx) : '',
@@ -250,6 +253,14 @@ function CustomListTable({
                       }}
                       sx={{
                         transition: 'background-color 200ms ease',
+                        ...(shouldHover && {
+                          '&:hover': {
+                            backgroundColor: isExpanded ? expandedRowBackground : 'action.hover',
+                          },
+                        }),
+                        ...(onRowClick && {
+                          cursor: 'pointer',
+                        }),
                         // MUI pattern: remove bottom border from all children when expanded
                         ...(isExpanded && {
                           backgroundColor: expandedRowBackground,

@@ -1,18 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { 
   Alert, 
   Box, 
   CircularProgress,
-  IconButton,
-  Tooltip,
   Chip
 } from '@mui/material'
-import { Edit, Visibility, Delete } from '@mui/icons-material'
+import { Edit, Visibility, Delete, MoreVert } from '@mui/icons-material'
 import Link from 'next/link'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import { formatDate } from '@/utils/dateUtils'
+import OptionMenu from '@core/components/option-menu'
 
 const BankSettingsList = ({ 
   banks = [], 
@@ -25,6 +24,7 @@ const BankSettingsList = ({
   onClearError 
 }) => {
   const [selectedRows, setSelectedRows] = useState([])
+  const [searchTerm, setSearchTerm] = useState('')
 
   const columns = [
     {
@@ -74,42 +74,47 @@ const BankSettingsList = ({
     },
     {
       key: 'actions',
-      label: 'Actions',
+      label: '',
       visible: true,
-      renderCell: (row) => (
-        <Box display="flex" gap={1}>
-          <Tooltip title="View">
-            <IconButton
-              component={Link}
-              href={`/settings/bank-settings/view/${row._id}`}
-              size="small"
-              color="primary"
-            >
-              <Visibility fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Edit">
-            <IconButton
-              component={Link}
-              href={`/settings/bank-settings/edit/${row._id}`}
-              size="small"
-              color="primary"
-            >
-              <Edit fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              onClick={() => handleDelete([row._id])}
-              size="small"
-              color="error"
-              disabled={deleting}
-            >
-              <Delete fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )
+      renderCell: (row) => {
+        const menuOptions = [
+          {
+            text: 'View',
+            icon: <Visibility fontSize="small" />,
+            href: `/settings/bank-settings/view/${row._id}`,
+            linkProps: {
+              className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
+            }
+          },
+          {
+            text: 'Edit',
+            icon: <Edit fontSize="small" />,
+            href: `/settings/bank-settings/edit/${row._id}`,
+            linkProps: {
+              className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
+            }
+          },
+          {
+            text: 'Delete',
+            icon: <Delete fontSize="small" />,
+            menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+              disabled: deleting,
+              onClick: () => handleDelete([row._id])
+            }
+          }
+        ]
+
+        return (
+          <Box className="flex items-center justify-end">
+            <OptionMenu
+              icon={<MoreVert />}
+              iconButtonProps={{ size: 'small', 'aria-label': 'bank actions' }}
+              options={menuOptions}
+            />
+          </Box>
+        )
+      }
     }
   ]
 
@@ -135,6 +140,16 @@ const BankSettingsList = ({
     )
   }
 
+  const filteredBanks = useMemo(() => {
+    if (!searchTerm.trim()) return banks
+    const lowered = searchTerm.toLowerCase()
+    return banks.filter(bank =>
+      bank?.bankName?.toLowerCase().includes(lowered) ||
+      bank?.accountHolderName?.toLowerCase().includes(lowered) ||
+      bank?.accountNumber?.toLowerCase().includes(lowered)
+    )
+  }, [banks, searchTerm])
+
   return (
     <Box>
       {error && (
@@ -145,7 +160,7 @@ const BankSettingsList = ({
 
       <CustomListTable
         columns={columns}
-        rows={banks}
+        rows={filteredBanks}
         pagination={pagination}
         loading={loading}
         selectedRows={selectedRows}
@@ -154,6 +169,11 @@ const BankSettingsList = ({
         bulkDeleteLoading={deleting}
         emptyStateMessage="No bank accounts found. Add your first bank account to get started."
         rowKey={(row, index) => row?._id || row?.id || `bank-${index}`}
+        showSearch
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search banks..."
+        enableHover
       />
     </Box>
   )

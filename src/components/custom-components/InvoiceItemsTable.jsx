@@ -36,58 +36,66 @@ function InvoiceItemsTable({
   return (
     <Box>
       {rows.length > 0 ? (
-        <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-        <Table className={classnames(tableStyles.table, tableClassName)} sx={{ minWidth: 800 }} {...rest}>
-          <TableHead className={tableHeadClassName}>
-            <TableRow>
-              {columns.map(col => (
-                <TableCell
-                  key={col.key}
-                  align={col.align || 'left'}
-                  sx={{
-                    ...(col.minWidth && { minWidth: col.minWidth }),
-                    ...(col.width && { width: col.width }),
-                    padding: '8px 16px',
-                    '@media (max-width: 768px)': {
-                      padding: '6px 8px',
-                      fontSize: '0.875rem'
-                    }
-                  }}
-                  className={tableCellClassName}
-                >
-                  {col.label}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((row, rowIndex) => {
-              const key = rowKey ? rowKey(row, rowIndex) : rowIndex;
-              return (
-                <TableRow key={key} className={classnames(tableRowClassName)}>
-                  {columns.map(col => (
-                    <TableCell
-                      key={col.key}
-                      align={col.align || 'left'}
-                      sx={{
-                        ...(col.minWidth && { minWidth: col.minWidth }),
-                        ...(col.width && { width: col.width }),
-                        padding: '8px 16px',
-                        '@media (max-width: 768px)': {
-                          padding: '6px 8px',
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                      className={tableCellClassName}
-                    >
-                      {col.renderCell ? col.renderCell(row, rowIndex) : row[col.key]}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <TableContainer sx={{ overflowX: 'visible', maxWidth: '100%' }}>
+          <Table
+            className={classnames(tableStyles.table, tableClassName)}
+            sx={{ width: '100%', tableLayout: 'fixed' }}
+            {...rest}
+          >
+            <TableHead className={tableHeadClassName}>
+              <TableRow>
+                {columns.map(col => (
+                  <TableCell
+                    key={col.key}
+                    align={col.align || 'left'}
+                    sx={{
+                      ...(col.minWidth && { minWidth: col.minWidth }),
+                      ...(col.width && { width: col.width }),
+                      padding: '8px 16px',
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
+                      '@media (max-width: 768px)': {
+                        padding: '6px 8px',
+                        fontSize: '0.875rem'
+                      }
+                    }}
+                    className={tableCellClassName}
+                  >
+                    {col.label}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row, rowIndex) => {
+                const key = rowKey ? rowKey(row, rowIndex) : rowIndex;
+                return (
+                  <TableRow key={key} className={classnames(tableRowClassName)}>
+                    {columns.map(col => (
+                      <TableCell
+                        key={col.key}
+                        align={col.align || 'left'}
+                        sx={{
+                          ...(col.minWidth && { minWidth: col.minWidth }),
+                          ...(col.width && { width: col.width }),
+                          padding: '8px 16px',
+                          whiteSpace: 'normal',
+                          wordBreak: 'break-word',
+                          '@media (max-width: 768px)': {
+                            padding: '6px 8px',
+                            fontSize: '0.875rem'
+                          }
+                        }}
+                        className={tableCellClassName}
+                      >
+                        {col.renderCell ? col.renderCell(row, rowIndex) : row[col.key]}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </TableContainer>
       ) : (
         emptyContent || (

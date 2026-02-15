@@ -2,11 +2,10 @@
 import { VerticalNavProvider } from '@menu/contexts/verticalNavContext';
 import { SettingsProvider } from '@core/contexts/settingsContext';
 import ThemeProvider from '@components/theme';
-import AuthWrapper from '@/Auth/AuthWrapper';
+import SessionExpiryWatcher from '@/Auth/SessionExpiryWatcher';
 import { PermissionsProvider } from '@/Auth/PermissionsContext';
 import AppReactToastify from '@/libs/styles/AppReactToastify';
 import { getDemoName, getMode, getSettingsFromCookie, getSystemMode } from '@core/utils/serverHelpers'
-import { NextAuthProvider } from '@/Auth/nextAuthProvider';
 
 
 const Providers = ({ children, direction }) => {
@@ -16,8 +15,8 @@ const Providers = ({ children, direction }) => {
   const systemMode = getSystemMode();
 
   return (
-    <NextAuthProvider basePath={process.env.NEXTAUTH_BASEPATH}>
-      {/* <AuthWrapper> */}
+    <>
+      <SessionExpiryWatcher />
       <PermissionsProvider>
         <VerticalNavProvider>
           <SettingsProvider settingsCookie={settingsCookie} mode={mode} demoName={demoName}>
@@ -28,8 +27,7 @@ const Providers = ({ children, direction }) => {
           </SettingsProvider>
         </VerticalNavProvider>
       </PermissionsProvider>
-      {/* </AuthWrapper> */}
-    </NextAuthProvider>
+    </>
   );
 };
 

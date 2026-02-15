@@ -12,6 +12,7 @@ const StyledVerticalNav = styled.aside`
     inset-block-start: 0;
     block-size: 100dvh;
   `}
+  font-family: inherit;
   z-index: 9;
 
   /* Transition */

@@ -3,46 +3,60 @@ import { Icon } from '@iconify/react';
 import { Typography, Chip, IconButton, Box, Avatar, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { parseProductDescription } from '@/utils/productMeta';
+import { MoreVert as MoreVertIcon } from '@mui/icons-material';
+import OptionMenu from '@core/components/option-menu';
+import { actionButtons } from '@/data/dataSets';
 
 // Action cell extracted into its own component so hooks are used at the top level
 const ActionCell = ({ row, handlers, permissions }) => {
+  const viewAction = actionButtons.find(action => action.id === 'view');
+  const editAction = actionButtons.find(action => action.id === 'edit');
+  const deleteAction = actionButtons.find(action => action.id === 'delete');
+
+  const menuOptions = [];
+
+  if (permissions?.canView) {
+    menuOptions.push({
+      text: viewAction?.label || 'View',
+      icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleView?.(row._id)
+      }
+    });
+  }
+
+  if (permissions?.canUpdate) {
+    menuOptions.push({
+      text: editAction?.label || 'Edit',
+      icon: <Icon icon={editAction?.icon || 'mdi:edit-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleEdit?.(row._id)
+      }
+    });
+  }
+
+  if (permissions?.canDelete) {
+    menuOptions.push({
+      text: deleteAction?.label || 'Delete',
+      icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleDelete?.(row._id)
+      }
+    });
+  }
+
+  if (menuOptions.length === 0) return null;
+
   return (
-    <Box>
-      {/* View Button */}
-      {permissions?.canView && (
-        <IconButton
-          color='primary'
-          size="small"
-          onClick={() => handlers?.handleView?.(row._id)}
-          title='View'
-        >
-          <Icon icon='mdi:eye-outline' />
-        </IconButton>
-      )}
-
-      {/* Edit Button */}
-      {permissions?.canUpdate && (
-        <IconButton
-          size="small"
-          onClick={() => handlers?.handleEdit?.(row._id)}
-          title='Edit'
-          color="primary"
-        >
-          <Icon icon='mdi:edit-outline' />
-        </IconButton>
-      )}
-
-      {/* Delete Button */}
-      {permissions?.canDelete && (
-        <IconButton
-          size="small"
-          onClick={() => handlers.handleDelete(row._id)}
-          title='Delete'
-          color="error"
-        >
-          <Icon icon='mdi:delete-outline' />
-        </IconButton>
-      )}
+    <Box className='flex items-center justify-end'>
+      <OptionMenu
+        icon={<MoreVertIcon />}
+        iconButtonProps={{ size: 'small', 'aria-label': 'product actions' }}
+        options={menuOptions}
+      />
     </Box>
   );
 };

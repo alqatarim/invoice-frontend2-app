@@ -1,8 +1,8 @@
-import { calculateItemValues } from './itemCalculations';
+import { calculateItemValues } from './salesItemsCalc';
 
 /**
- * Calculate totals across all invoice items
- * @param {Array} items - Array of invoice items
+ * Calculate totals across all sales items
+ * @param {Array} items - Array of items
  * @returns {Object} Calculated totals
  */
 export function calculateTotals(items) {
@@ -13,13 +13,15 @@ export function calculateTotals(items) {
     total: 0,
     taxableAmount: 0
   };
+
   if (!Array.isArray(items) || items.length === 0) {
     return initialTotals;
   }
+
   return items.reduce((acc, item) => {
-    const { rate, discount, tax, amount, taxableAmount } = calculateItemValues(item);
+    const { lineSubtotal, discount, tax, amount, taxableAmount } = calculateItemValues(item);
     return {
-      subTotal: Number(acc.subTotal) + Number(rate),
+      subTotal: Number(acc.subTotal) + Number(lineSubtotal),
       totalDiscount: Number(acc.totalDiscount) + Number(discount),
       totalTax: Number(acc.totalTax) + Number(tax),
       total: Number(acc.total) + Number(amount),
@@ -29,8 +31,8 @@ export function calculateTotals(items) {
 }
 
 /**
- * Calculate invoice totals with rounding option
- * @param {Array} items - Array of invoice items
+ * Calculate totals with rounding option
+ * @param {Array} items - Array of items
  * @param {Boolean} shouldRoundOff - Whether to round the total amount
  * @returns {Object} Calculated totals
  */
@@ -41,31 +43,35 @@ export function calculateInvoiceTotals(items, shouldRoundOff) {
       totalDiscount: 0,
       vat: 0,
       TotalAmount: 0,
-      roundOffValue: 0,
+      roundOffValue: 0
     };
   }
-  const { taxableAmount, totalDiscount, vat } = items.reduce(
+
+  const { lineSubtotal, totalDiscount, vat } = items.reduce(
     (acc, item) => {
-      const { rate, discount, tax } = calculateItemValues(item);
+      const { lineSubtotal: lineTotal, discount, tax } = calculateItemValues(item);
       return {
-        taxableAmount: acc.taxableAmount + rate,
+        lineSubtotal: acc.lineSubtotal + lineTotal,
         totalDiscount: acc.totalDiscount + discount,
         vat: acc.vat + tax
       };
     },
-    { taxableAmount: 0, totalDiscount: 0, vat: 0 }
+    { lineSubtotal: 0, totalDiscount: 0, vat: 0 }
   );
-  let TotalAmount = taxableAmount - totalDiscount + vat;
+
+  let TotalAmount = lineSubtotal - totalDiscount + vat;
   let roundOffValue = 0;
+
   if (shouldRoundOff) {
     roundOffValue = Math.round(TotalAmount) - TotalAmount;
     TotalAmount = Math.round(TotalAmount);
   }
+
   return {
-    taxableAmount,
+    taxableAmount: lineSubtotal,
     totalDiscount,
     vat,
     TotalAmount,
-    roundOffValue,
+    roundOffValue
   };
 }

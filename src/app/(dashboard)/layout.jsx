@@ -18,11 +18,9 @@ import { getMode, getSystemMode } from '@core/utils/serverHelpers'
 
 
 const Layout = async ({ children, params }) => {
-  // const direction = i18n.langDirection[params.lang]
-  // const dictionary = await getDictionary(params.lang)
-
-  const direction = i18n.langDirection['en']
-  const dictionary = await getDictionary('en')
+  const lang = params?.lang || 'en'
+  const direction = i18n.langDirection[lang] || i18n.langDirection.en
+  const dictionary = await getDictionary(lang)
 
 
   const mode = getMode()
@@ -32,7 +30,7 @@ const Layout = async ({ children, params }) => {
 
     <Providers direction={direction}>
 
-      <AuthGuard locale={params.lang}>
+      <AuthGuard>
         <LayoutWrapper
           systemMode={systemMode}
           verticalLayout={

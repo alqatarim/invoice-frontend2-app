@@ -3,7 +3,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { useState, useEffect } from 'react';
 import { editSalesReturnSchema } from '@/views/salesReturn/SalesReturnSchema';
 import { paymentMethods } from '@/data/dataSets';
-import { calculateItemValues } from '@/utils/itemCalculations';
+import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 import { formatDateForInput } from '@/utils/dateUtils';
 import { useRouter } from 'next/navigation';
@@ -140,7 +140,6 @@ export default function useSalesReturnHandlers({
   // Item handlers
   const updateCalculatedFields = (index, values) => {
     const computed = calculateItemValues(values);
-    setValue(`items.${index}.rate`, computed.rate);
     setValue(`items.${index}.discount`, computed.discount);
     setValue(`items.${index}.tax`, computed.tax);
     setValue(`items.${index}.amount`, computed.amount);

@@ -1,5 +1,5 @@
 // import { sellCalculations } from './sellCalculations';
-import { calculateItemValues } from './itemCalculations';
+import { calculateItemValues } from './salesItemsCalc';
 
 // export const getItemValue = (item, formKey, originalKey) => {
 //   if (!item) return 0;
@@ -7,21 +7,20 @@ import { calculateItemValues } from './itemCalculations';
 // };
 
 export function renderDiscountCell(item) {
-  // Calculate the monetary discount value
   const { discount, discountValue, discountType } = calculateItemValues(item);
 
   return {
     mainValue: discountType === 2
       ? `${Number(discountValue || 0).toFixed(2)}%`
       : Number(discountValue || 0).toLocaleString('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }),
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }),
     secondaryValue: discountType === 2
       ? Number(discount || 0).toLocaleString('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }) + ' SAR'
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) + ' SAR'
       : null
   };
 }

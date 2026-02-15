@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
-import { Typography, Chip, Box, IconButton } from '@mui/material';
+import { Typography, Chip, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
 import { statusOptions, actionButtons, paymentMethodIcons } from '@/data/dataSets';
@@ -9,9 +9,33 @@ import { formatDate } from '@/utils/dateUtils';
 
 // Action cell extracted into its own component so hooks are used at the top level
 const ActionCell = ({ row, handlers, permissions }) => {
+  const viewAction = actionButtons.find(action => action.id === 'view');
+  const editAction = actionButtons.find(action => action.id === 'edit');
+  const deleteAction = actionButtons.find(action => action.id === 'delete');
+
   const menuOptions = [];
 
+  if (permissions?.canView) {
+    menuOptions.push({
+      text: viewAction?.label || 'View',
+      icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleView?.(row._id)
+      }
+    });
+  }
+
   if (permissions?.canUpdate) {
+    menuOptions.push({
+      text: editAction?.label || 'Edit',
+      icon: <Icon icon={editAction?.icon || 'mdi:edit-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleEdit?.(row._id)
+      }
+    });
+
     menuOptions.push({
       text: 'Print & Download',
       icon: <Icon icon="mdi:printer-outline" />,
@@ -22,53 +46,26 @@ const ActionCell = ({ row, handlers, permissions }) => {
     });
   }
 
+  if (permissions?.canDelete) {
+    menuOptions.push({
+      text: deleteAction?.label || 'Delete',
+      icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers.handleDelete?.(row._id)
+      }
+    });
+  }
+
+  if (menuOptions.length === 0) return null;
+
   return (
-    <Box className='flex items-center justify-end gap-1'>
-      {/* Direct action buttons */}
-      <Box className='flex gap-1' sx={{ display: 'flex', gap: 1 }}>
-        {permissions?.canView && (
-          <IconButton
-            size="small"
-            component={Link}
-            href={`/debitNotes/purchaseReturn-view/${row._id}`}
-            title={actionButtons.find(action => action.id === 'view')?.title || 'View'}
-            color={actionButtons.find(action => action.id === 'view')?.color || 'primary'}
-          >
-            <Icon icon={actionButtons.find(action => action.id === 'view')?.icon || 'mdi:eye-outline'} />
-          </IconButton>
-        )}
-        {permissions?.canUpdate && (
-          <IconButton
-            size="small"
-            component={Link}
-            href={`/debitNotes/purchaseReturn-edit/${row._id}`}
-            title={actionButtons.find(action => action.id === 'edit')?.title || 'Edit'}
-            color={actionButtons.find(action => action.id === 'edit')?.color || 'primary'}
-          >
-            <Icon icon={actionButtons.find(action => action.id === 'edit')?.icon || 'mdi:edit-outline'} />
-          </IconButton>
-        )}
-
-        {permissions?.canDelete && (
-          <IconButton
-            size="small"
-            title={actionButtons.find(action => action.id === 'delete')?.title || 'Delete'}
-            color={actionButtons.find(action => action.id === 'delete')?.color || 'primary'}
-            onClick={() => handlers.handleDelete?.(row._id)}
-          >
-            <Icon icon={actionButtons.find(action => action.id === 'delete')?.icon || 'mdi:delete-outline'} />
-          </IconButton>
-        )}
-      </Box>
-
-      {/* Menu for additional actions */}
-      {menuOptions.length > 0 && (
-        <OptionMenu
-          icon={<MoreVertIcon />}
-          iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
-          options={menuOptions}
-        />
-      )}
+    <Box className='flex items-center justify-end'>
+      <OptionMenu
+        icon={<MoreVertIcon />}
+        iconButtonProps={{ size: 'small', 'aria-label': 'debit note actions' }}
+        options={menuOptions}
+      />
     </Box>
   );
 };

@@ -2,6 +2,7 @@
 import styled from '@emotion/styled'
 
 const StyledMenuSectionLabel = styled.span`
+  font-family: inherit;
   ${({ textTruncate }) =>
     textTruncate &&
     `

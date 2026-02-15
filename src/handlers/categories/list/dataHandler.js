@@ -20,6 +20,7 @@ export function dataHandler({
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const loadingRef = useRef(false);
+  const hasInitialData = Array.isArray(initialCategories) && initialCategories.length > 0;
 
   // Use refs to access latest state values without causing re-renders
   const stateRef = useRef({
@@ -83,6 +84,14 @@ export function dataHandler({
       loadingRef.current = false;
     }
   }, [onError]);
+
+  useEffect(() => {
+    if (hasInitialData) return;
+    fetchData({
+      page: initialPagination?.current || 1,
+      pageSize: initialPagination?.pageSize || 10,
+    });
+  }, [fetchData, hasInitialData, initialPagination?.current, initialPagination?.pageSize]);
 
   // Pagination handlers expect zero-based page index from table
   const handlePageChange = useCallback((newPageZeroBased) => {

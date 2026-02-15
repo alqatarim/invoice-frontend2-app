@@ -52,6 +52,7 @@ export function useInvoiceListHandlers(options = {}) {
       loading: data.loading,
       sortBy: data.sortBy,
       sortDirection: data.sortDirection,
+      searchTerm: data.searchTerm,
 
       // Filter state
       filterValues: data.filterValues,
@@ -64,6 +65,7 @@ export function useInvoiceListHandlers(options = {}) {
     handlePageChange: data.handlePageChange,
     handlePageSizeChange: data.handlePageSizeChange,
     handleSortRequest: data.handleSortRequest,
+    handleSearchInputChange: data.handleSearchInputChange,
 
          // Filter handlers
      handleFilterValueChange: data.handleFilterValueChange,

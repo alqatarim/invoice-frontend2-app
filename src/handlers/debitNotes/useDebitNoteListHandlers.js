@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { deleteDebitNote, cloneDebitNote } from '@/app/(dashboard)/debitNotes/actions';
+import React, { useState, useCallback, useEffect } from 'react';
+import { deleteDebitNote, cloneDebitNote, getDebitNotesList } from '@/app/(dashboard)/debitNotes/actions';
 
 export function useDebitNoteListHandlers({
   initialDebitNotes,
@@ -115,14 +115,41 @@ export function useDebitNoteListHandlers({
     onSuccess('Convert functionality not implemented yet');
   }, [onSuccess]);
 
+  const fetchDebitNotes = useCallback(async (page = pagination.current, pageSize = pagination.pageSize) => {
+    try {
+      setLoading(true);
+      const response = await getDebitNotesList(page, pageSize);
+      if (response.success) {
+        setDebitNotes(response.data || []);
+        setPagination({
+          current: page,
+          pageSize,
+          total: response.totalRecords || 0
+        });
+      } else {
+        onError(response.message || 'Failed to fetch debit notes');
+      }
+    } catch (error) {
+      onError(error.message || 'Failed to fetch debit notes');
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination.current, pagination.pageSize, onError]);
+
   // Pagination handlers
-  const handlePageChange = useCallback((page) => {
-    setPagination(prev => ({ ...prev, current: page + 1 }));
-  }, []);
+  const handlePageChange = useCallback((pageZeroBased) => {
+    const nextPage = Number(pageZeroBased) + 1;
+    if (!Number.isFinite(nextPage)) return;
+    setPagination(prev => ({ ...prev, current: nextPage }));
+    fetchDebitNotes(nextPage, pagination.pageSize);
+  }, [fetchDebitNotes, pagination.pageSize]);
 
   const handlePageSizeChange = useCallback((pageSize) => {
-    setPagination(prev => ({ ...prev, pageSize, current: 1 }));
-  }, []);
+    const nextSize = Number(pageSize);
+    if (!Number.isFinite(nextSize)) return;
+    setPagination(prev => ({ ...prev, pageSize: nextSize, current: 1 }));
+    fetchDebitNotes(1, nextSize);
+  }, [fetchDebitNotes]);
 
   // Sorting handler
   const handleSortRequest = useCallback((property, direction) => {
@@ -134,6 +161,11 @@ export function useDebitNoteListHandlers({
   const handleSearchInputChange = useCallback((searchValue) => {
     setSearchTerm(searchValue);
   }, []);
+
+  useEffect(() => {
+    if ((initialDebitNotes || []).length > 0) return;
+    fetchDebitNotes(1, pagination.pageSize);
+  }, [fetchDebitNotes, initialDebitNotes, pagination.pageSize]);
 
   return {
     // Data

@@ -36,12 +36,13 @@ export async function getInitialDeliveryChallanData() {
 
     if (response.code === 200) {
       const deliveryChallans = response.data || [];
+      const total = response.totalRecords || deliveryChallans.length;
       return {
         deliveryChallans,
         pagination: {
           current: 1,
           pageSize: 10,
-          total: deliveryChallans.length,
+          total,
         },
         cardCounts: {
           all: deliveryChallans.length,
@@ -103,13 +104,14 @@ export async function getFilteredDeliveryChallans(tab, page, pageSize, filters =
 
     if (response.code === 200) {
       const deliveryChallans = response.data || [];
+      const total = response.totalRecords || deliveryChallans.length;
 
       return {
         deliveryChallans,
         pagination: {
           current: page,
           pageSize,
-          total: deliveryChallans.length,
+          total,
         },
       };
     } else {

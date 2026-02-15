@@ -4,10 +4,11 @@ import React from 'react'
 import { Button, Box, Typography, TextField, IconButton, CircularProgress, Menu, MenuItem, FormControl, Grid, InputAdornment, ButtonGroup } from '@mui/material'
 import { Icon } from '@iconify/react'
 import { formatDate } from '@/utils/dateUtils'
-import CustomButton from '@core/components/mui/CustomIconButton'
 import CustomIconButton from '@core/components/mui/CustomIconButtonTwo'
 import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton'
 import { ROLE_ICONS } from '@/data/dataSets'
+import OptionMenu from '@core/components/option-menu'
+import { MoreVert as MoreVertIcon } from '@mui/icons-material'
 
 const rolesColumns = ({ 
   handleViewPermissions, 
@@ -218,24 +219,29 @@ const rolesColumns = ({
     },
     {
       key: 'action',
-      label: 'Actions',
+      label: '',
       visible: true,
       align: 'right',
       renderCell: (row) => {
-        return (
-          <CustomButton
-            variant="tonal"
-            color="primary"
-            size="small"
-            skin="lighter"
-            onClick={() => handleViewPermissions?.(row?._id)}
+        const menuOptions = [
+          {
+            text: 'Permissions',
+            icon: <Icon icon="mdi:key" />,
+            menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+              onClick: () => handleViewPermissions?.(row?._id)
+            }
+          }
+        ]
 
-          >
-            <Box className='flex items-center gap-3 px-1'>
-              <Icon icon="mdi:key" />
-              <Typography variant="h6" color='primary' className='text-[0.9rem]'>Permissions</Typography>
-            </Box>
-          </CustomButton>
+        return (
+          <Box className='flex items-center justify-end'>
+            <OptionMenu
+              icon={<MoreVertIcon />}
+              iconButtonProps={{ size: 'small', 'aria-label': 'role actions' }}
+              options={menuOptions}
+            />
+          </Box>
         )
       },
     }

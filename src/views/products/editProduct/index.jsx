@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Snackbar, Alert } from '@mui/material';
+import AppSnackbar from '@/components/shared/AppSnackbar';
 import EditProductDialog from './EditProductDialog';
 import { updateProduct } from '@/app/(dashboard)/products/actions';
 
@@ -41,21 +41,13 @@ const EditProductPage = ({ id }) => {
         onClose={handleClose}
         onSave={handleSave}
       />
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </>
   );
 };

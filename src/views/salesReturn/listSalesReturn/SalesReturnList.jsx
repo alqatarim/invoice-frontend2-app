@@ -2,12 +2,13 @@
 
 import React, { useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { Snackbar, Alert, useTheme, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Box, Typography } from '@mui/material'
+import { useTheme, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Box, Typography } from '@mui/material'
 import { Icon } from '@iconify/react'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import { getSalesReturnColumns } from './salesReturnColumns'
 import { usePermission } from '@/Auth/usePermission'
 import { useSalesReturnListHandlers } from '@/handlers/salesReturn/list/useSalesReturnListHandlers'
+import AppSnackbar from '@/components/shared/AppSnackbar'
 
 /**
  * SalesReturnList Component - Now using customer pattern with proper search integration
@@ -136,13 +137,19 @@ const SalesReturnList = ({
           pageSize: handlers.pagination.pageSize,
           total: handlers.pagination.total,
         }}
-        onPageChange={(newPage) => handlers.handlePageChange(newPage + 1)}
+        onPageChange={handlers.handlePageChange}
         onRowsPerPageChange={handlers.handlePageSizeChange}
         onSort={handlers.handleSortChange}
         sortBy={handlers.sortBy}
         sortDirection={handlers.sortDirection}
         noDataText='No sales returns found.'
         rowKey={row => row._id || row.id}
+        onRowClick={
+          permissions.canView
+            ? (row) => handlers.handleView(row._id)
+            : undefined
+        }
+        enableHover
       />
 
       {/* Delete Confirmation Dialog */}
@@ -168,17 +175,13 @@ const SalesReturnList = ({
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </Box>
   )
 }

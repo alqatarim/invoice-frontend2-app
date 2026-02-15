@@ -3,6 +3,7 @@ import styled from '@emotion/styled'
 
 const StyledMenuLabel = styled.span`
   flex-grow: 1;
+  font-family: inherit;
   ${({ textTruncate }) =>
     textTruncate &&
     `

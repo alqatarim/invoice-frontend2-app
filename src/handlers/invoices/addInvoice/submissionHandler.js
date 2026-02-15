@@ -11,9 +11,14 @@ export function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, 
 
       const currentFormData = data;
       if (currentFormData) {
+        const resolvedCustomerId =
+          currentFormData.customerId && currentFormData.customerId !== 'walk-in'
+            ? currentFormData.customerId
+            : '';
+
         // Create plain object instead of FormData since addInvoice function handles FormData creation
         const invoiceData = {
-          customerId: currentFormData.customerId,
+          customerId: resolvedCustomerId,
           payment_method: currentFormData.payment_method,
           taxableAmount: currentFormData.taxableAmount,
           vat: currentFormData.vat,
@@ -27,6 +32,10 @@ export function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, 
           notes: currentFormData.notes || '',
           bank: currentFormData.bank || '',
           termsAndCondition: currentFormData.termsAndCondition || '',
+          posMode: Boolean(currentFormData.posMode),
+          isWalkIn: Boolean(currentFormData.isWalkIn),
+          tenderedAmount: currentFormData.tenderedAmount || 0,
+          changeAmount: currentFormData.changeAmount || 0,
           sign_type: currentFormData.sign_type || 'manualSignature',
           signatureName: currentFormData.signatureName || '',
           signatureId: currentFormData.signatureId || '',

@@ -42,20 +42,45 @@ const CardWidgetsSalesOverview = ({
 	// Hooks
 	const theme = useTheme();
 
-	const hasData = (amounts || []).some((val) => Number(val) > 0);
+	const safeAmounts = (amounts || []).map((val) => Number(val) || 0);
+	const safeLabels = labels || [];
+	const hasData = safeAmounts.some((val) => val > 0);
 
 	// Precompute status data for mapping, with safe fallbacks
-	const statusData = (labels || []).map((label, idx) => {
+	const statusData = safeLabels.map((label, idx) => {
 		const option = statusOptions.find((opt) => opt.value === label) || {};
 		return {
 			label: option.label || label || `Status ${idx + 1}`,
 			icon: option.icon || "ri-circle-fill",
-			// color: option.color ? (theme.palette[option.color] || theme.palette.primary) : '#9f87ff',
-			color: option.color,
-			amount: amounts && amounts[idx] !== undefined ? amounts[idx] : 0,
+			color: option.color || "primary",
+			amount: safeAmounts[idx] || 0,
 			idx,
 		};
 	});
+
+	// Don't render chart if there's no data yet
+	if (!hasData || safeLabels.length === 0) {
+		return (
+			<Card>
+				<CardHeader
+					title="Invoices Overview"
+					action={
+						<OptionsMenu
+							iconClassName="text-textPrimary"
+							options={["Last 28 Days", "Last Month", "Last Year"]}
+						/>
+					}
+				/>
+				<CardContent>
+					<Box className="flex items-center justify-center h-64">
+						<Typography variant="body2" color="text.secondary">
+							Loading chart data...
+						</Typography>
+					</Box>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	const options = {
 		chart: {
@@ -70,18 +95,23 @@ const CardWidgetsSalesOverview = ({
 			},
 		},
 
-		colors: labels.map((label) => {
-			return (
-				theme.palette[
-					statusOptions.find((option) => option.value === label).color
-				].light || theme.palette.primary.light
-			);
+		colors: safeLabels.map((label) => {
+			const found = statusOptions.find((option) => option.value === label);
+			if (found && theme.palette[found.color]) {
+				return theme.palette[found.color].light;
+			}
+			return theme.palette.primary.light;
 		}),
 		stroke: { width: 0 },
 		legend: { show: false },
-		tooltip: { theme: "false" },
+		tooltip: {
+			theme: "false",
+			y: {
+				formatter: (value) => Number(value).toFixed(0),
+			},
+		},
 		dataLabels: { enabled: false },
-		labels: labels,
+		labels: safeLabels,
 		states: {
 			hover: {
 				filter: { type: "none" },
@@ -153,21 +183,42 @@ const CardWidgetsSalesOverview = ({
 			<CardContent>
 				<Grid container className="flex flex-col justify-between items-center">
 					<Grid size={{ xs: "12" }}>
-						<AppReactApexCharts
-							type="donut"
-							width={width}
-							height={height}
-							series={amounts}
-							options={options}
-						/>
+						<Box
+							sx={{
+								"& .apexcharts-tooltip": {
+									background: "var(--mui-palette-background-paper) !important",
+									color: "var(--mui-palette-text-primary) !important",
+									// border: "1px solid var(--mui-palette-divider) !important",
+									// borderRadius: "8px",
+									// boxShadow: theme.shadows[6],
+								},
+								"& .apexcharts-tooltip-title": {
+									background: "var(--mui-palette-background-default) !important",
+									color: "var(--mui-palette-text-secondary) !important",
+									borderBottom: "1px solid var(--mui-palette-divider) !important",
+								},
+								"& .apexcharts-tooltip-text, & .apexcharts-tooltip-text-y-label, & .apexcharts-tooltip-text-y-value":
+								{
+									color: "var(--mui-palette-text-primary) !important",
+								},
+							}}
+						>
+							<AppReactApexCharts
+								type="donut"
+								width={width}
+								height={height}
+								series={safeAmounts}
+								options={options}
+							/>
+						</Box>
 					</Grid>
 					<Grid size={{ xs: "12" }}>
 						<Divider className="mlb-6" />
-						<Grid container className="flex flex-row justify-start gap-1">
-							<Grid size={{ xs: 6, md: 3.5 }} className="">
-								<Box className="flex items-center gap-2 mbe-1">
+						<Box className="flex flex-row justify-evenly gap-y-6 space-x-8 items-center flex-wrap">
+							<Box className="flex flex-col justify-start items-center gap-1 flex-wrap">
+								< Box className="flex flex-row items-center gap-2" >
 									<CustomAvatar
-										size="2.35rem"
+										size={30}
 										skin="light"
 										color="primary"
 										variant="rounded"
@@ -175,7 +226,7 @@ const CardWidgetsSalesOverview = ({
 										<Icon
 											icon={"mdi:invoice-text-outline"}
 											color={theme.palette.primary}
-											width={30}
+											width={20}
 										/>
 									</CustomAvatar>
 
@@ -183,27 +234,24 @@ const CardWidgetsSalesOverview = ({
 										Total
 									</Typography>
 								</Box>
-							<Box className="flex items-center flex-row gap-1">
-								<Icon
-									icon="lucide:saudi-riyal"
-									width="17px"
-									color={theme.palette.secondary.light}
-								/>
-								<Typography className="text-textPrimary font-medium text-[15.5px]">
-									{Number(amounts.reduce((a, b) => a + b, 0)).toFixed(2)}
-								</Typography>
+								<Box className="flex items-center flex-row gap-1">
+									<Icon
+										icon="lucide:saudi-riyal"
+										width={15}
+										color={theme.palette.secondary.light}
+									/>
+									<Typography variant='h6' className="text-[0.95rem]">
+										{Number(safeAmounts.reduce((a, b) => a + b, 0)).toFixed(2)}
+									</Typography>
+								</Box>
 							</Box>
-							</Grid>
+
 
 							{statusData.map((status, i) => (
-								<Grid
-									size={{ xs: 6, md: 3.5 }}
-									key={status.label + i}
-									className=""
-								>
-									<Box className="flex items-center gap-2 mbe-1">
+								<Box className="flex flex-col justify-start gap-1 flex-wrap">
+									< Box className="flex flex-row items-center gap-2" >
 										<CustomAvatar
-											size="2.35rem"
+											size={30}
 											skin="light"
 											color={status.color}
 											variant="rounded"
@@ -211,31 +259,34 @@ const CardWidgetsSalesOverview = ({
 											<Icon
 												icon={status.icon}
 												color={status.color}
-												width={30}
+												width={20}
 											/>
 										</CustomAvatar>
 
-										<Typography variant="body2" className="text-[0.9rem]">
+										<Typography variant="body2" className="text-[0.87rem]">
 											{status.label}
 										</Typography>
 									</Box>
-								<Box className="flex items-center flex-row gap-1">
-									<Icon
-										icon="lucide:saudi-riyal"
-										width="17px"
-										color={theme.palette.secondary.light}
-									/>
-									<Typography className="text-textPrimary font-medium text-[15.5px]">
-										{Number(status.amount).toFixed(2)}
-									</Typography>
+									<Box key={status.label + i} className="flex items-center flex-row gap-1">
+										<Icon
+											icon="lucide:saudi-riyal"
+											width={15}
+											color={theme.palette.secondary.light}
+										/>
+										<Typography variant='h6' className="text-[0.95rem]">
+											{Number(status.amount).toFixed(2)}
+										</Typography>
+									</Box>
+
 								</Box>
-								</Grid>
+
 							))}
-						</Grid>
+
+						</Box>
 					</Grid>
 				</Grid>
-			</CardContent>
-		</Card>
+			</CardContent >
+		</Card >
 	);
 };
 

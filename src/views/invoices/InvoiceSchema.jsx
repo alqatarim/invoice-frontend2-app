@@ -10,9 +10,17 @@ dayjs.extend(isSameOrAfter);
 export const InvoiceSchema = yup.object().shape({
 
 
+  isWalkIn: yup
+    .boolean()
+    .default(false),
+
   customerId: yup
     .string()
-    .required("Choose a customer"),
+    .when('isWalkIn', {
+      is: true,
+      then: yup.string().nullable(),
+      otherwise: yup.string().required("Choose a customer")
+    }),
 
   payment_method: yup
     .string()
@@ -25,7 +33,7 @@ export const InvoiceSchema = yup.object().shape({
     .test(
       'not-future',
       'Date cannot be in the future',
-      function(value) {
+      function (value) {
         if (!value) return true;
         const today = dayjs().startOf('day');
         const selectedDate = dayjs(value).startOf('day');
@@ -40,7 +48,7 @@ export const InvoiceSchema = yup.object().shape({
     .test(
       'is-after-invoice',
       'Due date must be on or after invoice date',
-      function(value) {
+      function (value) {
         const invoiceDate = this.parent.invoiceDate;
         if (!invoiceDate || !value) return true;
 
@@ -56,15 +64,25 @@ export const InvoiceSchema = yup.object().shape({
     .nullable()
     .trim(),
 
+  posMode: yup
+    .boolean()
+    .default(false),
+
   sign_type: yup
     .string()
-    .required("Choose signature type")
-    .oneOf(['eSignature', 'manualSignature'], 'Invalid signature type'),
+    .when('posMode', {
+      is: true,
+      then: yup.string().nullable(),
+      otherwise: yup
+        .string()
+        .required("Choose signature type")
+        .oneOf(['eSignature', 'manualSignature'], 'Invalid signature type')
+    }),
 
   signatureName: yup
     .string()
-    .when('sign_type', {
-      is: 'eSignature',
+    .when(['sign_type', 'posMode'], {
+      is: (sign_type, posMode) => sign_type === 'eSignature' && !posMode,
       then: yup.string()
         .required('Enter signature name')
         .min(2, 'Signature name must be at least 2 characters')
@@ -74,16 +92,16 @@ export const InvoiceSchema = yup.object().shape({
 
   signatureImage: yup
     .mixed()
-    .when('sign_type', {
-      is: 'eSignature',
+    .when(['sign_type', 'posMode'], {
+      is: (sign_type, posMode) => sign_type === 'eSignature' && !posMode,
       then: yup.mixed().required('Draw your signature'),
       otherwise: yup.mixed().nullable()
     }),
 
   signatureId: yup
     .mixed()
-    .when('sign_type', {
-      is: 'manualSignature',
+    .when(['sign_type', 'posMode'], {
+      is: (sign_type, posMode) => sign_type === 'manualSignature' && !posMode,
       then: yup.string().required('Select a signature'),
       otherwise: yup.mixed().nullable()
     }),
@@ -122,6 +140,7 @@ export const InvoiceSchema = yup.object().shape({
           .number()
           .min(0, "Amount must be positive")
           .typeError("Amount must be a number"),
+        sku: yup.string().nullable(),
         units: yup.string().nullable(),
         unit: yup.string().nullable(),
         taxInfo: yup.mixed().nullable()

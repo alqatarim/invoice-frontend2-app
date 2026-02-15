@@ -9,6 +9,7 @@ const navigationCustomStyles = (verticalNavOptions, theme) => {
 
   return {
     color: 'var(--mui-palette-text-primary)',
+    fontFamily: 'var(--mui-fontFamily, inherit)',
     zIndex: 'var(--drawer-z-index) !important',
     [`& .${verticalNavClasses.header}`]: {
       paddingBlock: theme.spacing(5),

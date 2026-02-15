@@ -89,11 +89,13 @@ export const useDataHandler = ({
      }, [onError])
 
      // Handle pagination change - only fetch if needed
-     const handlePageChange = useCallback((newPage) => {
-          setPagination(prev => ({ ...prev, current: newPage }))
+     const handlePageChange = useCallback((newPageZeroBased) => {
+          const nextPage = Number(newPageZeroBased) + 1
+          if (!Number.isFinite(nextPage)) return
+          setPagination(prev => ({ ...prev, current: nextPage }))
           // Only fetch if we need more data than what's available locally
-          if (newPage > 1 || searchTerm) {
-               fetchSalesReturns({ page: newPage })
+          if (nextPage > 1 || searchTerm) {
+               fetchSalesReturns({ page: nextPage })
           }
      }, [fetchSalesReturns, searchTerm])
 

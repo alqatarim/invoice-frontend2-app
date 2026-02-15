@@ -11,7 +11,7 @@ export function useInvoiceFormSubmission({ trigger, closeSnackbar, enqueueSnackb
       const currentFormData = data;
       if (currentFormData) {
         const updatedFormData = {
-          customerId: currentFormData.customerId,
+          customerId: currentFormData.isWalkIn ? '' : currentFormData.customerId,
           payment_method: currentFormData.payment_method,
           taxableAmount: currentFormData.taxableAmount,
           vat: currentFormData.vat,
@@ -25,6 +25,10 @@ export function useInvoiceFormSubmission({ trigger, closeSnackbar, enqueueSnackb
           notes: currentFormData.notes,
           bank: currentFormData.bank,
           termsAndCondition: currentFormData.termsAndCondition,
+          posMode: Boolean(currentFormData.posMode),
+          isWalkIn: Boolean(currentFormData.isWalkIn),
+          tenderedAmount: currentFormData.tenderedAmount || 0,
+          changeAmount: currentFormData.changeAmount || 0,
           items: currentFormData.items.map((item) => ({
             productId: item.productId,
             name: item.name,

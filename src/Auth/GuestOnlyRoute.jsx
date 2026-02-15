@@ -4,17 +4,16 @@ import { redirect } from 'next/navigation'
 // Third-party Imports
 import { getServerSession } from 'next-auth'
 
-// Config Imports
-import themeConfig from '@configs/themeConfig'
+// Auth Imports
+import { authOptions } from '@/Auth/auth'
+import { isTokenExpired } from '@/Auth/tokenUtils'
 
-// Util Imports
-import { getLocalizedUrl } from '@/utils/i18n'
+const GuestOnlyRoute = async ({ children }) => {
+  const session = await getServerSession(authOptions)
+  const token = session?.user?.token
 
-const GuestOnlyRoute = async ({ children, lang }) => {
-  const session = await getServerSession()
-
-  if (session) {
-    redirect(themeConfig.homePageUrl)
+  if (token && !isTokenExpired(token)) {
+    redirect('/dashboard')
   }
 
   return <>{children}</>

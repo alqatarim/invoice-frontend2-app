@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
-import { Typography, Chip, LinearProgress, IconButton, Box } from '@mui/material';
+import { Typography, Chip, LinearProgress, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
 import { statusOptions } from '@/data/dataSets';
@@ -47,27 +47,33 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     sortable: true,
     align: 'center',
     renderCell: (row) => (
-
-
       <Box className="flex justify-between items-start flex-col gap-1">
-        <Link href={`/customers/customer-view/${row.customerId?._id}`} passHref>
+        {row.isWalkIn || !row.customerId?._id ? (
           <Typography
             variant="body1"
-            className='text-[0.95rem] text-start cursor-pointer text-primary hover:underline'
+            className='text-[0.95rem] text-start text-primary'
           >
-            {row.customerId?.name || 'N/A'}
+            Walk-in Customer
           </Typography>
-        </Link>
+        ) : (
+          <Link href={`/customers/customer-view/${row.customerId?._id}`} passHref>
+            <Typography
+              variant="body1"
+              className='text-[0.95rem] text-start cursor-pointer text-primary hover:underline'
+            >
+              {row.customerId?.name || 'N/A'}
+            </Typography>
+          </Link>
+        )}
         <Typography
           variant="caption"
           color="text.secondary"
           className='text-[0.85rem] truncate select-text'
           sx={{ userSelect: 'text', cursor: 'text' }}
         >
-          {row.customerId?.phone || 'N/A'}
+          {row.isWalkIn ? '—' : row.customerId?.phone || 'N/A'}
         </Typography>
       </Box>
-
     ),
   },
   {
@@ -136,6 +142,18 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
 
       const menuOptions = [];
 
+      if (permissions.canUpdate) {
+        const editAction = actionButtons.find(action => action.id === 'edit');
+        menuOptions.push({
+          text: editAction?.label || 'Edit',
+          icon: <Icon icon={editAction?.icon || 'line-md:edit'} />,
+          href: `/invoices/edit/${row._id}`,
+          linkProps: {
+            className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
+          }
+        });
+      }
+
       // Add additional menu options (not view/edit)
       if (permissions.canCreate) {
         menuOptions.push({
@@ -188,44 +206,15 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
         });
       }
 
-      return (
-        <Box className='flex items-center justify-end gap-1' >
-          {/* Direct action buttons */}
-          <Box className='flex gap-1' sx={{ display: 'flex', gap: 1 }}>
-            {permissions.canView && (
-              <IconButton
-                size="small"
-                component={Link}
-                href={`/invoices/invoice-view/${row._id}`}
-                title={actionButtons.find(action => action.id === 'view').title}
-                color={actionButtons.find(action => action.id === 'view').color}
-              >
-                <Icon icon={actionButtons.find(action => action.id === 'view').icon} />
-              </IconButton>
-            )}
-            {permissions.canUpdate && (
-              <IconButton
-                size="small"
-                component={Link}
-                href={`/invoices/edit/${row._id}`}
-                title={actionButtons.find(action => action.id === 'edit').title}
-                color={actionButtons.find(action => action.id === 'edit').color}
-              >
-                <Icon icon={actionButtons.find(action => action.id === 'edit').icon} />
-              </IconButton>
-            )}
-          </Box>
-
-          {/* Menu for additional actions */}
-          {menuOptions.length > 0 && (
-            <OptionMenu
-              icon={<MoreVertIcon />}
-              iconButtonProps={{ size: 'small', 'aria-label': 'more actions' }}
-              options={menuOptions}
-            />
-          )}
+      return menuOptions.length > 0 ? (
+        <Box className='flex items-center justify-end' >
+          <OptionMenu
+            icon={<MoreVertIcon />}
+            iconButtonProps={{ size: 'small', 'aria-label': 'invoice actions' }}
+            options={menuOptions}
+          />
         </Box>
-      );
+      ) : null;
     },
   },
 ];

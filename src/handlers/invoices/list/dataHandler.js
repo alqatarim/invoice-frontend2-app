@@ -25,6 +25,7 @@ export function dataHandler({
   const [invoices, setInvoices] = useState(initialInvoices);
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [sorting, setSorting] = useState({
     sortBy: initialSortBy,
     sortDirection: initialSortDirection
@@ -54,7 +55,8 @@ export function dataHandler({
       pageSize = pagination.pageSize,
       filters = filter.filterValues,
       sortBy = sorting.sortBy,
-      sortDirection = sorting.sortDirection
+      sortDirection = sorting.sortDirection,
+      search = searchTerm
     } = params;
 
     setLoading(true);
@@ -68,12 +70,14 @@ export function dataHandler({
         pageSize,
         filters,
         sortBy,
-        sortDirection
+        sortDirection,
+        search
       );
 
       setInvoices(newInvoices);
       setPagination(newPagination);
       setSorting({ sortBy, sortDirection });
+      setSearchTerm(search);
 
       // Update filter options with new data
       if (setCustomerOptions && newInvoices.length > 0) {
@@ -105,19 +109,26 @@ export function dataHandler({
     } finally {
       setLoading(false);
     }
-  }, [pagination, filter.filterValues, sorting, onError, setCustomerOptions, setInvoiceOptions]);
+  }, [pagination, filter.filterValues, sorting, searchTerm, onError, setCustomerOptions, setInvoiceOptions]);
 
-  const handlePageChange = useCallback((event, newPage) => 
+  // CustomListTable provides zero-indexed page
+  const handlePageChange = useCallback((newPage) =>
     fetchData({ page: newPage + 1 }), [fetchData]);
 
-  const handlePageSizeChange = useCallback(event => 
-    fetchData({ page: 1, pageSize: parseInt(event.target.value, 10) }), [fetchData]);
+  const handlePageSizeChange = useCallback((newPageSize) =>
+    fetchData({ page: 1, pageSize: Number(newPageSize) }), [fetchData]);
 
   const handleSortRequest = useCallback(columnKey => {
     const newDirection = sorting.sortBy === columnKey && sorting.sortDirection === 'asc' ? 'desc' : 'asc';
     fetchData({ page: 1, sortBy: columnKey, sortDirection: newDirection });
     return { sortBy: columnKey, sortDirection: newDirection };
   }, [sorting, fetchData]);
+
+  const handleSearchInputChange = useCallback((value) => {
+    const nextValue = String(value ?? '');
+    setSearchTerm(nextValue);
+    fetchData({ page: 1, search: nextValue });
+  }, [fetchData]);
 
   const handleFilterValueChange = useCallback((field, value) => {
     filter.updateFilter(field, value);
@@ -153,6 +164,7 @@ export function dataHandler({
     invoices,
     pagination,
     loading,
+    searchTerm,
     ...sorting,
 
     // Handlers
@@ -160,6 +172,7 @@ export function dataHandler({
     handlePageChange,
     handlePageSizeChange,
     handleSortRequest,
+    handleSearchInputChange,
     handleFilterValueChange,
     handleFilterApply,
     handleFilterReset,

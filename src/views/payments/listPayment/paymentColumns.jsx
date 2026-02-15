@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { Box, Typography, Avatar, Chip, IconButton } from '@mui/material';
+import { Box, Typography, Avatar, Chip } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { formatDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { useTheme } from '@mui/material/styles';
 import { actionButtons } from '@/data/dataSets';
+import OptionMenu from '@core/components/option-menu';
+import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 
 const getPaymentModeIcon = (mode) => {
   switch (mode) {
@@ -36,8 +38,9 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
       sortable: true,
       renderCell: (row, handlers) => (
         <Typography
-          variant="h6"
+          variant="body1"
           color="primary"
+          className="text-[0.9rem] font-medium"
           sx={{ cursor: 'pointer', textDecoration: 'none' }}
           onClick={() => handlers?.handleView?.(row._id)}
         >
@@ -62,14 +65,15 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
           <Box>
             <Typography
               color="primary.main"
-              variant="h6"
+              variant="body1"
+              className="text-[0.9rem] font-medium"
               component={Link}
               href={`/customers/customer-view/${row.customerDetail?._id}`}
               sx={{ textDecoration: 'none' }}
             >
               {row.customerDetail?.name || 'Deleted Customer'}
             </Typography>
-            <Typography variant="caption" display="block">
+            <Typography variant="caption" display="block" className="text-[0.8rem]">
               {row.customerDetail?.phone || 'Deleted Customer'}
             </Typography>
           </Box>
@@ -82,7 +86,9 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
       visible: true,
       sortable: true,
       renderCell: (row) => (
-        <Typography variant="body1">{formatCurrency(row.amount)}</Typography>
+        <Typography variant="body1" className="text-[0.9rem]">
+          {formatCurrency(row.amount)}
+        </Typography>
       ),
     },
     {
@@ -91,7 +97,9 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
       visible: true,
       sortable: true,
       renderCell: (row) => (
-        <Typography variant="body1">{formatDate(row.createdAt)}</Typography>
+        <Typography variant="body1" className="text-[0.9rem]">
+          {formatDate(row.createdAt)}
+        </Typography>
       ),
     },
     {
@@ -106,7 +114,9 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
             fontSize={23}
             color={theme.palette.secondary.main}
           />
-          <Typography variant="body1">{row.payment_method}</Typography>
+          <Typography variant="body1" className="text-[0.9rem]">
+            {row.payment_method}
+          </Typography>
         </Box>
       ),
     },
@@ -138,38 +148,59 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
     },
     {
       key: 'actions',
-      label: 'Actions',
+      label: '',
       visible: true,
       sortable: false,
       renderCell: (row, cellHandlers) => {
-        const menuOptions = actionButtons.filter(action => action.id !== 'view' && action.id !== 'edit');
+        const viewAction = actionButtons.find(action => action.id === 'view');
+        const editAction = actionButtons.find(action => action.id === 'edit');
+        const deleteAction = actionButtons.find(action => action.id === 'delete');
+        const permissions = cellHandlers?.permissions || {};
+
+        const menuOptions = [];
+
+        if (permissions.canView) {
+          menuOptions.push({
+            text: viewAction?.label || 'View',
+            icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
+            menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+              onClick: () => cellHandlers?.handleView?.(row._id)
+            }
+          });
+        }
+
+        if (permissions.canUpdate) {
+          menuOptions.push({
+            text: editAction?.label || 'Edit',
+            icon: <Icon icon={editAction?.icon || 'mdi:edit-outline'} />,
+            menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+              onClick: () => cellHandlers?.handleEdit?.(row._id)
+            }
+          });
+        }
+
+        if (permissions.canDelete && row.status !== 'Cancelled') {
+          menuOptions.push({
+            text: deleteAction?.label || 'Delete',
+            icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
+            menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+              onClick: () => cellHandlers?.handleDelete?.(row._id)
+            }
+          });
+        }
+
+        if (menuOptions.length === 0) return null;
 
         return (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <IconButton
-              size="small"
-              onClick={() => cellHandlers?.handleView?.(row._id)}
-              title={actionButtons.find(action => action.id === 'view').title}
-            >
-              <Icon icon={actionButtons.find(action => action.id === 'view').icon} />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => cellHandlers?.handleEdit?.(row._id)}
-              title={actionButtons.find(action => action.id === 'edit').title}
-            >
-              <Icon icon={actionButtons.find(action => action.id === 'edit').icon} />
-            </IconButton>
-            {row.status !== 'Cancelled' && (
-              <IconButton
-                size="small"
-                onClick={() => cellHandlers?.handleDelete?.(row._id)}
-                title={actionButtons.find(action => action.id === 'delete').title}
-                color={actionButtons.find(action => action.id === 'delete').color}
-              >
-                <Icon icon={actionButtons.find(action => action.id === 'delete').icon} />
-              </IconButton>
-            )}
+          <Box className='flex items-center justify-end'>
+            <OptionMenu
+              icon={<MoreVertIcon />}
+              iconButtonProps={{ size: 'small', 'aria-label': 'payment actions' }}
+              options={menuOptions}
+            />
           </Box>
         );
       },

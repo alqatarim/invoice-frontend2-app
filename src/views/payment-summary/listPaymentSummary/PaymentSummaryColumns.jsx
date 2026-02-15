@@ -9,18 +9,15 @@ import {
      Button,
      Card,
      Chip,
-     IconButton,
-     Menu,
-     MenuItem,
      Typography,
      useMediaQuery,
-     Grid,
-     Snackbar,
-     Alert
+     Grid
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { formatDate } from '@/utils/dateUtils';
 import { paymentSummaryStatus, paymentMethodIcons } from '@/data/dataSets';
+import OptionMenu from '@core/components/option-menu';
+import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 
 // Helper function to get status color
 const getStatusColor = (status) => {
@@ -35,7 +32,7 @@ const formatNumber = (value) => {
      return isNaN(num) ? '0.00' : Number(num).toFixed(2);
 };
 
-export const getPaymentSummaryColumns = (theme, handleActionClick) => [
+export const getPaymentSummaryColumns = ({ theme, permissions, onView, onExport, onPrint }) => [
      {
           key: 'payment_number',
           visible: true,
@@ -174,28 +171,55 @@ export const getPaymentSummaryColumns = (theme, handleActionClick) => [
      },
      {
           key: 'actions',
-          label: 'Actions',
+          label: '',
           visible: true,
-          align: 'center',
-          renderCell: (row) => (
-               <IconButton
-                    size="small"
-                    onClick={(e) => {
-                         e.stopPropagation();
-                         handleActionClick(e, row);
-                    }}
-                    sx={{
-                         borderRadius: '8px',
-                         backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                         color: 'primary.main',
-                         '&:hover': {
-                              backgroundColor: alpha(theme.palette.primary.main, 0.12),
+          align: 'right',
+          renderCell: (row) => {
+               const menuOptions = [];
+
+               if (permissions?.canView) {
+                    menuOptions.push({
+                         text: 'View',
+                         icon: <Icon icon="tabler:eye" />,
+                         menuItemProps: {
+                              className: 'flex items-center gap-2 text-textSecondary',
+                              onClick: () => onView?.(row)
                          }
-                    }}
-               >
-                    <Icon icon="tabler:dots-vertical" fontSize={20} />
-               </IconButton>
-          ),
+                    });
+               }
+
+               if (permissions?.canExport) {
+                    menuOptions.push({
+                         text: 'Export Details',
+                         icon: <Icon icon="tabler:download" />,
+                         menuItemProps: {
+                              className: 'flex items-center gap-2 text-textSecondary',
+                              onClick: () => onExport?.(row)
+                         }
+                    });
+               }
+
+               menuOptions.push({
+                    text: 'Print',
+                    icon: <Icon icon="tabler:printer" />,
+                    menuItemProps: {
+                         className: 'flex items-center gap-2 text-textSecondary',
+                         onClick: () => onPrint?.(row)
+                    }
+               });
+
+               if (menuOptions.length === 0) return null;
+
+               return (
+                    <Box className="flex items-center justify-end">
+                         <OptionMenu
+                              icon={<MoreVertIcon />}
+                              iconButtonProps={{ size: 'small', 'aria-label': 'payment summary actions' }}
+                              options={menuOptions}
+                         />
+                    </Box>
+               );
+          },
      }
 ];
 

@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { Snackbar, Alert, useTheme, Button, Card, CardContent, Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Popper, Fade, Paper, Typography, ClickAwayListener } from '@mui/material'
+import { useTheme, Button, Card, CardContent, Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Popper, Fade, Paper, Typography, ClickAwayListener } from '@mui/material'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import { AddCustomerDrawer } from '../addCustomer'
 import { getCustomerColumns } from './customerColumns'
 import { usePermission } from '@/Auth/usePermission'
 import { useCustomerListHandlers } from '@/handlers/customers/useCustomerListHandlers'
 import CustomerHead from '@/views/customers/listCustomer/customerHead'
+import AppSnackbar from '@/components/shared/AppSnackbar'
 
 /**
  * CustomerList Component - Now using TanStack Table like template with proper search integration
@@ -134,13 +135,19 @@ const CustomerList = ({
           pageSize: handlers.pagination.pageSize,
           total: handlers.pagination.total,
         }}
-        onPageChange={(newPage) => handlers.handlePageChange(newPage + 1)}
+        onPageChange={handlers.handlePageChange}
         onRowsPerPageChange={handlers.handlePageSizeChange}
         onSort={handlers.handleSortChange}
         sortBy={handlers.sortBy}
         sortDirection={handlers.sortDirection}
         noDataText='No customers found.'
         rowKey={row => row._id || row.id}
+        onRowClick={
+          permissions.canView
+            ? (row) => handlers.handleView(row)
+            : undefined
+        }
+        enableHover
       />
  
       <AddCustomerDrawer
@@ -239,17 +246,13 @@ const CustomerList = ({
         )}
       </Popper>
       
-      {/* Snackbar */}
-      <Snackbar
+      <AppSnackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        message={snackbar.message}
+        severity={snackbar.severity}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} className="w-full">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        autoHideDuration={6000}
+      />
     </Box>
   )
 }
