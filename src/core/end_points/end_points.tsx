@@ -116,7 +116,7 @@ export const expenses = {
   Delete: "/expense/deleteExpense",
 };
 
-export const downloadImageURL = "http://localhost:7005";
+export const downloadImageURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:7005";
 
 export const quotation = {
   Add: "/quotation/addQuotation",

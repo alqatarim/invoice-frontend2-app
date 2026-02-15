@@ -23,8 +23,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-#.env*.local
-#.env
+.env*.local
+.env
 
 # vercel
 .vercel
@@ -35,4 +35,5 @@ next-env.d.ts
 
 # IDE
 .idea
-.vscodenode_modules/
+.vscode
+node_modules/
