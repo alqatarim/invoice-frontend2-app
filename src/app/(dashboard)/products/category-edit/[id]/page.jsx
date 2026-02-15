@@ -1,5 +1,5 @@
 import React from 'react';
-import EditCategoryComponent from '@/views/products/editCategory/index';
+import EditCategoryComponent from '@/views/categories/editCategory/EditCategory';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
 const EditCategoryPage = async ({ params }) => {

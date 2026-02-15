@@ -1,6 +1,6 @@
 import { getPermissionsByRoleId } from '../../actions'
 import PermissionsViewIndex from '@/views/roles-permission/viewPermissions'
-import ProtectedComponent from '@/components/layout/Protected-Component/ProtectedComponent'
+import ProtectedComponent from '@/components/ProtectedComponent'
 
 export default async function PermissionsViewPage({ params }) {
   // Fetch permissions data server-side

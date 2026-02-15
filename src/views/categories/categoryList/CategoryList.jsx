@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';

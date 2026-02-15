@@ -1,5 +1,5 @@
 import React from 'react';
-import EditUnitComponent from '@/views/products/editUnit/index';
+import EditUnitComponent from '@/views/units/editUnit/EditUnit';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
 const EditUnitPage = async ({ params }) => {

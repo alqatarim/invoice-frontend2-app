@@ -1,7 +1,7 @@
 // app/invoices/page.jsx
 
 import React from 'react';
-import CategoryListComponent from '@/views/categories/CategoryList/index';
+import CategoryListComponent from '@/views/categories/categoryList/CategoryList';
 import ProtectedComponent from '@/components/ProtectedComponent';
 
 const CategoriesPage = async () => {
