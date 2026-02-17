@@ -14,11 +14,8 @@ import InvoiceView from '@/views/invoices/viewInvoice/index';
  */
 const InvoiceViewPage = async ({ params }) => {
   const { id } = params;
-
-
-
   return (
-    <InvoiceView id={params.id} />
+    <InvoiceView id={id} initialInvoiceData={await getInvoiceById(id)} />
   );
 }
 

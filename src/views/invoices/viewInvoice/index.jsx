@@ -1,23 +1,20 @@
 'use client';
 
-import { Box, Container, Paper, CircularProgress } from '@mui/material';
+import { Box, Container, Paper } from '@mui/material';
 import ViewInvoice from './ViewInvoice.jsx';
 import { useEffect, useState } from 'react';
 import { getInvoiceById } from '@/app/(dashboard)/invoices/actions';
 
-export default function ViewInvoiceComponent({ id }) {
-  const [invoiceData, setInvoiceData] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function ViewInvoiceComponent({ id, initialInvoiceData = null }) {
+  const [invoiceData, setInvoiceData] = useState(initialInvoiceData);
+  const [loading, setLoading] = useState(!initialInvoiceData);
   const [error, setError] = useState(null);
 
 
   const fetchInvoiceData = async (id) => {
-         console.log('My view invoice Data: ');
     setLoading(true);
     try {
       const response = await getInvoiceById(id);
-      console.log('My view invoice Data: ');
-      console.log(response);
       setInvoiceData(response);
       setError(null);
     } catch (error) {
@@ -30,13 +27,10 @@ export default function ViewInvoiceComponent({ id }) {
   };
 
   useEffect(() => {
-    console.log('useEffect triggered with id:', id);
-    if (id) {
+    if (!initialInvoiceData && id) {
       fetchInvoiceData(id);
-    } else {
-      console.warn('No id provided to fetch invoice data');
     }
-  }, [id]);
+  }, [id, initialInvoiceData]);
 
   if (error) {
     return (

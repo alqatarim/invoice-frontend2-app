@@ -37,8 +37,22 @@ export function dataHandler({
 
   // Initialize filter options on mount
   useEffect(() => {
-    if (setCustomerOptions && initialCustomers.length > 0) {
-      setCustomerOptions(initialCustomers.map(c => ({ value: c._id, label: c.name })));
+    if (setCustomerOptions) {
+      if (initialCustomers.length > 0) {
+        setCustomerOptions(initialCustomers.map(c => ({ value: c._id, label: c.name })));
+      } else if (initialInvoices.length > 0) {
+        const customerMap = new Map();
+        initialInvoices.forEach(inv => {
+          const customer = inv?.customerId;
+          if (customer?._id && !customerMap.has(customer._id)) {
+            customerMap.set(customer._id, {
+              value: customer._id,
+              label: customer.name || 'N/A'
+            });
+          }
+        });
+        setCustomerOptions(Array.from(customerMap.values()));
+      }
     }
     if (setInvoiceOptions && initialInvoices.length > 0) {
       setInvoiceOptions(

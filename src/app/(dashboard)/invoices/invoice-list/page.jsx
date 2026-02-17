@@ -2,7 +2,7 @@
 
 import React from 'react';
 import InvoiceListIndex from '@/views/invoices/invoiceList/index';
-import { getInitialInvoiceData, searchCustomers } from '@/app/(dashboard)/invoices/actions';
+import { getInitialInvoiceData } from '@/app/(dashboard)/invoices/actions';
 
 /**
  * InvoicesPage Component
@@ -11,16 +11,13 @@ import { getInitialInvoiceData, searchCustomers } from '@/app/(dashboard)/invoic
  * @returns JSX.Element
  */
 const InvoicesPage = async () => {
-  // Fetch initial invoice data and customers separately on the server
-  const [initialData, customers] = await Promise.all([
-    getInitialInvoiceData(),
-    searchCustomers('') // Get all customers by passing empty search term
-  ]);
+  // Fetch only critical list data for faster first render.
+  const initialData = await getInitialInvoiceData();
 
   return (
-    <InvoiceListIndex 
-      initialData={initialData} 
-      initialCustomers={customers}
+    <InvoiceListIndex
+      initialData={initialData}
+      initialCustomers={[]}
     />
   );
 };

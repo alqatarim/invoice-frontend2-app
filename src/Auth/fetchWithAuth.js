@@ -122,24 +122,14 @@ export async function fetchWithAuth(endpoint, options = {}) {
       credentials: 'include',
     });
 
-    // TEMPORARILY DISABLED FOR PERFORMANCE TESTING:
-    // Heavy response cloning/parsing and verbose logging can add CPU overhead.
-    // Uncomment below if detailed payload diagnostics are needed again.
-    //
-    const responseClone = response.clone();
-    const responseData = await responseClone.json();
-    console.log(`=== Response Data from ${endpoint} [${requestId}] ===`);
-    console.log(JSON.stringify(responseData, null, 2));
-    logData.response = {
-      status: response.status,
-      data: responseData
-    };
-    // logData.response = {
-    //   status: response.status
-    // };
-
     if (!response.ok) {
-      const error = await response.clone().json();
+      // const error = await response.clone().json();
+      let error = {};
+      try {
+        error = await response.json();
+      } catch {
+        error = {};
+      }
 
       if (response.status === 401) {
         // Clear session cache on 401 to force fresh session on next request
@@ -167,13 +157,6 @@ export async function fetchWithAuth(endpoint, options = {}) {
     return await response.json();
   } catch (error) {
     console.error('Error in fetchWithAuth:', error.message);
-    // Update log object with error
-    logData.response = {
-      error: error.message
-    };
-
-    console.log(`=== fetchWithAuth Error [${requestId}] ===`);
-    console.log(JSON.stringify(logData, null, 2));
     throw error;
   }
 

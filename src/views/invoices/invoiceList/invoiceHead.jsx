@@ -1,50 +1,28 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Grid, Avatar, Typography } from '@mui/material';
-import { useTheme, alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { amountFormat } from '@/utils/numberUtils';
-import { getInitialInvoiceData } from '@/app/(dashboard)/invoices/actions';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
 /**
  * InvoiceHead Component - Displays invoice statistics header
  */
 const InvoiceHead = ({ invoiceListData }) => {
-  const theme = useTheme();
-  const [cardCounts, setCardCounts] = useState({
-    totalCancelled: {},
-    totalOutstanding: {},
-    totalOverdue: {},
-    totalInvoice: {},
-    totalDrafted: {},
-    recurringTotal: {}
-  });
+  const cardCounts = useMemo(
+    () => ({
+      totalCancelled: invoiceListData?.total_cancelled?.[0] || {},
+      totalOutstanding: invoiceListData?.total_outstanding?.[0] || {},
+      totalOverdue: invoiceListData?.total_overdue?.[0] || {},
+      totalInvoice: invoiceListData?.total_invoice?.[0] || {},
+      totalDrafted: invoiceListData?.total_drafted?.[0] || {},
+      recurringTotal: invoiceListData?.recurring_total?.[0] || {}
+    }),
+    [invoiceListData]
+  );
 
-  useEffect(() => {
-    const fetchCardCounts = async () => {
-      try {
-        const response = await getInitialInvoiceData();
-        if (response.cardCounts) {
-          setCardCounts({
-            totalCancelled: response.cardCounts.total_cancelled?.[0] || {},
-            totalOutstanding: response.cardCounts.total_outstanding?.[0] || {},
-            totalOverdue: response.cardCounts.total_overdue?.[0] || {},
-            totalInvoice: response.cardCounts.total_invoice?.[0] || {},
-            totalDrafted: response.cardCounts.total_drafted?.[0] || {},
-            recurringTotal: response.cardCounts.recurring_total?.[0] || {}
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching invoice card counts:', error);
-      }
-    };
-
-    fetchCardCounts();
-  }, [invoiceListData]);
-
-  const currencySymbol = invoiceListData.currencySymbol || '$';
+  const currencySymbol = invoiceListData?.currencySymbol || '$';
 
   return (
     <>
