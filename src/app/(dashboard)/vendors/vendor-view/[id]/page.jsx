@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { getVendorById, getVendorLedger } from '@/app/(dashboard)/vendors/actions';
+import { getVendorById } from '@/app/(dashboard)/vendors/actions';
 import VendorView from '@/views/vendors/viewVendor/index';
 
 /**
@@ -13,9 +13,10 @@ import VendorView from '@/views/vendors/viewVendor/index';
  */
 const VendorViewPage = async ({ params }) => {
   const { id } = params;
+  const initialVendorData = await getVendorById(id);
 
   return (
-    <VendorView id={params.id} />
+    <VendorView id={id} initialVendorData={initialVendorData} />
   );
 }
 

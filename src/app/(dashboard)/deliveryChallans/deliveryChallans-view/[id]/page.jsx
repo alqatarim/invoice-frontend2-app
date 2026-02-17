@@ -1,5 +1,6 @@
 import React from 'react';
 import DeliveryChallanView from '@/views/deliveryChallans/viewDeliveryChallans/index';
+import { getDeliveryChallanById } from '@/app/(dashboard)/deliveryChallans/actions';
 
 /**
  * DeliveryChallanViewPage Component
@@ -11,9 +12,10 @@ import DeliveryChallanView from '@/views/deliveryChallans/viewDeliveryChallans/i
  */
 const DeliveryChallanViewPage = async ({ params }) => {
   const { id } = params;
+  const initialDeliveryChallanData = await getDeliveryChallanById(id);
 
   return (
-    <DeliveryChallanView id={params.id} />
+    <DeliveryChallanView id={id} initialDeliveryChallanData={initialDeliveryChallanData} />
   );
 }
 

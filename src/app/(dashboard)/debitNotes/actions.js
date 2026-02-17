@@ -29,6 +29,8 @@ const ENDPOINTS = {
   }
 };
 
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 export async function getDebitNotesList(page = 1, pageSize = 10) {
   try {
     const skipSize = page === 1 ? 0 : (page - 1) * pageSize;
@@ -88,7 +90,7 @@ export async function getDebitNoteNumber() {
 
 export async function getVendors() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.VENDOR);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.VENDOR, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching vendors:', error);
@@ -98,7 +100,7 @@ export async function getVendors() {
 
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -108,7 +110,7 @@ export async function getProducts() {
 
 export async function getTaxRates() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching tax rates:', error);
@@ -118,7 +120,7 @@ export async function getTaxRates() {
 
 export async function getBanks() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching banks:', error);
@@ -128,7 +130,7 @@ export async function getBanks() {
 
 export async function getSignatures() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching signatures:', error);
@@ -313,8 +315,6 @@ export async function updateDebitNote(data) {
     } else {
       formData.append("signatureId", data.signatureId || "");
     }
-
-    console.log('Submitting purchase order data:', Object.fromEntries(formData));
 
     const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.UPDATE}/${data.id}`, {
       method: 'PUT',

@@ -40,10 +40,22 @@ import { useViewVendorHandlers } from '@/handlers/vendors/viewVendor';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
 import { getBalanceColor } from '@/utils/colorUtils';
 
-const ViewVendorDialog = ({ open, vendorId, defaultTab = 'details', onClose, onEdit, onError, onSuccess }) => {
+const ViewVendorDialog = ({
+  open,
+  id,
+  vendorId,
+  initialVendorData = null,
+  defaultTab = 'details',
+  onClose,
+  onEdit,
+  onError,
+  onSuccess
+}) => {
+  const resolvedVendorId = vendorId || id;
+  const isOpen = open ?? true;
   const theme = useTheme();
-  const [vendor, setVendor] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [vendor, setVendor] = useState(initialVendorData);
+  const [loading, setLoading] = useState(!initialVendorData);
 
   const {
     currentTab,
@@ -77,10 +89,15 @@ const ViewVendorDialog = ({ open, vendorId, defaultTab = 'details', onClose, onE
   // Fetch vendor data when dialog opens
   useEffect(() => {
     const fetchVendor = async () => {
-      if (open && vendorId) {
+      if (isOpen && resolvedVendorId) {
+        if (initialVendorData && initialVendorData._id === resolvedVendorId) {
+          setVendor(initialVendorData);
+          setLoading(false);
+          return;
+        }
         setLoading(true);
         try {
-          const vendorData = await getVendorById(vendorId);
+          const vendorData = await getVendorById(resolvedVendorId);
           setVendor(vendorData);
         } catch (error) {
           onError?.(error.message || 'Failed to fetch vendor data');
@@ -91,11 +108,11 @@ const ViewVendorDialog = ({ open, vendorId, defaultTab = 'details', onClose, onE
     };
 
     fetchVendor();
-  }, [open, vendorId, onError]);
+  }, [isOpen, resolvedVendorId, initialVendorData, onError]);
 
   const handleClose = () => {
     setVendor(null);
-    onClose();
+    onClose?.();
   };
 
   const handleEditVendor = () => {
@@ -133,7 +150,7 @@ const ViewVendorDialog = ({ open, vendorId, defaultTab = 'details', onClose, onE
 
   const balance = calculateBalance();
 
-  if (!open) return null;
+  if (!isOpen) return null;
 
   const statusOption = vendorStatusOptions.find(opt => opt.value === vendor?.status);
 
@@ -141,7 +158,7 @@ const ViewVendorDialog = ({ open, vendorId, defaultTab = 'details', onClose, onE
     <>
       <Dialog
         fullWidth
-        open={open}
+        open={isOpen}
         onClose={handleClose}
         maxWidth='md'
         scroll='body'

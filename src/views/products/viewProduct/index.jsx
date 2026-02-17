@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import ViewProductDialog from './ViewProductDialog';
 
-const ViewProductPage = ({ id }) => {
+const ViewProductPage = ({ id, initialProductData = null }) => {
   const router = useRouter();
 
   const handleClose = () => {
@@ -20,6 +20,7 @@ const ViewProductPage = ({ id }) => {
       open
       variant="page"
       productId={id}
+      initialProductData={initialProductData}
       onClose={handleClose}
       onEdit={handleEdit}
     />

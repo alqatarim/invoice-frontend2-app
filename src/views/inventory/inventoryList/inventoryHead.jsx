@@ -1,44 +1,24 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Grid, Avatar, Typography } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { amountFormat } from '@/utils/numberUtils';
-import { getInitialInventoryData } from '@/app/(dashboard)/inventory/actions';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
 /**
  * InventoryHead Component - Displays inventory statistics header
  */
 const InventoryHead = ({ inventoryListData }) => {
-  const theme = useTheme();
-  const [cardCounts, setCardCounts] = useState({
-    totalItems: { count: 0, total_value: 0 },
-    lowStock: { count: 0, total_value: 0 },
-    outOfStock: { count: 0, total_value: 0 },
-    totalValue: { count: 0, total_value: 0 }
-  });
-
-  useEffect(() => {
-    const fetchCardCounts = async () => {
-      try {
-        const response = await getInitialInventoryData();
-        if (response.cardCounts) {
-          setCardCounts({
-            totalItems: response.cardCounts.total_items?.[0] || { count: 0, total_value: 0 },
-            lowStock: response.cardCounts.low_stock?.[0] || { count: 0, total_value: 0 },
-            outOfStock: response.cardCounts.out_of_stock?.[0] || { count: 0, total_value: 0 },
-            totalValue: response.cardCounts.total_value?.[0] || { count: 0, total_value: 0 }
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching inventory card counts:', error);
-      }
-    };
-
-    fetchCardCounts();
-  }, [inventoryListData]);
+  const cardCounts = useMemo(
+    () => ({
+      totalItems: inventoryListData?.total_items?.[0] || { count: 0, total_value: 0 },
+      lowStock: inventoryListData?.low_stock?.[0] || { count: 0, total_value: 0 },
+      outOfStock: inventoryListData?.out_of_stock?.[0] || { count: 0, total_value: 0 },
+      totalValue: inventoryListData?.total_value?.[0] || { count: 0, total_value: 0 }
+    }),
+    [inventoryListData]
+  );
 
   const currencySymbol = '$';
 

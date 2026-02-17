@@ -17,7 +17,7 @@ const EditProductPage = async ({ params }) => {
     }
 
     return (
-      <EditProductIndex id={id} />
+      <EditProductIndex id={id} initialProductData={productData} />
     );
   } catch (error) {
     console.error('Error loading product data:', error);

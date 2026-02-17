@@ -22,9 +22,10 @@ const ENDPOINTS = {
   }
 };
 
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 export async function getQuotationsList(page = 1, pageSize = 10, filters = {}) {
   try {
-    revalidatePath('/quotations');
     const skipSize = page === 1 ? 0 : (page - 1) * pageSize;
     const queryParams = [`limit=${pageSize}`, `skip=${skipSize}`];
 
@@ -228,7 +229,6 @@ export async function updateQuotation(id, data) {
 
 export async function getQuotationNumber() {
   try {
-    revalidatePath('/quotations/quotation-add');
     const response = await fetchWithAuth(ENDPOINTS.QUOTATION.GET_QUOTATION_NUMBER);
     return response.data;
   } catch (error) {
@@ -314,7 +314,7 @@ export async function convertToInvoice(id, paymentMethod = 'Cash') {
 
 export async function getCustomers() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.LIST.CUSTOMER_LIST);
+    const response = await fetchWithAuth(ENDPOINTS.LIST.CUSTOMER_LIST, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     }
@@ -329,7 +329,7 @@ export async function getCustomers() {
 
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.LIST.PRODUCT_LIST);
+    const response = await fetchWithAuth(ENDPOINTS.LIST.PRODUCT_LIST, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     }
@@ -342,7 +342,7 @@ export async function getProducts() {
 
 export async function getTaxes() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.LIST.TAX_LIST);
+    const response = await fetchWithAuth(ENDPOINTS.LIST.TAX_LIST, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     }
@@ -355,7 +355,7 @@ export async function getTaxes() {
 
 export async function getUnits() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.LIST.UNIT_LIST);
+    const response = await fetchWithAuth(ENDPOINTS.LIST.UNIT_LIST, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     }
@@ -368,7 +368,7 @@ export async function getUnits() {
 
 export async function getBanks() {
   try {
-    const response = await fetchWithAuth('/drop_down/bank');
+    const response = await fetchWithAuth('/drop_down/bank', CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching banks:', error);
@@ -378,7 +378,7 @@ export async function getBanks() {
 
 export async function getSignatures() {
   try {
-    const response = await fetchWithAuth('/drop_down/signature');
+    const response = await fetchWithAuth('/drop_down/signature', CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching signatures:', error);

@@ -26,6 +26,8 @@ const ENDPOINTS = {
   }
 };
 
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 export async function getSalesReturnList(page = 1, pageSize = 10) {
   try {
     const skipSize = page === 1 ? 0 : (page - 1) * pageSize;
@@ -90,9 +92,7 @@ export async function getSalesReturnNumber() {
 
 export async function getCustomers() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER, {
-      cache: 'no-store'
-    });
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching customers:', error);
@@ -102,9 +102,7 @@ export async function getCustomers() {
 
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, {
-      cache: 'no-store'
-    });
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -114,9 +112,7 @@ export async function getProducts() {
 
 export async function getTaxRates() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, {
-      cache: 'no-store'
-    });
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching tax rates:', error);
@@ -126,9 +122,7 @@ export async function getTaxRates() {
 
 export async function getBanks() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK, {
-      cache: 'no-store'
-    });
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching banks:', error);
@@ -138,9 +132,7 @@ export async function getBanks() {
 
 export async function getSignatures() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, {
-      cache: 'no-store'
-    });
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching signatures:', error);
@@ -340,8 +332,6 @@ export async function updateSalesReturn(data) {
     } else {
       formData.append("signatureId", data.signatureId || "");
     }
-
-    console.log('Submitting sales return data:', Object.fromEntries(formData));
 
     const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.UPDATE}/${data.id}`, {
       method: 'PUT',

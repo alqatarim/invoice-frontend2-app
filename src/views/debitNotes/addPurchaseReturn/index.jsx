@@ -6,7 +6,7 @@ import AddDebitNote from '@/views/debitNotes/addPurchaseReturn/AddDebitNote';
 import { getDropdownData } from '@/app/(dashboard)/debitNotes/actions';
 import { usePurchaseReturnAddHandlers } from '@/handlers/purchaseReturn/add/usePurchaseReturnAddHandlers';
 
-function AddPurchaseReturnIndex() {
+function AddPurchaseReturnIndex({ initialDropdownData = null }) {
   const [dropdownData, setDropdownData] = useState({
     vendors: [],
     products: [],
@@ -14,14 +14,19 @@ function AddPurchaseReturnIndex() {
     banks: [],
     signatures: []
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialDropdownData);
   const [error, setError] = useState(null);
 
   // Initialize handlers with dropdown data
   const handlers = usePurchaseReturnAddHandlers(dropdownData);
 
-  // Fetch dropdown data on mount
   useEffect(() => {
+    if (initialDropdownData) {
+      setDropdownData(initialDropdownData);
+      setIsLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const data = await getDropdownData();
@@ -35,7 +40,7 @@ function AddPurchaseReturnIndex() {
     };
 
     fetchData();
-  }, []);
+  }, [initialDropdownData]);
 
   // Generate debit note number after handlers are available
   useEffect(() => {

@@ -5,11 +5,11 @@ import { notFound } from 'next/navigation';
 async function QuotationViewPage({ params }) {
   try {
     const { id } = params;
-    const response = await getQuotationDetails(id);
-
-    // Fetch units and products data
-    const unitsList = await getUnits();
-    const productsList = await getProducts();
+    const [response, unitsList, productsList] = await Promise.all([
+      getQuotationDetails(id),
+      getUnits(),
+      getProducts()
+    ]);
 
     if (!response.success || !response.data) {
       notFound();

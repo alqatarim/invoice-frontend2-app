@@ -13,12 +13,12 @@ const ENDPOINTS = {
   PROVINCES_CITIES: '/provincesCities'
 };
 
+const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 export async function getInitialBranchData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.LIST}?skip=0&limit=10`, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
-    });
+    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.LIST}?skip=0&limit=10`, CACHE_STABLE_LIST);
 
     if (response.code === 200) {
       return {
@@ -194,10 +194,7 @@ export async function deleteBranch(id) {
 
 export async function getProvincesCities() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.PROVINCES_CITIES, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
-    });
+    const response = await fetchWithAuth(ENDPOINTS.PROVINCES_CITIES, CACHE_STABLE_DROPDOWN);
 
     if (response.code === 200) {
       return response.data || [];
@@ -212,10 +209,7 @@ export async function getProvincesCities() {
 
 export async function getBranchesForDropdown() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.LIST}?skip=0&limit=500&status=true`, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
-    });
+    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.LIST}?skip=0&limit=500&status=true`, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     }

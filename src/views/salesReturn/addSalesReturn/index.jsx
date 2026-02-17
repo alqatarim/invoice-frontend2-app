@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { SnackbarProvider, useSnackbar, closeSnackbar } from 'notistack';
 import AddSalesReturn from '@/views/salesReturn/addSalesReturn/AddSalesReturn';
-import { getCustomers, getProducts, getTaxRates, getBanks, getSignatures, getSalesReturnNumber, addSalesReturn} from '@/app/(dashboard)/sales-return/actions';
+import { addSalesReturn } from '@/app/(dashboard)/sales-return/actions';
 import { IconButton} from '@mui/material';
 import { Icon } from '@iconify/react';
 import { styled } from '@mui/material/styles';
@@ -139,47 +139,14 @@ const AddSalesReturnContent = ({ customers, products, taxRates, banks, signature
   />;
 };
 
-const AddSalesReturnIndex = () => {
-  const [customers, setCustomers] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [taxRates, setTaxRates] = useState([]);
-  const [banks, setBanks] = useState([]);
-  const [signatures, setSignatures] = useState([]);
-  const [salesReturnNumber, setSalesReturnNumber] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  React.useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [customersData, productsData, taxRatesData, banksData, signaturesData, salesReturnNumberData] = await Promise.all([
-          getCustomers(),
-          getProducts(),
-          getTaxRates(),
-          getBanks(),
-          getSignatures(),
-          getSalesReturnNumber()
-        ]);
-
-        setCustomers(customersData);
-        setProducts(productsData);
-        setTaxRates(taxRatesData);
-        setBanks(banksData);
-        setSignatures(signaturesData);
-        setSalesReturnNumber(salesReturnNumberData.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
+const AddSalesReturnIndex = ({
+  initialCustomers = [],
+  initialProducts = [],
+  initialTaxRates = [],
+  initialBanks = [],
+  initialSignatures = [],
+  initialSalesReturnNumber = ''
+}) => {
   return (
     <SnackbarProvider
       maxSnack={3}
@@ -206,12 +173,12 @@ const AddSalesReturnIndex = () => {
       )}
     >
       <AddSalesReturnContent
-        customers={customers}
-        products={products}
-        taxRates={taxRates}
-        banks={banks}
-        signatures={signatures}
-        salesReturnNumber={salesReturnNumber}
+        customers={initialCustomers}
+        products={initialProducts}
+        taxRates={initialTaxRates}
+        banks={initialBanks}
+        signatures={initialSignatures}
+        salesReturnNumber={initialSalesReturnNumber}
       />
     </SnackbarProvider>
   );

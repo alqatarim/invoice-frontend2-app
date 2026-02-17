@@ -27,12 +27,12 @@ import { getProductById } from '@/app/(dashboard)/products/actions';
 import { parseProductDescription } from '@/utils/productMeta';
 import CustomAvatar from '@core/components/mui/Avatar';
 
-const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSuccess, variant = 'dialog' }) => {
+const ViewProductDialog = ({ open, productId, initialProductData = null, onClose, onEdit, onError, onSuccess, variant = 'dialog' }) => {
   const theme = useTheme();
   const isDialog = variant === 'dialog';
-  const [product, setProduct] = useState(null);
+  const [product, setProduct] = useState(initialProductData);
   const [dropdownData, setDropdownData] = useState({ units: [], categories: [], taxes: [] });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!initialProductData);
   const parsedDescription = parseProductDescription(product?.productDescription || '');
   const productMeta = parsedDescription.meta || {};
   const productImage = Array.isArray(product?.images) ? product?.images[0] : product?.images;
@@ -42,6 +42,11 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
   useEffect(() => {
     const fetchProduct = async () => {
       if (open && productId) {
+        if (initialProductData && initialProductData._id === productId) {
+          setProduct(initialProductData);
+          setLoading(false);
+          return;
+        }
         setLoading(true);
         try {
           const [productData, dropdown] = await Promise.all([
@@ -59,7 +64,7 @@ const ViewProductDialog = ({ open, productId, onClose, onEdit, onError, onSucces
     };
 
     fetchProduct();
-  }, [open, productId, onError]);
+  }, [open, productId, initialProductData, onError]);
 
   const handleClose = () => {
     setProduct(null);

@@ -15,6 +15,9 @@ const ENDPOINTS = {
      },
 };
 
+const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 /**
  * Get user details by ID.
  *
@@ -28,10 +31,8 @@ export async function getUserById(id) {
      }
 
      try {
-          // Add cache: 'no-store' option to disable caching and always fetch fresh data
           const response = await fetchWithAuth(`${ENDPOINTS.USER.VIEW}/${id}`, {
-               cache: 'no-store',
-               next: { revalidate: 0 } // This ensures data is not cached
+               cache: 'no-store'
           });
 
           // Assuming a successful response contains a 'data' property
@@ -50,7 +51,10 @@ export async function getUserById(id) {
  */
 export async function getInitialUsersData() {
      try {
-          const response = await fetchWithAuth(`${ENDPOINTS.USER.LIST}?page=1&pageSize=10&sortBy=&sortDirection=asc`);
+          const response = await fetchWithAuth(
+               `${ENDPOINTS.USER.LIST}?page=1&pageSize=10&sortBy=&sortDirection=asc`,
+               CACHE_STABLE_LIST
+          );
 
           if (response.code === 200) {
                return {
@@ -320,7 +324,7 @@ export async function deleteUser(id) {
  */
 export async function getRoles() {
      try {
-          const response = await fetchWithAuth(ENDPOINTS.USER.DROPDOWN);
+          const response = await fetchWithAuth(ENDPOINTS.USER.DROPDOWN, CACHE_STABLE_DROPDOWN);
           if (response.code === 200) {
                // Filter out Super Admin role for security
                const filteredRoles = response.data?.filter((item) =>

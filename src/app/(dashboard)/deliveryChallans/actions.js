@@ -27,6 +27,9 @@ const ENDPOINTS = {
   }
 };
 
+const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 /**
  * Get initial delivery challan data with default pagination.
  */
@@ -64,7 +67,10 @@ export async function getInitialDeliveryChallanData() {
  */
 export async function getDeliveryChallanStats() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DELIVERY_CHALLANS.LIST + '?skip=0&limit=1000');
+    const response = await fetchWithAuth(
+      ENDPOINTS.DELIVERY_CHALLANS.LIST + '?skip=0&limit=1000',
+      CACHE_STABLE_LIST
+    );
 
     if (response.code === 200) {
       const deliveryChallans = response.data || [];
@@ -156,8 +162,7 @@ export async function getDeliveryChallanById(id) {
 
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.DELIVERY_CHALLANS.VIEW}/${id}`, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
+      cache: 'no-store'
     });
 
     return response.data?.dc_details || {};
@@ -188,7 +193,7 @@ export async function getDeliveryChallanNumber() {
  */
 export async function getCustomers() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching customers:', error);
@@ -201,7 +206,7 @@ export async function getCustomers() {
  */
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -214,7 +219,7 @@ export async function getProducts() {
  */
 export async function getTaxRates() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching tax rates:', error);
@@ -227,7 +232,7 @@ export async function getTaxRates() {
  */
 export async function getBanks() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching banks:', error);
@@ -240,7 +245,7 @@ export async function getBanks() {
  */
 export async function getSignatures() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching signatures:', error);

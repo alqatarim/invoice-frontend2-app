@@ -45,6 +45,8 @@ const ENDPOINTS = {
   }
 };
 
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 /*
  * Get invoice details by ID.
  *
@@ -202,23 +204,20 @@ export async function getFilteredInvoices(
   // For multiple status filters, we need to fetch each status separately and combine
   // Since the backend doesn't support multiple status filtering in a single call
   try {
-    const allResults = [];
-    let totalRecords = 0;
-
-    // Fetch data for each status
-    for (const status of statusFilters) {
-      const result = await fetchInvoicesWithSingleStatus(
-        status,
-        1,
-        1000,
-        filters,
-        sortBy,
-        sortDirection,
-        searchInvoiceNumber
-      );
-      allResults.push(...result.invoices);
-      // Note: totalRecords will be the sum of all status results, which might not be accurate for pagination
-    }
+    const results = await Promise.all(
+      statusFilters.map(status =>
+        fetchInvoicesWithSingleStatus(
+          status,
+          1,
+          1000,
+          filters,
+          sortBy,
+          sortDirection,
+          searchInvoiceNumber
+        )
+      )
+    );
+    const allResults = results.flatMap(result => result.invoices || []);
 
     // Remove duplicates (in case an invoice appears in multiple status results)
     const uniqueInvoices = allResults.filter((invoice, index, self) =>
@@ -571,8 +570,6 @@ export async function updateInvoice(id, updatedFormData) {
     }
   }
 
-  console.log('final form data', formData);
-
   try {
     const response = await fetchWithAuth(ENDPOINTS.INVOICE.UPDATE + `/${id}`, {
       method: 'PUT', // Ensure the method is correctly specified
@@ -592,7 +589,7 @@ export async function updateInvoice(id, updatedFormData) {
 
 export async function getCustomers() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.INVOICE.CUSTOMERS);
+    const response = await fetchWithAuth(ENDPOINTS.INVOICE.CUSTOMERS, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -607,7 +604,7 @@ export async function getCustomers() {
 
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -622,7 +619,7 @@ export async function getProducts() {
 
 export async function getTaxRates() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -637,7 +634,7 @@ export async function getTaxRates() {
 
 export async function getBanks() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.BANK.LIST);
+    const response = await fetchWithAuth(ENDPOINTS.BANK.LIST, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -672,7 +669,7 @@ export async function addBank(bankData) {
 // Add a new function to fetch manual signatures
 export async function getManualSignatures() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -756,10 +753,6 @@ export async function addInvoice(invoiceData) {
       formData.append("signatureId", '');
     }
   }
-  console.log('final form data', formData);
-
-
-
   try {
     const response = await fetchWithAuth(ENDPOINTS.INVOICE.ADD, {
       method: 'POST',

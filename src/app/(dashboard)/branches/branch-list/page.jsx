@@ -1,6 +1,6 @@
 import React from 'react';
 import BranchListIndex from '@/views/branches/branchList/index';
-import { getInitialBranchData } from '@/app/(dashboard)/branches/actions';
+import { getInitialBranchData, getProvincesCities } from '@/app/(dashboard)/branches/actions';
 
 export const metadata = {
   title: 'Branches | Kanakku',
@@ -8,9 +8,12 @@ export const metadata = {
 
 const BranchesPage = async () => {
   try {
-    const initialData = await getInitialBranchData();
+    const [initialData, provincesCities] = await Promise.all([
+      getInitialBranchData(),
+      getProvincesCities()
+    ]);
     return (
-      <BranchListIndex initialData={initialData} />
+      <BranchListIndex initialData={initialData} initialProvincesCities={provincesCities} />
     );
   } catch (error) {
     console.error('BranchesPage: Error fetching data:', error);

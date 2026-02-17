@@ -19,6 +19,9 @@ const ENDPOINTS = {
   }
 };
 
+const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 /**
  * Get customer details by ID.
  *
@@ -32,10 +35,8 @@ export async function getCustomerById(id) {
   }
 
   try {
-    // Add cache: 'no-store' option to disable caching and always fetch fresh data
     const response = await fetchWithAuth(`${ENDPOINTS.CUSTOMER.VIEW}/${id}`, {
-      // cache: 'no-store',
-      next: { revalidate: 0 } // This ensures data is not cached
+      cache: 'no-store'
     });
 
 
@@ -55,10 +56,10 @@ export async function getCustomerById(id) {
  */
 export async function getInitialCustomerData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.CUSTOMER.LIST}?skip=0&limit=10&sortBy=createdAt&sortDirection=desc`, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
-    });
+    const response = await fetchWithAuth(
+      `${ENDPOINTS.CUSTOMER.LIST}?skip=0&limit=10&sortBy=createdAt&sortDirection=desc`,
+      CACHE_STABLE_LIST
+    );
 
     if (response.code === 200) {
       // Calculate card counts from the data
@@ -343,7 +344,7 @@ export async function addCustomer(formData) {
 
 export async function getCustomers() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER, CACHE_STABLE_DROPDOWN);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -370,8 +371,7 @@ export async function getCustomerWithInvoices(id) {
 
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.CUSTOMER.DETAILS}?_id=${id}`, {
-      // cache: 'no-store',
-      next: { revalidate: 0 }
+      cache: 'no-store'
     });
 
 

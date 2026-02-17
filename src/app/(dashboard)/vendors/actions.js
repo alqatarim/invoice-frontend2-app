@@ -18,6 +18,8 @@ const ENDPOINTS = {
   },
 };
 
+const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
+
 /**
  * Get vendor details by ID.
  *
@@ -32,8 +34,7 @@ export async function getVendorById(id) {
 
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.VENDOR.VIEW}/${id}`, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
+      cache: 'no-store'
     });
 
     return response.data || {};
@@ -51,8 +52,7 @@ export async function getVendorById(id) {
  */
 export async function getInitialVendorData() {
   try {
-
-    const response = await fetchWithAuth(`${ENDPOINTS.VENDOR.LIST}?skip=0&limit=10`);
+    const response = await fetchWithAuth(`${ENDPOINTS.VENDOR.LIST}?skip=0&limit=10`, CACHE_STABLE_LIST);
 
 
     if (response.code === 200) {
@@ -279,8 +279,7 @@ export async function getVendorLedger(vendorId, page = 1, pageSize = 10) {
     
     
     const response = await fetchWithAuth(url, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
+      cache: 'no-store'
     });
 
     if (response.code === 200) {

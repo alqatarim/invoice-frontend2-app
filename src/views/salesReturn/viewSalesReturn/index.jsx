@@ -5,11 +5,15 @@ import ViewSalesReturn from '@/views/salesReturn/viewSalesReturn/ViewSalesReturn
 import { getSalesReturnDetails } from '@/app/(dashboard)/sales-return/actions';
 import { CircularProgress, Box } from '@mui/material';
 
-const ViewSalesReturnIndex = ({ id }) => {
-  const [salesReturnData, setSalesReturnData] = useState(null);
-  const [loading, setLoading] = useState(true);
+const ViewSalesReturnIndex = ({ id, initialSalesReturnData = null }) => {
+  const [salesReturnData, setSalesReturnData] = useState(initialSalesReturnData);
+  const [loading, setLoading] = useState(!initialSalesReturnData);
 
   useEffect(() => {
+    if (initialSalesReturnData) {
+      return;
+    }
+
     const fetchSalesReturnData = async () => {
       try {
         const data = await getSalesReturnDetails(id);
@@ -22,7 +26,7 @@ const ViewSalesReturnIndex = ({ id }) => {
     };
 
     fetchSalesReturnData();
-  }, [id]);
+  }, [id, initialSalesReturnData]);
 
   if (loading) {
     return (

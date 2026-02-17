@@ -79,7 +79,8 @@
     "start:fast": "next start --turbo",
     "remove-unused-dependencies": "node remove-unused-dependencies.js",
     "performance": "next build && next start",
-    "update-browserslist": "npx update-browserslist-db@latest"
+    "update-browserslist": "npx update-browserslist-db@latest",
+    "deploy:railway": "node deploy-railway.js"
   },
   "keywords": [
     "reactjs",

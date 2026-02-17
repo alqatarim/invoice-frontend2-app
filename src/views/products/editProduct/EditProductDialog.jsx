@@ -42,10 +42,10 @@ import { buildProductDescription, parseProductDescription } from '@/utils/produc
 
 
 
-const EditProductDialog = ({ open, productId, onClose, onSave, variant = 'dialog' }) => {
+const EditProductDialog = ({ open, productId, initialProductData = null, onClose, onSave, variant = 'dialog' }) => {
   const theme = useTheme();
   const isDialog = variant === 'dialog';
-  const [productData, setProductData] = useState(null);
+  const [productData, setProductData] = useState(initialProductData);
   const [dropdownData, setDropdownData] = useState({ units: [], categories: [], taxes: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -460,10 +460,12 @@ const EditProductDialog = ({ open, productId, onClose, onSave, variant = 'dialog
         setLoading(true);
         setError(null);
         try {
-          const [productResponse, dropdownResponse] = await Promise.all([
-            getProductById(productId),
-            getDropdownData()
-          ]);
+          const dropdownPromise = getDropdownData();
+          const productPromise =
+            initialProductData && initialProductData._id === productId
+              ? Promise.resolve(initialProductData)
+              : getProductById(productId);
+          const [productResponse, dropdownResponse] = await Promise.all([productPromise, dropdownPromise]);
 
           if (productResponse && typeof productResponse === 'object') {
             setProductData(productResponse);
@@ -485,7 +487,7 @@ const EditProductDialog = ({ open, productId, onClose, onSave, variant = 'dialog
     };
 
     fetchData();
-  }, [open, productId]);
+  }, [open, productId, initialProductData]);
 
   useEffect(() => {
     if (open && productData) {

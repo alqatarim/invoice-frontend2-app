@@ -17,6 +17,8 @@ const ENDPOINTS = {
   }
 };
 
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 export async function getPurchaseOrderList(page = 1, pageSize = 10, filters = {}, sortConfig = {}) {
   try {
     // Build query parameters
@@ -100,15 +102,12 @@ export async function getFilteredPurchaseOrders(tab, page, pageSize, filters = {
   // For multiple status filters, we need to fetch each status separately and combine
   // Since the backend doesn't support multiple status filtering in a single call
   try {
-    const allResults = [];
-    let totalRecords = 0;
-
-    // Fetch data for each status
-    for (const status of statusFilters) {
-      const result = await fetchPurchaseOrdersWithSingleStatus(status, 1, 1000, filters, sortBy, sortDirection);
-      allResults.push(...result.purchaseOrders);
-      // Note: totalRecords will be the sum of all status results, which might not be accurate for pagination
-    }
+    const results = await Promise.all(
+      statusFilters.map(status =>
+        fetchPurchaseOrdersWithSingleStatus(status, 1, 1000, filters, sortBy, sortDirection)
+      )
+    );
+    const allResults = results.flatMap(result => result.purchaseOrders || []);
 
     // Remove duplicates (in case a purchase order appears in multiple status results)
     const uniquePurchaseOrders = allResults.filter((purchaseOrder, index, self) =>
@@ -351,7 +350,7 @@ export async function getPurchaseOrderNumber  () {
 
 export async function getVendors  () {
   try {
-    const response = await fetchWithAuth('/drop_down/vendor');
+    const response = await fetchWithAuth('/drop_down/vendor', CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching vendors:', error);
@@ -361,7 +360,7 @@ export async function getVendors  () {
 
 export async function getProducts ()  {
   try {
-    const response = await fetchWithAuth('/drop_down/product');
+    const response = await fetchWithAuth('/drop_down/product', CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -371,7 +370,7 @@ export async function getProducts ()  {
 
 export async function getTaxRates () {
   try {
-    const response = await fetchWithAuth('/drop_down/tax');
+    const response = await fetchWithAuth('/drop_down/tax', CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching tax rates:', error);
@@ -381,7 +380,7 @@ export async function getTaxRates () {
 
 export async function getBanks  () {
   try {
-    const response = await fetchWithAuth('/drop_down/bank');
+    const response = await fetchWithAuth('/drop_down/bank', CACHE_STABLE_DROPDOWN);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching banks:', error);
@@ -391,7 +390,7 @@ export async function getBanks  () {
 
 export async function getSignatures ()  {
   try {
-    const response = await fetchWithAuth('/drop_down/signature');
+    const response = await fetchWithAuth('/drop_down/signature', CACHE_STABLE_DROPDOWN);
     return response.data;
   } catch (error) {
     console.error('Error fetching signatures:', error);
@@ -401,9 +400,6 @@ export async function getSignatures ()  {
 
 export async function addPurchaseOrder(data, signatureURL) {
   try {
-    // Debug log the incoming data
-    console.log('Submitting purchase order data:', data);
-
     const formData = new FormData();
 
     // Add items data with proper format
@@ -454,11 +450,6 @@ export async function addPurchaseOrder(data, signatureURL) {
         console.error('Error processing signature:', error);
         throw new Error('Failed to process signature');
       }
-    }
-
-    // Debug log the FormData
-    for (let pair of formData.entries()) {
-      console.log(pair[0], pair[1]);
     }
 
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.ADD, {
@@ -567,9 +558,6 @@ export async function updatePurchaseOrder(id, data, signatureURL) {
     } else {
       formData.append("signatureId", data.signatureId || "");
     }
-
-    // Debug logging
-    console.log('Submitting purchase order data:', Object.fromEntries(formData));
 
     // 5. API Call
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.UPDATE}/${id}`, {

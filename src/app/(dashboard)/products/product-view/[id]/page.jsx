@@ -12,9 +12,10 @@ import ProductView from '@/views/products/viewProduct/index';
  */
 const ProductViewPage = async ({ params }) => {
   const { id } = params;
+  const initialProductData = await getProductById(id);
 
   return (
-    <ProductView id={params.id} />
+    <ProductView id={id} initialProductData={initialProductData} />
   );
 }
 

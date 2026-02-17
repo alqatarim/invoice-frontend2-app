@@ -19,6 +19,9 @@ const ENDPOINTS = {
   }
 };
 
+const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 
 /**
  * Get product details by ID.
@@ -30,8 +33,7 @@ export async function getProductById(id) {
 
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.PRODUCT.VIEW}/${id}`, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
+      cache: 'no-store'
     });
 
     return response.data || {};
@@ -46,12 +48,7 @@ export async function getProductById(id) {
  */
 export async function getInitialProductData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.PRODUCT.LIST}?skip=0&limit=10`,
-      {
-        cache: 'no-store',
-        next: { revalidate: 0 }
-      }
-    );
+    const response = await fetchWithAuth(`${ENDPOINTS.PRODUCT.LIST}?skip=0&limit=10`, CACHE_STABLE_LIST);
 
     if (response.code === 200) {
       const result = {
@@ -100,8 +97,7 @@ export async function getFilteredProducts(page, pageSize, filters = {}, sortBy =
 
     const response = await fetchWithAuth(url,
       {
-        cache: 'no-store',
-        next: { revalidate: 0 }
+        cache: 'no-store'
       }
     );
 
@@ -326,9 +322,9 @@ export async function deleteProduct(id) {
 export async function getDropdownData() {
   try {
     const [units, categories, taxes] = await Promise.all([
-      fetchWithAuth(ENDPOINTS.DROPDOWN.UNIT),
-      fetchWithAuth(ENDPOINTS.DROPDOWN.CATEGORY),
-      fetchWithAuth(ENDPOINTS.DROPDOWN.TAX),
+      fetchWithAuth(ENDPOINTS.DROPDOWN.UNIT, CACHE_STABLE_DROPDOWN),
+      fetchWithAuth(ENDPOINTS.DROPDOWN.CATEGORY, CACHE_STABLE_DROPDOWN),
+      fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, CACHE_STABLE_DROPDOWN),
     ]);
 
     // Check for authentication errors

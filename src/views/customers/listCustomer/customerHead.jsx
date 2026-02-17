@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Grid, Avatar, Typography } from '@mui/material';
-import { useTheme, alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
-import { amountFormat } from '@/utils/numberUtils';
-import { getInitialCustomerData } from '@/app/(dashboard)/customers/actions';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
 /**
@@ -14,38 +12,14 @@ import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBord
  */
 const CustomerHead = ({ customerListData }) => {
   const theme = useTheme();
-  const [cardCounts, setCardCounts] = useState({
-    totalCustomers: 0,
-    activeCustomers: 0,
-    inactiveCustomers: 0
-  });
-
-  useEffect(() => {
-    const fetchCardCounts = async () => {
-      try {
-        const response = await getInitialCustomerData();
-        if (response.cardCounts) {
-          setCardCounts({
-            totalCustomers: response.cardCounts.totalCustomers || 0,
-            activeCustomers: response.cardCounts.activeCustomers || 0,
-            inactiveCustomers: response.cardCounts.inactiveCustomers || 0
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching customer card counts:', error);
-      }
-    };
-
-    if (customerListData) {
-      setCardCounts({
-        totalCustomers: customerListData.totalCustomers || 0,
-        activeCustomers: customerListData.activeCustomers || 0,
-        inactiveCustomers: customerListData.inactiveCustomers || 0
-      });
-    } else {
-      fetchCardCounts();
-    }
-  }, [customerListData]);
+  const cardCounts = useMemo(
+    () => ({
+      totalCustomers: customerListData?.totalCustomers || 0,
+      activeCustomers: customerListData?.activeCustomers || 0,
+      inactiveCustomers: customerListData?.inactiveCustomers || 0
+    }),
+    [customerListData]
+  );
 
   const currencySymbol = '$';
 

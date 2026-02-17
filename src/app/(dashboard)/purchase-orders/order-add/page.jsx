@@ -4,13 +4,14 @@ import { getVendors, getProducts, getTaxRates, getBanks, getSignatures, getPurch
 
 const AddPurchaseOrderPage = async () => {
   try {
-    // Fetch all data separately
-    const vendors = await getVendors();
-    const products = await getProducts();
-    const taxRates = await getTaxRates();
-    const banks = await getBanks();
-    const signatures = await getSignatures();
-    const purchaseOrderNumber = await getPurchaseOrderNumber();
+    const [vendors, products, taxRates, banks, signatures, purchaseOrderNumber] = await Promise.all([
+      getVendors(),
+      getProducts(),
+      getTaxRates(),
+      getBanks(),
+      getSignatures(),
+      getPurchaseOrderNumber()
+    ]);
 
 
     return (

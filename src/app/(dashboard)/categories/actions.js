@@ -18,6 +18,9 @@ const DROPDOWN = {
   TAX: '/drop_down/tax',
 }
 
+const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 
 /**
  * Get category details by ID.
@@ -29,8 +32,7 @@ export async function getCategoryById(id) {
 
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.CATEGORY.VIEW}/${id}`, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
+      cache: 'no-store'
     });
 
     return response.data || {};
@@ -45,12 +47,7 @@ export async function getCategoryById(id) {
  */
 export async function getInitialCategoryData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.CATEGORY.LIST}?skip=0&limit=10`,
-      {
-        cache: 'no-store',
-        next: { revalidate: 0 }
-      }
-    );
+    const response = await fetchWithAuth(`${ENDPOINTS.CATEGORY.LIST}?skip=0&limit=10`, CACHE_STABLE_LIST);
 
     if (response.code === 200) {
       const result = {
@@ -287,8 +284,8 @@ export async function deleteCategory(id) {
 export async function getCategoryDropdownData() {
   try {
     const [categories, taxes] = await Promise.all([
-      fetchWithAuth(DROPDOWN.CATEGORY),
-      fetchWithAuth(DROPDOWN.TAX),
+      fetchWithAuth(DROPDOWN.CATEGORY, CACHE_STABLE_DROPDOWN),
+      fetchWithAuth(DROPDOWN.TAX, CACHE_STABLE_DROPDOWN),
     ]);
 
     // Check for authentication errors

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Icon } from '@iconify/react';
 import {
   Alert,
@@ -19,9 +19,13 @@ import BranchDialog from './BranchDialog';
 import { getBranchColumns } from './branchColumns';
 import AppSnackbar from '@/components/shared/AppSnackbar';
 import { useBranchListHandlers } from '@/handlers/branches/useBranchListHandlers';
-import { addBranch, updateBranch, getProvincesCities } from '@/app/(dashboard)/branches/actions';
+import { addBranch, updateBranch } from '@/app/(dashboard)/branches/actions';
 
-const BranchList = ({ initialBranches = [], initialPagination = { current: 1, pageSize: 10, total: 0 } }) => {
+const BranchList = ({
+  initialBranches = [],
+  initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialProvincesCities = []
+}) => {
   const permissions = {
     canCreate: usePermission('branch', 'create'),
     canUpdate: usePermission('branch', 'update'),
@@ -46,15 +50,7 @@ const BranchList = ({ initialBranches = [], initialPagination = { current: 1, pa
     branchId: null,
   });
 
-  const [provincesCities, setProvincesCities] = useState([]);
-
-  useEffect(() => {
-    const loadProvinces = async () => {
-      const data = await getProvincesCities();
-      setProvincesCities(Array.isArray(data) ? data : []);
-    };
-    loadProvinces();
-  }, []);
+  const [provincesCities] = useState(Array.isArray(initialProvincesCities) ? initialProvincesCities : []);
 
   const onError = useCallback(msg => {
     setSnackbar({ open: true, message: msg, severity: 'error' });

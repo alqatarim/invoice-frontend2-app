@@ -17,6 +17,9 @@ const DROPDOWN = {
   UNIT: '/drop_down/unit',
 }
 
+const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
 /**
  * Get unit details by ID.
  */
@@ -42,11 +45,7 @@ export async function getUnitById(id) {
  */
 export async function getInitialUnitData() {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.UNIT.LIST}?skip=0&limit=10`,
-      {
-        cache: 'no-store'
-      }
-    );
+    const response = await fetchWithAuth(`${ENDPOINTS.UNIT.LIST}?skip=0&limit=10`, CACHE_STABLE_LIST);
 
     if (response.code === 200) {
       const result = {
@@ -221,7 +220,7 @@ export async function deleteUnit(id) {
  */
 export async function getUnitDropdownData() {
   try {
-    const response = await fetchWithAuth(DROPDOWN.UNIT);
+    const response = await fetchWithAuth(DROPDOWN.UNIT, CACHE_STABLE_DROPDOWN);
 
     // Check for authentication errors
     if (response?.error) {

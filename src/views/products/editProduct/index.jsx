@@ -6,7 +6,7 @@ import AppSnackbar from '@/components/shared/AppSnackbar';
 import EditProductDialog from './EditProductDialog';
 import { updateProduct } from '@/app/(dashboard)/products/actions';
 
-const EditProductPage = ({ id }) => {
+const EditProductPage = ({ id, initialProductData = null }) => {
   const router = useRouter();
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
@@ -38,6 +38,7 @@ const EditProductPage = ({ id }) => {
         open
         variant="page"
         productId={id}
+        initialProductData={initialProductData}
         onClose={handleClose}
         onSave={handleSave}
       />
