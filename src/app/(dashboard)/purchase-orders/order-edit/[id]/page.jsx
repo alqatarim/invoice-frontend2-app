@@ -1,7 +1,6 @@
 
 import React from 'react';
 import EditPurchaseOrderIndex from '@/views/purchase-orders/editOrder/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getPurchaseOrderDetails, getVendors, getProducts, getTaxRates, getBanks, getSignatures } from '@/app/(dashboard)/purchase-orders/actions';
 
 export const metadata = {
@@ -23,24 +22,20 @@ const EditPurchaseOrderPage = async ({ params }) => {
   // Handle errors
   if (!purchaseOrderData.success) {
     return (
-      <ProtectedComponent>
-        <div>Error loading data: {purchaseOrderData.message}</div>
-      </ProtectedComponent>
+      <div>Error loading data: {purchaseOrderData.message}</div>
     );
   }
 
 
   return (
-    <ProtectedComponent>
-      <EditPurchaseOrderIndex
-        purchaseOrderData={purchaseOrderData.data}
-        vendorsData={vendorsData}
-        productData={productData}
-        taxRates={taxRates}
-        initialBanks={initialBanks}
-        signatures={signatures}
-      />
-    </ProtectedComponent>
+    <EditPurchaseOrderIndex
+      purchaseOrderData={purchaseOrderData.data}
+      vendorsData={vendorsData}
+      productData={productData}
+      taxRates={taxRates}
+      initialBanks={initialBanks}
+      signatures={signatures}
+    />
   );
 };
 

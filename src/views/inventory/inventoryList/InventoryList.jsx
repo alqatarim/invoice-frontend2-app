@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Icon } from '@iconify/react';
 import {
   Card,
@@ -32,7 +32,6 @@ import { useInventoryListHandlers } from '@/handlers/inventory/useInventoryListH
 import { useBranchInventoryHandlers } from '@/handlers/inventory/useBranchInventoryHandlers';
 import { getInventoryColumns } from './inventoryColumns';
 import { getBranchInventoryColumns } from './branchInventoryColumns';
-import { getBranchesForDropdown, getProvincesCities } from '@/app/(dashboard)/branches/actions';
 import BranchStockTable from './BranchStockTable';
 import BranchInventoryTable from './BranchInventoryTable';
 import AppSnackbar from '@/components/shared/AppSnackbar';
@@ -44,6 +43,10 @@ const InventoryList = ({
   initialInventory = [],
   pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
   cardCounts: initialCardCounts = {},
+  initialBranchInventory = [],
+  initialBranchPagination = { current: 1, pageSize: 10, total: 0 },
+  initialBranches = [],
+  initialProvincesCities = [],
   filters: initialFilters = {},
   sortBy: initialSortBy = '',
   sortDirection: initialSortDirection = 'asc',
@@ -64,8 +67,14 @@ const InventoryList = ({
     message: '',
     severity: 'success',
   });
-  const [branches, setBranches] = useState([]);
-  const [provincesCities, setProvincesCities] = useState([]);
+  const branches = useMemo(
+    () => (Array.isArray(initialBranches) ? initialBranches : []),
+    [initialBranches]
+  );
+  const provincesCities = useMemo(
+    () => (Array.isArray(initialProvincesCities) ? initialProvincesCities : []),
+    [initialProvincesCities]
+  );
   const [expandedRows, setExpandedRows] = useState({});
   const [expandedBranchRows, setExpandedBranchRows] = useState({});
   const [activeTab, setActiveTab] = useState('inventory');
@@ -115,22 +124,10 @@ const InventoryList = ({
   });
 
   const branchHandlers = useBranchInventoryHandlers({
-    initialBranches: [],
-    initialPagination: { current: 1, pageSize: 10, total: 0 },
+    initialBranches: initialBranchInventory,
+    initialPagination: initialBranchPagination,
     onError,
   });
-
-  useEffect(() => {
-    const loadMetadata = async () => {
-      const [branchList, provincesList] = await Promise.all([
-        getBranchesForDropdown(),
-        getProvincesCities(),
-      ]);
-      setBranches(Array.isArray(branchList) ? branchList : []);
-      setProvincesCities(Array.isArray(provincesList) ? provincesList : []);
-    };
-    loadMetadata();
-  }, []);
 
   const toggleRow = (rowId) => {
     setExpandedRows((prev) => ({

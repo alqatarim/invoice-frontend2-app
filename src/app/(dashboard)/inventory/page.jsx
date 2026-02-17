@@ -1,7 +1,7 @@
 import React from 'react';
 import InventoryList from '@/views/inventory/inventoryList/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getInitialInventoryData } from './actions';
+import { getBranchInventory, getBranchesForDropdown, getProvincesCities } from '@/app/(dashboard)/branches/actions';
 
 /**
  * InventoryPage Component
@@ -14,19 +14,35 @@ const InventoryPage = async () => {
   let initialData = {
     inventory: [],
     pagination: { current: 1, pageSize: 10, total: 0 },
-    cardCounts: {}
+    cardCounts: {},
+    branchInventory: [],
+    branchPagination: { current: 1, pageSize: 10, total: 0 },
+    branches: [],
+    provincesCities: [],
   };
 
   try {
-    initialData = await getInitialInventoryData();
+    const [inventoryData, branchData, branches, provincesCities] = await Promise.all([
+      getInitialInventoryData(),
+      getBranchInventory(1, 10),
+      getBranchesForDropdown(),
+      getProvincesCities(),
+    ]);
+
+    initialData = {
+      ...initialData,
+      ...(inventoryData || {}),
+      branchInventory: branchData?.branches || [],
+      branchPagination: branchData?.pagination || initialData.branchPagination,
+      branches: Array.isArray(branches) ? branches : [],
+      provincesCities: Array.isArray(provincesCities) ? provincesCities : [],
+    };
   } catch (error) {
     console.error('Failed to fetch initial inventory data:', error);
   }
 
   return (
-    <ProtectedComponent>
-      <InventoryList initialData={initialData} />
-    </ProtectedComponent>
+    <InventoryList initialData={initialData} />
   );
 };
 

@@ -3,7 +3,6 @@
 import { notFound } from 'next/navigation';
 import EditInvoiceIndex from '@/views/invoices/editInvoice/index';
 import { getInvoiceById, getCustomers, getProducts, getTaxRates, getBanks, getManualSignatures } from '@/app/(dashboard)/invoices/actions';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Edit Invoice | Kanakku',
@@ -27,17 +26,15 @@ const EditInvoicePage = async ({ params }) => {
     }
 
     return (
-      <ProtectedComponent>
-        <EditInvoiceIndex
-          id={id}
-          invoiceData={invoiceData}
-          customersData={customersData}
-          productData={productData}
-          taxRates={taxRates}
-          initialBanks={initialBanks}
-          signatures={signatures}
-        />
-      </ProtectedComponent>
+      <EditInvoiceIndex
+        id={id}
+        invoiceData={invoiceData}
+        customersData={customersData}
+        productData={productData}
+        taxRates={taxRates}
+        initialBanks={initialBanks}
+        signatures={signatures}
+      />
     );
   } catch (error) {
     console.error('Error loading invoice data:', error);

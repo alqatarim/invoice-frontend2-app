@@ -1,7 +1,6 @@
 import React from 'react';
 import { getDebitNotesList, getVendors } from '@/app/(dashboard)/debitNotes/actions';
 import PurchaseReturnListIndex from '@/views/debitNotes/listPurchaseReturn/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Debit Note List | Kanakku',
@@ -15,12 +14,10 @@ async function DebitNoteListPage() {
     ]);
 
     return (
-      <ProtectedComponent>
-        <PurchaseReturnListIndex
-          initialData={initialData}
-          vendors={vendors}
-        />
-      </ProtectedComponent>
+      <PurchaseReturnListIndex
+        initialData={initialData}
+        vendors={vendors}
+      />
     );
   } catch (error) {
     console.error('Error loading debit note list data:', error);

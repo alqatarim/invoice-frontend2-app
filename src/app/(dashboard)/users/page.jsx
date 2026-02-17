@@ -1,7 +1,6 @@
 import React from 'react';
 import UsersListIndex from '@/views/users/usersList/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
-import { getInitialUsersData } from '@/app/(dashboard)/users/actions';
+import { getInitialUsersData, getRoles } from '@/app/(dashboard)/users/actions';
 
 /**
  * UsersPage Component
@@ -11,18 +10,18 @@ import { getInitialUsersData } from '@/app/(dashboard)/users/actions';
  */
 const UsersPage = async () => {
      // Fetch initial users data on the server
-
-
-     const initialData = await getInitialUsersData();
+     const [initialData, initialRoles] = await Promise.all([
+          getInitialUsersData(),
+          getRoles(),
+     ]);
 
 
 
      return (
-          <ProtectedComponent>
-               <UsersListIndex
-                    initialData={initialData}
-               />
-          </ProtectedComponent>
+          <UsersListIndex
+               initialData={initialData}
+               initialRoles={initialRoles}
+          />
      );
 };
 

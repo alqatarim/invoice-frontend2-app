@@ -1,7 +1,6 @@
 import React from 'react';
 import AddDeliveryChallanIndex from '@/views/deliveryChallans/addDeliveryChallans/index';
 import { getCustomers, getProducts, getTaxRates, getBanks, getSignatures, getDeliveryChallanNumber } from '@/app/(dashboard)/deliveryChallans/actions';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Add Delivery Challan | Kanakku',
@@ -19,16 +18,14 @@ const AddDeliveryChallanPage = async () => {
     ]);
 
     return (
-      <ProtectedComponent>
-        <AddDeliveryChallanIndex
-          customersData={customersData}
-          productData={productData}
-          taxRates={taxRates}
-          initialBanks={initialBanks}
-          signatures={signatures}
-          deliveryChallanNumber={deliveryChallanNumber}
-        />
-      </ProtectedComponent>
+      <AddDeliveryChallanIndex
+        customersData={customersData}
+        productData={productData}
+        taxRates={taxRates}
+        initialBanks={initialBanks}
+        signatures={signatures}
+        deliveryChallanNumber={deliveryChallanNumber}
+      />
     );
   } catch (error) {
     console.error('Error loading add delivery challan data:', error);

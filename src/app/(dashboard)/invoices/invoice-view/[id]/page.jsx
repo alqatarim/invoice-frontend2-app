@@ -3,7 +3,6 @@ import React from 'react';
 import { getInvoiceById } from '@/app/(dashboard)/invoices/actions';
 // import { getInvoiceForEditing } from '../actions';
 import InvoiceView from '@/views/invoices/viewInvoice/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 /**
  * InvoiceViewPage Component
@@ -18,17 +17,9 @@ const InvoiceViewPage = async ({ params }) => {
 
 
 
-
-
-
-    return (
-      <ProtectedComponent>
-        <InvoiceView id={params.id} />
-      </ProtectedComponent>
-    );
-
-
-
+  return (
+    <InvoiceView id={params.id} />
+  );
 }
 
 export default InvoiceViewPage;

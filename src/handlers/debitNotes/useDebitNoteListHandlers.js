@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { deleteDebitNote, cloneDebitNote, getDebitNotesList } from '@/app/(dashboard)/debitNotes/actions';
 
 export function useDebitNoteListHandlers({
@@ -24,6 +24,7 @@ export function useDebitNoteListHandlers({
   const [sortBy, setSortBy] = useState(initialSortBy || '');
   const [sortDirection, setSortDirection] = useState(initialSortDirection || 'asc');
   const [searchTerm, setSearchTerm] = useState('');
+  const loadingRef = useRef(false);
 
   // Update debit notes when initial data changes
   React.useEffect(() => {
@@ -116,6 +117,8 @@ export function useDebitNoteListHandlers({
   }, [onSuccess]);
 
   const fetchDebitNotes = useCallback(async (page = pagination.current, pageSize = pagination.pageSize) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     try {
       setLoading(true);
       const response = await getDebitNotesList(page, pageSize);
@@ -133,6 +136,7 @@ export function useDebitNoteListHandlers({
       onError(error.message || 'Failed to fetch debit notes');
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   }, [pagination.current, pagination.pageSize, onError]);
 
@@ -161,11 +165,6 @@ export function useDebitNoteListHandlers({
   const handleSearchInputChange = useCallback((searchValue) => {
     setSearchTerm(searchValue);
   }, []);
-
-  useEffect(() => {
-    if ((initialDebitNotes || []).length > 0) return;
-    fetchDebitNotes(1, pagination.pageSize);
-  }, [fetchDebitNotes, initialDebitNotes, pagination.pageSize]);
 
   return {
     // Data

@@ -33,6 +33,7 @@ import AppSnackbar from '@/components/shared/AppSnackbar';
 const UsersList = ({
      initialUsers = [],
      pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
+     initialRoles = [],
      tab: initialTab = 'ALL',
      filters: initialFilters = {},
      sortBy: initialSortBy = '',
@@ -76,6 +77,7 @@ const UsersList = ({
           initialFilters,
           initialSortBy,
           initialSortDirection,
+          initialRoles,
           initialColumns: userTableColumns,
           onError,
           onSuccess,

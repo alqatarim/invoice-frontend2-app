@@ -96,7 +96,7 @@ export async function getInvoiceSettings() {
 
 export async function updateInvoiceSettings(formData) {
   try {
-    const response = await fetchWithAuth(endPoints.InvoiceSettingsUpdate, {
+    const response = await fetchWithAuth(endPoints.InvoiceSettingsupdate, {
       method: 'PUT',
       body: formData
     })
@@ -478,7 +478,7 @@ export async function updateDefaultInvoiceTemplate(templateId) {
  */
 export async function getCurrencies() {
   try {
-    const response = await fetchWithAuth(endPoints.CurrencyAPI, {
+    const response = await fetchWithAuth(endPoints.currencyApi, {
       method: 'GET'
     })
     return { success: true, data: response.data }

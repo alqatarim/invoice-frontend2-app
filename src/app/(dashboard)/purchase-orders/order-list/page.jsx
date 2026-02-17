@@ -1,6 +1,5 @@
 import React from 'react';
 import PurchaseOrderListIndex from '@/views/purchase-orders/listOrder/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getInitialPurchaseOrderData } from '@/app/(dashboard)/purchase-orders/actions';
 
 /**
@@ -14,11 +13,9 @@ const PurchaseOrderListPage = async () => {
   const initialData = await getInitialPurchaseOrderData();
 
   return (
-    <ProtectedComponent>
-      <PurchaseOrderListIndex
-        initialData={initialData}
-      />
-    </ProtectedComponent>
+    <PurchaseOrderListIndex
+      initialData={initialData}
+    />
   );
 };
 

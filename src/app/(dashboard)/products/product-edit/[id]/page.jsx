@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import EditProductIndex from '@/views/products/editProduct/index';
 import { getProductById } from '@/app/(dashboard)/products/actions';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Edit Product | Kanakku',
@@ -18,9 +17,7 @@ const EditProductPage = async ({ params }) => {
     }
 
     return (
-      <ProtectedComponent>
-        <EditProductIndex id={id} />
-      </ProtectedComponent>
+      <EditProductIndex id={id} />
     );
   } catch (error) {
     console.error('Error loading product data:', error);

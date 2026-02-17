@@ -1,7 +1,6 @@
 import React from 'react';
 import { getPaymentsList, getCustomers } from '../actions';
 import PaymentListIndex from '@/views/payments/listPayment/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Payment List | Kanakku',
@@ -15,12 +14,10 @@ async function PaymentListPage() {
     ]);
 
     return (
-      <ProtectedComponent>
-        <PaymentListIndex
-          initialData={initialData}
-          initialCustomerOptions={customers || []}
-        />
-      </ProtectedComponent>
+      <PaymentListIndex
+        initialData={initialData}
+        initialCustomerOptions={customers || []}
+      />
     );
   } catch (error) {
     console.error('Error loading payment list data:', error);

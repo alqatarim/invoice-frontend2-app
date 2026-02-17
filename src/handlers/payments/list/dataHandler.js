@@ -34,6 +34,7 @@ export function dataHandler({
           sortBy: initialSortBy,
           sortDirection: initialSortDirection
      });
+     const loadingRef = useRef(false);
 
      // Search state management
      const [searchTerm, setSearchTerm] = useState('');
@@ -59,6 +60,9 @@ export function dataHandler({
 
      // Fetch payments with current or provided parameters
      const fetchData = useCallback(async (params = {}) => {
+          if (loadingRef.current) return;
+          loadingRef.current = true;
+
           const {
                page = pagination.current,
                pageSize = pagination.pageSize,
@@ -89,6 +93,7 @@ export function dataHandler({
                throw error;
           } finally {
                setLoading(false);
+               loadingRef.current = false;
           }
      }, [pagination, onError]);
 
@@ -161,13 +166,6 @@ export function dataHandler({
      const handleSearchClear = useCallback(() => {
           handleSearchInputChange('');
      }, [handleSearchInputChange]);
-
-     // Initial data fetch on mount
-     useEffect(() => {
-          if (initialPayments.length === 0) {
-               fetchData();
-          }
-     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
      // Set initial customer options on mount
      useEffect(() => {

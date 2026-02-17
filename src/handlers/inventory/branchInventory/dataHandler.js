@@ -122,10 +122,6 @@ export function branchInventoryDataHandler({
     }
   }, [fetchData, onError]);
 
-  useEffect(() => {
-    fetchData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   return {
     branches,
     pagination,

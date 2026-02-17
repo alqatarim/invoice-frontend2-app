@@ -1,6 +1,5 @@
 import React from 'react';
 import SalesReturnListIndex from '@/views/salesReturn/listSalesReturn/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getSalesReturnList } from '@/app/(dashboard)/sales-return/actions';
 
 /**
@@ -37,12 +36,10 @@ const SalesReturnListPage = async () => {
   }
 
   return (
-    <ProtectedComponent>
-      <SalesReturnListIndex
-        initialData={initialData}
-        initialSalesReturns={initialData.salesReturns}
-      />
-    </ProtectedComponent>
+    <SalesReturnListIndex
+      initialData={initialData}
+      initialSalesReturns={initialData.salesReturns}
+    />
   );
 };
 

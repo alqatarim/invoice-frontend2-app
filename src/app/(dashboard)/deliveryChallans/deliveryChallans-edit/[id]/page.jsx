@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import EditDeliveryChallanIndex from '@/views/deliveryChallans/editDeliveryChallans/index';
 import { getDeliveryChallanById, getCustomers, getProducts, getTaxRates, getBanks, getSignatures, addBank } from '@/app/(dashboard)/deliveryChallans/actions';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Edit Delivery Challan | Kanakku',
@@ -25,18 +24,16 @@ const EditDeliveryChallanPage = async ({ params }) => {
     }
 
     return (
-      <ProtectedComponent>
-        <EditDeliveryChallanIndex
-          id={id}
-          deliveryChallanData={deliveryChallanData}
-          customersData={customersData}
-          productData={productData}
-          taxRates={taxRates}
-          initialBanks={initialBanks}
-          signatures={signatures}
-          addBank={addBank}
-        />
-      </ProtectedComponent>
+      <EditDeliveryChallanIndex
+        id={id}
+        deliveryChallanData={deliveryChallanData}
+        customersData={customersData}
+        productData={productData}
+        taxRates={taxRates}
+        initialBanks={initialBanks}
+        signatures={signatures}
+        addBank={addBank}
+      />
     );
   } catch (error) {
     console.error('Error loading delivery challan data:', error);

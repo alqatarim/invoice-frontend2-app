@@ -2,7 +2,6 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import EditPurchaseIndex from '@/views/purchases/editPurchase/index';
 import { getPurchaseDetails, getDropdownData } from '@/app/(dashboard)/purchases/actions';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Edit Purchase | Kanakku',
@@ -26,17 +25,15 @@ const PurchaseEditPage = async ({ params }) => {
     }
 
     return (
-      <ProtectedComponent>
-        <EditPurchaseIndex
-          purchaseData={purchaseResponse.data}
-          vendors={dropdownData.vendors}
-          products={dropdownData.products}
-          taxRates={dropdownData.taxRates}
-          banks={dropdownData.banks}
-          signatures={dropdownData.signatures}
-          units={dropdownData.units}
-        />
-      </ProtectedComponent>
+      <EditPurchaseIndex
+        purchaseData={purchaseResponse.data}
+        vendors={dropdownData.vendors}
+        products={dropdownData.products}
+        taxRates={dropdownData.taxRates}
+        banks={dropdownData.banks}
+        signatures={dropdownData.signatures}
+        units={dropdownData.units}
+      />
     );
   } catch (error) {
     console.error('Error loading edit purchase data:', error);

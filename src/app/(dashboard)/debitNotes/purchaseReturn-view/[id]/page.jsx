@@ -1,6 +1,6 @@
 import React from 'react';
 import ViewDebitNoteIndex from '@/views/debitNotes/viewPurchaseReturn/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
+import { getDebitNoteDetails } from '@/app/(dashboard)/debitNotes/actions';
 
 export const metadata = {
   title: 'View Debit Note',
@@ -8,10 +8,22 @@ export const metadata = {
 };
 
 const ViewDebitNotePage = async ({ params }) => {
+  let initialDebitNoteData = null;
+
+  try {
+    const response = await getDebitNoteDetails(params.id);
+    if (response?.success && response?.data) {
+      initialDebitNoteData = response.data;
+    }
+  } catch (error) {
+    console.error('Failed to fetch debit note details:', error);
+  }
+
   return (
-    <ProtectedComponent>
-      <ViewDebitNoteIndex debitNoteId={params.id} />
-    </ProtectedComponent>
+    <ViewDebitNoteIndex
+      debitNoteId={params.id}
+      initialDebitNoteData={initialDebitNoteData}
+    />
   );
 };
 

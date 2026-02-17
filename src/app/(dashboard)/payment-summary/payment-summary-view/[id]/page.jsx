@@ -1,7 +1,6 @@
 import { getPaymentById } from '../../actions'
 import PaymentSummaryViewPage from '@/views/payment-summary/viewPaymentSummary/index'
 import { notFound } from 'next/navigation'
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export default async function PaymentSummaryViewPageRoute({ params }) {
   const { id } = params
@@ -10,12 +9,10 @@ export default async function PaymentSummaryViewPageRoute({ params }) {
     paymentResponse = await getPaymentById(id)
 
     return (
-      <ProtectedComponent>
-        <PaymentSummaryViewPage
-          paymentData={paymentResponse}
-          paymentId={id}
-        />
-      </ProtectedComponent>
+      <PaymentSummaryViewPage
+        paymentData={paymentResponse}
+        paymentId={id}
+      />
     );
 
   } catch (error) {

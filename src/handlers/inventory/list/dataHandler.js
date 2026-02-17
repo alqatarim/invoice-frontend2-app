@@ -185,11 +185,6 @@ export function dataHandler({
     }
   }, [fetchData, onError]);
 
-  // Initial data fetch
-  useEffect(() => {
-    fetchData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   return {
     // State
     inventory,

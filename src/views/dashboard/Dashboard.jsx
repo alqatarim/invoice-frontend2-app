@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -66,15 +66,14 @@ import {
 } from "@/app/(dashboard)/actions";
 import AppSnackbar from "@/components/shared/AppSnackbar";
 
-const Dashboard = () => {
+const Dashboard = ({ initialDashboardData = null }) => {
 
 	const theme = useTheme();
 
-	const [dashboardData, setDashboardData] = useState({});
+	const [dashboardData, setDashboardData] = useState(initialDashboardData || {});
 	const [filterValue, setFilterValue] = useState("month");
-	const [invoiceData, setInvoiceData] = useState([]);
+	const [invoiceData, setInvoiceData] = useState(initialDashboardData?.invoiceList || []);
 	const [currencyData, setCurrencyData] = useState("SAR");
-	const [loading, setLoading] = useState(false);
 	const [openSnackbar, setOpenSnackbar] = useState({
 		open: false,
 		message: "",
@@ -83,11 +82,10 @@ const Dashboard = () => {
 
 	// Memoized fetch function to prevent unnecessary re-renders
 	const fetchDashboardData = useCallback(async (filter = "") => {
-		setLoading(true);
 		try {
 			const response = filter
 				? await getFilteredDashboardData(filter)
-				: await getDashboardData("/dashboard");
+				: await getDashboardData();
 
 			if (response.code === 200) {
 				setDashboardData(response.data);
@@ -111,8 +109,6 @@ const Dashboard = () => {
 				message: `Failed to fetch ${filter ? "filtered " : ""}dashboard data`,
 				type: "error",
 			});
-		} finally {
-			setLoading(false);
 		}
 	}, []);
 
@@ -123,23 +119,6 @@ const Dashboard = () => {
 			await fetchDashboardData(filter);
 		}
 	};
-
-	// Initial data fetch with cleanup
-	useEffect(() => {
-		let mounted = true;
-
-		const initializeDashboard = async () => {
-			if (mounted) {
-				await fetchDashboardData();
-			}
-		};
-
-		initializeDashboard();
-
-		return () => {
-			mounted = false;
-		};
-	}, []);
 
 	// Handle converting invoice to sales return
 	const handleConvertToSalesReturn = async (id) => {

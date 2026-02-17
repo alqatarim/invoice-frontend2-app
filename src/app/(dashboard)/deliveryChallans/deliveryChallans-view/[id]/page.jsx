@@ -1,6 +1,5 @@
 import React from 'react';
 import DeliveryChallanView from '@/views/deliveryChallans/viewDeliveryChallans/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 /**
  * DeliveryChallanViewPage Component
@@ -14,9 +13,7 @@ const DeliveryChallanViewPage = async ({ params }) => {
   const { id } = params;
 
   return (
-    <ProtectedComponent>
-      <DeliveryChallanView id={params.id} />
-    </ProtectedComponent>
+    <DeliveryChallanView id={params.id} />
   );
 }
 

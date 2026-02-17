@@ -2,7 +2,6 @@ import React from 'react';
 
 import { getVendorById, getVendorLedger } from '@/app/(dashboard)/vendors/actions';
 import VendorView from '@/views/vendors/viewVendor/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 /**
  * VendorViewPage Component
@@ -16,9 +15,7 @@ const VendorViewPage = async ({ params }) => {
   const { id } = params;
 
   return (
-    <ProtectedComponent>
-      <VendorView id={params.id} />
-    </ProtectedComponent>
+    <VendorView id={params.id} />
   );
 }
 

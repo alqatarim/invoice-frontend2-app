@@ -27,8 +27,7 @@ export async function getUnitById(id) {
 
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.UNIT.VIEW}/${id}`, {
-      cache: 'no-store',
-      next: { revalidate: 0 }
+      cache: 'no-store'
     });
 
     return response.data || {};
@@ -45,8 +44,7 @@ export async function getInitialUnitData() {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.UNIT.LIST}?skip=0&limit=10`,
       {
-        cache: 'no-store',
-        next: { revalidate: 0 }
+        cache: 'no-store'
       }
     );
 

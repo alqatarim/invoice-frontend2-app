@@ -122,28 +122,21 @@ export async function fetchWithAuth(endpoint, options = {}) {
       credentials: 'include',
     });
 
-    // Clone response for logging (since response can only be consumed once)
+    // TEMPORARILY DISABLED FOR PERFORMANCE TESTING:
+    // Heavy response cloning/parsing and verbose logging can add CPU overhead.
+    // Uncomment below if detailed payload diagnostics are needed again.
+    //
     const responseClone = response.clone();
     const responseData = await responseClone.json();
-
-    //  console.log(`=== Request to ${endpoint} [${requestId}] ===`);
-
-    //  ============         ===============
-    //  ============         ===============
-    //  console.log('Request Details:', JSON.stringify(logData.request, null, 2));
-
-
     console.log(`=== Response Data from ${endpoint} [${requestId}] ===`);
-
-    //  ============         ===============
-    //  ============         ===============
     console.log(JSON.stringify(responseData, null, 2));
-
-    // Update log object with response
     logData.response = {
       status: response.status,
       data: responseData
     };
+    // logData.response = {
+    //   status: response.status
+    // };
 
     if (!response.ok) {
       const error = await response.clone().json();

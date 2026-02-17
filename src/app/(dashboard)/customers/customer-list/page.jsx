@@ -1,6 +1,5 @@
 import React from 'react';
 import CustomerListIndex from '@/views/customers/listCustomer/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getInitialCustomerData, searchCustomers } from '@/app/(dashboard)/customers/actions';
 
 /**
@@ -14,12 +13,10 @@ const CustomersPage = async () => {
   const initialData = await getInitialCustomerData();
 
   return (
-    <ProtectedComponent>
-      <CustomerListIndex 
-        initialData={initialData} 
-        initialCustomers={initialData.customers || []}
-      />
-    </ProtectedComponent>
+    <CustomerListIndex 
+      initialData={initialData} 
+      initialCustomers={initialData.customers || []}
+    />
   );
 };
 

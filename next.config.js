@@ -72,34 +72,6 @@ const nextConfig = {
       };
     }
 
-    // Performance optimizations
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        chunks: 'all',
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            priority: 10,
-            chunks: 'all',
-          },
-          mui: {
-            test: /[\\/]node_modules[\\/]@mui[\\/]/,
-            name: 'mui',
-            priority: 20,
-            chunks: 'all',
-          },
-          apex: {
-            test: /[\\/]node_modules[\\/](react-apexcharts|apexcharts)[\\/]/,
-            name: 'apex-charts',
-            priority: 20,
-            chunks: 'all',
-          },
-        },
-      },
-    };
-
     return config;
   },
   // Compiler optimizations (disabled for Turbopack compatibility)

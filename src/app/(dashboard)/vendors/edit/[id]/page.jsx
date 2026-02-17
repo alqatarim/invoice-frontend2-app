@@ -3,7 +3,6 @@
 import { notFound } from 'next/navigation';
 import EditVendorIndex from '@/views/vendors/editVendor/index';
 import { getVendorById } from '@/app/(dashboard)/vendors/actions';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Edit Vendor | Kanakku',
@@ -20,12 +19,10 @@ const EditVendorPage = async ({ params }) => {
     }
 
     return (
-      <ProtectedComponent>
-        <EditVendorIndex
-          id={id}
-          vendorData={vendorData}
-        />
-      </ProtectedComponent>
+      <EditVendorIndex
+        id={id}
+        vendorData={vendorData}
+      />
     );
   } catch (error) {
     console.error('Error loading vendor data:', error);

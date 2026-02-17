@@ -1,6 +1,5 @@
 import React from 'react';
 import BranchListIndex from '@/views/branches/branchList/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getInitialBranchData } from '@/app/(dashboard)/branches/actions';
 
 export const metadata = {
@@ -11,18 +10,14 @@ const BranchesPage = async () => {
   try {
     const initialData = await getInitialBranchData();
     return (
-      <ProtectedComponent>
-        <BranchListIndex initialData={initialData} />
-      </ProtectedComponent>
+      <BranchListIndex initialData={initialData} />
     );
   } catch (error) {
     console.error('BranchesPage: Error fetching data:', error);
     return (
-      <ProtectedComponent>
-        <div className="text-red-600 p-8">
-          Failed to load branch data: {error.message}
-        </div>
-      </ProtectedComponent>
+      <div className="text-red-600 p-8">
+        Failed to load branch data: {error.message}
+      </div>
     );
   }
 };

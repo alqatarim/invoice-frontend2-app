@@ -1,18 +1,15 @@
 import { getPermissionsByRoleId } from '../../actions'
 import PermissionsViewIndex from '@/views/roles-permission/viewPermissions'
-import ProtectedComponent from '@/components/ProtectedComponent'
 
 export default async function PermissionsViewPage({ params }) {
   // Fetch permissions data server-side
   const { permissions, roleName } = await getPermissionsByRoleId(params.id)
 
   return (
-    <ProtectedComponent moduleId='role' permissionType='update'>
-      <PermissionsViewIndex 
-        roleId={params.id}
-        initialPermissions={permissions}
-        roleName={roleName}
-      />
-    </ProtectedComponent>
+    <PermissionsViewIndex 
+      roleId={params.id}
+      initialPermissions={permissions}
+      roleName={roleName}
+    />
   )
 }

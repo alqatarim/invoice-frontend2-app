@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useUnitDataHandler } from './list/dataHandler'
 import { useUnitActionsHandler } from './list/actionsHandler'
 import { useUnitColumnsHandler } from './list/columnsHandler'
@@ -16,11 +15,6 @@ export const useUnitListHandlers = () => {
   )
   const columnsHandler = useUnitColumnsHandler()
   const filterHandler = useUnitFilterHandler()
-
-  // Fetch units on mount and when page/size changes
-  useEffect(() => {
-    dataHandler.fetchUnitList(dataHandler.page, dataHandler.size)
-  }, [dataHandler.page, dataHandler.size])
 
   const handleReset = () => {
     dataHandler.setPage(1)

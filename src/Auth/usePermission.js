@@ -6,11 +6,12 @@ export const usePermission = (module, action) => {
 
   if (!permissions) return false
 
+  if (typeof permissions.hasPermission === 'function') {
+    return permissions.hasPermission(module, action)
+  }
+
+  // Fallback for legacy context shape
   if (permissions.isAdmin) return true
-
-  const modulePermissions = permissions.modules[module]
-
-  if (!modulePermissions) return false
-
-  return modulePermissions[action] || false
+  const modulePermissions = permissions.modules?.[module]
+  return Boolean(modulePermissions?.[action])
 }

@@ -2,7 +2,6 @@
 
 import React from 'react';
 import InvoiceListIndex from '@/views/invoices/invoiceList/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getInitialInvoiceData, searchCustomers } from '@/app/(dashboard)/invoices/actions';
 
 /**
@@ -19,12 +18,10 @@ const InvoicesPage = async () => {
   ]);
 
   return (
-    <ProtectedComponent>
-      <InvoiceListIndex 
-        initialData={initialData} 
-        initialCustomers={customers}
-      />
-    </ProtectedComponent>
+    <InvoiceListIndex 
+      initialData={initialData} 
+      initialCustomers={customers}
+    />
   );
 };
 

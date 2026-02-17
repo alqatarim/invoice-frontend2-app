@@ -1,6 +1,5 @@
 import React from 'react';
 import AddVendorIndex from '@/views/vendors/addVendor/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Add Vendor | Kanakku',
@@ -9,9 +8,7 @@ export const metadata = {
 const AddVendorPage = async () => {
   try {
     return (
-      <ProtectedComponent>
-        <AddVendorIndex />
-      </ProtectedComponent>
+      <AddVendorIndex />
     );
   } catch (error) {
     console.error('Error loading add vendor data:', error);

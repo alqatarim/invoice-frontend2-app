@@ -1,6 +1,5 @@
 import React from 'react';
 import AddPurchaseOrderIndex from '@/views/purchase-orders/addOrder/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getVendors, getProducts, getTaxRates, getBanks, getSignatures, getPurchaseOrderNumber } from '@/app/(dashboard)/purchase-orders/actions';
 
 const AddPurchaseOrderPage = async () => {
@@ -15,16 +14,14 @@ const AddPurchaseOrderPage = async () => {
 
 
     return (
-      <ProtectedComponent>
-        <AddPurchaseOrderIndex
-          vendors={vendors}
-          products={products}
-          taxRates={taxRates}
-          banks={banks}
-          signatures={signatures}
-          purchaseOrderNumber={purchaseOrderNumber.data}
-        />
-      </ProtectedComponent>
+      <AddPurchaseOrderIndex
+        vendors={vendors}
+        products={products}
+        taxRates={taxRates}
+        banks={banks}
+        signatures={signatures}
+        purchaseOrderNumber={purchaseOrderNumber.data}
+      />
     );
   } catch (error) {
     console.error('Error loading form data:', error);

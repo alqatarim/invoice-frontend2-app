@@ -1,7 +1,6 @@
 import React from 'react';
 import { getExpensesList } from '../actions';
 import ExpenseListIndex from '@/views/expenses/listExpense/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Expense List | Kanakku',
@@ -12,11 +11,9 @@ async function ExpenseListPage() {
     const initialData = await getExpensesList();
 
     return (
-      <ProtectedComponent>
-        <ExpenseListIndex
-          initialData={initialData}
-        />
-      </ProtectedComponent>
+      <ExpenseListIndex
+        initialData={initialData}
+      />
     );
   } catch (error) {
     console.error('Error loading expense list data:', error);

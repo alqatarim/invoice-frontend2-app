@@ -172,13 +172,6 @@ export function dataHandler({
     };
   }, []);
 
-  // Initial load - Run only once on mount
-  useEffect(() => {
-    if (!loadingRef.current) {
-      fetchData();
-    }
-  }, []); // Empty dependency array - run only once on mount
-
   return {
     // State
     products,

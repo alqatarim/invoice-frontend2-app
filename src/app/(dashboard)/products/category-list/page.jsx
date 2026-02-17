@@ -2,13 +2,10 @@
 
 import React from 'react';
 import CategoryListComponent from '@/views/categories/categoryList/CategoryList';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 const CategoriesPage = async () => {
   return (
-    <ProtectedComponent>
-      <CategoryListComponent />
-    </ProtectedComponent>
+    <CategoryListComponent />
   );
 };
 

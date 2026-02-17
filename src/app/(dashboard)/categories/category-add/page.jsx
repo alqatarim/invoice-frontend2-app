@@ -1,6 +1,5 @@
 import React from 'react';
 import AddCategoryIndex from '@/views/categories/addCategory/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Add Category | Kanakku',
@@ -9,9 +8,7 @@ export const metadata = {
 const AddCategoryPage = async () => {
   try {
     return (
-      <ProtectedComponent>
-        <AddCategoryIndex />
-      </ProtectedComponent>
+      <AddCategoryIndex />
     );
   } catch (error) {
     console.error('Error loading add category data:', error);

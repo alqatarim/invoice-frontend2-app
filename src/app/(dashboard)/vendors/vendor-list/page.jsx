@@ -2,7 +2,6 @@
 
 import React from 'react';
 import VendorListIndex from '@/views/vendors/vendorList/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getInitialVendorData } from '@/app/(dashboard)/vendors/actions';
 
 /**
@@ -14,18 +13,14 @@ const VendorsPage = async () => {
     const initialData = await getInitialVendorData();
 
     return (
-      <ProtectedComponent>
-        <VendorListIndex initialData={initialData} />
-      </ProtectedComponent>
+      <VendorListIndex initialData={initialData} />
     );
   } catch (error) {
     console.error('VendorsPage: Error fetching data:', error);
     return (
-      <ProtectedComponent>
-        <div className="text-red-600 p-8">
-          Failed to load vendor data: {error.message}
-        </div>
-      </ProtectedComponent>
+      <div className="text-red-600 p-8">
+        Failed to load vendor data: {error.message}
+      </div>
     );
   }
 };

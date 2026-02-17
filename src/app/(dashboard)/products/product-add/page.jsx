@@ -1,6 +1,5 @@
 import React from 'react';
 import AddProductIndex from '@/views/products/addProduct/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Add Product | Kanakku',
@@ -9,9 +8,7 @@ export const metadata = {
 const AddProductPage = async () => {
   try {
     return (
-      <ProtectedComponent>
-        <AddProductIndex />
-      </ProtectedComponent>
+      <AddProductIndex />
     );
   } catch (error) {
     console.error('Error loading add product data:', error);

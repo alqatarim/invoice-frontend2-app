@@ -1,7 +1,6 @@
 import React from 'react';
 import AddInvoiceIndex from '@/views/invoices/addInvoice/index';
 import { getCustomers, getProducts, getTaxRates, getBanks, getManualSignatures, getNextInvoiceNumber } from '@/app/(dashboard)/invoices/actions';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Add Invoice | Kanakku',
@@ -19,16 +18,14 @@ const AddInvoicePage = async () => {
     ]);
 
     return (
-      <ProtectedComponent>
-        <AddInvoiceIndex
-          customersData={customersData}
-          productData={productData}
-          taxRates={taxRates}
-          initialBanks={initialBanks}
-          signatures={signatures}
-          invoiceNumber={invoiceNumber}
-        />
-      </ProtectedComponent>
+      <AddInvoiceIndex
+        customersData={customersData}
+        productData={productData}
+        taxRates={taxRates}
+        initialBanks={initialBanks}
+        signatures={signatures}
+        invoiceNumber={invoiceNumber}
+      />
     );
   } catch (error) {
     console.error('Error loading add invoice data:', error);

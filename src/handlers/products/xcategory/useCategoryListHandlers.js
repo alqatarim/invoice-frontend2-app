@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useCategoryDataHandler } from './list/dataHandler'
 import { useCategoryActionsHandler } from './list/actionsHandler'
 import { useCategoryColumnsHandler } from './list/columnsHandler'
@@ -16,11 +15,6 @@ export const useCategoryListHandlers = () => {
   )
   const columnsHandler = useCategoryColumnsHandler()
   const filterHandler = useCategoryFilterHandler()
-
-  // Fetch categories on mount and when page/size changes
-  useEffect(() => {
-    dataHandler.fetchCategoryList(dataHandler.page, dataHandler.size)
-  }, [dataHandler.page, dataHandler.size])
 
   const handleReset = () => {
     dataHandler.setPage(1)

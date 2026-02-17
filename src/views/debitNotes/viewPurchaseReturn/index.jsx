@@ -5,8 +5,11 @@ import { Skeleton, Box } from '@mui/material';
 import ViewDebitNote from './ViewDebitNote';
 import { usePurchaseReturnViewHandlers } from '@/handlers/purchaseReturn/view/usePurchaseReturnViewHandlers';
 
-const ViewPurchaseReturnIndex = ({ debitNoteId }) => {
-  const handlers = usePurchaseReturnViewHandlers({ debitNoteId });
+const ViewPurchaseReturnIndex = ({ debitNoteId, initialDebitNoteData = null }) => {
+  const handlers = usePurchaseReturnViewHandlers({
+    debitNoteId,
+    initialDebitNoteData,
+  });
 
   if (handlers.isLoading) {
     return (

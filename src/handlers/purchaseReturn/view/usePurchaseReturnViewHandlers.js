@@ -8,12 +8,12 @@ import { getDebitNoteDetails, deleteDebitNote, cloneDebitNote } from '@/app/(das
 /**
  * Main handler for Purchase Return view functionality
  */
-export function usePurchaseReturnViewHandlers({ debitNoteId }) {
+export function usePurchaseReturnViewHandlers({ debitNoteId, initialDebitNoteData = null }) {
   const router = useRouter();
 
   // State
-  const [debitNoteData, setDebitNoteData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [debitNoteData, setDebitNoteData] = useState(initialDebitNoteData || null);
+  const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
 
@@ -42,11 +42,6 @@ export function usePurchaseReturnViewHandlers({ debitNoteId }) {
       setIsLoading(false);
     }
   }, [debitNoteId]);
-
-  // Load data on mount
-  useEffect(() => {
-    loadDebitNoteData();
-  }, [loadDebitNoteData]);
 
   // Check for print mode from URL params
   useEffect(() => {

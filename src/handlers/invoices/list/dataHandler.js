@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getFilteredInvoices } from '@/app/(dashboard)/invoices/actions';
 import { filterHandler } from '@/handlers/invoices/list/filterHandler';
 
@@ -30,6 +30,7 @@ export function dataHandler({
     sortBy: initialSortBy,
     sortDirection: initialSortDirection
   });
+  const loadingRef = useRef(false);
 
   // Use simplified filterHandler
   const filter = filterHandler(initialFilters, initialTab);
@@ -50,6 +51,8 @@ export function dataHandler({
 
   // Fetch invoices with current or provided parameters
   const fetchData = useCallback(async (params = {}) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     const {
       page = pagination.current,
       pageSize = pagination.pageSize,
@@ -108,6 +111,7 @@ export function dataHandler({
       throw error;
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   }, [pagination, filter.filterValues, sorting, searchTerm, onError, setCustomerOptions, setInvoiceOptions]);
 
@@ -126,9 +130,10 @@ export function dataHandler({
 
   const handleSearchInputChange = useCallback((value) => {
     const nextValue = String(value ?? '');
+    if (nextValue === searchTerm) return;
     setSearchTerm(nextValue);
     fetchData({ page: 1, search: nextValue });
-  }, [fetchData]);
+  }, [fetchData, searchTerm]);
 
   const handleFilterValueChange = useCallback((field, value) => {
     filter.updateFilter(field, value);
@@ -153,11 +158,6 @@ export function dataHandler({
     const updatedStatuses = filter.updateStatus(newStatuses);
     fetchData({ page: 1, filters: { ...filter.filterValues, status: updatedStatuses } });
   }, [filter, fetchData]);
-
-  // Initial data fetch
-  useEffect(() => {
-    fetchData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     // State

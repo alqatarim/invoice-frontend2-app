@@ -1,7 +1,6 @@
 import React from 'react';
 import { getQuotationsList, getCustomers } from '../actions';
 import QuotationListIndex from '@/views/quotations/listQuotation/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Quotation List | Kanakku',
@@ -15,12 +14,10 @@ async function QuotationListPage() {
     ]);
 
     return (
-      <ProtectedComponent>
-        <QuotationListIndex
-          initialData={initialData}
-          customers={customers}
-        />
-      </ProtectedComponent>
+      <QuotationListIndex
+        initialData={initialData}
+        customers={customers}
+      />
     );
   } catch (error) {
     console.error('Error loading quotation list data:', error);

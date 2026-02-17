@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
-import { getFilteredUsers, deleteUser, addUser, updateUser, getRoles } from '@/app/(dashboard)/users/actions';
+import { getFilteredUsers, deleteUser, addUser, updateUser } from '@/app/(dashboard)/users/actions';
 import { getUserColumns } from '@/views/users/usersList/userColumns';
 import { usePermission } from '@/Auth/usePermission';
 import { useSnackbar } from 'notistack';
@@ -14,10 +13,10 @@ export const useUsersListHandlers = ({
      initialSortBy = '',
      initialSortDirection = 'asc',
      initialColumns = [],
+     initialRoles = [],
      onError,
      onSuccess,
 }) => {
-     const router = useRouter();
      const theme = useTheme();
      const { enqueueSnackbar } = useSnackbar();
 
@@ -33,7 +32,7 @@ export const useUsersListHandlers = ({
           search: '',
           ...initialFilters,
      });
-     const [hasInitialData, setHasInitialData] = useState(initialUsers.length > 0);
+     const loadingRef = useRef(false);
 
      // Column management - convert initialColumns to proper format if needed
      const [availableColumns, setAvailableColumns] = useState(() => {
@@ -59,7 +58,7 @@ export const useUsersListHandlers = ({
      const [selectedUserId, setSelectedUserId] = useState(null);
 
      // Roles data
-     const [roles, setRoles] = useState([]);
+     const [roles] = useState(initialRoles);
 
      // Permissions
      const permissions = {
@@ -69,46 +68,33 @@ export const useUsersListHandlers = ({
           canDelete: usePermission('user', 'delete'),
      };
 
-     // Load roles on mount
-     useEffect(() => {
-          const loadRoles = async () => {
-               try {
-                    const rolesData = await getRoles();
-                    setRoles(rolesData);
-               } catch (error) {
-                    console.error('Error loading roles:', error);
-               }
-          };
-          loadRoles();
-     }, []);
-
     // Load users data - only fetch when explicitly called (not on initial mount)
-     const loadUsers = useCallback(async (page, pageSize) => {
+     const loadUsers = useCallback(async (page, pageSize, overrides = {}) => {
+          if (loadingRef.current) return;
+          loadingRef.current = true;
           setLoading(true);
           try {
+               const resolvedFilters = overrides.filters ?? filterValues;
+               const resolvedSortBy = overrides.sortBy ?? sortBy;
+               const resolvedSortDirection = overrides.sortDirection ?? sortDirection;
                const result = await getFilteredUsers(
                     page || pagination.current,
                     pageSize || pagination.pageSize,
-                    filterValues,
-                    sortBy,
-                    sortDirection
+                    resolvedFilters,
+                    resolvedSortBy,
+                    resolvedSortDirection
                );
 
                setUsers(result.users);
                setPagination(result.pagination);
-               setHasInitialData(true); // Mark that we've fetched fresh data
           } catch (error) {
                console.error('Error loading users:', error);
                if (onError) onError('Failed to load users');
           } finally {
                setLoading(false);
+               loadingRef.current = false;
           }
      }, [pagination.current, pagination.pageSize, filterValues, sortBy, sortDirection, onError]);
-
-    useEffect(() => {
-         if (hasInitialData) return;
-         loadUsers(1, pagination.pageSize);
-    }, [hasInitialData, loadUsers, pagination.pageSize]);
 
      // Filter handlers
      const handleFilterValueChange = useCallback((field, value) => {
@@ -120,12 +106,17 @@ export const useUsersListHandlers = ({
 
     const handleSearchInputChange = useCallback((value) => {
          const nextValue = value ?? '';
+         if (nextValue === (filterValues.search || '')) return;
+         const nextFilters = {
+              ...filterValues,
+              search: nextValue,
+         };
          setFilterValues(prev => ({
               ...prev,
               search: nextValue,
          }));
-         loadUsers(1, pagination.pageSize);
-    }, [loadUsers, pagination.pageSize]);
+         loadUsers(1, pagination.pageSize, { filters: nextFilters });
+    }, [loadUsers, pagination.pageSize, filterValues]);
 
      const handleFilterApply = useCallback(async () => {
           try {
@@ -179,7 +170,7 @@ export const useUsersListHandlers = ({
           const newDirection = isAsc ? 'desc' : 'asc';
           setSortBy(property);
           setSortDirection(newDirection);
-          loadUsers(1, pagination.pageSize);
+          loadUsers(1, pagination.pageSize, { sortBy: property, sortDirection: newDirection });
      }, [sortBy, sortDirection, loadUsers, pagination.pageSize]);
 
      // Delete handlers
@@ -352,8 +343,6 @@ export const useUsersListHandlers = ({
           manageColumnsOpen,
           deleteDialogOpen,
           userToDelete,
-          hasInitialData,
-
           // Dialog states
           userDialogOpen,
           userDialogData,

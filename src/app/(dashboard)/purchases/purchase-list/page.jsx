@@ -1,7 +1,6 @@
 import React from 'react';
 import { getPurchaseList, getVendors } from '../actions';
 import PurchaseListIndex from '@/views/purchases/listPurchase/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Purchase List | Kanakku',
@@ -15,12 +14,10 @@ async function PurchaseListPage() {
     ]);
 
     return (
-      <ProtectedComponent>
-        <PurchaseListIndex
-          initialData={initialData}
-          vendors={vendors}
-        />
-      </ProtectedComponent>
+      <PurchaseListIndex
+        initialData={initialData}
+        vendors={vendors}
+      />
     );
   } catch (error) {
     console.error('Error loading purchase list data:', error);

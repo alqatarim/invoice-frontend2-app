@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import EditCategoryIndex from '@/views/categories/editCategory/index';
 import { getCategoryById } from '@/app/(dashboard)/categories/actions';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Edit Category | Kanakku',
@@ -18,12 +17,10 @@ const EditCategoryPage = async ({ params }) => {
     }
 
     return (
-      <ProtectedComponent>
-        <EditCategoryIndex
-          id={id}
-          categoryData={categoryData}
-        />
-      </ProtectedComponent>
+      <EditCategoryIndex
+        id={id}
+        categoryData={categoryData}
+      />
     );
   } catch (error) {
     console.error('Error loading category data:', error);

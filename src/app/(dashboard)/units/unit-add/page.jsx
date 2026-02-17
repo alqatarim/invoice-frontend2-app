@@ -1,6 +1,5 @@
 import React from 'react';
 import AddUnitIndex from '@/views/units/addUnit/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 
 export const metadata = {
   title: 'Add Unit | Kanakku',
@@ -9,9 +8,7 @@ export const metadata = {
 const AddUnitPage = async () => {
   try {
     return (
-      <ProtectedComponent>
-        <AddUnitIndex />
-      </ProtectedComponent>
+      <AddUnitIndex />
     );
   } catch (error) {
     console.error('Error loading add unit data:', error);

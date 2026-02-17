@@ -1,6 +1,5 @@
 import React from 'react';
 import ViewPurchaseIndex from '@/views/purchases/viewPurchase/index';
-import ProtectedComponent from '@/components/ProtectedComponent';
 import { getPurchaseDetails } from '@/app/(dashboard)/purchases/actions';
 import { notFound } from 'next/navigation';
 
@@ -19,12 +18,10 @@ const ViewPurchasePage = async ({ params }) => {
     }
 
     return (
-      <ProtectedComponent>
-        <ViewPurchaseIndex
-          purchaseId={params.id}
-          initialData={response.data}
-        />
-      </ProtectedComponent>
+      <ViewPurchaseIndex
+        purchaseId={params.id}
+        initialData={response.data}
+      />
     );
   } catch (error) {
     console.error('Error fetching purchase:', error);
