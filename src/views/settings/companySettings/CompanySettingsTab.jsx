@@ -20,10 +20,12 @@ const CompanySettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
 
   const handleUpdate = async (formData) => {
     try {
-      await updateCompanySettings(formData)
+      const result = await updateCompanySettings(formData)
       enqueueSnackbar('Company settings updated successfully', { variant: 'success' })
+      return result
     } catch (error) {
       enqueueSnackbar(error.message || 'Failed to update company settings', { variant: 'error' })
+      return { success: false }
     }
   }
 
@@ -34,7 +36,7 @@ const CompanySettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
 
   return (
     <CompanySettingsForm
-      companySettings={companySettings || initialData}
+      companySettings={companySettings}
       loading={loading}
       updating={updating}
       error={error}

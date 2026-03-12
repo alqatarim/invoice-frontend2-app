@@ -1,8 +1,16 @@
 import { useState } from 'react'
 import * as settingsActions from '@/app/(dashboard)/settings/actions'
 
+const normalizeCompanySettings = data => {
+     if (!data || typeof data !== 'object') {
+          return {}
+     }
+
+     return data.updatedData && typeof data.updatedData === 'object' ? data.updatedData : data
+}
+
 const useCompanySettingsHandlers = (initialData = {}) => {
-     const [companySettings, setCompanySettings] = useState(initialData.companySettings || {})
+     const [companySettings, setCompanySettings] = useState(normalizeCompanySettings(initialData.companySettings) || {})
      const [loading, setLoading] = useState(false)
      const [updating, setUpdating] = useState(false)
      const [error, setError] = useState(null)
@@ -16,7 +24,7 @@ const useCompanySettingsHandlers = (initialData = {}) => {
                const result = await settingsActions.getCompanySettings()
 
                if (result.success) {
-                    setCompanySettings(result.data)
+                    setCompanySettings(normalizeCompanySettings(result.data))
                     return result
                }
                throw new Error(result.message)
@@ -37,7 +45,7 @@ const useCompanySettingsHandlers = (initialData = {}) => {
                const result = await settingsActions.updateCompanySettings(formData)
 
                if (result.success) {
-                    setCompanySettings(result.data)
+                    setCompanySettings(normalizeCompanySettings(result.data))
                     return result
                }
                throw new Error(result.message)

@@ -1,5 +1,58 @@
 // Third-party Imports
 import CredentialsProvider from 'next-auth/providers/credentials'
+import GoogleProvider from 'next-auth/providers/google'
+
+const getResponseMessage = data => data?.data?.message || data?.message || 'Authentication failed'
+
+const parseAuthResponse = async res => {
+  const data = await res.json()
+
+  if (res.status === 200 && data.status === 'Success') {
+    return data.data
+  }
+
+  throw new Error(getResponseMessage(data))
+}
+
+const normalizeAuthUser = (authData, fallbackEmail = '') => ({
+  ...authData,
+  id: authData.id || authData.profileDetails?.id || '',
+  email: authData.email || fallbackEmail || '',
+  role: authData.role || '',
+  authProvider: authData.authProvider || 'credentials',
+  hasPassword: authData.hasPassword ?? true
+})
+
+const exchangeGoogleToken = async account => {
+  if (!account?.id_token) {
+    throw new Error('Google did not return a valid ID token.')
+  }
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      idToken: account.id_token
+    })
+  })
+
+  return parseAuthResponse(res)
+}
+
+const googleProviders =
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? [
+        GoogleProvider({
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          authorization: {
+            params: {
+              prompt: 'select_account'
+            }
+          }
+        })
+      ]
+    : []
 
 export const authOptions = {
   providers: [
@@ -17,20 +70,12 @@ export const authOptions = {
           body: JSON.stringify(credentials),
         });
 
-        const data = await res.json();
+        const data = await parseAuthResponse(res)
 
-        if (res.status === 200 && data.status === 'Success') {
-          // Add the email from credentials to the returned data for use in JWT callback
-          return {
-            ...data.data,
-            email: credentials.email
-          };
-        } else {
-          throw new Error(data.message || 'Invalid credentials');
-        }
+        return normalizeAuthUser(data, credentials.email)
       },
     }),
-    // Add other providers if needed
+    ...googleProviders
   ],
 
   session: {
@@ -44,14 +89,31 @@ export const authOptions = {
   },
 
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider !== 'google') {
+        return true
+      }
+
+      try {
+        const backendAuth = await exchangeGoogleToken(account)
+
+        user.backendAuth = normalizeAuthUser(backendAuth, user.email)
+
+        return true
+      } catch (error) {
+        return `/login?error=${encodeURIComponent(error.message || 'Google sign-in failed.')}`
+      }
+    },
     async jwt({ token, user, account }) {
       // Initial sign in
       if (user) {
-        // Extract data from the backend response structure
-        const profileDetails = user.profileDetails || {};
+        const authUser = user.backendAuth || user
 
-        token.id = user.profileDetails?.id || token.sub; // Use token.sub as fallback
-        token.email = token.email || user.email; // Email comes from credentials
+        // Extract data from the backend response structure
+        const profileDetails = authUser.profileDetails || {};
+
+        token.id = authUser.id || profileDetails.id || token.sub;
+        token.email = authUser.email || token.email;
 
         // Construct full name from firstName and lastName
         const firstName = profileDetails.firstName || '';
@@ -63,11 +125,13 @@ export const authOptions = {
         token.lastName = lastName;
         token.gender = profileDetails.gender || '';
 
-        token.role = user.role;
-        token.permissionRes = user.permissionRes;
-        token.token = user.token;
-        token.companyDetails = user.companyDetails;
-        token.currencySymbol = user.currencySymbol;
+        token.role = authUser.role;
+        token.permissionRes = authUser.permissionRes;
+        token.token = authUser.token;
+        token.companyDetails = authUser.companyDetails;
+        token.currencySymbol = authUser.currencySymbol;
+        token.authProvider = authUser.authProvider || account?.provider || token.authProvider || 'credentials';
+        token.hasPassword = authUser.hasPassword ?? token.hasPassword ?? true;
         token.iat = Date.now() / 1000; // Issued at time
       }
 
@@ -94,6 +158,8 @@ export const authOptions = {
         session.user.token = token.token;
         session.user.companyDetails = token.companyDetails;
         session.user.currencySymbol = token.currencySymbol;
+        session.user.authProvider = token.authProvider;
+        session.user.hasPassword = token.hasPassword;
       }
 
       return session

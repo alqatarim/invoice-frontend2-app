@@ -8,12 +8,18 @@ export const metadata = {
 
 const BranchesPage = async () => {
   try {
-    const [initialData, provincesCities] = await Promise.all([
+    const [initialDataResult, provincesCitiesResult] = await Promise.allSettled([
       getInitialBranchData(),
       getProvincesCities()
     ]);
+
+    if (initialDataResult.status !== 'fulfilled') {
+      throw initialDataResult.reason;
+    }
+
+    const provincesCities = provincesCitiesResult.status === 'fulfilled' ? provincesCitiesResult.value : [];
     return (
-      <BranchListIndex initialData={initialData} initialProvincesCities={provincesCities} />
+      <BranchListIndex initialData={initialDataResult.value} initialProvincesCities={provincesCities} />
     );
   } catch (error) {
     console.error('BranchesPage: Error fetching data:', error);

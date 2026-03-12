@@ -98,7 +98,7 @@ const ViewInvoice = ({ invoiceData, loading }) => {
     const fetchCompany = async () => {
       setCompanyLoading(true);
       try {
-        const result = await getCompanySettings();
+        const result = await getCompanySettings(invoiceData?.companyId);
         if (result?.success) {
           setCompanySettings(result.data || {});
         } else {
@@ -120,7 +120,7 @@ const ViewInvoice = ({ invoiceData, loading }) => {
     };
 
     fetchCompany();
-  }, []);
+  }, [invoiceData?.companyId]);
 
   if (loading) {
     return (

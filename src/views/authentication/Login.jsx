@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -66,6 +66,27 @@ const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
   },
 }))
 
+const authErrorMessages = {
+  AccessDenied: 'Google sign-in was cancelled or denied.',
+  Callback: 'Unable to complete sign-in. Please try again.',
+  Configuration: 'Google sign-in is not configured correctly.',
+  CredentialsSignin: 'Invalid email or password.',
+  OAuthAccountNotLinked: 'This email is already linked to a different sign-in method.',
+  OAuthCallback: 'Google sign-in failed during the callback.',
+  OAuthSignin: 'Unable to start Google sign-in.',
+  SessionRequired: 'Please sign in to continue.'
+}
+
+const getAuthErrorMessage = errorCode => {
+  if (!errorCode) {
+    return ''
+  }
+
+  const decodedError = decodeURIComponent(errorCode)
+
+  return authErrorMessages[decodedError] || decodedError
+}
+
 const Login = ({ mode }) => {
 
 
@@ -109,10 +130,32 @@ const Login = ({ mode }) => {
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
+  useEffect(() => {
+    const expired = searchParams.get('expired')
+    const authError = searchParams.get('error')
+
+    if (expired === 'true') {
+      const message = 'Your session expired. Please sign in again.'
+
+      setErrorState(message)
+      setSnackbar({ open: true, message, status: 'error' })
+
+      return
+    }
+
+    if (authError) {
+      const message = getAuthErrorMessage(authError)
+
+      setErrorState(message)
+      setSnackbar({ open: true, message, status: 'error' })
+    }
+  }, [searchParams])
+
   const onSubmit = async data => {
 
 
     setSnackbar({ open: true, message: 'Logging In...', status: 'loading' })
+    setErrorState(null)
 
     const res = await signIn('credentials', {
       email: data.email,
@@ -135,12 +178,23 @@ const Login = ({ mode }) => {
 
     } else {
       if (res?.error) {
-        const error = res.error
+        const error = getAuthErrorMessage(res.error)
 
         setSnackbar({ open: true, message: `An error occurred: ${error}`, status: 'error' })
         setErrorState(error)
       }
     }
+  }
+
+  const handleGoogleSignIn = () => {
+    const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
+
+    setErrorState(null)
+    setSnackbar({ open: true, message: 'Redirecting to Google...', status: 'loading' })
+
+    signIn('google', {
+      callbackUrl: getLocalizedUrl(redirectURL, locale)
+    })
   }
 
 
@@ -190,6 +244,7 @@ const Login = ({ mode }) => {
               <span className='font-medium'>Dgt@2023</span>
             </Typography>
           </Alert>
+          {errorState ? <Alert severity='error'>{errorState}</Alert> : null}
 
           <form noValidate autoComplete='off' onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-5'>
             <Controller
@@ -250,16 +305,18 @@ const Login = ({ mode }) => {
             </div> */}
           </form>
 
-          {/* <Divider className='gap-3'>or</Divider>
+          <Divider className='gap-3'>or</Divider>
           <Button
+            fullWidth
+            variant='outlined'
             color='secondary'
             className='self-center text-textPrimary'
             startIcon={<img src='/images/logos/google.png' alt='Google' width={22} />}
             sx={{ '& .MuiButton-startIcon': { marginInlineEnd: 3 } }}
-            onClick={() => signIn('google')}
+            onClick={handleGoogleSignIn}
           >
             Sign in with Google
-          </Button> */}
+          </Button>
         </div>
       </div>
 

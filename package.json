@@ -18,6 +18,7 @@
     "@mui/utils": "^6.1.6",
     "@mui/x-date-pickers": "^8.5.3",
     "@paypal/react-paypal-js": "^8.1.0",
+    "@react-google-maps/api": "^2.20.8",
     "@stripe/react-stripe-js": "^2.1.1",
     "@stripe/stripe-js": "^1.54.1",
     "@tanstack/match-sorter-utils": "^8.19.4",
@@ -69,10 +70,10 @@
     "yup": "^0.32.11"
   },
   "scripts": {
-    "dev": "next dev",
-    "dev:turbo": "next dev --turbo",
-    "dev:fast": "next dev --turbo --experimental-https",
-    "dev:safe": "next dev",
+    "dev": "next dev -p 3001",
+    "dev:turbo": "next dev -p 3001 --turbo",
+    "dev:fast": "next dev -p 3001 --turbo --experimental-https",
+    "dev:safe": "next dev -p 3001",
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",
     "start": "next start",

@@ -34,9 +34,13 @@ export async function updateAccountSettings(formData) {
 /**
  * Company Settings Actions
  */
-export async function getCompanySettings() {
+export async function getCompanySettings(companyId) {
   try {
-    const response = await fetchWithAuth(`/companySettings/viewCompanySetting`)
+    const query = companyId ? `?companyId=${encodeURIComponent(companyId)}` : ''
+    const response = await fetchWithAuth(`/companySettings/viewCompanySetting${query}`, {
+      method: 'GET',
+      cache: 'no-store'
+    })
     return { success: true, data: response.data }
   } catch (error) {
     console.error('Error fetching company settings:', error)

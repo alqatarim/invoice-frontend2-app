@@ -29,7 +29,7 @@ const ForgotPassword = () => {
     try {
       const response = await postData(forgotpassword, data);
       if (response.code == 200) {
-        successToast("Mail sent Success");
+        successToast(response?.data?.message || response?.message || "Mail sent Success");
         navigate("/login");
         reset();
       }

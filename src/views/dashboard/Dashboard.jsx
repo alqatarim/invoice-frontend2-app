@@ -1,98 +1,112 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
-import { Icon } from "@iconify/react";
-import Link from "next/link";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
+import { Icon } from "@iconify/react";
+import {
+	Avatar,
+	Box,
+	Button,
+	Card,
+	CardContent,
+	CardHeader,
+	Chip,
+	CircularProgress,
+	Grid,
+	Stack,
+	ToggleButton,
+	ToggleButtonGroup,
+	Typography,
+} from "@mui/material";
+import { alpha, useColorScheme, useTheme } from "@mui/material/styles";
+import CustomAvatar from "@core/components/mui/Avatar";
+import { rgbaToHex } from "@/utils/rgbaToHex";
 
-// Dynamic imports for better code splitting
+import {
+	getDashboardData,
+	getFilteredDashboardData,
+	getAIForecastInsights,
+} from "@/app/(dashboard)/actions";
+import AppSnackbar from "@/components/shared/AppSnackbar";
+
 const SalesOverview = dynamic(() => import("@views/charts/SalesOverview"), {
 	loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />,
 });
 
-// Lazy load heavy components
-const HorizontalWithSubtitle = dynamic(
-	() => import("@components/card-statistics/HorizontalWithSubtitle2"),
+const AppReactApexCharts = dynamic(
+	() => import("@/libs/styles/AppReactApexCharts"),
 	{
-		loading: () => (
-			<div className="h-32 bg-gray-100 animate-pulse rounded-lg" />
-		),
-	}
-);
-const CardStatWithImage = dynamic(
-	() => import("@components/card-statistics/Character"),
-	{
-		loading: () => (
-			<div className="h-32 bg-gray-100 animate-pulse rounded-lg" />
-		),
+		ssr: false,
+		loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />,
 	}
 );
 
-// Group MUI imports to reduce bundle size
-import {
-	Table,
-	TableHead,
-	TableRow,
-	TableBody,
-	TableCell,
-	Button,
-	Chip,
-	Box,
-	Card,
-	CardContent,
-	CardHeader,
-	Grid,
-	Typography,
-	Avatar,
-} from "@mui/material";
-import { alpha, useTheme } from '@mui/material/styles';
-import OptionMenu from "@core/components/option-menu";
-// Dynamic imports for icons to reduce initial bundle size
-import SendIcon from "@mui/icons-material/Send";
-import FileCopyIcon from "@mui/icons-material/FileCopy";
-import RefundIcon from "@mui/icons-material/MonetizationOn";
-import ViewIcon from "@mui/icons-material/ViewCarouselOutlined";
+const DASHBOARD_FILTERS = [
+	{ value: "all", label: "All Time", apiValue: "" },
+	{ value: "week", label: "This Week", apiValue: "week" },
+	{ value: "month", label: "This Month", apiValue: "month" },
+	{ value: "year", label: "This Year", apiValue: "year" },
+];
 
-import { amountFormat } from "@/utils/numberUtils";
-import { convertFirstLetterToCapital } from "@/utils/string";
-import { successToast } from "@/core/Toast/toast";
-import moment from "moment";
-import {
-	getDashboardData,
-	getFilteredDashboardData,
-	convertToSalesReturn,
-	sendInvoice,
-	cloneInvoice,
-} from "@/app/(dashboard)/actions";
-import AppSnackbar from "@/components/shared/AppSnackbar";
+const getTrendPresentation = (trend = "neutral") => {
+	if (trend === "positive") {
+		return { color: "success", icon: "ri-arrow-up-line" };
+	}
+	if (trend === "negative") {
+		return { color: "error", icon: "ri-arrow-down-line" };
+	}
+	return { color: "secondary", icon: "ri-subtract-line" };
+};
+
+const formatMoney = (value) =>
+	Number(value || 0).toLocaleString("en-US", {
+		maximumFractionDigits: 0,
+	});
+
+const getInitials = (value = "") =>
+	String(value)
+		.trim()
+		.split(/\s+/)
+		.filter(Boolean)
+		.slice(0, 2)
+		.map((part) => part[0]?.toUpperCase() || "")
+		.join("") || "NA";
 
 const Dashboard = ({ initialDashboardData = null }) => {
-
 	const theme = useTheme();
+	const { mode, systemMode } = useColorScheme();
+	const currentMode = (mode === "system" ? systemMode : mode) || "light";
 
 	const [dashboardData, setDashboardData] = useState(initialDashboardData || {});
-	const [filterValue, setFilterValue] = useState("month");
-	const [invoiceData, setInvoiceData] = useState(initialDashboardData?.invoiceList || []);
-	const [currencyData, setCurrencyData] = useState("SAR");
+	const [filterValue, setFilterValue] = useState("all");
+	const [productsTab, setProductsTab] = useState("all");
+	const [customersTab, setCustomersTab] = useState("all");
+	const [financeTab, setFinanceTab] = useState("sales");
+	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [openSnackbar, setOpenSnackbar] = useState({
 		open: false,
 		message: "",
 		type: "",
 	});
+	const [isGeneratingAIForecast, setIsGeneratingAIForecast] = useState(false);
+	const [aiForecastData, setAiForecastData] = useState(null);
+	const [aiInsightCards, setAiInsightCards] = useState([]);
+	const aiForecastRequestRef = useRef(0);
 
-	// Memoized fetch function to prevent unnecessary re-renders
+	const currencyData = "SAR";
+
 	const fetchDashboardData = useCallback(async (filter = "") => {
+		setIsRefreshing(true);
 		try {
 			const response = filter
 				? await getFilteredDashboardData(filter)
 				: await getDashboardData();
 
-			if (response.code === 200) {
-				setDashboardData(response.data);
-				// Only set invoice data if it's the initial load (no filter)
-				if (!filter) {
-					setInvoiceData(response.data?.invoiceList || []);
-				}
+			if (response?.code === 200) {
+				const nextData = response?.data || {};
+				setDashboardData(nextData);
+				setAiForecastData(null);
+				setAiInsightCards([]);
 			} else {
 				setOpenSnackbar({
 					open: true,
@@ -109,519 +123,1232 @@ const Dashboard = ({ initialDashboardData = null }) => {
 				message: `Failed to fetch ${filter ? "filtered " : ""}dashboard data`,
 				type: "error",
 			});
+		} finally {
+			setIsRefreshing(false);
 		}
 	}, []);
 
-	// Handle filter changes
-	const getDetails = async (filter = "") => {
-		if (filterValue !== filter) {
-			setFilterValue(filter);
-			await fetchDashboardData(filter);
-		}
+	const handleFilterChange = async (_event, nextValue) => {
+		if (!nextValue || nextValue === filterValue) return;
+
+		setFilterValue(nextValue);
+		const selectedFilter = DASHBOARD_FILTERS.find(
+			(filter) => filter.value === nextValue
+		);
+		await fetchDashboardData(selectedFilter?.apiValue || "");
 	};
 
-	// Handle converting invoice to sales return
-	const handleConvertToSalesReturn = async (id) => {
+	const handleProductsTabChange = (_event, nextValue) => {
+		if (!nextValue || nextValue === productsTab) return;
+		setProductsTab(nextValue);
+	};
+
+	const handleCustomersTabChange = (_event, nextValue) => {
+		if (!nextValue || nextValue === customersTab) return;
+		setCustomersTab(nextValue);
+	};
+
+	const handleFinanceTabChange = (_event, nextValue) => {
+		if (!nextValue || nextValue === financeTab) return;
+		setFinanceTab(nextValue);
+	};
+
+	const handleRefresh = useCallback(async () => {
+		const selectedFilter = DASHBOARD_FILTERS.find(
+			(filter) => filter.value === filterValue
+		);
+		await fetchDashboardData(selectedFilter?.apiValue || "");
+	}, [fetchDashboardData, filterValue]);
+
+	const generateAIForecast = useCallback(async (sourceData) => {
+		const requestId = aiForecastRequestRef.current + 1;
+		aiForecastRequestRef.current = requestId;
+
+		setIsGeneratingAIForecast(true);
 		try {
-			const response = await convertToSalesReturn(id);
-			if (response.code === 200) {
-				successToast("Invoice converted to sales return.");
+			const labels = sourceData?.financeTrend?.labels || [];
+			if (!Array.isArray(labels) || labels.length === 0) {
+				setAiForecastData(null);
+				setAiInsightCards([]);
+				return;
+			}
+
+			const response = await getAIForecastInsights({
+				currency: currencyData,
+				locale: "en-SA",
+				region: "Saudi Arabia",
+				financeTrend: sourceData?.financeTrend || {},
+				topProducts:
+					sourceData?.topProductsTrending?.length > 0
+						? sourceData.topProductsTrending
+						: sourceData?.topProductsAll || sourceData?.topProducts || [],
+				topCustomers:
+					sourceData?.topCustomersTrending?.length > 0
+						? sourceData.topCustomersTrending
+						: sourceData?.topCustomersAll || sourceData?.topCustomers || [],
+				inventoryAlerts: sourceData?.inventoryAlerts || [],
+				operations: sourceData?.operations || {},
+			});
+
+			if (requestId !== aiForecastRequestRef.current) return;
+
+			if (response?.code === 200 && response?.data?.series) {
+				setAiForecastData(response.data);
+				setAiInsightCards(
+					Array.isArray(response?.data?.insightCards)
+						? response.data.insightCards
+						: []
+				);
 			} else {
+				setAiForecastData(null);
+				setAiInsightCards([]);
 				setOpenSnackbar({
 					open: true,
-					message: "Failed to convert to sales return",
+					message: response?.message || "Failed to generate AI forecast. Showing baseline trend.",
 					type: "error",
 				});
 			}
 		} catch (error) {
-			console.error("Error converting to sales return:", error);
+			if (requestId !== aiForecastRequestRef.current) return;
+			setAiForecastData(null);
+			setAiInsightCards([]);
 			setOpenSnackbar({
 				open: true,
-				message: "Error converting to sales return",
+				message: error?.message || "Failed to generate AI forecast. Showing baseline trend.",
 				type: "error",
 			});
+		} finally {
+			if (requestId !== aiForecastRequestRef.current) return;
+			setIsGeneratingAIForecast(false);
 		}
-	};
+	}, [currencyData]);
 
-	// Handle sending invoice via email
-	const handleSendInvoice = async (id) => {
-		try {
-			const response = await sendInvoice(id);
-			if (response.code === 200) {
-				successToast("Invoice Mail sent Successfully.");
-			} else {
-				setOpenSnackbar({
-					open: true,
-					message: "Failed to send invoice",
-					type: "error",
-				});
-			}
-		} catch (error) {
-			console.error("Error sending invoice:", error);
-			setOpenSnackbar({
-				open: true,
-				message: "Error sending invoice",
-				type: "error",
-			});
-		}
-	};
+	useEffect(() => {
+		generateAIForecast(dashboardData);
+	}, [dashboardData, generateAIForecast]);
 
-	// Close the Snackbar
 	const handleSnackbarClose = () => {
 		setOpenSnackbar({ open: false, message: "", type: "" });
 	};
 
-	// Handle cloning an invoice
-	const handleCloneInvoice = async (id) => {
-		try {
-			const response = await cloneInvoice(id);
-			if (response.code === 200) {
-				successToast("Invoice Cloned Successfully.");
-				setInvoiceData((prev) => [response.data, ...prev]);
-			} else {
-				setOpenSnackbar({
-					open: true,
-					message: "Failed to clone invoice",
-					type: "error",
-				});
-			}
-		} catch (error) {
-			console.error("Error cloning invoice:", error);
-			setOpenSnackbar({
-				open: true,
-				message: "Error cloning invoice",
-				type: "error",
-			});
-		}
-	};
-
-	// Helper function to get the appropriate badge based on invoice status
-	const getStatusBadge = (status) => {
-		let color;
-		switch (status) {
-			case "REFUND":
-			case "SENT":
-				color = "info";
-				break;
-			case "UNPAID":
-				color = "grey";
-				break;
-			case "PARTIALLY_PAID":
-				color = "primary";
-				break;
-			case "CANCELLED":
-			case "OVERDUE":
-				color = "error";
-				break;
-			case "PAID":
-				color = "success";
-				break;
-			case "DRAFTED":
-				color = "warning";
-				break;
-			default:
-				color = "default";
-		}
-
+	const activeFilterLabel = useMemo(() => {
 		return (
-			<Chip
-				label={convertFirstLetterToCapital(status.replace("_", " "))}
-				color={color || "default"}
-				size="small"
-				variant="tonal"
-			/>
+			DASHBOARD_FILTERS.find((item) => item.value === filterValue)?.label ||
+			"All Time"
 		);
-	};
+	}, [filterValue]);
 
-	// Data for the top statistic cards
-	const cardData = [
-		{
-			title: "Overdue Amount",
-			value: dashboardData?.amountDue || 0,
-			formattedValue: amountFormat(dashboardData?.amountDue || 0),
-			symbol: ` ${currencyData}`,
-			avatarIcon: "ri-alarm-warning-line",
-			avatarColor: "error",
-			// Note: Backend inverts this logic - "Increased" means due amount went DOWN (good)
-			// "Decreased" means due amount went UP (bad)
-			change:
-				dashboardData?.amountDuePercentage?.percentage === "Increased"
-					? "positive" // Due amount decreased = good
-					: dashboardData?.amountDuePercentage?.percentage === "Decreased"
-						? "negative" // Due amount increased = bad
-						: "neutral",
-			changeNumber: dashboardData?.amountDuePercentage?.value || "0 %",
-			subTitle: "since last week",
-		},
-		{
-			title: "Customers",
-			value: dashboardData?.customers || 0,
-			avatarIcon: "ri-user-add-line",
-			avatarColor: "error",
-			change:
-				dashboardData?.customerPercentage?.percentage === "Increased"
-					? "positive"
-					: dashboardData?.customerPercentage?.percentage === "Decreased"
-						? "negative"
-						: "neutral",
-			changeNumber: dashboardData?.customerPercentage?.value || "0 %",
-			subTitle: "since last week",
+	const heroSummary = useMemo(() => {
+		const invoiced = Number(dashboardData?.invoiced || 0);
+		const received = Number(dashboardData?.received || 0);
+		const pending = Number(dashboardData?.pending || 0);
+		const collectionRate = invoiced > 0 ? (received / invoiced) * 100 : 0;
+		const pendingExposure = invoiced > 0 ? (pending / invoiced) * 100 : 0;
+		const netBusinessFlow = Number(dashboardData?.operations?.netBusinessFlow || 0);
 
-			src: "/images/illustrations/characters/14.png",
-		},
-		{
-			title: "Invoices",
-			value: dashboardData?.invoices || 0,
-			symbol: "",
-			avatarIcon: "ri-user-follow-line",
-			avatarColor: "success",
-			change:
-				dashboardData?.invoicedPercentage?.percentage === "Increased"
-					? "positive"
-					: dashboardData?.invoicedPercentage?.percentage === "Decreased"
-						? "negative"
-						: "neutral",
-			changeNumber: dashboardData?.invoicedPercentage?.value || "0 %",
-			subTitle: "since last week",
-			src: "/images/illustrations/characters/14.png", // Optional: Provide src if needed
-		},
-		{
-			title: "Estimates",
-			value: dashboardData?.estimates || 0,
-			avatarIcon: "ri-user-search-line",
-			avatarColor: "warning",
-			change:
-				dashboardData?.quotationPercentage?.percentage === "Increased"
-					? "positive"
-					: dashboardData?.quotationPercentage?.percentage === "Decreased"
-						? "negative"
-						: "neutral",
-			changeNumber: dashboardData?.quotationPercentage?.value || "0 %",
-			subTitle: "since last week",
-			src: "/images/illustrations/characters/14.png", // Optional: Provide src if needed
-		},
-	];
+		return {
+			invoiced,
+			received,
+			pending,
+			netBusinessFlow,
+			collectionRate,
+			pendingExposure,
+		};
+	}, [
+		dashboardData?.invoiced,
+		dashboardData?.received,
+		dashboardData?.pending,
+		dashboardData?.operations?.netBusinessFlow,
+	]);
 
-	// Memoized calculations to prevent unnecessary recalculations
-	const { totalAmt, progressBars } = useMemo(() => {
-		const total =
-			(dashboardData?.paidAmt || 0) +
-			(dashboardData?.partiallyPaidAmt || 0) +
-			(dashboardData?.overdueAmt || 0) +
-			(dashboardData?.draftedAmt || 0);
+	const metricCards = useMemo(() => {
+		const purchasesAmount = Number(dashboardData?.operations?.purchasesAmount || 0);
+		const expensesAmount = Number(dashboardData?.operations?.expensesAmount || 0);
+		const salesAmount = Number(dashboardData?.received || 0);
 
-		const bars = [
+		return [
 			{
-				label: "Paid",
-				value: total ? (dashboardData.paidAmt / total) * 100 : 0,
-				color: "success",
-			},
-			{
-				label: "Partially Paid",
-				value: total ? (dashboardData.partiallyPaidAmt / total) * 100 : 0,
+				key: "purchases",
+				title: "Purchases",
+				value: formatMoney(purchasesAmount),
+				suffix: currencyData,
+				icon: "ri-shopping-cart-line",
 				color: "warning",
+				direction: "neutral",
+				changeNumber: "0 %",
+				subTitle: "current period",
 			},
 			{
-				label: "Overdue",
-				value: total ? (dashboardData.overdueAmt / total) * 100 : 0,
-				color: "error",
-			},
-			{
-				label: "Drafted",
-				value: total ? (dashboardData.draftedAmt / total) * 100 : 0,
+				key: "customers",
+				title: "Customers",
+				value: Number(dashboardData?.customers || 0).toLocaleString("en-US"),
+				icon: "ri-user-add-line",
 				color: "primary",
+				direction:
+					dashboardData?.customerPercentage?.percentage === "Increased"
+						? "positive"
+						: dashboardData?.customerPercentage?.percentage === "Decreased"
+							? "negative"
+							: "neutral",
+				changeNumber: dashboardData?.customerPercentage?.value || "0 %",
+				subTitle: "vs previous week",
+			},
+			{
+				key: "sales",
+				title: "Sales",
+				value: formatMoney(salesAmount),
+				suffix: currencyData,
+				icon: "ri-funds-line",
+				color: "success",
+				direction:
+					dashboardData?.invoicedPercentage?.percentage === "Increased"
+						? "positive"
+						: dashboardData?.invoicedPercentage?.percentage === "Decreased"
+							? "negative"
+							: "neutral",
+				changeNumber: dashboardData?.invoicedPercentage?.value || "0 %",
+				subTitle: "vs previous week",
+			},
+			{
+				key: "expenses",
+				title: "Expenses",
+				value: formatMoney(expensesAmount),
+				suffix: currencyData,
+				icon: "ri-money-dollar-circle-line",
+				color: "secondary",
+				direction: "neutral",
+				changeNumber: "0 %",
+				subTitle: "current period",
 			},
 		];
+	}, [dashboardData, currencyData]);
 
-		return { totalAmt: total, progressBars: bars };
-	}, [
-		dashboardData?.paidAmt,
-		dashboardData?.partiallyPaidAmt,
-		dashboardData?.overdueAmt,
-		dashboardData?.draftedAmt,
-	]);
+	const financeTrend = aiForecastData || dashboardData?.financeTrend || {};
+	const financeLabels = Array.isArray(financeTrend?.labels)
+		? financeTrend.labels
+		: [];
+	const financeSeries = financeTrend?.series || {};
+	const activeFinanceSeries = financeSeries?.[financeTab] || {
+		actual: [],
+		forecast: [],
+		growthPercentage: 0,
+		forecastNext: 0,
+	};
+	const forecastNextIndex = Number.isFinite(
+		Number(activeFinanceSeries?.firstFutureIndex)
+	)
+		? Number(activeFinanceSeries.firstFutureIndex)
+		: 3;
+	const forecastNextLabel = financeLabels?.[forecastNextIndex] || "Next";
+
+	const topProductsAll = Array.isArray(dashboardData?.topProductsAll)
+		? dashboardData.topProductsAll
+		: Array.isArray(dashboardData?.topProducts)
+			? dashboardData.topProducts
+			: [];
+	const topProductsTrending = Array.isArray(dashboardData?.topProductsTrending)
+		? dashboardData.topProductsTrending
+		: [];
+	const topProducts = productsTab === "trending" ? topProductsTrending : topProductsAll;
+
+	const topCustomersAll = Array.isArray(dashboardData?.topCustomersAll)
+		? dashboardData.topCustomersAll
+		: Array.isArray(dashboardData?.topCustomers)
+			? dashboardData.topCustomers
+			: [];
+	const topCustomersTrending = Array.isArray(dashboardData?.topCustomersTrending)
+		? dashboardData.topCustomersTrending
+		: [];
+	const topCustomers =
+		customersTab === "trending" ? topCustomersTrending : topCustomersAll;
+
+	const inventoryAlerts = Array.isArray(dashboardData?.inventoryAlerts)
+		? dashboardData.inventoryAlerts
+		: [];
+
+	const trendChartSeries = useMemo(
+		() => {
+			const actualData = Array.isArray(activeFinanceSeries?.actual)
+				? activeFinanceSeries.actual.map((value) =>
+					value === null || value === undefined
+						? null
+						: Number.isFinite(Number(value))
+							? Number(value)
+							: 0
+				)
+				: [];
+
+			let forecastData = Array.isArray(activeFinanceSeries?.forecast)
+				? activeFinanceSeries.forecast.map((value) => {
+					const parsed = Number(value);
+					return Number.isFinite(parsed) ? parsed : 0;
+				})
+				: [];
+
+			if (forecastData.length > 0) {
+				const firstFutureIndexRaw = Number.isFinite(
+					Number(activeFinanceSeries?.firstFutureIndex)
+				)
+					? Number(activeFinanceSeries.firstFutureIndex)
+					: actualData.findIndex((value) => value === null || value === undefined);
+				const firstFutureIndex =
+					firstFutureIndexRaw >= 0
+						? firstFutureIndexRaw
+						: Math.max(forecastData.length - 3, 0);
+				const bridgeIndex = Math.max(firstFutureIndex - 1, 0);
+				const bridgeValue = actualData?.[bridgeIndex];
+
+				forecastData = forecastData.map((value, index) => {
+					// Keep historical backtest points visible so users can compare
+					// forecast vs actual for the current and prior 2 months.
+					if (index === bridgeIndex && (value === null || value === undefined)) {
+						return bridgeValue === null || bridgeValue === undefined
+							? value
+							: Number(bridgeValue);
+					}
+					return value;
+				});
+			}
+
+			return [
+				{
+					name: "Actual",
+					data: actualData,
+				},
+				{
+					name: "Forecast",
+					data: forecastData,
+				},
+			];
+		},
+		[activeFinanceSeries]
+	);
+
+	const hasTrendData = trendChartSeries.some(
+		(series) =>
+			Array.isArray(series?.data) &&
+			series.data.some((value) => value !== null && value !== undefined)
+	);
+
+	const apexThemeColors = useMemo(
+		() => {
+
+
+			return {
+				primary: theme.palette.primary.main,
+				warning: theme.palette.warning.main,
+				grid: alpha(theme.palette.secondary.main, 0.40),
+				axis:
+					currentMode === "dark" ? "#ffffff" : "#000000",
+				// fore: ,
+			};
+		},
+		[
+			currentMode,
+			theme.mainColorChannels,
+			theme.palette.primary.main,
+			theme.palette.secondary.main,
+			theme.palette.warning.main,
+		]
+	);
+
+
+
+	const trendChartOptions = useMemo(
+		() => ({
+			chart: {
+				toolbar: { show: false },
+				parentHeightOffset: 0,
+				foreColor: apexThemeColors.fore,
+			},
+			theme: {
+				mode: currentMode,
+			},
+			colors: [apexThemeColors.primary, apexThemeColors.warning],
+			stroke: {
+				curve: "smooth",
+				width: [3, 2],
+				dashArray: [0, 6],
+			},
+			fill: {
+				type: ["solid", "solid"],
+				opacity:
+					currentMode === "dark" ? [0.22, 0.14] : [0.12, 0.07],
+			},
+			grid: {
+				borderColor: apexThemeColors.grid,
+				strokeDashArray: 5,
+				xaxis: { lines: { show: true } },
+				padding: { left: 18, right: 12, top: 8, bottom: 0 },
+			},
+			xaxis: {
+				categories: financeLabels,
+				tickPlacement: "on",
+				labels: {
+					style: {
+						colors: financeLabels.map(() => apexThemeColors.axis),
+						fontSize: "12px",
+						fontWeight: 500,
+					},
+				},
+				axisBorder: { show: false },
+				axisTicks: { show: false },
+			},
+			yaxis: {
+				labels: {
+					minWidth: 42,
+					offsetX: -6,
+					style: {
+						colors: [apexThemeColors.axis],
+						fontSize: "12px",
+						fontWeight: 500,
+					},
+					formatter: (value) =>
+						Number(value || 0).toLocaleString("en-US", {
+							maximumFractionDigits: 0,
+						}),
+				},
+			},
+			markers: {
+				size: [4, 3],
+				hover: { size: 6 },
+			},
+			tooltip: {
+				theme: currentMode,
+				y: {
+					formatter: (value) =>
+						`${Number(value || 0).toLocaleString("en-US", {
+							maximumFractionDigits: 0,
+						})} ${currencyData}`,
+				},
+			},
+			dataLabels: { enabled: false },
+			legend: {
+				show: true,
+				position: "top",
+				horizontalAlign: "left",
+				fontSize: "12px",
+				labels: { colors: apexThemeColors.fore },
+				itemMargin: { horizontal: 12, vertical: 0 },
+				markers: { width: 10, height: 10, radius: 5 },
+			},
+		}),
+		[currencyData, financeLabels, currentMode, apexThemeColors]
+	);
 
 	return (
 		<Grid container spacing={6}>
-			{/* Top Statistic Cards */}
-			<Grid item size={{ xs: 12, md: 12, lg: 12 }}>
-				<Grid
-					container
-					spacing={6}
-					className="flex flex-row justify-between items-end"
+			<Grid size={{ xs: 12 }}>
+				<Card
+					sx={{
+						position: "relative",
+						overflow: "hidden",
+						border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
+						backgroundColor: "var(--mui-palette-background-paper)",
+						backgroundImage:
+							"radial-gradient(130% 95% at -12% -35%, rgb(var(--mui-palette-primary-mainChannel) / 0.24) 0%, rgb(var(--mui-palette-primary-mainChannel) / 0.14) 42%, transparent 68%), radial-gradient(95% 78% at 112% -8%, rgb(var(--mui-palette-info-mainChannel) / 0.18) 0%, rgb(var(--mui-palette-info-mainChannel) / 0.09) 46%, transparent 64%)",
+					}}
 				>
-					<Grid item size={{ xs: 12, sm: 6, md: 3 }}>
-						<CardStatWithImage
-							stats={cardData[1].value}
-							trend={cardData[1].change}
-							title={cardData[1].title}
-							trendNumber={cardData[1].changeNumber}
-							chipText={cardData[1].subTitle}
-							src="/images/illustrations/characters/14.png"
-						/>
-					</Grid>
-
-					<Grid item size={{ xs: 12, sm: 6, md: 3 }}>
-						<HorizontalWithSubtitle
-							title={cardData[0].title}
-							stats={cardData[0].formattedValue}
-							avatarIcon={cardData[0].avatarIcon}
-							avatarColor={cardData[0].avatarColor}
-							trend={cardData[0].change}
-							trendNumber={cardData[0].changeNumber}
-							subtitle={cardData[0].subTitle}
-							symbol={cardData[0].symbol}
-						/>
-					</Grid>
-
-					<Grid item size={{ xs: 12, sm: 6, md: 3 }}>
-						<HorizontalWithSubtitle
-							title={cardData[2].title}
-							stats={cardData[2].value}
-							avatarIcon={cardData[2].avatarIcon}
-							avatarColor={cardData[2].avatarColor}
-							trend={cardData[2].change}
-							trendNumber={cardData[2].changeNumber}
-							subtitle={cardData[2].subTitle}
-							symbol={cardData[2].symbol}
-						/>
-					</Grid>
-
-					<Grid item size={{ xs: 12, sm: 6, md: 3 }}>
-						<HorizontalWithSubtitle
-							title={cardData[3].title}
-							stats={cardData[3].value}
-							avatarIcon={cardData[3].avatarIcon}
-							avatarColor={cardData[3].avatarColor}
-							trend={cardData[3].change}
-							trendNumber={cardData[3].changeNumber}
-							subtitle={cardData[3].subTitle}
-						/>
-					</Grid>
-				</Grid>
-			</Grid>
-
-
-
-			{/* Recent Invoices Card */}
-			<Grid item size={{ xs: 12, md: 8 }}>
-				<Card>
-					<CardHeader
-						title="Recent Invoices"
-						action={
-							<Box>
-								<Link href="/invoices/invoice-list" passHref>
-									<Button
-										variant="text"
-										size="medium"
-										color="primary"
-										className="ml-2"
-									>
-										View All
-									</Button>
-								</Link>
-							</Box>
-						}
+					<Box
+						sx={{
+							position: "absolute",
+							width: 260,
+							height: 260,
+							borderRadius: "50%",
+							background: `radial-gradient(circle,
+							${theme.palette.primary.lightOpacity
+								} 0%, transparent 65%)`,
+							right: -90,
+							top: -110,
+						}}
 					/>
-					<CardContent className="pb-0">
-						<Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-							{/* Multi-segment Progress Bar */}
-							<Box sx={{ width: "100%" }}>
-								<Box
-									sx={{
-										display: "flex",
-										height: "10px",
-										borderRadius: "10px",
-										overflow: "hidden",
-										backgroundColor: "grey.300",
-										padding: "0px",
-										marginBottom: "13px",
-									}}
-								>
-									{progressBars.map((bar, index) => (
-										<Box
-											key={index}
-											sx={{
-												width: `${bar.value}%`,
-												backgroundColor: (theme) =>
-													theme.palette[bar.color].main,
-												transition: "width 0.75s ease-in-out",
-											}}
-										/>
-									))}
-								</Box>
+					<CardContent sx={{ position: "relative", p: { xs: 5, md: 6 } }}>
+						<Grid container spacing={5} alignItems="center">
+							<Grid size={{ xs: 12, md: 7 }}>
+								<Stack spacing={3}>
+									<Box>
+										<Typography variant="h4" sx={{ mb: 1 }}>
+											Revenue Intelligence Dashboard
+										</Typography>
+										<Typography variant="body2" color="text.secondary">
+											Track revenue momentum, profitability signals, product
+											performance, customer quality, and inventory risk from one
+											place.
+										</Typography>
+									</Box>
 
-								{/* Legend */}
-								<Box
-									sx={{
-										display: "flex",
-										justifyContent: "space-between",
-										mt: 1,
-									}}
-								>
-									{progressBars.map((bar, index) => (
-										<Box
-											key={index}
-											sx={{ display: "flex", alignItems: "center", gap: 1 }}
+									<Stack
+										direction={{ xs: "column", sm: "row" }}
+										spacing={2}
+										alignItems={{ xs: "stretch", sm: "center" }}
+									>
+										<ToggleButtonGroup
+											color='primary'
+											size="small"
+											value={filterValue}
+											exclusive
+											onChange={handleFilterChange}
+											disabled={isRefreshing}
 										>
-											<Box
-												sx={{
-													width: "10px",
-													height: "10px",
-													backgroundColor: (theme) =>
-														theme.palette[bar.color].light,
-													borderRadius: "50%",
-												}}
-											/>
-											<Typography variant="body1" className="text-[0.85rem]">{bar.label}</Typography>
+											{DASHBOARD_FILTERS.map((item) => (
+												<ToggleButton
+													key={item.value}
+													value={item.value}
+												>
+													{item.label}
+												</ToggleButton>
+											))}
+										</ToggleButtonGroup>
+
+										<Button
+											size="small"
+											variant="outlined"
+											onClick={handleRefresh}
+											disabled={isRefreshing}
+											startIcon={
+												isRefreshing ? (
+													<CircularProgress size={16} />
+												) : (
+													<Icon icon="ri-refresh-line" />
+												)
+											}
+										>
+											{isRefreshing ? "Refreshing" : "Refresh Data"}
+										</Button>
+									</Stack>
+
+									<Stack
+										direction={{ xs: "column", sm: "row" }}
+										spacing={1.5}
+										flexWrap="wrap"
+										useFlexGap
+									>
+										<Chip
+											size="small"
+											variant="tonal"
+											color={
+												heroSummary.collectionRate >= 70
+													? "success"
+													: heroSummary.collectionRate >= 45
+														? "warning"
+														: "error"
+											}
+											label={`Collection Rate ${heroSummary.collectionRate.toFixed(1)}%`}
+										/>
+										<Chip
+											size="small"
+											variant="tonal"
+											color={heroSummary.pendingExposure <= 30 ? "success" : "warning"}
+											label={`Outstanding Exposure ${heroSummary.pendingExposure.toFixed(1)}%`}
+										/>
+										<Chip
+											size="small"
+											variant="tonal"
+											color="info"
+											label={`Scope: ${activeFilterLabel}`}
+										/>
+									</Stack>
+								</Stack>
+							</Grid>
+
+							<Grid size={{ xs: 12, md: 5 }}>
+								<Stack spacing={2}>
+									{[
+										{
+											key: "invoiced",
+											label: "Invoiced",
+											value: heroSummary.invoiced,
+											icon: "ri-file-chart-line",
+											color: "primary",
+										},
+										{
+											key: "received",
+											label: "Received",
+											value: heroSummary.received,
+											icon: "ri-wallet-3-line",
+											color: "success",
+										},
+										{
+											key: "pending",
+											label: "Pending",
+											value: heroSummary.pending,
+											icon: "ri-time-line",
+											color: "warning",
+										},
+										{
+											key: "net",
+											label: "Net Flow",
+											value: heroSummary.netBusinessFlow,
+											icon: "ri-line-chart-line",
+											color:
+												heroSummary.netBusinessFlow >= 0 ? "success" : "error",
+										},
+									].map((item) => (
+										<Box
+											key={item.key}
+											sx={{
+												p: 3,
+												borderRadius: 3,
+												border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
+												backgroundColor: "transparent",
+											}}
+										>
+											<Stack direction="row" alignItems="center" spacing={3}>
+												<CustomAvatar
+													size={38}
+													skin="light"
+													color={item.color}
+													variant="rounded"
+												>
+													<i className={`${item.icon} text-[20px]`} />
+												</CustomAvatar>
+												<Box>
+													<Typography variant="body2" color="text.secondary">
+														{item.label}
+													</Typography>
+													<Stack direction="row" alignItems="center" spacing={0.6}>
+														<Icon
+															icon="lucide:saudi-riyal"
+															width="0.9rem"
+															color={theme.palette.secondary.light}
+														/>
+														<Typography variant="h6">
+															{formatMoney(item.value)}
+														</Typography>
+														{/* <Typography variant="caption" color="text.secondary">
+															{currencyData}
+														</Typography> */}
+													</Stack>
+												</Box>
+											</Stack>
 										</Box>
 									))}
-								</Box>
-							</Box>
-
-							{/* Invoices Table */}
-							<Box sx={{ overflowX: "auto", mx: -5 }}>
-								<Table size="small">
-									<TableHead className="bg-tableHeader">
-										<TableRow sx={{ "& th": { fontSize: "14px" } }}>
-											<TableCell>Customer</TableCell>
-											<TableCell>Amount</TableCell>
-											<TableCell>Due Date</TableCell>
-											<TableCell>Status</TableCell>
-											<TableCell className="text-center">Action</TableCell>
-										</TableRow>
-									</TableHead>
-									<TableBody>
-										{invoiceData.map((item, index) => {
-											const status = getStatusBadge(item.status);
-											return (
-												<TableRow
-													key={item._id || index}
-													sx={{
-														"& td": {
-															"& .MuiTypography-root": {
-																fontSize: "13px",
-															},
-														},
-													}}
-												>
-													<TableCell>
-														<Box
-															sx={{
-																display: "flex",
-																alignItems: "center",
-																gap: 2,
-															}}
-														>
-															<Avatar
-																src={
-																	item.customerId?.image ||
-																	"/images/default-avatar.png"
-																}
-																alt={
-																	item.customerId?.name ||
-																	"Deleted Customer"
-																}
-															/>
-															<Link
-																href={`/view-customer/${item.customerId?._id}`}
-																passHref
-															>
-																<Typography sx={{ cursor: "pointer" }}>
-																	{item.customerId?.name ||
-																		"Deleted Customer"}
-																</Typography>
-															</Link>
-														</Box>
-													</TableCell>
-
-													<TableCell>
-														<Typography variant="body1" className="text-[0.85rem]">
-															{moment(item.dueDate).format("DD MMM YY")}
-														</Typography>
-													</TableCell>
-
-													<TableCell>
-														<Box className="flex items-center gap-0.5">
-															<Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
-															<Typography className="text-[14px]">
-																{amountFormat(item.TotalAmount)}{" "}
-
-															</Typography>
-														</Box>
-													</TableCell>
-													<TableCell>{status}</TableCell>
-													<TableCell className="text-center">
-														<OptionMenu
-															icon="ri-more-fill text-[22px]"
-															iconButtonProps={{ size: "small", "aria-label": "invoice actions" }}
-															options={[
-																{
-																	text: "Send Invoice",
-																	icon: <SendIcon fontSize="small" />,
-																	menuItemProps: {
-																		className: "flex items-center gap-2 text-textSecondary",
-																		onClick: () => handleSendInvoice(item._id),
-																	},
-																},
-																{
-																	text: "Duplicate Invoice",
-																	icon: <FileCopyIcon fontSize="small" />,
-																	menuItemProps: {
-																		className: "flex items-center gap-2 text-textSecondary",
-																		onClick: () => handleCloneInvoice(item._id),
-																	},
-																},
-																{
-																	text: "Return Invoice",
-																	icon: <RefundIcon fontSize="small" />,
-																	menuItemProps: {
-																		className: "flex items-center gap-2 text-textSecondary",
-																		onClick: () => handleConvertToSalesReturn(item._id),
-																	},
-																},
-																{
-																	text: "View",
-																	icon: <ViewIcon fontSize="small" />,
-																	href: `/invoices/invoice-view/${item._id}`,
-																	linkProps: {
-																		className:
-																			"flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary",
-																		target: "_blank",
-																		rel: "noopener noreferrer",
-																	},
-																},
-															]}
-														/>
-													</TableCell>
-												</TableRow>
-											);
-										})}
-									</TableBody>
-								</Table>
-							</Box>
-						</Box>
+								</Stack>
+							</Grid>
+						</Grid>
 					</CardContent>
 				</Card>
 			</Grid>
 
-			{/* Invoice Analytics Card */}
-			<Grid item size={{ xs: 12, md: 4 }}>
+			<Grid size={{ xs: 12 }}>
+				<Grid container spacing={4}>
+					{metricCards.map((metric) => {
+						const trendMeta = getTrendPresentation(metric.direction);
+
+						return (
+							<Grid key={metric.key} size={{ xs: 12, sm: 6, lg: 3 }}>
+								<Card
+									sx={{
+										height: "100%",
+										border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+										transition: "transform 0.2s ease, box-shadow 0.2s ease",
+										"&:hover": {
+											transform: "translateY(-2px)",
+											boxShadow: theme.shadows[4],
+										},
+									}}
+								>
+									<CardContent sx={{ p: 4 }}>
+										<Stack direction="row" justifyContent="space-between" mb={2.5}>
+											<Box>
+												<Typography variant="body2" color="text.secondary">
+													{metric.title}
+												</Typography>
+												<Typography variant="h5" sx={{ mt: 1 }}>
+													{metric.value}
+													{metric.suffix ? ` ${metric.suffix}` : ""}
+												</Typography>
+											</Box>
+											<CustomAvatar
+												size={42}
+												skin="light"
+												color={metric.color}
+												variant="rounded"
+											>
+												<i className={`${metric.icon} text-[22px]`} />
+											</CustomAvatar>
+										</Stack>
+
+										<Stack
+											direction="row"
+											alignItems="center"
+											justifyContent="space-between"
+										// mb={1.5}
+										>
+											<Chip
+												size="small"
+												variant="tonal"
+												color={trendMeta.color}
+												label={
+													<Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+														<Icon icon={trendMeta.icon} width="0.9rem" />
+														<span>{metric.changeNumber}</span>
+													</Box>
+												}
+											/>
+											<Typography variant="caption" color="text.secondary">
+												{metric.subTitle}
+											</Typography>
+										</Stack>
+
+									</CardContent>
+								</Card>
+							</Grid>
+						);
+					})}
+				</Grid>
+			</Grid>
+
+			<Grid size={{ xs: 12, lg: 8 }}>
+				<Card sx={{ height: "100%" }}>
+					<CardHeader
+						title="Revenue Trend & AI Forecast"
+						action={
+							<ToggleButtonGroup
+								color='primary'
+								size='medium'
+								exclusive
+								value={financeTab}
+								onChange={handleFinanceTabChange}
+							>
+								<ToggleButton value="sales">Sales</ToggleButton>
+								<ToggleButton value="expenses">Expenses</ToggleButton>
+								<ToggleButton value="profits">Profits</ToggleButton>
+							</ToggleButtonGroup>
+						}
+					/>
+					<CardContent sx={{ pt: 0 }}>
+						<Stack spacing={3}>
+							<Stack
+								direction={{ xs: "column", md: "row" }}
+								justifyContent="space-between"
+								alignItems={{ xs: "flex-start", md: "center" }}
+								spacing={2}
+							>
+								<Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+									{/* <Chip
+										size="small"
+										variant="tonal"
+										color="primary"
+										label={`Forecast ${forecastNextLabel}: ${formatMoney(
+											activeFinanceSeries?.forecastNext || 0
+										)} ${currencyData}`}
+									/>
+									<Chip
+										size="small"
+										variant="tonal"
+										color={
+											Number(activeFinanceSeries?.growthPercentage || 0) >= 0
+												? "success"
+												: "error"
+										}
+										label={`${Number(
+											activeFinanceSeries?.growthPercentage || 0
+										)}% vs previous month`}
+									/> */}
+									{isGeneratingAIForecast ? (
+										<Chip
+											size="small"
+											variant="outlined"
+											color="secondary"
+											label="Updating AI forecast..."
+										/>
+									) : null}
+								</Stack>
+
+							</Stack>
+
+							<Box>
+								{hasTrendData ? (
+									<AppReactApexCharts
+										type="area"
+										height={320}
+										width="100%"
+										options={trendChartOptions}
+										series={trendChartSeries}
+									/>
+								) : (
+									<Box
+										sx={{
+											height: 320,
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "center",
+										}}
+									>
+										<Typography variant="body2" color="text.secondary">
+											No trend data available.
+										</Typography>
+									</Box>
+								)}
+							</Box>
+
+							{aiInsightCards.length > 0 ? (
+								<Stack spacing={1.2}>
+									<Typography variant="subtitle2">AI Forecast Signals</Typography>
+									<Box
+										sx={{
+											display: "grid",
+											gridTemplateColumns: {
+												xs: "1fr",
+												md: "repeat(2, minmax(0, 1fr))",
+											},
+											gap: 1.2,
+										}}
+									>
+										{aiInsightCards.slice(0, 6).map((card, index) => {
+											const categoryColor =
+												card?.type === "sales"
+													? "primary"
+													: card?.type === "purchases"
+														? "warning"
+														: card?.type === "profitability"
+															? "success"
+															: "info";
+
+											return (
+												<Box
+													key={`ai-card-${index}`}
+													sx={{
+														p: 1.5,
+														// borderRadius: 1.5,
+														// border: `1px solid ${alpha(theme.palette[categoryColor].main, 0.28)}`,
+														// backgroundColor: alpha(
+														// 	theme.palette[categoryColor].main,
+														// 	0.06
+														// ),
+													}}
+												>
+													<Stack direction="row" spacing={1} alignItems="center">
+														<CustomAvatar
+															size={24}
+															skin="light"
+															color={categoryColor}
+															variant="rounded"
+														>
+															<Icon
+																icon={card?.icon || "ri-lightbulb-line"}
+																width="0.85rem"
+															/>
+														</CustomAvatar>
+														<Typography variant="caption" sx={{ fontWeight: 500 }}>
+															{card?.title || "Signal"}
+														</Typography>
+													</Stack>
+													<Typography
+														variant="caption"
+														color="text.primary"
+														sx={{ display: "block", mt: 0.8, lineHeight: 1.45 }}
+													>
+														{card?.text || ""}
+													</Typography>
+												</Box>
+											);
+										})}
+									</Box>
+								</Stack>
+							) : null}
+						</Stack>
+					</CardContent>
+				</Card>
+			</Grid>
+
+			<Grid size={{ xs: 12, lg: 4 }}>
 				<SalesOverview
-					series={dashboardData.series || []}
+					labels={dashboardData?.labels || []}
+					statusCounts={dashboardData?.series || []}
 					amounts={[
-						dashboardData.paidAmt || 0,
-						dashboardData.draftedAmt || 0,
-						dashboardData.overdueAmt || 0,
-						dashboardData.partiallyPaidAmt || 0,
+						dashboardData?.paidAmt || 0,
+						dashboardData?.draftedAmt || 0,
+						dashboardData?.overdueAmt || 0,
+						dashboardData?.partiallyPaidAmt || 0,
 					]}
 					currencyData={currencyData}
-					labels={dashboardData.labels || []}
-					height={250}
-					width={250}
+					activeFilterLabel={activeFilterLabel}
 				/>
 			</Grid>
 
+			<Grid size={{ xs: 12 }}>
+				<Grid container spacing={4}>
+					<Grid size={{ xs: 12, md: 4 }}>
+						<Card sx={{ height: "100%" }}>
+							<CardHeader
+								title={
+									<Stack direction="row" alignItems="center" spacing={3}>
+										<CustomAvatar size={28} skin="light" color="primary" variant="rounded">
+											<Icon icon="ri-shopping-bag-3-line" fontSize={16} />
+										</CustomAvatar>
+										<Typography variant="h6">Top Products</Typography>
+									</Stack>
+								}
+								action={
+									<ToggleButtonGroup
+										color='primary'
+										size='small'
+										exclusive
+										value={productsTab}
+										onChange={handleProductsTabChange}
+									>
+										<ToggleButton value="all">All</ToggleButton>
+										<ToggleButton value="trending">Trending</ToggleButton>
+									</ToggleButtonGroup>
+								}
+							/>
+							<CardContent sx={{ pt: 0 }}>
+								<Stack spacing={0}>
+									{topProducts.length === 0 ? (
+										<Box
+											sx={{
+												py: 6,
+												display: "flex",
+												flexDirection: "column",
+												alignItems: "center",
+												gap: 1,
+											}}
+										>
+											<CustomAvatar size={40} skin="light" color="secondary" variant="rounded">
+												<Icon icon="ri-box-3-line" width={20} />
+											</CustomAvatar>
+											<Typography variant="body2" color="text.secondary">
+												No product data available.
+											</Typography>
+										</Box>
+									) : (
+										topProducts.slice(0, 5).map((product, index) => (
+											<Box
+												key={`${product?.productId || product?.name}-${index}`}
+												sx={{
+													py: 2,
+													px: 1,
+													borderBottom:
+														index < Math.min(topProducts.length, 5) - 1
+															? `1px solid ${alpha(theme.palette.divider, 0.6)}`
+															: "none",
+													transition: "background-color 0.15s ease",
+													"&:hover": {
+														backgroundColor: alpha(theme.palette.action.hover, 0.04),
+													},
+												}}
+											>
+												<Stack
+													direction="row"
+													justifyContent="space-between"
+													alignItems="center"
+													spacing={1.5}
+												>
+													<Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
+														<Avatar
+															src={product?.image || ""}
+															variant="rounded"
+															sx={{
+																width: 38,
+																height: 38,
+																fontSize: "0.8rem",
+																fontWeight: 600,
+																bgcolor: alpha(theme.palette.primary.main, 0.1),
+																color: theme.palette.primary.main,
+															}}
+														>
+															{getInitials(product?.name)}
+														</Avatar>
+														<Box sx={{ minWidth: 0 }}>
+															<Typography
+																variant="body2"
+																sx={{
+																	fontWeight: 500,
+																	overflow: "hidden",
+																	textOverflow: "ellipsis",
+																	whiteSpace: "nowrap",
+																}}
+															>
+																{product?.name || "Unknown Product"}
+															</Typography>
+															<Typography variant="caption" color="text.disabled">
+																{Number(product?.quantitySold || 0).toLocaleString("en-US")} sold
+															</Typography>
+														</Box>
+													</Stack>
+													<Stack alignItems="center" direction='row' spacing={1} sx={{ flexShrink: 0 }}>
+														<Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
+															{formatMoney(product?.revenue || 0)}
+
+														</Typography>
+														<Typography
+															component="span"
+															variant="overline"
+															color="text.secondary"
+															sx={{ ml: 0.5 }}
+														>
+															{currencyData}
+														</Typography>
+														{productsTab === "trending" && (
+															<Chip
+																size="small"
+																variant="tonal"
+																color={
+																	Number(product?.growthPercentage || 0) >= 0
+																		? "success"
+																		: "error"
+																}
+																label={`${Number(product?.growthPercentage || 0) >= 0 ? "+" : ""}${Number(product?.growthPercentage || 0)}%`}
+																sx={{ height: 20, fontSize: "0.7rem" }}
+															/>
+														)}
+													</Stack>
+												</Stack>
+											</Box>
+										))
+									)}
+								</Stack>
+							</CardContent>
+						</Card>
+					</Grid>
+
+					<Grid size={{ xs: 12, md: 4 }}>
+						<Card sx={{ height: "100%" }}>
+							<CardHeader
+								title={
+									<Stack direction="row" alignItems="center" spacing={3}>
+										<CustomAvatar size={28} skin="light" color="info" variant="rounded">
+											<Icon icon="ri-group-line" fontSize={16} />
+										</CustomAvatar>
+										<Typography variant="h6">Customer Insights</Typography>
+									</Stack>
+								}
+								action={
+									<ToggleButtonGroup
+										color='info'
+										size='small'
+										exclusive
+										value={customersTab}
+										onChange={handleCustomersTabChange}
+									>
+										<ToggleButton value="all">All</ToggleButton>
+										<ToggleButton value="trending">Trending</ToggleButton>
+									</ToggleButtonGroup>
+								}
+							/>
+							<CardContent sx={{ pt: 0 }}>
+								<Stack spacing={0}>
+									{topCustomers.length === 0 ? (
+										<Box
+											sx={{
+												py: 6,
+												display: "flex",
+												flexDirection: "column",
+												alignItems: "center",
+												gap: 1,
+											}}
+										>
+											<CustomAvatar size={40} skin="light" color="secondary" variant="rounded">
+												<Icon icon="ri-user-3-line" width={20} />
+											</CustomAvatar>
+											<Typography variant="body2" color="text.secondary">
+												No customer data available.
+											</Typography>
+										</Box>
+									) : (
+										topCustomers.slice(0, 5).map((customer, index) => (
+											<Stack
+												key={`${customer?.customerId || customer?.name}-${index}`}
+												direction="row"
+												justifyContent="space-between"
+												alignItems="center"
+												spacing={1.5}
+												sx={{
+													py: 2,
+													px: 1,
+													borderBottom:
+														index < Math.min(topCustomers.length, 5) - 1
+															? `1px solid ${alpha(theme.palette.divider, 0.6)}`
+															: "none",
+													transition: "background-color 0.15s ease",
+													"&:hover": {
+														backgroundColor: alpha(theme.palette.action.hover, 0.04),
+													},
+												}}
+											>
+												<Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
+													<Avatar
+														src={customer?.image || ""}
+														sx={{
+															width: 38,
+															height: 38,
+															fontSize: "0.8rem",
+															fontWeight: 600,
+															bgcolor: alpha(theme.palette.info.main, 0.1),
+															color: theme.palette.info.main,
+														}}
+													>
+														{getInitials(customer?.name)}
+													</Avatar>
+													<Typography
+														variant="body2"
+														sx={{
+															fontWeight: 500,
+															overflow: "hidden",
+															textOverflow: "ellipsis",
+															whiteSpace: "nowrap",
+														}}
+													>
+														{customer?.name || "Customer"}
+													</Typography>
+												</Stack>
+												<Stack alignItems="center" direction='row' spacing={1} sx={{ flexShrink: 0 }}>
+													<Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>
+														{formatMoney(customer?.revenue || 0)}
+
+													</Typography>
+
+													<Typography
+														component="span"
+														variant="overline"
+														color="text.secondary"
+														sx={{ ml: 0.5 }}
+													>
+														{currencyData}
+													</Typography>
+													{customersTab === "trending" && (
+														<Chip
+															size="small"
+															variant="tonal"
+															color={
+																Number(customer?.growthPercentage || 0) >= 0
+																	? "success"
+																	: "error"
+															}
+															label={`${Number(customer?.growthPercentage || 0) >= 0 ? "+" : ""}${Number(customer?.growthPercentage || 0)}%`}
+															sx={{ height: 20, fontSize: "0.7rem" }}
+														/>
+													)}
+												</Stack>
+											</Stack>
+										))
+									)}
+								</Stack>
+							</CardContent>
+						</Card>
+					</Grid>
+
+					<Grid size={{ xs: 12, md: 4 }}>
+						<Card sx={{ height: "100%" }}>
+							<CardHeader
+								title={
+									<Stack direction="row" alignItems="center" spacing={3}>
+										<CustomAvatar size={28} skin="light" color="warning" variant="rounded">
+											<Icon icon="ri-alert-line" fontSize={16} />
+										</CustomAvatar>
+										<Typography variant="h6">Stock Alert</Typography>
+									</Stack>
+								}
+							/>
+							<CardContent sx={{ pt: 0 }}>
+								<Stack spacing={0}>
+									{inventoryAlerts.length === 0 ? (
+										<Box
+											sx={{
+												py: 6,
+												display: "flex",
+												flexDirection: "column",
+												alignItems: "center",
+												gap: 1,
+											}}
+										>
+											<CustomAvatar size={40} skin="light" color="success" variant="rounded">
+												<Icon icon="ri-check-line" width={20} />
+											</CustomAvatar>
+											<Typography variant="body2" color="text.secondary">
+												All stock levels look healthy.
+											</Typography>
+										</Box>
+									) : (
+										inventoryAlerts.slice(0, 6).map((item, index) => {
+											const severity = String(item?.severity || "warning");
+											const chipColor =
+												severity === "critical"
+													? "error"
+													: severity === "high"
+														? "warning"
+														: "info";
+											const avatarColor =
+												severity === "critical"
+													? theme.palette.error.main
+													: severity === "high"
+														? theme.palette.warning.main
+														: theme.palette.info.main;
+
+											return (
+												<Box
+													key={`${item?.productId || item?.name}-${index}`}
+													sx={{
+														py: 2,
+														px: 1,
+														borderBottom:
+															index < Math.min(inventoryAlerts.length, 6) - 1
+																? `1px solid ${alpha(theme.palette.divider, 0.6)}`
+																: "none",
+														transition: "background-color 0.15s ease",
+														"&:hover": {
+															backgroundColor: alpha(theme.palette.action.hover, 0.04),
+														},
+													}}
+												>
+													<Stack
+														direction="row"
+														justifyContent="space-between"
+														alignItems="center"
+														spacing={1.5}
+													>
+														<Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
+															<Avatar
+																sx={{
+																	width: 36,
+																	height: 36,
+																	fontSize: "0.8rem",
+																	fontWeight: 600,
+																	bgcolor: alpha(avatarColor, 0.1),
+																	color: avatarColor,
+																}}
+															>
+																{getInitials(item?.name)}
+															</Avatar>
+															<Box sx={{ minWidth: 0 }}>
+																<Typography
+																	variant="body2"
+																	sx={{
+																		fontWeight: 500,
+																		overflow: "hidden",
+																		textOverflow: "ellipsis",
+																		whiteSpace: "nowrap",
+																	}}
+																>
+																	{item?.name || "Product"}
+																</Typography>
+																<Typography variant="caption" color="text.disabled">
+																	Alert {Number(item?.alertQuantity || 0).toLocaleString("en-US")}
+																	{" • "}
+																	Shortfall {Number(item?.shortfall || 0).toLocaleString("en-US")}
+																</Typography>
+															</Box>
+														</Stack>
+														<Chip
+															size="small"
+															variant="outlined"
+															color={chipColor}
+															label={`${Number(item?.quantity || 0).toLocaleString("en-US")} left`}
+															sx={{ height: 22, fontSize: "0.72rem", fontWeight: 600 }}
+														/>
+													</Stack>
+												</Box>
+											);
+										})
+									)}
+								</Stack>
+							</CardContent>
+						</Card>
+					</Grid>
+				</Grid>
+			</Grid>
 
 			<AppSnackbar
 				open={openSnackbar.open}

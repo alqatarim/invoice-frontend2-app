@@ -20,6 +20,10 @@ export async function getInitialBranchData() {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.LIST}?skip=0&limit=10`, CACHE_STABLE_LIST);
 
+    if (response?.error) {
+      throw new Error(response.error);
+    }
+
     if (response.code === 200) {
       return {
         branches: response.data || [],
@@ -31,7 +35,7 @@ export async function getInitialBranchData() {
       };
     }
 
-    throw new Error('Failed to fetch initial branch data');
+    throw new Error(response?.message || 'Failed to fetch initial branch data');
   } catch (error) {
     console.error('Error in getInitialBranchData:', error);
     throw new Error(error.message || 'Failed to fetch initial branch data');

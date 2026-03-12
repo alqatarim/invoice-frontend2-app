@@ -124,18 +124,32 @@ export async function fetchWithAuth(endpoint, options = {}) {
 
     if (!response.ok) {
       // const error = await response.clone().json();
+
       let error = {};
       try {
         error = await response.json();
       } catch {
-        error = {};
+        try {
+          errorText = await response.text();
+        } catch {
+          errorText = '';
+        }
       }
+
+      const messageFromPayload =
+        (Array.isArray(error?.message) ? error.message.join(', ') : error?.message) ||
+        (Array.isArray(error?.data?.message) ? error.data.message.join(', ') : error?.data?.message) ||
+        (typeof error?.data === 'string' ? error.data : '') ||
+        (errorText ? errorText.slice(0, 220) : '');
+
+      const fallbackMessage = `Request to ${endpoint} failed with status ${response.status}`;
+      const resolvedMessage = messageFromPayload || fallbackMessage;
 
       if (response.status === 401) {
         // Clear session cache on 401 to force fresh session on next request
         cachedSession = null;
         sessionExpiry = null;
-        throw new Error(error?.message || 'Unauthorized access - please log in again');
+        throw new Error(resolvedMessage || 'Unauthorized access - please log in again');
       } else if (response.status === 403) {
         let errRes = error?.data?.message;
         if (Array.isArray(errRes)) {
@@ -144,13 +158,9 @@ export async function fetchWithAuth(endpoint, options = {}) {
           throw new Error(errRes);
         }
       } else if (response.status === 500) {
-        throw new Error('Internal server error - please try again later');
+        throw new Error(resolvedMessage || 'Internal server error - please try again later');
       } else {
-        throw new Error(
-          Array.isArray(error.message)
-            ? error.message.join(', ')
-            : error.message || 'An unknown error occurred'
-        );
+        throw new Error(resolvedMessage);
       }
     }
 

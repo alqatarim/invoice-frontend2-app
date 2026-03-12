@@ -1,24 +1,23 @@
 "use client";
 
-// Next Imports
 import dynamic from "next/dynamic";
+import { useMemo } from "react";
+import { Icon } from "@iconify/react";
 
-// MUI Imports
+import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
-import Grid from "@mui/material/Grid";
-import Divider from "@mui/material/Divider";
+import Chip from "@mui/material/Chip";
 import { useTheme } from "@mui/material/styles";
 import CardHeader from "@mui/material/CardHeader";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
-import Box from "@mui/material/Box";
-import { Icon } from "@iconify/react";
-// Components Imports
+import { alpha } from "@mui/material/styles";
+
 import CustomAvatar from "@core/components/mui/Avatar";
-import OptionsMenu from "@core/components/option-menu";
 import { statusOptions } from "@/data/dataSets";
 
-// Styled Component Imports - Optimized loading
 const AppReactApexCharts = dynamic(
 	() => import("@/libs/styles/AppReactApexCharts"),
 	{
@@ -31,175 +30,215 @@ const AppReactApexCharts = dynamic(
 	}
 );
 
-const CardWidgetsSalesOverview = ({
-	series,
-	labels,
-	amounts,
-	currencyData,
-	width,
-	height,
-}) => {
-	// Hooks
-	const theme = useTheme();
+const STATUS_COLOR_FALLBACK = {
+	PAID: "success",
+	DRAFTED: "secondary",
+	OVERDUE: "error",
+	PARTIALLY_PAID: "warning",
+	SENT: "info",
+	UNPAID: "warning",
+	REFUND: "secondary",
+};
 
-	const safeAmounts = (amounts || []).map((val) => Number(val) || 0);
-	const safeLabels = labels || [];
-	const hasData = safeAmounts.some((val) => val > 0);
+const APEX_STATUS_COLORS = {
+	success: "#28C76F",
+	secondary: "#A8AAAE",
+	error: "#EA5455",
+	warning: "#FF9F43",
+	info: "#00CFE8",
+	primary: "#7367F0",
+};
 
-	// Precompute status data for mapping, with safe fallbacks
-	const statusData = safeLabels.map((label, idx) => {
-		const option = statusOptions.find((opt) => opt.value === label) || {};
-		return {
-			label: option.label || label || `Status ${idx + 1}`,
-			icon: option.icon || "ri-circle-fill",
-			color: option.color || "primary",
-			amount: safeAmounts[idx] || 0,
-			idx,
-		};
+const normalizeStatus = (value = "") =>
+	String(value).trim().replace(/\s+/g, "_").toUpperCase();
+
+const formatMoney = (value) =>
+	Number(value || 0).toLocaleString("en-US", {
+		maximumFractionDigits: 0,
 	});
 
-	// Don't render chart if there's no data yet
-	if (!hasData || safeLabels.length === 0) {
+const CardWidgetsSalesOverview = ({
+	labels = [],
+	amounts = [],
+	statusCounts = [],
+	currencyData = "SAR",
+	activeFilterLabel = "All Time",
+	width = 265,
+	height = 265,
+}) => {
+	const theme = useTheme();
+
+	const statusOptionsMap = useMemo(() => {
+		const map = new Map();
+		statusOptions.forEach((option) => {
+			map.set(normalizeStatus(option.value), option);
+		});
+		return map;
+	}, []);
+
+	const statusData = useMemo(() => {
+		const defaultLabels =
+			labels.length > 0 ? labels : ["PAID", "DRAFTED", "OVERDUE", "PARTIALLY_PAID"];
+
+		return defaultLabels.map((status, index) => {
+			const normalizedStatus = normalizeStatus(status);
+			const foundStatus = statusOptionsMap.get(normalizedStatus);
+			const color =
+				foundStatus?.color ||
+				STATUS_COLOR_FALLBACK[normalizedStatus] ||
+				"primary";
+			const amount = Number(amounts[index] || 0);
+
+			return {
+				key: normalizedStatus,
+				label: foundStatus?.label || normalizedStatus.replace(/_/g, " "),
+				icon: foundStatus?.icon || "ri-circle-line",
+				color,
+				amount,
+				count: Number(statusCounts[index] || 0),
+			};
+		});
+	}, [labels, amounts, statusCounts, statusOptionsMap]);
+
+	const totalAmount = useMemo(
+		() => statusData.reduce((sum, item) => sum + item.amount, 0),
+		[statusData]
+	);
+
+	const hasData = statusData.some((item) => item.amount > 0);
+
+	const statusDataWithShare = useMemo(() => {
+		return statusData.map((item) => ({
+			...item,
+			share: totalAmount > 0 ? (item.amount / totalAmount) * 100 : 0,
+		}));
+	}, [statusData, totalAmount]);
+
+	const dominantStatus = useMemo(() => {
 		return (
-			<Card>
-				<CardHeader
-					title="Invoices Overview"
-					action={
-						<OptionsMenu
-							iconClassName="text-textPrimary"
-							options={["Last 28 Days", "Last Month", "Last Year"]}
-						/>
-					}
-				/>
-				<CardContent>
-					<Box className="flex items-center justify-center h-64">
-						<Typography variant="body2" color="text.secondary">
-							Loading chart data...
-						</Typography>
-					</Box>
-				</CardContent>
-			</Card>
-		);
-	}
-
-	const options = {
-		chart: {
-			sparkline: { enabled: true },
-			width: width,
-			height: height,
-		},
-		grid: {
-			padding: {
-				left: 7,
-				right: 7,
-			},
-		},
-
-		colors: safeLabels.map((label) => {
-			const found = statusOptions.find((option) => option.value === label);
-			if (found && theme.palette[found.color]) {
-				return theme.palette[found.color].light;
+			statusDataWithShare.reduce((top, current) => {
+				if (current.amount > top.amount) return current;
+				return top;
+			}, statusDataWithShare[0] || { label: "N/A", amount: 0 }) || {
+				label: "N/A",
+				amount: 0,
 			}
-			return theme.palette.primary.light;
-		}),
-		stroke: { width: 0 },
-		legend: { show: false },
-		tooltip: {
-			theme: "false",
-			y: {
-				formatter: (value) => Number(value).toFixed(0),
+		);
+	}, [statusDataWithShare]);
+
+	const chartOptions = useMemo(() => {
+		const chartColors = statusDataWithShare.map((item) => {
+			return APEX_STATUS_COLORS[item.color] || APEX_STATUS_COLORS.primary;
+		});
+
+		return {
+			chart: {
+				type: "donut",
+				sparkline: { enabled: true },
+				width,
+				height,
 			},
-		},
-		dataLabels: { enabled: false },
-		labels: safeLabels,
-		states: {
-			hover: {
-				filter: { type: "none" },
-			},
-			active: {
-				filter: { type: "none" },
-			},
-		},
-		plotOptions: {
-			pie: {
-				customScale: 1,
-				donut: {
-					size: "80",
-					labels: {
-						show: true,
-						name: {
-							offsetY: 25,
-							fontSize: "0.875rem",
-							color: "var(--mui-palette-text-secondary)",
-						},
-						value: {
-							offsetY: -15,
-							fontWeight: 500,
-							fontSize: "24px",
-							formatter: (value) => `${Number(value).toFixed(2)}`,
-							color: "var(--mui-palette-text-primary)",
-						},
-						total: {
+			stroke: { width: 0 },
+			dataLabels: { enabled: false },
+			labels: statusDataWithShare.map((item) => item.label),
+			legend: { show: false },
+			colors: chartColors,
+			plotOptions: {
+				pie: {
+					donut: {
+						size: "74%",
+						labels: {
 							show: true,
-							fontSize: "0.875rem",
-							label: "Invoices",
-							color: "var(--mui-palette-text-secondary)",
-							formatter: (w) => {
-								const total = w.globals.series.reduce((a, b) => a + b, 0);
-								return `${Number(total).toFixed(2)}`;
+							name: {
+								show: true,
+								offsetY: 14,
+								fontSize: "0.82rem",
+								color: "var(--mui-palette-text-secondary)",
+							},
+							value: {
+								show: true,
+								offsetY: -14,
+								fontWeight: 600,
+								fontSize: "1rem",
+								formatter: (value) => formatMoney(value),
+								color: "var(--mui-palette-text-primary)",
+							},
+							total: {
+								show: true,
+								label: `${currencyData} Total`,
+								fontSize: "0.8rem",
+								color: "var(--mui-palette-text-secondary)",
+								formatter: () => formatMoney(totalAmount),
 							},
 						},
 					},
 				},
 			},
-		},
-		responsive: [
-			{
-				breakpoint: 2300,
-				options: { chart: { height: 257 } },
+			tooltip: {
+				y: {
+					formatter: (value) => `${formatMoney(value)} ${currencyData}`,
+				},
 			},
-			{
-				breakpoint: theme.breakpoints.values,
-				options: { chart: { height: 276 } },
-			},
-			{
-				breakpoint: 1050,
-				options: { chart: { height: 250 } },
-			},
-		],
-	};
+		};
+	}, [statusDataWithShare, theme.palette, width, height, currencyData, totalAmount]);
 
 	return (
-		<Card>
+		<Card sx={{ height: "100%" }}>
 			<CardHeader
-				title="Invoices Overview"
-				action={
-					<OptionsMenu
-						iconClassName="text-textPrimary"
-						options={["Last 28 Days", "Last Month", "Last Year"]}
-					/>
-				}
+				title="Invoices Insights"
+				subheader={`Distribution by amount • ${activeFilterLabel}`}
+			// action={
+			// 	<Chip
+			// 		size="small"
+			// 		variant="tonal"
+			// 		color="primary"
+			// 		label={`Top: ${dominantStatus?.label || "N/A"}`}
+			// 	/>
+			// }
 			/>
-			<CardContent>
-				<Grid container className="flex flex-col justify-between items-center">
-					<Grid size={{ xs: "12" }}>
+			<CardContent sx={{ pt: 0 }}>
+				{!hasData ? (
+					<Box
+						sx={{
+							minHeight: 360,
+							display: "flex",
+							flexDirection: "column",
+							alignItems: "center",
+							justifyContent: "center",
+							gap: 1.5,
+							color: "text.secondary",
+						}}
+					>
+						<Icon
+							icon="ri-donut-chart-line"
+							width="1.5rem"
+							color={theme.palette.text.secondary}
+						/>
+						<Typography variant="body2" color="text.secondary">
+							No insight data available for this period.
+						</Typography>
+					</Box>
+				) : (
+					<Stack spacing={4}>
 						<Box
 							sx={{
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+								py: 1.5,
 								"& .apexcharts-tooltip": {
-									background: "var(--mui-palette-background-paper) !important",
+									background:
+										"var(--mui-palette-background-paper) !important",
 									color: "var(--mui-palette-text-primary) !important",
-									// border: "1px solid var(--mui-palette-divider) !important",
-									// borderRadius: "8px",
-									// boxShadow: theme.shadows[6],
+									border: `1px solid ${alpha(theme.palette.divider, 0.8)} !important`,
 								},
 								"& .apexcharts-tooltip-title": {
-									background: "var(--mui-palette-background-default) !important",
-									color: "var(--mui-palette-text-secondary) !important",
-									borderBottom: "1px solid var(--mui-palette-divider) !important",
-								},
-								"& .apexcharts-tooltip-text, & .apexcharts-tooltip-text-y-label, & .apexcharts-tooltip-text-y-value":
-								{
-									color: "var(--mui-palette-text-primary) !important",
+									background:
+										"var(--mui-palette-background-default) !important",
+									color:
+										"var(--mui-palette-text-secondary) !important",
+									borderBottom:
+										"1px solid var(--mui-palette-divider) !important",
 								},
 							}}
 						>
@@ -207,86 +246,67 @@ const CardWidgetsSalesOverview = ({
 								type="donut"
 								width={width}
 								height={height}
-								series={safeAmounts}
-								options={options}
+								series={statusDataWithShare.map((item) => item.amount)}
+								options={chartOptions}
 							/>
 						</Box>
-					</Grid>
-					<Grid size={{ xs: "12" }}>
-						<Divider className="mlb-6" />
-						<Box className="flex flex-row justify-evenly gap-y-6 space-x-8 items-center flex-wrap">
-							<Box className="flex flex-col justify-start items-center gap-1 flex-wrap">
-								< Box className="flex flex-row items-center gap-2" >
-									<CustomAvatar
-										size={30}
-										skin="light"
-										color="primary"
-										variant="rounded"
+
+						<Stack spacing={2.2}>
+							{statusDataWithShare.map((status) => (
+								<Box key={status.key}>
+									<Stack
+										direction="row"
+										alignItems="center"
+										justifyContent="space-between"
+										spacing={1.5}
+										sx={{ mb: 1 }}
 									>
-										<Icon
-											icon={"mdi:invoice-text-outline"}
-											color={theme.palette.primary}
-											width={20}
-										/>
-									</CustomAvatar>
-
-									<Typography variant="body2" className="text-[0.9rem]">
-										Total
-									</Typography>
-								</Box>
-								<Box className="flex items-center flex-row gap-1">
-									<Icon
-										icon="lucide:saudi-riyal"
-										width={15}
-										color={theme.palette.secondary.light}
-									/>
-									<Typography variant='h6' className="text-[0.95rem]">
-										{Number(safeAmounts.reduce((a, b) => a + b, 0)).toFixed(2)}
-									</Typography>
-								</Box>
-							</Box>
-
-
-							{statusData.map((status, i) => (
-								<Box className="flex flex-col justify-start gap-1 flex-wrap">
-									< Box className="flex flex-row items-center gap-2" >
-										<CustomAvatar
-											size={30}
-											skin="light"
-											color={status.color}
-											variant="rounded"
-										>
-											<Icon
-												icon={status.icon}
+										<Stack direction="row" spacing={1.5} alignItems="center">
+											<CustomAvatar
+												size={30}
+												skin="light"
 												color={status.color}
-												width={20}
-											/>
-										</CustomAvatar>
+												variant="rounded"
+											>
+												<Icon icon={status.icon} width={16} />
+											</CustomAvatar>
+											<Box>
+												<Typography variant="body2" sx={{ fontWeight: 500 }}>
+													{status.label}
+												</Typography>
+												<Typography variant="caption" color="text.secondary">
+													{status.count.toLocaleString("en-US")} invoices
+												</Typography>
+											</Box>
+										</Stack>
 
-										<Typography variant="body2" className="text-[0.87rem]">
-											{status.label}
-										</Typography>
-									</Box>
-									<Box key={status.label + i} className="flex items-center flex-row gap-1">
-										<Icon
-											icon="lucide:saudi-riyal"
-											width={15}
-											color={theme.palette.secondary.light}
-										/>
-										<Typography variant='h6' className="text-[0.95rem]">
-											{Number(status.amount).toFixed(2)}
-										</Typography>
-									</Box>
+										<Box sx={{ textAlign: "right" }}>
+											<Typography variant="body2" sx={{ fontWeight: 600 }}>
+												{formatMoney(status.amount)} {currencyData}
+											</Typography>
+											<Typography variant="caption" color="text.secondary">
+												{status.share.toFixed(1)}%
+											</Typography>
+										</Box>
+									</Stack>
 
+									{/* <LinearProgress
+										variant="determinate"
+										value={status.share}
+										color={status.color}
+										sx={{
+											height: 6,
+											borderRadius: 6,
+											backgroundColor: alpha(theme.palette[status.color].main, 0.14),
+										}}
+									/> */}
 								</Box>
-
 							))}
-
-						</Box>
-					</Grid>
-				</Grid>
-			</CardContent >
-		</Card >
+						</Stack>
+					</Stack>
+				)}
+			</CardContent>
+		</Card>
 	);
 };
 
