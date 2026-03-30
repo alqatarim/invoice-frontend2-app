@@ -43,6 +43,8 @@ export function useInventoryListHandlers(options = {}) {
     // Actions
     handleAddStock: actions.handleAddStock,
     handleRemoveStock: actions.handleRemoveStock,
+    handleTransferStock: actions.handleTransferStock,
+    handleCycleCount: actions.handleCycleCount,
     stockLoading: actions.loading, // Expose stock operation loading states
   }), [data, actions]);
 }

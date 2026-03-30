@@ -39,6 +39,7 @@ import { formIcons, taxTypes } from '@/data/dataSets';
 import { useEditProductHandlers } from '@/handlers/products/editProduct';
 import { getNameFromPath } from '@/utils/fileUtils';
 import { buildProductDescription, parseProductDescription } from '@/utils/productMeta';
+import { normalizeScaleBarcodeConfig } from '@/utils/productScaleBarcode';
 
 
 
@@ -61,6 +62,13 @@ const EditProductDialog = ({ open, productId, initialProductData = null, onClose
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean);
+  const getDefaultScaleBarcodeConfig = () => ({
+    enabled: false,
+    prefix: '21',
+    pluCode: '',
+    valueType: 'weight',
+    decimals: '3',
+  });
 
   const [batchInfo, setBatchInfo] = useState({
     shelfLifeDays: '',
@@ -108,6 +116,8 @@ const EditProductDialog = ({ open, productId, initialProductData = null, onClose
   });
   const [serialsInput, setSerialsInput] = useState('');
   const [imeiInput, setImeiInput] = useState('');
+  const [scaleBarcodeConfig, setScaleBarcodeConfig] = useState(getDefaultScaleBarcodeConfig());
+  const [scaleBarcodeError, setScaleBarcodeError] = useState('');
 
   const resetAdvancedFields = () => {
     setBatchInfo({ shelfLifeDays: '' });
@@ -141,6 +151,8 @@ const EditProductDialog = ({ open, productId, initialProductData = null, onClose
     setSerialTracking({ enabled: false, serialNumbers: [], imeiNumbers: [] });
     setSerialsInput('');
     setImeiInput('');
+    setScaleBarcodeConfig(getDefaultScaleBarcodeConfig());
+    setScaleBarcodeError('');
   };
 
   const buildProductMeta = () => {
@@ -219,6 +231,11 @@ const EditProductDialog = ({ open, productId, initialProductData = null, onClose
         serialNumbers: serialTracking.serialNumbers,
         imeiNumbers: serialTracking.imeiNumbers,
       };
+    }
+
+    const scaleBarcodeMeta = normalizeScaleBarcodeConfig(scaleBarcodeConfig);
+    if (scaleBarcodeMeta) {
+      meta.scaleBarcode = scaleBarcodeMeta;
     }
 
     return meta;
@@ -403,6 +420,20 @@ const EditProductDialog = ({ open, productId, initialProductData = null, onClose
     });
     setSerialsInput(serialNumbers.join('\n'));
     setImeiInput(imeiNumbers.join('\n'));
+
+    const scaleBarcodeMeta = normalizeScaleBarcodeConfig(meta?.scaleBarcode || null);
+    setScaleBarcodeConfig(
+      scaleBarcodeMeta
+        ? {
+          enabled: true,
+          prefix: scaleBarcodeMeta.prefix,
+          pluCode: scaleBarcodeMeta.pluCode,
+          valueType: scaleBarcodeMeta.valueType,
+          decimals: String(scaleBarcodeMeta.decimals),
+        }
+        : getDefaultScaleBarcodeConfig()
+    );
+    setScaleBarcodeError('');
   };
 
   const parsedDescription = useMemo(
@@ -437,6 +468,12 @@ const EditProductDialog = ({ open, productId, initialProductData = null, onClose
     productData: cleanedProductData,
     dropdownData,
     onSave: async (data, preparedImage) => {
+      const scaleBarcodeMeta = normalizeScaleBarcodeConfig(scaleBarcodeConfig);
+      if (scaleBarcodeConfig.enabled && !scaleBarcodeMeta) {
+        setScaleBarcodeError('Enter both a barcode prefix and PLU code before saving scale barcode settings.');
+        return { success: false };
+      }
+
       const metaPayload = buildProductMeta();
       const combinedDescription = buildProductDescription(data.productDescription || '', metaPayload);
       const result = await onSave(productId, { ...data, productDescription: combinedDescription }, preparedImage);
@@ -1330,6 +1367,121 @@ const EditProductDialog = ({ open, productId, initialProductData = null, onClose
                             disabled={isSubmitting || loading}
                           />
                         </Grid>
+
+                        {/* Scale Barcode */}
+                        <Grid size={{ xs: 12 }}>
+                          <Box className="flex items-center gap-2">
+                            <Icon icon="mdi:scale-bathroom" width={18} color={theme.palette.info.main} />
+                            <Typography variant="h6" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+                              Scale Barcode / Weighted Item
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid size={{ xs: 12 }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={scaleBarcodeConfig.enabled}
+                                onChange={(event) => {
+                                  const enabled = event.target.checked;
+                                  setScaleBarcodeConfig((prev) => ({
+                                    ...prev,
+                                    enabled,
+                                  }));
+                                  setScaleBarcodeError('');
+                                }}
+                                disabled={isSubmitting || loading}
+                              />
+                            }
+                            label="Enable scale barcode decoding for this product"
+                          />
+                        </Grid>
+                        {scaleBarcodeConfig.enabled ? (
+                          <>
+                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <TextField
+                                fullWidth
+                                label="Barcode Prefix"
+                                placeholder="21"
+                                value={scaleBarcodeConfig.prefix}
+                                onChange={(event) => {
+                                  setScaleBarcodeConfig((prev) => ({
+                                    ...prev,
+                                    prefix: event.target.value.replace(/\D/g, ''),
+                                  }));
+                                  setScaleBarcodeError('');
+                                }}
+                                disabled={isSubmitting || loading}
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <TextField
+                                fullWidth
+                                label="PLU / Item Code"
+                                placeholder="12345"
+                                value={scaleBarcodeConfig.pluCode}
+                                onChange={(event) => {
+                                  setScaleBarcodeConfig((prev) => ({
+                                    ...prev,
+                                    pluCode: event.target.value.replace(/\D/g, ''),
+                                  }));
+                                  setScaleBarcodeError('');
+                                }}
+                                disabled={isSubmitting || loading}
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <FormControl fullWidth>
+                                <InputLabel>Encoded Value</InputLabel>
+                                <Select
+                                  value={scaleBarcodeConfig.valueType}
+                                  label="Encoded Value"
+                                  onChange={(event) => {
+                                    const valueType = event.target.value;
+                                    setScaleBarcodeConfig((prev) => ({
+                                      ...prev,
+                                      valueType,
+                                      decimals: valueType === 'price' ? '2' : '3',
+                                    }));
+                                    setScaleBarcodeError('');
+                                  }}
+                                  disabled={isSubmitting || loading}
+                                >
+                                  <MenuItem value="weight">Weight</MenuItem>
+                                  <MenuItem value="price">Label Price</MenuItem>
+                                </Select>
+                              </FormControl>
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <TextField
+                                fullWidth
+                                label="Embedded Decimals"
+                                type="number"
+                                placeholder={scaleBarcodeConfig.valueType === 'price' ? '2' : '3'}
+                                value={scaleBarcodeConfig.decimals}
+                                onChange={(event) => {
+                                  setScaleBarcodeConfig((prev) => ({
+                                    ...prev,
+                                    decimals: event.target.value.replace(/\D/g, ''),
+                                  }));
+                                  setScaleBarcodeError('');
+                                }}
+                                disabled={isSubmitting || loading}
+                              />
+                            </Grid>
+                            <Grid size={{ xs: 12 }}>
+                              <FormHelperText error={Boolean(scaleBarcodeError)}>
+                                {scaleBarcodeError || 'Format expected: prefix + PLU + 5 encoded digits + check digit. Example: 21 12345 00750 X.'}
+                              </FormHelperText>
+                            </Grid>
+                          </>
+                        ) : (
+                          <Grid size={{ xs: 12 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Enable this for products sold by scale labels where the barcode encodes weight or label price.
+                            </Typography>
+                          </Grid>
+                        )}
 
                         {/* Variants */}
                         <Grid size={{ xs: 12 }}>

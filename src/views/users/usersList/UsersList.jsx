@@ -34,6 +34,7 @@ const UsersList = ({
      initialUsers = [],
      pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
      initialRoles = [],
+     initialBranches = [],
      tab: initialTab = 'ALL',
      filters: initialFilters = {},
      sortBy: initialSortBy = '',
@@ -108,7 +109,7 @@ const UsersList = ({
                     {/* Users Table */}
                     <Grid size={{ xs: 12 }}>
                          <CustomListTable
-                              title="Users"
+                              title="Team Members"
                               addRowButton={
                                    permissions.canCreate && (
                                         <Button
@@ -116,7 +117,7 @@ const UsersList = ({
                                              variant="contained"
                                              startIcon={<Icon icon="tabler:plus" />}
                                         >
-                                             New User
+                                             Invite Team Member
                                         </Button>
                                    )
                               }
@@ -133,12 +134,12 @@ const UsersList = ({
                               onSort={handlers.handleSortRequest}
                               sortBy={handlers.sortBy}
                               sortDirection={handlers.sortDirection}
-                              noDataText="No users found."
+                              noDataText="No team members found."
                               rowKey={(row) => row._id || row.id}
                               showSearch
                               searchValue={handlers.searchTerm || ''}
                               onSearchChange={handlers.handleSearchInputChange}
-                              searchPlaceholder="Search users..."
+                              searchPlaceholder="Search team members..."
                               onRowClick={
                                    permissions.canView
                                         ? (row) => handlers.handleView(row._id)
@@ -212,6 +213,7 @@ const UsersList = ({
                     onSubmit={handlers.handleSubmitUser}
                     loading={handlers.userDialogLoading}
                     roles={handlers.roles}
+                    branches={initialBranches}
                />
 
                {/* User View Dialog */}

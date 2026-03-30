@@ -1,6 +1,7 @@
 'use client'
 
 // MUI Imports
+import { useCallback, useEffect, useState } from 'react'
 import Grid from '@mui/material/Grid'
 import Dialog from '@mui/material/Dialog'
 import Button from '@mui/material/Button'
@@ -14,33 +15,110 @@ import CircularProgress from '@mui/material/CircularProgress'
 
 // Third-party Imports
 import { useSnackbar } from 'notistack'
-
-// Handler Import
-import { useBankDetailsDialogHandlers } from '@/handlers/customers/view'
+import { updateCustomer } from '@/app/(dashboard)/customers/actions'
 
 const EditBankDetailsDialog = ({ open, setOpen, customer, onSuccess }) => {
   const { enqueueSnackbar } = useSnackbar()
-
-  // Handler for bank details dialog management
-  const {
-    loading,
-    errors,
-    formData,
-    handleFieldChange,
-    handleSubmit,
-    handleClose
-  } = useBankDetailsDialogHandlers({
-    customer,
-    open,
-    onClose: () => setOpen(false),
-    onSuccess: (updatedCustomer, message) => {
-      enqueueSnackbar(message, { variant: 'success' })
-      onSuccess?.(updatedCustomer)
-    },
-    onError: (message) => {
-      enqueueSnackbar(message, { variant: 'error' })
-    }
+  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [formData, setFormData] = useState({
+    bankName: '',
+    branch: '',
+    accountHolderName: '',
+    accountNumber: '',
+    IFSC: ''
   })
+
+  useEffect(() => {
+    if (open && customer) {
+      const bankData = customer.bankDetails || {}
+
+      setFormData({
+        bankName: bankData.bankName || '',
+        branch: bankData.branch || '',
+        accountHolderName: bankData.accountHolderName || customer?.name || '',
+        accountNumber: bankData.accountNumber || '',
+        IFSC: bankData.IFSC || ''
+      })
+      setErrors({})
+    }
+  }, [open, customer])
+
+  const handleFieldChange = useCallback((field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }, [errors])
+
+  const validateForm = useCallback(() => {
+    const nextErrors = {}
+
+    if (!formData.bankName?.trim()) {
+      nextErrors.bankName = 'Bank name is required'
+    }
+
+    if (!formData.accountHolderName?.trim()) {
+      nextErrors.accountHolderName = 'Account holder name is required'
+    }
+
+    if (!formData.accountNumber?.trim()) {
+      nextErrors.accountNumber = 'Account number is required'
+    }
+
+    if (!formData.IFSC?.trim()) {
+      nextErrors.IFSC = 'IFSC/Routing code is required'
+    }
+
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }, [formData])
+
+  const handleClose = useCallback(() => {
+    if (!loading) {
+      setOpen(false)
+      setErrors({})
+    }
+  }, [loading, setOpen])
+
+  const handleSubmit = useCallback(async event => {
+    event.preventDefault()
+
+    if (!validateForm()) {
+      enqueueSnackbar('Please fix the validation errors before submitting', { variant: 'error' })
+      return
+    }
+
+    if (!customer?._id) {
+      enqueueSnackbar('Customer ID is missing', { variant: 'error' })
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const updateData = {
+        ...customer,
+        bankDetails: formData
+      }
+
+      const result = await updateCustomer(customer._id, updateData)
+
+      if (result.success) {
+        enqueueSnackbar('Bank details updated successfully!', { variant: 'success' })
+        onSuccess?.(result.data)
+        setOpen(false)
+      } else {
+        enqueueSnackbar(result.message || 'Failed to update bank details', { variant: 'error' })
+      }
+    } catch (error) {
+      console.error('Error updating bank details:', error)
+      enqueueSnackbar(error.message || 'An error occurred while updating bank details', { variant: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }, [customer, enqueueSnackbar, formData, onSuccess, setOpen, validateForm])
 
   return (
     <Dialog fullWidth open={open} onClose={handleClose} maxWidth='sm' scroll='body'>

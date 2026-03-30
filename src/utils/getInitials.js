@@ -1,15 +1,18 @@
 /**
- * Returns the initials of a given string
- * @param {String} string
+ * Returns the initials of a given string.
+ * @param {string} string
+ * @param {string} fallback
  */
-export const getInitials = string => {
-  if (!string) return 'U'
-  
-  const words = string.split(' ')
-  
-  if (words.length === 1) {
-    return words[0].charAt(0).toUpperCase()
-  }
-  
-  return words[0].charAt(0).toUpperCase() + words[1].charAt(0).toUpperCase()
-}
+export const getInitials = (string, fallback = 'U') => {
+  const words = String(string || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) return fallback;
+
+  return words
+    .slice(0, 2)
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('');
+};

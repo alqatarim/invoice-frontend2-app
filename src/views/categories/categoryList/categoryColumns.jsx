@@ -9,10 +9,22 @@ import { actionButtons } from '@/data/dataSets';
 
 // Action cell extracted into its own component so hooks are used at the top level
 const ActionCell = ({ row, handlers, permissions }) => {
+  const viewAction = actionButtons.find(action => action.id === 'view');
   const editAction = actionButtons.find(action => action.id === 'edit');
   const deleteAction = actionButtons.find(action => action.id === 'delete');
 
   const menuOptions = [];
+
+  if (permissions?.canView) {
+    menuOptions.push({
+      text: viewAction?.label || 'View',
+      icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
+      menuItemProps: {
+        className: 'flex items-center gap-2 text-textSecondary',
+        onClick: () => handlers?.handleView?.(row._id)
+      }
+    });
+  }
 
   if (permissions?.canUpdate) {
     menuOptions.push({

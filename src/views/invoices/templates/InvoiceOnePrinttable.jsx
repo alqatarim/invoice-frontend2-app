@@ -1,10 +1,9 @@
 /* eslint-disable react/prop-types */
 import React from "react";
-import { Link } from "react-router-dom";
 import { Table } from "antd";
-import { InvoiceLogo1 } from "../../../../common/imagepath";
-import { amountFormat, toTitleCase } from "../../../../common/helper";
-import AmountToWords from "../../../../common/AmountToWords";
+import { InvoiceLogo1 } from "@/common/imagepath";
+import { amountFormat, toTitleCase } from "@/common/helper";
+import AmountToWords from "@/common/AmountToWords";
 import moment from "moment";
 
 const InvoiceOneprint = ({ data, invoiceLogo, currencyData, companyData }) => {
@@ -74,7 +73,7 @@ const InvoiceOneprint = ({ data, invoiceLogo, currencyData, companyData }) => {
             <div className="inv-content">
               <div className="invoice-header">
                 <div className="inv-header-left">
-                  <Link to="#">
+                  <div>
                     <img
                       src={invoiceLogo}
                       onError={(event) => {
@@ -82,7 +81,7 @@ const InvoiceOneprint = ({ data, invoiceLogo, currencyData, companyData }) => {
                       }}
                       alt="Logo"
                     />
-                  </Link>
+                  </div>
                   <span>original for recipient</span>
                 </div>
                 <div className="inv-header-right">

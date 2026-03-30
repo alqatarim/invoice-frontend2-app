@@ -16,6 +16,7 @@ import VerticalNavContent from './VerticalNavContent'
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
+import { usePermission } from '@/Auth/usePermission'
 
 // Styled Component Imports
 import StyledHorizontalNavExpandIcon from '@menu/styles/horizontal/StyledHorizontalNavExpandIcon'
@@ -46,6 +47,9 @@ const HorizontalMenu = ({ dictionary }) => {
   const theme = useTheme()
   const { settings } = useSettings()
   const params = useParams()
+  const canViewInvoice = usePermission('invoice', 'view')
+  const canCreateInvoice = usePermission('invoice', 'create')
+  const canAccessPos = canViewInvoice || canCreateInvoice
 
   // Vars
   const { skin } = settings
@@ -91,6 +95,12 @@ const HorizontalMenu = ({ dictionary }) => {
             {dictionary['navigation'].eCommerce}
           </MenuItem>
         </SubMenu>
+
+        {canAccessPos ? (
+          <MenuItem href="/pos" icon={<i className='ri-store-2-line' />}>
+            POS
+          </MenuItem>
+        ) : null}
 
         <SubMenu label={dictionary['navigation'].apps} icon={<i className='ri-mail-open-line' />}>
           <MenuItem href={`/${locale}/apps/calendar`} icon={<i className='ri-calendar-line' />}>

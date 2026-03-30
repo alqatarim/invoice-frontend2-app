@@ -22,6 +22,18 @@ export function formatDecimal(value) {
   return Number.isFinite(num) ? num.toFixed(2) : '0.00';
 }
 
+export function formatWholeNumber(value, locale = 'en-US') {
+  const num = Number(value);
+
+  if (!Number.isFinite(num)) {
+    return '0';
+  }
+
+  return num.toLocaleString(locale, {
+    maximumFractionDigits: 0,
+  });
+}
+
 export const amountFormat = (amount) => {
   if (isNaN(amount)) return '0.00';
   return Number(amount).toLocaleString('en-US', {
@@ -29,3 +41,10 @@ export const amountFormat = (amount) => {
       maximumFractionDigits: 2,
   });
 };
+
+export function formatCurrencyAmount(currencySymbol, amount) {
+  const symbol = currencySymbol || '$';
+  const num = Number(amount);
+  const formatted = Number.isFinite(num) ? amountFormat(num) : '0.00';
+  return `${symbol} ${formatted}`;
+}

@@ -16,6 +16,7 @@ import {
   Divider
 } from '@mui/material'
 import { usePermissionsHandler } from '@/handlers/roles-permission/permissions/permissionsHandler'
+import { isAlwaysEnabledModule } from '@/common/allModules'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SaveIcon from '@mui/icons-material/Save'
 
@@ -30,9 +31,6 @@ const ViewPermissions = ({ roleId, initialPermissions, roleName }) => {
     handleSubmit,
     handleBack
   } = usePermissionsHandler(initialPermissions)
-
-  // Special modules that are always enabled
-  const alwaysEnabledModules = ['dashboard', 'accountSettings']
 
   return (
     <Box>
@@ -88,7 +86,7 @@ const ViewPermissions = ({ roleId, initialPermissions, roleName }) => {
               </TableHead>
               <TableBody>
                 {permissions?.modules?.map((module, index) => {
-                  const isAlwaysEnabled = alwaysEnabledModules.includes(module.module)
+                  const isAlwaysEnabled = isAlwaysEnabledModule(module.module)
                   const isDisabled = loading || isAdmin || isAlwaysEnabled
 
                   return (

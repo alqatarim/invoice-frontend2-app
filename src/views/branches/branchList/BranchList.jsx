@@ -18,13 +18,14 @@ import BranchHead from './BranchHead';
 import BranchDialog from './BranchDialog';
 import { getBranchColumns } from './branchColumns';
 import AppSnackbar from '@/components/shared/AppSnackbar';
-import { useBranchListHandlers } from '@/handlers/branches/useBranchListHandlers';
 import { addBranch, updateBranch } from '@/app/(dashboard)/branches/actions';
+import { useBranchListHandler } from './handler';
 
 const BranchList = ({
   initialBranches = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
-  initialProvincesCities = []
+  initialProvincesCities = [],
+  initialUsers = []
 }) => {
   const permissions = {
     canCreate: usePermission('branch', 'create'),
@@ -60,7 +61,7 @@ const BranchList = ({
     setSnackbar({ open: true, message: msg, severity: 'success' });
   }, []);
 
-  const handlers = useBranchListHandlers({
+  const handlers = useBranchListHandler({
     initialBranches,
     initialPagination,
     onError,
@@ -101,26 +102,26 @@ const BranchList = ({
   };
 
   const handleAddBranch = async (formData) => {
-    onSuccess('Adding branch...');
+    onSuccess('Creating location...');
     const response = await addBranch(formData);
     if (!response.success) {
-      onError(response.message || 'Failed to add branch');
+      onError(response.message || 'Failed to create location');
       return;
     }
-    onSuccess('Branch added successfully!');
+    onSuccess('Location created successfully!');
     handleDialogClose();
     await handlers.refreshData();
   };
 
   const handleUpdateBranch = async (formData) => {
     if (!selectedBranch?._id) return;
-    onSuccess('Updating branch...');
+    onSuccess('Updating location...');
     const response = await updateBranch(selectedBranch._id, formData);
     if (!response.success) {
-      onError(response.message || 'Failed to update branch');
+      onError(response.message || 'Failed to update location');
       return;
     }
-    onSuccess('Branch updated successfully!');
+    onSuccess('Location updated successfully!');
     handleDialogClose();
     await handlers.refreshData();
   };
@@ -137,7 +138,11 @@ const BranchList = ({
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Stores are customer-facing locations with default admins and staff, while warehouses are stock locations used for transfers, replenishment, and inventory operations.
+          </Alert>
           <CustomListTable
+            title="Stores & Warehouses"
             addRowButton={
               permissions.canCreate && (
                 <Button
@@ -145,7 +150,7 @@ const BranchList = ({
                   variant="contained"
                   startIcon={<Icon icon="tabler:plus" />}
                 >
-                  New Branch
+                  New Store / Warehouse
                 </Button>
               )
             }
@@ -158,12 +163,12 @@ const BranchList = ({
             onSort={(key, direction) => handlers.handleSortRequest(key, direction)}
             sortBy={handlers.sortBy}
             sortDirection={handlers.sortDirection}
-            noDataText="No branches found"
+            noDataText="No stores or warehouses found"
             rowKey={(row) => row._id || row.id}
             showSearch={true}
             searchValue={handlers.searchTerm || ''}
             onSearchChange={handlers.handleSearchInputChange}
-            searchPlaceholder="Search branches..."
+            searchPlaceholder="Search stores, warehouses, or default admins..."
             enableHover
           />
         </Grid>
@@ -173,6 +178,7 @@ const BranchList = ({
         open={dialogState.open}
         mode={dialogState.mode}
         branch={selectedBranch}
+        users={initialUsers}
         provincesCities={provincesCities}
         onClose={handleDialogClose}
         onSave={dialogState.mode === 'edit' ? handleUpdateBranch : handleAddBranch}
@@ -184,9 +190,9 @@ const BranchList = ({
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle>Delete Branch</DialogTitle>
+        <DialogTitle>Delete Store / Warehouse</DialogTitle>
         <DialogContent>
-          Are you sure you want to delete this branch? This action cannot be undone.
+          Are you sure you want to delete this location? This action cannot be undone.
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialog({ open: false, branchId: null })} color="secondary">

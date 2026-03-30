@@ -143,13 +143,11 @@ export async function getExpenseDetails(id) {
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.EXPENSE.VIEW}/${id}`);
 
+    if (!response || response.code !== 200) {
+      throw new Error(response?.message || 'Failed to fetch expense details');
+    }
 
-    return {
-      success: true,
-      data: response.data,
-      message: response.message
-    };
-
+    return response.data || { expenseDetails: null };
   } catch (error) {
     console.error('Error fetching expense details:', error);
     throw error;

@@ -34,6 +34,7 @@ const signatureSchema = yup.object({
 const SignatureListView = ({
   initialSignatures = [],
   loading = false,
+  permissions = {},
   onAdd,
   onEdit,
   onDelete,
@@ -70,6 +71,8 @@ const SignatureListView = ({
   })
 
   const handleAddClick = () => {
+    if (!permissions.canCreate) return
+
     reset()
     setImagePreview(null)
     setSelectedFile(null)
@@ -79,6 +82,8 @@ const SignatureListView = ({
   }
 
   const handleEditClick = useCallback((signature) => {
+    if (!permissions.canUpdate) return
+
     setSelectedSignature(signature)
     setValue('signatureName', signature.signatureName)
     setImagePreview(signature.signatureImage)
@@ -86,12 +91,14 @@ const SignatureListView = ({
     setStatus(signature.status || true)
     setSelectedFile(null)
     setEditDialogOpen(true)
-  }, [setValue])
+  }, [permissions.canUpdate, setValue])
 
   const handleDeleteClick = useCallback((id) => {
+    if (!permissions.canDelete) return
+
     setDeleteId(id)
     setDeleteDialogOpen(true)
-  }, [])
+  }, [permissions.canDelete])
 
   const handleImageChange = (event) => {
     const file = event.target.files[0]
@@ -195,7 +202,7 @@ const SignatureListView = ({
   const filteredSignatures = getFilteredSignatures();
 
   // Simple computed values - no memoization needed for these
-  const columns = getSignatureColumns({ theme });
+  const columns = getSignatureColumns({ theme, permissions });
 
   // Table columns with handlers
   const tableColumns = columns.map(col => ({
@@ -216,7 +223,7 @@ const SignatureListView = ({
         {/* Signatures Table */}
         <Grid size={{ xs: 12 }}>
           <CustomListTable
-            addRowButton={
+            addRowButton={permissions.canCreate ? (
               <Button
                 variant="contained"
                 startIcon={<Icon icon="tabler:plus" />}
@@ -224,7 +231,7 @@ const SignatureListView = ({
               >
                 Add Signature
               </Button>
-            }
+            ) : null}
             columns={tableColumns}
             rows={filteredSignatures}
             loading={loading}

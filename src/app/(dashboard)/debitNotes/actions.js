@@ -340,29 +340,6 @@ export async function updateDebitNote(data) {
   }
 }
 
-export async function getDropdownData() {
-  try {
-    const [vendors, products, taxRates, banks, signatures] = await Promise.all([
-      getVendors(),
-      getProducts(),
-      getTaxRates(),
-      getBanks(),
-      getSignatures()
-    ]);
-
-    return {
-      vendors,
-      products,
-      taxRates,
-      banks,
-      signatures
-    };
-  } catch (error) {
-    console.error('Error fetching dropdown data:', error);
-    throw error;
-  }
-}
-
 export async function addBank(bankData) {
   try {
     const response = await fetchWithAuth(ENDPOINTS.BANK.ADD, {

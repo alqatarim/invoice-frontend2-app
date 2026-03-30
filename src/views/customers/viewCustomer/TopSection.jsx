@@ -1,6 +1,7 @@
 // Next Imports
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 
 // MUI Imports
 import Button from '@mui/material/Button'
@@ -10,19 +11,18 @@ import Typography from '@mui/material/Typography'
 import ConfirmationDialog from '@components/dialogs/confirmation-dialog'
 import OpenDialogOnElementClick from '@components/dialogs/OpenDialogOnElementClick'
 
-// Handler Import
-import { useNavigationHandlers } from '@/handlers/customers/view'
-
 const CustomerDetailsHeader = ({ customerId, customer, permissions }) => {
-  // Navigation handlers
-  const { handleBack, handleCreateInvoice } = useNavigationHandlers({ customerId, customer })
- 
-  // Vars - memoized to prevent re-renders
-  const buttonProps = useMemo(() => (children, color, variant) => ({
-    children,
-    color,
-    variant
-  }), [])
+  const router = useRouter()
+
+  const handleBack = useCallback(() => {
+    router.back()
+  }, [router])
+
+  const handleCreateInvoice = useCallback(() => {
+    if (customerId) {
+      router.push(`/invoices/add?customerId=${customerId}`)
+    }
+  }, [customerId, router])
 
   return (
     <div className='flex flex-wrap justify-between max-sm:flex-col sm:items-center gap-x-6 gap-y-4'>

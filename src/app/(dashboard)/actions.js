@@ -9,13 +9,22 @@ const OPENAI_API_BASE = process.env.OPENAI_API_BASE || 'https://api.openai.com/v
 
 
 
+const buildDashboardQuery = ({ filter = '', branchId = '' } = {}) => {
+  const searchParams = new URLSearchParams();
 
-export async function getFilteredDashboardData(filter = '') {
-  return fetchWithAuth(`/dashboard?type=${filter}`);
+  if (filter) searchParams.set('type', filter);
+  if (branchId) searchParams.set('branchId', branchId);
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+};
+
+export async function getFilteredDashboardData(filter = '', branchId = '') {
+  return fetchWithAuth(`/dashboard${buildDashboardQuery({ filter, branchId })}`);
 }
 
-export async function getDashboardData() {
-  return fetchWithAuth(`/dashboard`);
+export async function getDashboardData(branchId = '') {
+  return fetchWithAuth(`/dashboard${buildDashboardQuery({ branchId })}`);
 }
 export async function convertToSalesReturn(id) {
   return fetchWithAuth(`/invoice/${id}/convertsalesreturn`, { method: 'POST' });

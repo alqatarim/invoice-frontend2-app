@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import {
   addStock,
+  cycleCountStock,
   removeStock,
+  transferStock,
 } from '@/app/(dashboard)/inventory/actions';
 
 /**
@@ -13,6 +15,8 @@ export function actionsHandler({ onSuccess, onError, fetchData, pagination, filt
   const [loading, setLoading] = useState({
     addStock: false,
     removeStock: false,
+    transferStock: false,
+    cycleCount: false,
   });
 
   /**
@@ -57,6 +61,22 @@ export function actionsHandler({ onSuccess, onError, fetchData, pagination, filt
         'Stock removed successfully!',
         true,
         'removeStock'
+      ),
+
+    handleTransferStock: (transferData) =>
+      executeAction(
+        () => transferStock(transferData),
+        'Stock transferred successfully!',
+        true,
+        'transferStock'
+      ),
+
+    handleCycleCount: (cycleCountData) =>
+      executeAction(
+        () => cycleCountStock(cycleCountData),
+        'Cycle count recorded successfully!',
+        true,
+        'cycleCount'
       ),
   };
 }

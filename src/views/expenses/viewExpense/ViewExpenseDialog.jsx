@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
      Dialog,
      DialogTitle,
@@ -17,41 +17,24 @@ import { Icon } from '@iconify/react';
 import { useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import { formIcons } from '@/data/dataSets';
-import { getExpenseDetails } from '@/app/(dashboard)/expenses/actions';
-
-const ViewExpenseDialog = ({ open, expenseId, onClose, onEdit, onError, onSuccess }) => {
+const ViewExpenseDialog = ({
+     open,
+     expenseData = null,
+     loading = false,
+     error = '',
+     onRetry,
+     onClose,
+     onEdit,
+}) => {
      const theme = useTheme();
-     const [expense, setExpense] = useState(null);
-     const [loading, setLoading] = useState(false);
-
-     // Fetch expense data when dialog opens
-     useEffect(() => {
-          const fetchExpense = async () => {
-               if (open && expenseId) {
-                    setLoading(true);
-                    try {
-                         const expenseData = await getExpenseDetails(expenseId);
-                         setExpense(expenseData);
-                    } catch (error) {
-                         onError?.(error.message || 'Failed to fetch expense data');
-                    } finally {
-                         setLoading(false);
-                    }
-               }
-          };
-
-          fetchExpense();
-     }, [open, expenseId, onError]);
+     const expense = expenseData;
 
      const handleClose = () => {
-          setExpense(null);
           onClose();
      };
 
      const handleEditExpense = () => {
-          if (expense?.expenseDetails?._id && onEdit) {
-               onEdit(expense.expenseDetails._id);
-          }
+          onEdit?.();
      };
 
      if (!open) return null;
@@ -107,6 +90,14 @@ const ViewExpenseDialog = ({ open, expenseId, onClose, onEdit, onError, onSucces
                                         </Grid>
                                    ))}
                               </Grid>
+                         </Box>
+                    ) : error ? (
+                         <Box className="flex flex-col items-center justify-center h-40 gap-4">
+                              <Typography color="error" variant="h6">Error Loading Expense</Typography>
+                              <Typography color="error">{error}</Typography>
+                              <Button variant="outlined" color="primary" onClick={onRetry}>
+                                   Retry
+                              </Button>
                          </Box>
                     ) : expense ? (
                          <Box className="p-6">

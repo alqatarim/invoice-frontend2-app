@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { validateExpenseAttachment } from '@/utils/fileUtils'
 import dayjs from 'dayjs'
 
@@ -43,6 +43,11 @@ export const useAddExpenseHandlers = ({ expenseNumber, onSave }) => {
                attachment: null
           }
      })
+
+     useEffect(() => {
+          if (!expenseNumber) return
+          setValue('expenseId', expenseNumber)
+     }, [expenseNumber, setValue])
 
      // Attachment validation and handling using extracted utility
      const handleImageChange = async (event) => {

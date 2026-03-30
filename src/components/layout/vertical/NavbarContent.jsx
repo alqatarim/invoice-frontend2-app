@@ -1,3 +1,5 @@
+'use client'
+
 // Third-party Imports
 import classnames from 'classnames'
 
@@ -9,6 +11,8 @@ import ModeDropdown from '@components/layout/shared/ModeDropdown'
 // import ShortcutsDropdown from '@components/layout/shared/ShortcutsDropdown'
 import NotificationsDropdown from '@components/layout/shared/NotificationsDropdown'
 import UserDropdown from '@components/layout/shared/UserDropdown'
+import Chip from '@mui/material/Chip'
+import { useSession } from 'next-auth/react'
 
 // Util Imports
 import { verticalLayoutClasses } from '@layouts/utils/layoutClasses'
@@ -139,10 +143,24 @@ const shortcuts = [
 
 
 const NavbarContent = () => {
+  const { data: session } = useSession()
+  const companyName = session?.user?.companyDetails?.companyName || ''
+  const accessibleBranchCount = Array.isArray(session?.user?.companyMembership?.accessibleBranches)
+    ? session.user.companyMembership.accessibleBranches.length
+    : 0
+
   return (
     <div className={classnames(verticalLayoutClasses.navbarContent, 'flex items-center justify-between gap-4 is-full')}>
       <div className='flex items-center gap-[7px]'>
         <NavToggle />
+        {companyName ? (
+          <Chip
+            size='small'
+            color='primary'
+            variant='outlined'
+            label={`${companyName} | ${accessibleBranchCount} locations`}
+          />
+        ) : null}
         {/* <NavSearch /> */}
       </div>
       <div className='flex items-center'>

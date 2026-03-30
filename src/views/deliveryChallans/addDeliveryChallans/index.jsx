@@ -7,7 +7,14 @@ import { addDeliveryChallan } from '@/app/(dashboard)/deliveryChallans/actions';
 import { IconButton } from '@mui/material';
 import { Icon } from '@iconify/react';
 
-const AddDeliveryChallanContent = ({ customersData, productData, taxRates, initialBanks, signatures, deliveryChallanNumber }) => {
+const AddDeliveryChallanContent = ({
+  initialCustomers,
+  initialProducts,
+  initialTaxRates,
+  initialBanks,
+  initialSignatures,
+  initialDeliveryChallanNumber,
+}) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
   const handleAdd = async (formData, signatureURL) => {
@@ -46,15 +53,15 @@ const AddDeliveryChallanContent = ({ customersData, productData, taxRates, initi
 
   return (
     <AddDeliveryChallan
-      customersData={customersData}
-      productData={productData}
-      taxRates={taxRates}
+      customersData={initialCustomers}
+      productData={initialProducts}
+      taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      signatures={signatures}
+      signatures={initialSignatures}
       onSave={handleAdd}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}
-      deliveryChallanNumber={deliveryChallanNumber}
+      deliveryChallanNumber={initialDeliveryChallanNumber}
     />
   );
 };

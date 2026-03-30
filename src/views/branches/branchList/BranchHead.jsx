@@ -8,8 +8,8 @@ import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBord
 const BranchHead = ({ branches = [] }) => {
   const stats = useMemo(() => {
     const total = branches.length;
-    const stores = branches.filter(item => item.branchType === 'Store').length;
-    const warehouses = branches.filter(item => item.branchType === 'Warehouse').length;
+    const stores = branches.filter(item => item.kind === 'STORE' || item.branchType === 'Store').length;
+    const warehouses = branches.filter(item => item.kind === 'WAREHOUSE' || item.branchType === 'Warehouse').length;
     return { total, stores, warehouses };
   }, [branches]);
 
@@ -21,7 +21,7 @@ const BranchHead = ({ branches = [] }) => {
             <Icon icon="mdi:map-marker" fontSize={26} />
           </Avatar>
           <Typography variant="h5" className="font-semibold text-primary">
-            Branches
+            Stores & Warehouses
           </Typography>
         </div>
       </div>
@@ -30,8 +30,8 @@ const BranchHead = ({ branches = [] }) => {
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, sm: 4 }}>
             <HorizontalWithBorder
-              title="Total Branches"
-              subtitle="All Branches"
+              title="Total Locations"
+              subtitle="Stores And Warehouses"
               stats={stats.total.toString()}
               avatarIcon='mdi:map-marker'
               color="primary"

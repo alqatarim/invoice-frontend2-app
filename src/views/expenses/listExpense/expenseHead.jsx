@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Grid, Avatar, Typography } from '@mui/material';
-import { useTheme, alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { amountFormat } from '@/utils/numberUtils';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
@@ -11,53 +10,36 @@ import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBord
  * ExpenseHead Component - Displays expense statistics header
  */
 const ExpenseHead = ({ expenseListData }) => {
-  const theme = useTheme();
-  const [expenseStats, setExpenseStats] = useState({
-    totalExpenses: 0,
-    totalAmount: 0,
-    paidExpenses: 0,
-    pendingExpenses: 0,
-  });
+  const expenseStats = useMemo(() => {
+    if (!expenseListData?.length) {
+      return {
+        totalExpenses: 0,
+        totalAmount: 0,
+        paidExpenses: 0,
+        pendingExpenses: 0,
+      };
+    }
 
-  useEffect(() => {
-    const calculateStats = () => {
-      if (expenseListData && expenseListData.length > 0) {
-        const stats = expenseListData.reduce((acc, expense) => {
-          // Count total expenses
-          acc.totalExpenses++;
+    return expenseListData.reduce(
+      (accumulator, expense) => {
+        accumulator.totalExpenses += 1;
+        accumulator.totalAmount += Number(expense.amount) || 0;
 
-          // Calculate total amount
-          const amount = Number(expense.amount) || 0;
-          acc.totalAmount += amount;
+        if (expense.status?.toLowerCase() === 'paid') {
+          accumulator.paidExpenses += 1;
+        } else if (expense.status?.toLowerCase() === 'pending') {
+          accumulator.pendingExpenses += 1;
+        }
 
-          // Count by status
-          if (expense.status?.toLowerCase() === 'paid') {
-            acc.paidExpenses++;
-          } else if (expense.status?.toLowerCase() === 'pending') {
-            acc.pendingExpenses++;
-          }
-
-          return acc;
-        }, {
-          totalExpenses: 0,
-          totalAmount: 0,
-          paidExpenses: 0,
-          pendingExpenses: 0,
-        });
-
-        setExpenseStats(stats);
-      } else {
-        // Reset stats when no data
-        setExpenseStats({
-          totalExpenses: 0,
-          totalAmount: 0,
-          paidExpenses: 0,
-          pendingExpenses: 0,
-        });
+        return accumulator;
+      },
+      {
+        totalExpenses: 0,
+        totalAmount: 0,
+        paidExpenses: 0,
+        pendingExpenses: 0,
       }
-    };
-
-    calculateStats();
+    );
   }, [expenseListData]);
 
   const currencySymbol = '﷼'; // Saudi Riyal symbol

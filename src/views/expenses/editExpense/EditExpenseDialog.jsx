@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Controller } from 'react-hook-form';
 import {
      Dialog,
@@ -24,27 +24,23 @@ import { Icon } from '@iconify/react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { getExpenseDetails } from '@/app/(dashboard)/expenses/actions';
 import { useEditExpenseHandlers } from '@/handlers/expenses/editExpense/useEditExpenseHandlers';
-import { formIcons } from '@/data/dataSets';
+import {
+     expensePaymentModeOptions,
+     expenseStatusOptions,
+     formIcons,
+} from '@/data/dataSets';
 import { getNameFromPath } from '@/utils/fileUtils';
-
-const paymentModes = [
-     { label: 'Cash', value: 'Cash' },
-     { label: 'Cheque', value: 'Cheque' }
-];
-
-const paymentStatuses = [
-     { label: 'Paid', value: 'Paid' },
-     { label: 'Pending', value: 'Pending' },
-     { label: 'Cancelled', value: 'Cancelled' }
-];
-
-const EditExpenseDialog = ({ open, expenseId, onClose, onSave }) => {
+const EditExpenseDialog = ({
+     open,
+     expenseData = null,
+     loading = false,
+     error = '',
+     onRetry,
+     onClose,
+     onSave,
+}) => {
      const theme = useTheme();
-     const [expenseData, setExpenseData] = useState(null);
-     const [loading, setLoading] = useState(false);
-     const [error, setError] = useState(null);
 
      const {
           control,
@@ -67,7 +63,7 @@ const EditExpenseDialog = ({ open, expenseId, onClose, onSave }) => {
      } = useEditExpenseHandlers({
           expenseData: expenseData || null,
           onSave: async (data, preparedAttachment) => {
-               const result = await onSave(expenseId, data, preparedAttachment);
+               const result = await onSave(data, preparedAttachment);
                if (result.success) {
                     onClose();
                }
@@ -75,36 +71,7 @@ const EditExpenseDialog = ({ open, expenseId, onClose, onSave }) => {
           },
      });
 
-     // Fetch expense data when dialog opens
-     useEffect(() => {
-          const fetchData = async () => {
-               if (open && expenseId) {
-                    setLoading(true);
-                    setError(null);
-                    try {
-                         const expenseResponse = await getExpenseDetails(expenseId);
-
-                         if (expenseResponse && typeof expenseResponse === 'object') {
-                              setExpenseData(expenseResponse);
-                         } else {
-                              throw new Error('Invalid expense data received');
-                         }
-                    } catch (error) {
-                         console.error('Failed to fetch expense data:', error);
-                         setError(error.message || 'Failed to load expense data');
-                         setExpenseData(null);
-                    } finally {
-                         setLoading(false);
-                    }
-               }
-          };
-
-          fetchData();
-     }, [open, expenseId]);
-
      const handleClose = () => {
-          setExpenseData(null);
-          setError(null);
           onClose();
      };
 
@@ -170,32 +137,7 @@ const EditExpenseDialog = ({ open, expenseId, onClose, onSave }) => {
                                    <Button
                                         variant="outlined"
                                         color="primary"
-                                        onClick={() => {
-                                             setError(null);
-                                             // Trigger refetch
-                                             const fetchData = async () => {
-                                                  if (open && expenseId) {
-                                                       setLoading(true);
-                                                       setError(null);
-                                                       try {
-                                                            const expenseResponse = await getExpenseDetails(expenseId);
-
-                                                            if (expenseResponse && typeof expenseResponse === 'object') {
-                                                                 setExpenseData(expenseResponse);
-                                                            } else {
-                                                                 throw new Error('Invalid expense data received');
-                                                            }
-                                                       } catch (error) {
-                                                            console.error('Failed to fetch expense data:', error);
-                                                            setError(error.message || 'Failed to load expense data');
-                                                            setExpenseData(null);
-                                                       } finally {
-                                                            setLoading(false);
-                                                       }
-                                                  }
-                                             };
-                                             fetchData();
-                                        }}
+                                        onClick={onRetry}
                                    >
                                         Retry
                                    </Button>
@@ -509,7 +451,7 @@ const EditExpenseDialog = ({ open, expenseId, onClose, onSave }) => {
                                                                            />
                                                                       }
                                                                  >
-                                                                      {paymentModes.map((mode) => (
+                                                                      {expensePaymentModeOptions.map((mode) => (
                                                                            <MenuItem key={mode.value} value={mode.value}>
                                                                                 {mode.label}
                                                                            </MenuItem>
@@ -575,7 +517,7 @@ const EditExpenseDialog = ({ open, expenseId, onClose, onSave }) => {
                                                                            />
                                                                       }
                                                                  >
-                                                                      {paymentStatuses.map((status) => (
+                                                                      {expenseStatusOptions.map((status) => (
                                                                            <MenuItem key={status.value} value={status.value}>
                                                                                 {status.label}
                                                                            </MenuItem>

@@ -59,6 +59,7 @@ export const getSignatureColumns = ({ theme, permissions = {} }) => [
         <Switch
           checked={row.status}
           onChange={() => handlers.onToggleStatus(row._id, !row.status)}
+          disabled={!permissions.canUpdate}
           size="small"
         />
       </div>
@@ -71,31 +72,41 @@ export const getSignatureColumns = ({ theme, permissions = {} }) => [
     align: 'right',
     renderCell: (row, handlers) => {
       const menuOptions = [
-        {
-          text: row.markAsDefault ? 'Unset Default' : 'Set Default',
-          icon: row.markAsDefault ? <Star /> : <StarBorder />,
-          menuItemProps: {
-            className: 'flex items-center gap-2 text-textSecondary',
-            onClick: () => handlers.onSetDefault(row._id)
-          }
-        },
-        {
-          text: 'Edit',
-          icon: <Edit />,
-          menuItemProps: {
-            className: 'flex items-center gap-2 text-textSecondary',
-            onClick: () => handlers.onEdit(row)
-          }
-        },
-        {
-          text: 'Delete',
-          icon: <Delete />,
-          menuItemProps: {
-            className: 'flex items-center gap-2 text-textSecondary',
-            onClick: () => handlers.onDelete(row._id)
-          }
-        }
-      ];
+        permissions.canUpdate
+          ? {
+              text: row.markAsDefault ? 'Unset Default' : 'Set Default',
+              icon: row.markAsDefault ? <Star /> : <StarBorder />,
+              menuItemProps: {
+                className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handlers.onSetDefault(row._id)
+              }
+            }
+          : null,
+        permissions.canUpdate
+          ? {
+              text: 'Edit',
+              icon: <Edit />,
+              menuItemProps: {
+                className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handlers.onEdit(row)
+              }
+            }
+          : null,
+        permissions.canDelete
+          ? {
+              text: 'Delete',
+              icon: <Delete />,
+              menuItemProps: {
+                className: 'flex items-center gap-2 text-textSecondary',
+                onClick: () => handlers.onDelete(row._id)
+              }
+            }
+          : null
+      ].filter(Boolean);
+
+      if (menuOptions.length === 0) {
+        return null;
+      }
 
       return (
         <Box className="flex items-center justify-end">

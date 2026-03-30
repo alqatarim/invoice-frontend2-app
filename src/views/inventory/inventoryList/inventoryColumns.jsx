@@ -1,14 +1,12 @@
 import { Typography, Box, IconButton, Tooltip, Chip } from '@mui/material';
 import { amountFormat } from '@/utils/numberUtils';
 import { Icon } from '@iconify/react';
-import { useTheme } from '@mui/material/styles';
 
 /**
  * Inventory table column definitions - Main table only
  * Branch-specific columns are rendered in the expanded sub-table
  */
-export const getInventoryColumns = ({ permissions }) => {
-  const theme = useTheme();
+export const getInventoryColumns = ({ permissions, theme }) => {
   return [
     {
       key: 'expand',

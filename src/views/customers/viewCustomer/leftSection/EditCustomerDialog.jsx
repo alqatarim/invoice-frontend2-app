@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useMemo } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -17,33 +17,116 @@ import CircularProgress from '@mui/material/CircularProgress'
 
 // Third-party Imports
 import { useSnackbar } from 'notistack'
-
-// Handler Import
-import { useCustomerDetailsDialogHandlers } from '@/handlers/customers/view'
+import { updateCustomer } from '@/app/(dashboard)/customers/actions'
 
 const EditCustomerDialog = ({ open, setOpen, customer, onSuccess }) => {
   const { enqueueSnackbar } = useSnackbar()
-
-  // Handler for dialog management
-  const {
-    loading,
-    errors,
-    formData,
-    handleFieldChange,
-    handleSubmit,
-    handleClose
-  } = useCustomerDetailsDialogHandlers({
-    customer,
-    open,
-    onClose: () => setOpen(false),
-    onSuccess: (updatedCustomer) => {
-      enqueueSnackbar('Customer updated successfully!', { variant: 'success' })
-      onSuccess?.(updatedCustomer)
-    },
-    onError: (message) => {
-      enqueueSnackbar(message, { variant: 'error' })
-    }
+  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    website: '',
+    notes: ''
   })
+
+  useEffect(() => {
+    if (open && customer) {
+      setFormData({
+        name: customer.name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        website: customer.website || '',
+        notes: customer.notes || ''
+      })
+      setErrors({})
+    }
+  }, [open, customer])
+
+  const handleFieldChange = useCallback((field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }, [errors])
+
+  const validateForm = useCallback(() => {
+    const nextErrors = {}
+
+    if (!formData.name?.trim()) {
+      nextErrors.name = 'Customer name is required'
+    }
+
+    if (!formData.email?.trim()) {
+      nextErrors.email = 'Email is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      nextErrors.email = 'Please enter a valid email address'
+    }
+
+    if (!formData.phone?.trim()) {
+      nextErrors.phone = 'Phone number is required'
+    }
+
+    if (formData.website?.trim()) {
+      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+
+      if (!urlPattern.test(formData.website)) {
+        nextErrors.website = 'Please enter a valid website URL'
+      }
+    }
+
+    setErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }, [formData])
+
+  const handleClose = useCallback(() => {
+    if (!loading) {
+      setOpen(false)
+      setErrors({})
+    }
+  }, [loading, setOpen])
+
+  const handleSubmit = useCallback(async event => {
+    event.preventDefault()
+
+    if (!validateForm()) {
+      enqueueSnackbar('Please fix the validation errors before submitting', { variant: 'error' })
+      return
+    }
+
+    if (!customer?._id) {
+      enqueueSnackbar('Customer ID is missing', { variant: 'error' })
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const updateData = {
+        ...customer,
+        ...formData,
+        website: formData.website || '',
+        notes: formData.notes || ''
+      }
+
+      const result = await updateCustomer(customer._id, updateData)
+
+      if (result.success) {
+        enqueueSnackbar('Customer updated successfully!', { variant: 'success' })
+        onSuccess?.(result.data)
+        setTimeout(() => setOpen(false), 1000)
+      } else {
+        enqueueSnackbar(result.message || 'Failed to update customer', { variant: 'error' })
+      }
+    } catch (error) {
+      console.error('Error updating customer:', error)
+      enqueueSnackbar(error.message || 'An error occurred while updating the customer', { variant: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }, [customer, enqueueSnackbar, formData, onSuccess, setOpen, validateForm])
 
   return (
     <Dialog fullWidth open={open} onClose={handleClose} maxWidth='sm' scroll='body'>

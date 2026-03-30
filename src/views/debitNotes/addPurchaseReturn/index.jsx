@@ -1,80 +1,92 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Skeleton, Box } from '@mui/material';
+import React from 'react';
+import { IconButton } from '@mui/material';
+import { SnackbarProvider, closeSnackbar, useSnackbar } from 'notistack';
+import { Icon } from '@iconify/react';
 import AddDebitNote from '@/views/debitNotes/addPurchaseReturn/AddDebitNote';
-import { getDropdownData } from '@/app/(dashboard)/debitNotes/actions';
-import { usePurchaseReturnAddHandlers } from '@/handlers/purchaseReturn/add/usePurchaseReturnAddHandlers';
+import { addDebitNote } from '@/app/(dashboard)/debitNotes/actions';
 
-function AddPurchaseReturnIndex({ initialDropdownData = null }) {
-  const [dropdownData, setDropdownData] = useState({
-    vendors: [],
-    products: [],
-    taxRates: [],
-    banks: [],
-    signatures: []
-  });
-  const [isLoading, setIsLoading] = useState(!initialDropdownData);
-  const [error, setError] = useState(null);
+function AddPurchaseReturnContent({
+  initialVendors = [],
+  initialProducts = [],
+  initialTaxRates = [],
+  initialBanks = [],
+  initialSignatures = [],
+  initialDebitNoteNumber = '',
+}) {
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  // Initialize handlers with dropdown data
-  const handlers = usePurchaseReturnAddHandlers(dropdownData);
+  const handleAdd = async (formData, signatureURL) => {
+    try {
+      const loadingKey = enqueueSnackbar('Adding debit note...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: true,
+      });
 
-  useEffect(() => {
-    if (initialDropdownData) {
-      setDropdownData(initialDropdownData);
-      setIsLoading(false);
-      return;
-    }
+      const response = await addDebitNote(formData, signatureURL);
+      closeSnackbar(loadingKey);
 
-    const fetchData = async () => {
-      try {
-        const data = await getDropdownData();
-        setDropdownData(data);
-      } catch (error) {
-        console.error('Error loading form data:', error);
-        setError('Failed to load form data');
-      } finally {
-        setIsLoading(false);
+      if (!response?.success) {
+        const errorMessage = response?.error?.message || response?.message || 'Failed to add debit note';
+        enqueueSnackbar(errorMessage, {
+          variant: 'error',
+          autoHideDuration: 5000,
+          preventDuplicate: true,
+        });
+        return { success: false, message: errorMessage };
       }
-    };
 
-    fetchData();
-  }, [initialDropdownData]);
+      enqueueSnackbar('Debit note added successfully!', {
+        variant: 'success',
+        autoHideDuration: 3000,
+      });
 
-  // Generate debit note number after handlers are available
-  useEffect(() => {
-    if (!isLoading && handlers.generateDebitNoteNumber) {
-      handlers.generateDebitNoteNumber();
+      return response;
+    } catch (error) {
+      closeSnackbar();
+      const errorMessage = error?.message || 'An unexpected error occurred';
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      return { success: false, message: errorMessage };
     }
-  }, [isLoading, handlers.generateDebitNoteNumber]);
-
-  if (isLoading) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Skeleton variant="rectangular" width="100%" height={60} sx={{ mb: 2 }} />
-        <Skeleton variant="rectangular" width="100%" height={400} />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <div>{error}</div>
-      </Box>
-    );
-  }
+  };
 
   return (
     <AddDebitNote
-      vendorsData={dropdownData.vendors}
-      productData={dropdownData.products}
-      taxRates={dropdownData.taxRates}
-      initialBanks={dropdownData.banks}
-      signatures={dropdownData.signatures}
-      debitNoteNumber="DN-001"
+      vendorsData={initialVendors}
+      productData={initialProducts}
+      taxRates={initialTaxRates}
+      initialBanks={initialBanks}
+      signatures={initialSignatures}
+      onSave={handleAdd}
+      enqueueSnackbar={enqueueSnackbar}
+      closeSnackbar={closeSnackbar}
+      debitNoteNumber={initialDebitNoteNumber}
     />
+  );
+}
+
+function AddPurchaseReturnIndex(props) {
+  const snackbarAction = (snackbarId) => (
+    <IconButton onClick={() => closeSnackbar(snackbarId)}>
+      <Icon icon="mdi:close" width={25} />
+    </IconButton>
+  );
+
+  return (
+    <SnackbarProvider
+      maxSnack={7}
+      autoHideDuration={5000}
+      preventDuplicate
+      action={snackbarAction}
+      anchorOrigin={{
+        vertical: 'top',
+        horizontal: 'right',
+      }}
+    >
+      <AddPurchaseReturnContent {...props} />
+    </SnackbarProvider>
   );
 }
 

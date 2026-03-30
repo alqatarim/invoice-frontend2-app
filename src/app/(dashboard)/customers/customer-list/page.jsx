@@ -1,6 +1,6 @@
 import React from 'react';
 import CustomerListIndex from '@/views/customers/listCustomer/index';
-import { getInitialCustomerData, searchCustomers } from '@/app/(dashboard)/customers/actions';
+import { getInitialCustomerData } from '@/app/(dashboard)/customers/actions';
 
 /**
  * CustomersPage Component
@@ -9,13 +9,19 @@ import { getInitialCustomerData, searchCustomers } from '@/app/(dashboard)/custo
  * @returns JSX.Element
  */
 const CustomersPage = async () => {
-  // Fetch initial customer data on the server
-  const initialData = await getInitialCustomerData();
+  const initialCustomerData = await getInitialCustomerData();
 
   return (
-    <CustomerListIndex 
-      initialData={initialData} 
-      initialCustomers={initialData.customers || []}
+    <CustomerListIndex
+      initialCustomers={initialCustomerData?.customers || []}
+      initialPagination={initialCustomerData?.pagination || { current: 1, pageSize: 10, total: 0 }}
+      initialCardCounts={
+        initialCustomerData?.cardCounts || {
+          totalCustomers: 0,
+          activeCustomers: 0,
+          inactiveCustomers: 0
+        }
+      }
     />
   );
 };

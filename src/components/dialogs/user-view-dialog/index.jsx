@@ -24,6 +24,28 @@ import { getUserById } from '@/app/(dashboard)/users/actions'
 import { userStatusOptions, getFormIcon } from '@/data/dataSets'
 import moment from 'moment'
 
+const formatRoleLabel = (value = '') =>
+     value
+          ? value
+               .toString()
+               .replace(/_/g, ' ')
+               .toLowerCase()
+               .replace(/\b\w/g, char => char.toUpperCase())
+          : ''
+
+const getOrgRoleColor = role => {
+     switch (role) {
+          case 'OWNER':
+               return 'success'
+          case 'COMPANY_ADMIN':
+               return 'primary'
+          case 'COMPANY_MEMBER':
+               return 'secondary'
+          default:
+               return 'default'
+     }
+}
+
 const UserViewDialog = ({ open, onClose, userId }) => {
      const theme = useTheme()
      const { enqueueSnackbar } = useSnackbar()
@@ -64,6 +86,13 @@ const UserViewDialog = ({ open, onClose, userId }) => {
 
      const statusOption = userStatusOptions.find(opt => opt.value === userData?.status)
      const displayName = userData?.fullname || `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim() || userData?.userName || 'N/A'
+     const orgRole = userData?.companyRole || userData?.orgRole || 'COMPANY_MEMBER'
+     const assignedBranchNames = Array.isArray(userData?.assignedBranches)
+          ? userData.assignedBranches.map(branch => branch?.name).filter(Boolean)
+          : []
+     const branchRoleLabel = Array.isArray(userData?.branchRoles) && userData.branchRoles.length
+          ? userData.branchRoles.map(role => formatRoleLabel(role)).join(', ')
+          : 'Company-wide'
 
      return (
           <Dialog
@@ -98,10 +127,10 @@ const UserViewDialog = ({ open, onClose, userId }) => {
                               </Box>
                               <Box>
                                    <Typography variant="h5" className="font-semibold">
-                                        User Details
+                                        Team Member Details
                                    </Typography>
                                    <Typography variant="body2" color="text.secondary" className="mt-1">
-                                        View complete user information
+                                        View organization role, store access, and account details
                                    </Typography>
                               </Box>
                          </Box>
@@ -177,6 +206,12 @@ const UserViewDialog = ({ open, onClose, userId }) => {
                                              variant="tonal"
                                              label={userData.role || 'N/A'}
                                              color="primary"
+                                        />
+                                        <Chip
+                                             size="small"
+                                             variant="tonal"
+                                             label={formatRoleLabel(orgRole) || 'Company Member'}
+                                             color={getOrgRoleColor(orgRole)}
                                         />
                                    </Box>
                               </Box>
@@ -359,7 +394,7 @@ const UserViewDialog = ({ open, onClose, userId }) => {
                                                   <Box className="flex items-center gap-2 mb-2">
                                                        <Icon icon={getFormIcon('shieldAccount')} fontSize={18} color={theme.palette.primary.main} />
                                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                                                            Role
+                                                            Permission Role
                                                        </Typography>
                                                   </Box>
                                                   <Box className="ml-6">
@@ -384,6 +419,72 @@ const UserViewDialog = ({ open, onClose, userId }) => {
                                                   }}
                                              >
                                                   <Box className="flex items-center gap-2 mb-2">
+                                                       <Icon icon="mdi:office-building-cog-outline" fontSize={18} color={theme.palette.primary.main} />
+                                                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                            Org Role
+                                                       </Typography>
+                                                  </Box>
+                                                  <Box className="ml-6">
+                                                       <Chip
+                                                            size="medium"
+                                                            variant="tonal"
+                                                            label={formatRoleLabel(orgRole) || 'Company Member'}
+                                                            color={getOrgRoleColor(orgRole)}
+                                                            sx={{ fontWeight: 600 }}
+                                                       />
+                                                  </Box>
+                                             </Box>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                             <Box className="bg-secondaryLightest"
+                                                  sx={{
+                                                       p: 2,
+                                                       borderRadius: '12px',
+                                                       border: `1px solid ${alpha(theme.palette.divider, 0.05)}`
+                                                  }}
+                                             >
+                                                  <Box className="flex items-center gap-2 mb-1.5">
+                                                       <Icon icon="mdi:store-marker-outline" fontSize={18} color={theme.palette.text.secondary} />
+                                                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                            Primary Store
+                                                       </Typography>
+                                                  </Box>
+                                                  <Typography variant="body1" color="text.primary" fontWeight={500} className="ml-6">
+                                                       {userData?.primaryBranchName || 'Company-wide'}
+                                                  </Typography>
+                                             </Box>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                             <Box className="bg-secondaryLightest"
+                                                  sx={{
+                                                       p: 2,
+                                                       borderRadius: '12px',
+                                                       border: `1px solid ${alpha(theme.palette.divider, 0.05)}`
+                                                  }}
+                                             >
+                                                  <Box className="flex items-center gap-2 mb-1.5">
+                                                       <Icon icon="mdi:store-cog-outline" fontSize={18} color={theme.palette.text.secondary} />
+                                                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                            Store Role
+                                                       </Typography>
+                                                  </Box>
+                                                  <Typography variant="body1" color="text.primary" fontWeight={500} className="ml-6">
+                                                       {branchRoleLabel}
+                                                  </Typography>
+                                             </Box>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                             <Box className="bg-secondaryLightest"
+                                                  sx={{
+                                                       p: 2,
+                                                       borderRadius: '12px',
+                                                       border: `1px solid ${alpha(theme.palette.divider, 0.05)}`
+                                                  }}
+                                             >
+                                                  <Box className="flex items-center gap-2 mb-2">
                                                        <Icon icon={getFormIcon('checkCircle')} fontSize={18} color='text.secondary' />
                                                        <Typography variant="caption" color='text.secondary' fontWeight={600}>
                                                             Status
@@ -398,6 +499,26 @@ const UserViewDialog = ({ open, onClose, userId }) => {
                                                             sx={{ fontWeight: 600 }}
                                                        />
                                                   </Box>
+                                             </Box>
+                                        </Grid>
+
+                                        <Grid size={{ xs: 12 }}>
+                                             <Box className="bg-secondaryLightest"
+                                                  sx={{
+                                                       p: 2,
+                                                       borderRadius: '12px',
+                                                       border: `1px solid ${alpha(theme.palette.divider, 0.05)}`
+                                                  }}
+                                             >
+                                                  <Box className="flex items-center gap-2 mb-1.5">
+                                                       <Icon icon="mdi:storefront-outline" fontSize={18} color={theme.palette.text.secondary} />
+                                                       <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                                            Assigned Stores
+                                                       </Typography>
+                                                  </Box>
+                                                  <Typography variant="body1" color="text.primary" fontWeight={500} className="ml-6">
+                                                       {assignedBranchNames.join(', ') || 'Company-wide access'}
+                                                  </Typography>
                                              </Box>
                                         </Grid>
 

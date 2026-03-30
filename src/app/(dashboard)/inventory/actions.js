@@ -91,6 +91,90 @@ export async function removeStock(stockData) {
 }
 
 /**
+ * Transfer stock atomically between locations.
+ *
+ * @param {Object} transferData Transfer details
+ * @returns {Promise<Object>} Response from transfer operation
+ */
+export async function transferStock(transferData) {
+  try {
+    const response = await fetchWithAuth('/inventory/transferStock', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(transferData)
+    });
+
+    if (response.code === 200) {
+      return response;
+    }
+
+    throw new Error(response.message || 'Failed to transfer stock');
+  } catch (error) {
+    console.error('Error in transferStock:', error);
+    throw new Error(error.message || 'Failed to transfer stock');
+  }
+}
+
+/**
+ * Record a lightweight cycle count for a branch/location.
+ *
+ * @param {Object} cycleCountData Cycle count payload
+ * @returns {Promise<Object>} Response from cycle count endpoint
+ */
+export async function cycleCountStock(cycleCountData) {
+  try {
+    const response = await fetchWithAuth('/inventory/cycleCount', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(cycleCountData)
+    });
+
+    if (response.code === 200) {
+      return response;
+    }
+
+    throw new Error(response.message || 'Failed to record cycle count');
+  } catch (error) {
+    console.error('Error in cycleCountStock:', error);
+    throw new Error(error.message || 'Failed to record cycle count');
+  }
+}
+
+/**
+ * Fetch movement history for an inventory product.
+ *
+ * @param {string} productId Product identifier
+ * @param {string} branchId Optional branch filter
+ * @returns {Promise<Array>} Movement history rows
+ */
+export async function getInventoryMovementHistory(productId, branchId = '') {
+  if (!productId) {
+    throw new Error('Product id is required');
+  }
+
+  const branchQuery = branchId ? `?branchId=${encodeURIComponent(branchId)}` : '';
+
+  try {
+    const response = await fetchWithAuth(`/inventory-costing/product/${productId}${branchQuery}`, {
+      cache: 'no-store'
+    });
+
+    if (response.code === 200) {
+      return response.data || [];
+    }
+
+    throw new Error(response.message || 'Failed to fetch movement history');
+  } catch (error) {
+    console.error('Error in getInventoryMovementHistory:', error);
+    throw new Error(error.message || 'Failed to fetch movement history');
+  }
+}
+
+/**
  * Get filtered inventory items
  *
  * @param {number} page Current page number

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getInitialDeliveryChallanData, searchCustomers } from '../actions';
+import { getInitialDeliveryChallanData } from '../actions';
 import DeliveryChallanListIndex from '@/views/deliveryChallans/listDeliveryChallans/index';
 
 export const metadata = {
@@ -8,18 +8,18 @@ export const metadata = {
 
 async function DeliveryChallanListPage() {
   try {
-    const [initialData, customers] = await Promise.all([
-      getInitialDeliveryChallanData(),
-      searchCustomers('') // Get all customers
-    ]);
+    const initialData = await getInitialDeliveryChallanData();
 
     return (
       <DeliveryChallanListIndex
-        initialData={{
-          data: initialData?.deliveryChallans || [],
-          totalRecords: initialData?.pagination?.total || 0
-        }}
-        customers={customers}
+        initialDeliveryChallans={initialData?.deliveryChallans || []}
+        initialPagination={
+          initialData?.pagination || {
+            current: 1,
+            pageSize: 10,
+            total: 0,
+          }
+        }
       />
     );
   } catch (error) {

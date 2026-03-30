@@ -1,8 +1,103 @@
 export const paymentMethods = [
 	{ value: "Cash", label: "Cash" },
+	{ value: "Card", label: "Card" },
 	{ value: "Cheque", label: "Cheque" },
-	{ value: "Bank", label: "Bank" },
+	{ value: "Bank", label: "Bank Transfer" },
 	{ value: "Online", label: "Online" },
+];
+
+export const dashboardFilters = [
+	{ value: "all", label: "All Time", apiValue: "" },
+	{ value: "week", label: "This Week", apiValue: "week" },
+	{ value: "month", label: "This Month", apiValue: "month" },
+	{ value: "year", label: "This Year", apiValue: "year" },
+];
+
+export const dashboardInsightTabs = [
+	{ value: "all", label: "All" },
+	{ value: "trending", label: "Trending" },
+];
+
+export const dashboardFinanceTabs = [
+	{ value: "sales", label: "Sales" },
+	{ value: "expenses", label: "Expenses" },
+	{ value: "profits", label: "Profits" },
+];
+
+export const dashboardDefaultHeroSummary = {
+	invoiced: 0,
+	received: 0,
+	pending: 0,
+	netBusinessFlow: 0,
+	collectionRate: 0,
+	pendingExposure: 0,
+};
+
+export const dashboardHeroStatCards = [
+	{
+		key: "invoiced",
+		label: "Invoiced",
+		icon: "ri-file-chart-line",
+		color: "primary",
+	},
+	{
+		key: "received",
+		label: "Received",
+		icon: "ri-wallet-3-line",
+		color: "success",
+	},
+	{
+		key: "pending",
+		label: "Pending",
+		icon: "ri-time-line",
+		color: "warning",
+	},
+	{
+		key: "net",
+		label: "Net Flow",
+		icon: "ri-line-chart-line",
+		color: "success",
+	},
+];
+
+export const expensePaymentModeOptions = [
+	{ label: "Cash", value: "Cash" },
+	{ label: "Cheque", value: "Cheque" },
+];
+
+export const expenseStatusOptions = [
+	{ label: "Paid", value: "Paid", color: "success" },
+	{ label: "Pending", value: "Pending", color: "warning" },
+	{ label: "Cancelled", value: "Cancelled", color: "error" },
+];
+
+const createStatusOption = ({ value, label, color, icon }) => ({
+	value,
+	label,
+	color,
+	get icon() { return getFormIcon(icon); },
+});
+
+const invoiceStatusDefinitions = [
+	{ value: "REFUND", label: "Refund", color: "secondary", icon: "refund" },
+	{ value: "SENT", label: "Sent", color: "info", icon: "sent" },
+	{ value: "UNPAID", label: "Unpaid", color: "warning", icon: "unpaid" },
+	{ value: "PARTIALLY_PAID", label: "Partial Paid", color: "warning", icon: "partiallyPaid" },
+	{ value: "PARTIALLY PAID", label: "Partial Paid", color: "warning", icon: "partiallyPaid" },
+	{ value: "CANCELLED", label: "Cancelled", color: "secondary", icon: "cancelled" },
+	{ value: "OVERDUE", label: "Overdue", color: "error", icon: "overdue" },
+	{ value: "PAID", label: "Paid", color: "success", icon: "paid" },
+	{ value: "DRAFTED", label: "Drafted", color: "secondary", icon: "drafted" },
+	{ value: "Active", label: "Active", color: "info", icon: "active" },
+];
+
+const invoiceTabDefinitions = [
+	{ value: "ALL", label: "All" },
+	{ value: "PAID", label: "Paid" },
+	{ value: "OVERDUE", label: "Overdue" },
+	{ value: "PARTIALLY_PAID", label: "Partially Paid" },
+	{ value: "DRAFTED", label: "Draft" },
+	{ value: "CANCELLED", label: "Cancelled" },
 ];
 
 // Customer related constants
@@ -27,81 +122,18 @@ export const customerTableColumns = [
 	{ id: "actions", label: "Actions", sortable: false, visible: true },
 ];
 
-export const statusOptions = [
-	{
-		value: "REFUND",
-		label: "Refund",
-		color: "secondary",
-		get icon() { return getFormIcon("refund"); },
-	},
-	{ value: "SENT", label: "Sent", color: "info", get icon() { return getFormIcon("sent"); } },
-	{ value: "UNPAID", label: "Unpaid", color: "warning", get icon() { return getFormIcon("unpaid"); } },
-	{
-		value: "PARTIALLY_PAID",
-		label: "Partial Paid",
-		color: "warning",
-		get icon() { return getFormIcon("partiallyPaid"); },
-	},
-	{
-		value: "PARTIALLY PAID",
-		label: "Partial Paid",
-		color: "warning",
-		get icon() { return getFormIcon("partiallyPaid"); },
-	},
-	{
-		value: "CANCELLED",
-		label: "Cancelled",
-		color: "secondary",
-		get icon() { return getFormIcon("cancelled"); },
-	},
-	{
-		value: "OVERDUE",
-		label: "Overdue",
-		color: "error",
-		get icon() { return getFormIcon("overdue"); },
-	},
-	{
-		value: "PAID",
-		label: "Paid",
-		color: "success",
-		get icon() { return getFormIcon("paid"); },
-	},
-	{
-		value: "DRAFTED",
-		label: "Drafted",
-		color: "secondary",
-		get icon() { return getFormIcon("drafted"); },
-	},
-	{
-		value: "Active",
-		label: "Active",
-		color: "info",
-		get icon() { return getFormIcon("active"); },
-	},
-];
+export const statusOptions = invoiceStatusDefinitions.map(createStatusOption);
 
 export const paymentSummaryStatus = [
-	{ value: "REFUND", label: "Refund", color: "secondary" },
-	{ value: "SENT", label: "Sent", color: "info" },
-	{ value: "UNPAID", label: "Unpaid", color: "warning" },
-	{ value: "PARTIALLY_PAID", label: "Partial Paid", color: "warning" },
+	...invoiceStatusDefinitions
+		.filter(({ value }) => value !== "PARTIALLY PAID" && value !== "CANCELLED")
+		.map(({ value, label, color }) => ({ value, label, color })),
 	{ value: "Cancelled", label: "Cancelled", color: "secondary" },
-	{ value: "OVERDUE", label: "Overdue", color: "error" },
-	{ value: "PAID", label: "Paid", color: "success" },
-	{ value: "DRAFTED", label: "Drafted", color: "secondary" },
 	{ value: "Success", label: "Success", color: "success" },
 	{ value: "Failed", label: "Failed", color: "error" },
-	{ value: "Active", label: "Active", color: "info" },
 ];
 
-export const invoiceTabs = [
-	{ value: "ALL", label: "All" },
-	{ value: "PAID", label: "Paid" },
-	{ value: "OVERDUE", label: "Overdue" },
-	{ value: "PARTIALLY_PAID", label: "Partially Paid" },
-	{ value: "DRAFTED", label: "Draft" },
-	{ value: "CANCELLED", label: "Cancelled" },
-];
+export const invoiceTabs = invoiceTabDefinitions.map((tab) => ({ ...tab }));
 
 export const purchaseOrderTabs = [
 	{ value: "ALL", label: "All" },
@@ -112,21 +144,14 @@ export const purchaseOrderTabs = [
 	{ value: "CONVERTED", label: "Converted" },
 ];
 
-export const debitNoteTabs = [
-	{ value: "ALL", label: "All" },
-	{ value: "PAID", label: "Paid" },
-	{ value: "OVERDUE", label: "Overdue" },
-	{ value: "PARTIALLY_PAID", label: "Partially Paid" },
-	{ value: "DRAFTED", label: "Draft" },
-	{ value: "CANCELLED", label: "Cancelled" },
-];
+export const debitNoteTabs = invoiceTabDefinitions.map((tab) => ({ ...tab }));
 
 export const paymentMethodIcons = [
 	{ value: "Cash", get label() { return getFormIcon("cash"); } },
+	{ value: "Card", get label() { return getFormIcon("creditCard"); } },
 	{ value: "Cheque", get label() { return getFormIcon("cheque"); } },
 	{ value: "Bank", get label() { return getFormIcon("bank"); } },
 	{ value: "Online", get label() { return getFormIcon("online"); } },
-	{ value: "Credit Card", get label() { return getFormIcon("creditCard"); } },
 ];
 
 export const vendorBalanceTypes = [
@@ -658,7 +683,10 @@ export const userTableColumns = [
 	{ id: "name", label: "User Name", sortable: true, visible: true },
 	{ id: "email", label: "Email", sortable: true, visible: true },
 	{ id: "phone", label: "Phone", sortable: false, visible: true },
-	{ id: "role", label: "Role", sortable: true, visible: true },
+	{ id: "role", label: "Permission Role", sortable: true, visible: true },
+	{ id: "companyRole", label: "Org Role", sortable: true, visible: true },
+	{ id: "primaryBranchName", label: "Primary Store", sortable: false, visible: true },
+	{ id: "assignedBranches", label: "Stores", sortable: false, visible: true },
 	{ id: "status", label: "Status", sortable: true, visible: true },
 	{ id: "createdAt", label: "Created Date", sortable: true, visible: false },
 	{ id: "actions", label: "Actions", sortable: false, visible: true },

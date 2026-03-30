@@ -14,13 +14,18 @@ const isMetaEmpty = (meta) => {
   const hasPackaging = Array.isArray(meta?.packagingUnits) && meta.packagingUnits.length > 0
   const hasTiers = Array.isArray(meta?.priceTiers) && meta.priceTiers.length > 0
   const hasPromos = Array.isArray(meta?.promotions) && meta.promotions.length > 0
+  const hasScaleBarcode = Boolean(
+    meta?.scaleBarcode?.enabled &&
+      meta?.scaleBarcode?.prefix &&
+      meta?.scaleBarcode?.pluCode
+  )
   const hasSerials = Boolean(
     meta?.serialTracking?.enabled ||
       (Array.isArray(meta?.serialTracking?.serialNumbers) && meta.serialTracking.serialNumbers.length > 0) ||
       (Array.isArray(meta?.serialTracking?.imeiNumbers) && meta.serialTracking.imeiNumbers.length > 0)
   )
 
-  return !(hasBatch || hasVariants || hasPackaging || hasTiers || hasPromos || hasSerials)
+  return !(hasBatch || hasVariants || hasPackaging || hasTiers || hasPromos || hasScaleBarcode || hasSerials)
 }
 
 export const parseProductDescription = (value) => {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
@@ -16,7 +16,7 @@ import { usePermission } from '@/Auth/usePermission';
 import InvoiceHead from '@/views/invoices/invoiceList/invoiceHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import AppSnackbar from '@/components/shared/AppSnackbar';
-import { useInvoiceListHandlers } from '@/handlers/invoices/useInvoiceListHandlers';
+import { useInvoiceListHandler } from './handler';
 import { getInvoiceColumns } from './invoiceColumns';
 
 /**
@@ -24,24 +24,31 @@ import { getInvoiceColumns } from './invoiceColumns';
  */
 const InvoiceList = ({
   initialInvoices = [],
-  pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
-  cardCounts: initialCardCounts = {},
-  tab: initialTab = 'ALL',
-  filters: initialFilters = {},
-  sortBy: initialSortBy = '',
-  sortDirection: initialSortDirection = 'asc',
+  initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialCardCounts = {},
+  initialTab = 'ALL',
+  initialFilters = {},
+  initialSortBy = '',
+  initialSortDirection = 'asc',
   initialCustomers = [],
 }) => {
   const theme = useTheme();
   const router = useRouter();
 
-  // Permissions
-  const permissions = {
-    canCreate: usePermission('invoice', 'create'),
-    canUpdate: usePermission('invoice', 'update'),
-    canView: usePermission('invoice', 'view'),
-    canDelete: usePermission('invoice', 'delete'),
-  };
+  const canCreate = usePermission('invoice', 'create');
+  const canUpdate = usePermission('invoice', 'update');
+  const canView = usePermission('invoice', 'view');
+  const canDelete = usePermission('invoice', 'delete');
+
+  const stablePermissions = useMemo(
+    () => ({
+      canCreate,
+      canUpdate,
+      canView,
+      canDelete,
+    }),
+    [canCreate, canUpdate, canView, canDelete]
+  );
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
@@ -55,14 +62,21 @@ const InvoiceList = ({
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
-  // Notification handlers
-  const onError = msg => setSnackbar({ open: true, message: msg, severity: 'error' });
-  const onSuccess = msg => setSnackbar({ open: true, message: msg, severity: 'success' });
+  const onErrorRef = useRef();
+  const onSuccessRef = useRef();
+  onErrorRef.current = (msg) => setSnackbar({ open: true, message: msg, severity: 'error' });
+  onSuccessRef.current = (msg) => setSnackbar({ open: true, message: msg, severity: 'success' });
+
+  const onError = useCallback((msg) => onErrorRef.current(msg), []);
+  const onSuccess = useCallback((msg) => onSuccessRef.current(msg), []);
 
   // Initialize handlers with column definitions
-  const columns = useMemo(() => getInvoiceColumns({ theme, permissions }), [theme, permissions]);
+  const columns = useMemo(
+    () => getInvoiceColumns({ theme, permissions: stablePermissions }),
+    [theme, stablePermissions]
+  );
 
-  const handlers = useInvoiceListHandlers({
+  const handlers = useInvoiceListHandler({
     initialInvoices,
     initialPagination,
     initialTab,
@@ -76,18 +90,21 @@ const InvoiceList = ({
   });
 
   // Build table columns with action handlers
-  const tableColumns = useMemo(() =>
-    (columns || [])
-      .filter(col => col.visible !== false)
-      .map(col => ({
-        ...col,
-        renderCell: col.renderCell ?
-          (row) => col.renderCell(row, {
-            ...handlers,
-            permissions,
-          }) : undefined
-      })),
-    [columns, handlers, permissions]
+  const tableColumns = useMemo(
+    () =>
+      (columns || [])
+        .filter((col) => col.visible !== false)
+        .map((col) => ({
+          ...col,
+          renderCell: col.renderCell
+            ? (row) =>
+                col.renderCell(row, {
+                  ...handlers,
+                  permissions: stablePermissions,
+                })
+            : undefined,
+        })),
+    [columns, handlers, stablePermissions]
   );
 
   return (
@@ -100,7 +117,7 @@ const InvoiceList = ({
       {/* Main Invoice Table */}
       <CustomListTable
         addRowButton={
-          permissions.canCreate && (
+          stablePermissions.canCreate && (
             <Button
               component={Link}
               href="/invoices/add"
@@ -131,7 +148,7 @@ const InvoiceList = ({
         noDataText="No invoices found."
         rowKey={(row) => row._id || row.id}
         onRowClick={
-          permissions.canView
+          stablePermissions.canView
             ? (row) => router.push(`/invoices/invoice-view/${row._id || row.id}`)
             : undefined
         }

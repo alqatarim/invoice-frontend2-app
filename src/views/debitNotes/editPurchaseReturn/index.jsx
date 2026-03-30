@@ -2,20 +2,22 @@
 
 import React from 'react';
 import { Box } from '@mui/material';
+import { IconButton } from '@mui/material';
+import { SnackbarProvider, closeSnackbar, useSnackbar } from 'notistack';
+import { Icon } from '@iconify/react';
 import EditPurchaseReturn from '@/views/debitNotes/editPurchaseReturn/EditPurchaseReturn';
+import { updateDebitNote } from '@/app/(dashboard)/debitNotes/actions';
 
-function EditPurchaseReturnIndex({
+function EditPurchaseReturnContent({
   id,
-  initialDropdownData = {},
+  initialVendors = [],
+  initialProducts = [],
+  initialTaxRates = [],
+  initialBanks = [],
+  initialSignatures = [],
   initialDebitNoteData = null,
 }) {
-  const dropdownData = {
-    vendors: initialDropdownData?.vendors || [],
-    products: initialDropdownData?.products || [],
-    taxRates: initialDropdownData?.taxRates || [],
-    banks: initialDropdownData?.banks || [],
-    signatures: initialDropdownData?.signatures || [],
-  };
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
   if (!initialDebitNoteData) {
     return (
@@ -27,27 +29,76 @@ function EditPurchaseReturnIndex({
     );
   }
 
+  const handleUpdate = async (formData) => {
+    try {
+      const loadingKey = enqueueSnackbar('Updating debit note...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: true,
+      });
+
+      const response = await updateDebitNote(formData);
+      closeSnackbar(loadingKey);
+
+      if (!response?.success) {
+        const errorMessage = response?.error?.message || response?.message || 'Failed to update debit note';
+        enqueueSnackbar(errorMessage, {
+          variant: 'error',
+          autoHideDuration: 5000,
+          preventDuplicate: true,
+        });
+        return { success: false, message: errorMessage };
+      }
+
+      enqueueSnackbar('Debit note updated successfully!', {
+        variant: 'success',
+        autoHideDuration: 3000,
+      });
+
+      return response;
+    } catch (error) {
+      closeSnackbar();
+      const errorMessage = error?.message || 'An unexpected error occurred';
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+      return { success: false, message: errorMessage };
+    }
+  };
+
   return (
     <EditPurchaseReturn
       debitNoteData={initialDebitNoteData}
-      vendorsData={dropdownData.vendors || []}
-      productData={dropdownData.products || []}
-      taxRates={dropdownData.taxRates || []}
-      initialBanks={dropdownData.banks || []}
-      signatures={dropdownData.signatures || []}
-      onSave={(data) => {
-        console.log('Saving debit note:', data);
-        // Add actual save logic here
-      }}
-      enqueueSnackbar={(message, options) => {
-        console.log('Snackbar:', message, options);
-        // Add actual snackbar logic here
-      }}
-      closeSnackbar={() => {
-        console.log('Close snackbar');
-        // Add actual close snackbar logic here
-      }}
+      vendorsData={initialVendors}
+      productData={initialProducts}
+      taxRates={initialTaxRates}
+      initialBanks={initialBanks}
+      signatures={initialSignatures}
+      onSave={handleUpdate}
+      enqueueSnackbar={enqueueSnackbar}
+      closeSnackbar={closeSnackbar}
     />
+  );
+}
+
+function EditPurchaseReturnIndex(props) {
+  const snackbarAction = (snackbarId) => (
+    <IconButton onClick={() => closeSnackbar(snackbarId)}>
+      <Icon icon="mdi:close" width={25} />
+    </IconButton>
+  );
+
+  return (
+    <SnackbarProvider
+      maxSnack={7}
+      autoHideDuration={5000}
+      preventDuplicate
+      action={snackbarAction}
+      anchorOrigin={{
+        vertical: 'top',
+        horizontal: 'right',
+      }}
+    >
+      <EditPurchaseReturnContent {...props} />
+    </SnackbarProvider>
   );
 }
 

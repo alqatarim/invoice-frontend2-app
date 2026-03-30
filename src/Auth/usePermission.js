@@ -1,5 +1,9 @@
 // Permission checking hook
 import { usePermissions } from '@/Auth/PermissionsContext'
+import {
+  getCanonicalModuleName,
+  getCanonicalPermissionAction,
+} from '@/common/allModules'
 
 export const usePermission = (module, action) => {
   const permissions = usePermissions()
@@ -12,6 +16,8 @@ export const usePermission = (module, action) => {
 
   // Fallback for legacy context shape
   if (permissions.isAdmin) return true
-  const modulePermissions = permissions.modules?.[module]
-  return Boolean(modulePermissions?.[action])
+  const modulePermissions = permissions.modules?.[getCanonicalModuleName(module)]
+  const actionKey = getCanonicalPermissionAction(action)
+
+  return Boolean(modulePermissions?.all || modulePermissions?.[actionKey])
 }

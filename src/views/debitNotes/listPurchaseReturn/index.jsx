@@ -3,12 +3,14 @@
 import React from 'react';
 import SimpleDebitNoteList from './SimpleDebitNoteList';
 
-const PurchaseReturnListIndex = ({ initialData, vendors = [] }) => {
+const PurchaseReturnListIndex = ({
+  initialDebitNotes = [],
+  initialPagination,
+}) => {
   return (
     <SimpleDebitNoteList
-      initialDebitNotes={initialData.data || []}
-      initialPagination={{ current: 1, pageSize: 10, total: initialData.totalRecords || 0 }}
-      vendors={vendors}
+      initialDebitNotes={initialDebitNotes}
+      initialPagination={initialPagination}
     />
   );
 };

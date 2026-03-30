@@ -1,25 +1,23 @@
-'use client'
+'use client';
 
-import React from "react";
-import InvoiceList from "@/views/invoices/invoiceList/InvoiceList";
+import React from 'react';
+import InvoiceList from './InvoiceList';
 
-const InvoiceListIndex = ({ initialData, initialCustomers }) => {
-  // Only extract and pass initial data as props
-  const initialInvoices = initialData?.invoices || [];
-  const pagination = initialData?.pagination || {
+const InvoiceListIndex = ({ initialListData, initialCustomersData = [] }) => {
+  const initialInvoices = initialListData?.invoices || [];
+  const pagination = initialListData?.pagination || {
     current: 1,
     pageSize: 10,
-    total: 0
+    total: 0,
   };
-  const cardCounts = initialData?.cardCounts || {};
+  const cardCounts = initialListData?.cardCounts || {};
 
   return (
     <InvoiceList
       initialInvoices={initialInvoices}
-      pagination={pagination}
-      cardCounts={cardCounts}
-      initialCustomers={initialCustomers || []}
-      // Pass other initial data if needed
+      initialPagination={pagination}
+      initialCardCounts={cardCounts}
+      initialCustomers={initialCustomersData}
     />
   );
 };

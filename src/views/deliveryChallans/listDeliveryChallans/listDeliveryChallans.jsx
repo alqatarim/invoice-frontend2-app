@@ -8,7 +8,6 @@ import {
      Avatar,
      Box,
      Button,
-     Card,
      Chip,
      Dialog,
      DialogActions,
@@ -16,23 +15,19 @@ import {
      DialogContentText,
      DialogTitle,
      Typography,
-     useMediaQuery,
      Grid,
      
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
-import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
 import { formatDate } from '@/utils/dateUtils';
-import dayjs from 'dayjs';
-import { formatCurrency } from '@/utils/currencyUtils';
 import { deleteDeliveryChallan, convertToInvoice, getFilteredDeliveryChallans } from '@/app/(dashboard)/deliveryChallans/actions';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import OptionMenu from '@core/components/option-menu';
 import AppSnackbar from '@/components/shared/AppSnackbar';
 import { deliveryChallanStatusOptions } from '@/data/dataSets';
-import { amountFormat } from '@/utils/numberUtils';
+import { amountFormat, formatDecimal } from '@/utils/numberUtils';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
 // Helper function to get status color
@@ -41,20 +36,15 @@ const getStatusColor = (status) => {
      return statusOption?.color || 'default';
 };
 
-// Format number helper function
-const formatNumber = (value) => {
-     if (value === null || value === undefined) return '0.00';
-     const num = typeof value === 'string' ? parseFloat(value) : value;
-     return isNaN(num) ? '0.00' : Number(num).toFixed(2);
-};
-
-const ListDeliveryChallans = ({ initialData, customers }) => {
+const ListDeliveryChallans = ({
+     initialDeliveryChallans = [],
+     initialPagination = { current: 1, pageSize: 10, total: 0 },
+     initialErrorMessage = '',
+}) => {
      const theme = useTheme();
      const router = useRouter();
      const searchParams = useSearchParams();
-     const { data: session } = useSession();
      const successParam = searchParams.get('success');
-     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
      // Permissions
      const permissions = {
@@ -64,15 +54,10 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
           canDelete: usePermission('deliveryChallan', 'delete'),
      };
 
-     const [deliveryChallans, setDeliveryChallans] = useState(initialData?.data || []);
+     const [deliveryChallans, setDeliveryChallans] = useState(initialDeliveryChallans);
      const [searchTerm, setSearchTerm] = useState('');
-     const [filteredDeliveryChallans, setFilteredDeliveryChallans] = useState(initialData?.data || []);
      const [loading, setLoading] = useState(false);
-     const [pagination, setPagination] = useState({
-          current: 1,
-          pageSize: 10,
-          total: initialData?.totalRecords || initialData?.data?.length || 0
-     });
+     const [pagination, setPagination] = useState(initialPagination);
 
      const [selectedDeliveryChallan, setSelectedDeliveryChallan] = useState(null);
      const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -81,9 +66,9 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
 
      // Snackbar state
      const [snackbar, setSnackbar] = useState({
-          open: false,
-          message: '',
-          severity: 'success',
+          open: Boolean(initialErrorMessage),
+          message: initialErrorMessage || '',
+          severity: initialErrorMessage ? 'error' : 'success',
      });
 
      // Notification handlers
@@ -95,25 +80,30 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
           setSnackbar({ open: true, message: msg, severity: 'success' });
      }, []);
 
-     // Calculate manual card counts from the data
-     const cardCounts = {
+     const cardCounts = useMemo(() => ({
           totalActive: {
                count: deliveryChallans.filter(dc => dc.status === 'ACTIVE').length,
-               total_sum: deliveryChallans.filter(dc => dc.status === 'ACTIVE').reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
+               total_sum: deliveryChallans
+                    .filter(dc => dc.status === 'ACTIVE')
+                    .reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
           },
           totalConverted: {
                count: deliveryChallans.filter(dc => dc.status === 'CONVERTED').length,
-               total_sum: deliveryChallans.filter(dc => dc.status === 'CONVERTED').reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
+               total_sum: deliveryChallans
+                    .filter(dc => dc.status === 'CONVERTED')
+                    .reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
           },
           totalCancelled: {
                count: deliveryChallans.filter(dc => dc.status === 'CANCELLED').length,
-               total_sum: deliveryChallans.filter(dc => dc.status === 'CANCELLED').reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
+               total_sum: deliveryChallans
+                    .filter(dc => dc.status === 'CANCELLED')
+                    .reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
           },
           totalDeliveryChallans: {
                count: deliveryChallans.length,
                total_sum: deliveryChallans.reduce((sum, dc) => sum + (Number(dc.TotalAmount) || 0), 0)
           }
-     };
+     }), [deliveryChallans]);
 
      const fetchDeliveryChallans = useCallback(async ({ page = pagination.current, pageSize = pagination.pageSize } = {}) => {
           setLoading(true);
@@ -127,7 +117,6 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
                };
                setDeliveryChallans(nextData);
                setPagination(nextPagination);
-               setFilteredDeliveryChallans(nextData);
           } catch (error) {
                onError(error.message || 'Failed to load delivery challans');
           } finally {
@@ -135,25 +124,18 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
           }
      }, [onError, pagination.current, pagination.pageSize]);
 
-     useEffect(() => {
-          if ((initialData?.data || []).length > 0) return;
-          fetchDeliveryChallans();
-     }, [fetchDeliveryChallans, initialData?.data]);
+     const filteredDeliveryChallans = useMemo(() => {
+          if (!searchTerm) return deliveryChallans;
 
-     // Search functionality
-     useEffect(() => {
-          if (!searchTerm) {
-               setFilteredDeliveryChallans(deliveryChallans);
-          } else {
-               const filtered = deliveryChallans.filter(challan =>
-                    challan.challanNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    challan.deliveryChallanNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    challan.customerId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    challan.customerId?.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-               );
-               setFilteredDeliveryChallans(filtered);
-          }
-     }, [searchTerm, deliveryChallans]);
+          const normalizedSearch = searchTerm.toLowerCase();
+
+          return deliveryChallans.filter(challan =>
+               challan.challanNumber?.toLowerCase().includes(normalizedSearch) ||
+               challan.deliveryChallanNumber?.toLowerCase().includes(normalizedSearch) ||
+               challan.customerId?.name?.toLowerCase().includes(normalizedSearch) ||
+               challan.customerId?.phone?.toLowerCase().includes(normalizedSearch)
+          );
+     }, [deliveryChallans, searchTerm]);
 
      // Show success message if redirected from add/edit page
      useEffect(() => {
@@ -189,6 +171,10 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
                     onSuccess('Delivery challan deleted successfully!');
                     // Remove from local state
                     setDeliveryChallans(prev => prev.filter(dc => dc._id !== selectedDeliveryChallan._id));
+                    setPagination(prev => ({
+                         ...prev,
+                         total: Math.max(0, prev.total - 1),
+                    }));
                } else {
                     throw new Error(response.message || 'Failed to delete delivery challan');
                }
@@ -209,7 +195,7 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
      const handleConvertConfirm = async () => {
           try {
                setLoadingAction(true);
-               const response = await convertToInvoice(selectedDeliveryChallan._id);
+               const response = await convertToInvoice(selectedDeliveryChallan);
 
                if (response.success) {
                     setOpenConvertDialog(false);
@@ -285,7 +271,7 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
                     <div className="flex items-center gap-1 justify-center">
                          <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
                          <Typography color="text.primary" className='text-[1rem] font-medium'>
-                              {formatNumber(row.TotalAmount || row.totalAmount)}
+                              {formatDecimal(row.TotalAmount || row.totalAmount)}
                          </Typography>
                     </div>
                ),
@@ -383,32 +369,6 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
                },
           }
      ];
-
-     // Table columns with proper cell handlers  
-     const tableColumns = useMemo(() => {
-          const cellHandlers = {
-               handleDelete: (id) => {
-                    const challan = deliveryChallans.find(dc => dc._id === id);
-                    if (challan) {
-                         handleDeleteClick(challan);
-                    }
-               },
-               handleView: (id) => router.push(`/deliveryChallans/deliveryChallans-view/${id}`),
-               handleEdit: (id) => router.push(`/deliveryChallans/deliveryChallans-edit/${id}`),
-               handleConvert: (id) => {
-                    const challan = deliveryChallans.find(dc => dc._id === id);
-                    if (challan) {
-                         handleConvertClick(challan);
-                    }
-               },
-               permissions,
-          };
-
-          return columns.map(col => ({
-               ...col,
-               renderCell: col.renderCell ? (row, index) => col.renderCell(row, cellHandlers, index) : undefined
-          }));
-     }, [columns, permissions, deliveryChallans, router]);
 
      const tablePagination = useMemo(() => ({
           page: Math.max(0, pagination.current - 1),
@@ -514,7 +474,7 @@ const ListDeliveryChallans = ({ initialData, customers }) => {
                                         </Button>
                                    )
                               }
-                              columns={tableColumns}
+                              columns={columns}
                               rows={filteredDeliveryChallans}
                               loading={loading}
                               pagination={tablePagination}

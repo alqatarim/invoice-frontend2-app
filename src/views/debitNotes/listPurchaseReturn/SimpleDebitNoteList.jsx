@@ -30,7 +30,7 @@ import AppSnackbar from '@/components/shared/AppSnackbar';
 /**
  * SimpleDebitNoteList Component - matches purchase order list structure
  */
-const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination, vendors = [] }) => {
+const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination }) => {
      const theme = useTheme();
      const { data: session } = useSession();
      const searchParams = useSearchParams();

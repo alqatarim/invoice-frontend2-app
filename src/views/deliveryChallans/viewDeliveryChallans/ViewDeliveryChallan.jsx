@@ -26,6 +26,7 @@ import dayjs from 'dayjs';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { useTheme } from '@mui/material/styles';
 import { usePermission } from '@/Auth/usePermission';
+import { deliveryChallanStatusOptions } from '@/data/dataSets';
 
 const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
   const contentRef = useRef(null);
@@ -64,18 +65,10 @@ const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
     console.log('Download PDF');
   };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return 'success';
-      case 'converted':
-        return 'info';
-      case 'cancelled':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  const getStatusColor = (status) =>
+    deliveryChallanStatusOptions.find(
+      option => option.value === String(status || '').toUpperCase()
+    )?.color || 'default';
 
   const actionButtons = (
     <Box className='flex flex-row gap-2'>

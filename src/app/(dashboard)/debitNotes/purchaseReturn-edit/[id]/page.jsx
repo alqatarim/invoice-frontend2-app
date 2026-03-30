@@ -1,6 +1,13 @@
 import React from 'react';
 import EditPurchaseReturnIndex from '@/views/debitNotes/editPurchaseReturn/index';
-import { getDropdownData, getDebitNoteDetails } from '@/app/(dashboard)/debitNotes/actions';
+import {
+  getBanks,
+  getDebitNoteDetails,
+  getProducts,
+  getSignatures,
+  getTaxRates,
+  getVendors,
+} from '@/app/(dashboard)/debitNotes/actions';
 
 export const metadata = {
   title: 'Edit Debit Note | Invoicing System',
@@ -8,22 +15,35 @@ export const metadata = {
 };
 
 const EditDebitNotePage = async ({ params }) => {
-  let initialDropdownData = {
-    vendors: [],
-    products: [],
-    taxRates: [],
-    banks: [],
-    signatures: [],
-  };
+  let initialVendors = [];
+  let initialProducts = [];
+  let initialTaxRates = [];
+  let initialBanks = [];
+  let initialSignatures = [];
   let initialDebitNoteData = null;
 
   try {
-    const [dropdownResponse, debitNoteResponse] = await Promise.all([
-      getDropdownData(),
+    const [
+      vendorsResponse,
+      productsResponse,
+      taxRatesResponse,
+      banksResponse,
+      signaturesResponse,
+      debitNoteResponse,
+    ] = await Promise.all([
+      getVendors(),
+      getProducts(),
+      getTaxRates(),
+      getBanks(),
+      getSignatures(),
       getDebitNoteDetails(params.id),
     ]);
 
-    initialDropdownData = dropdownResponse || initialDropdownData;
+    initialVendors = vendorsResponse || [];
+    initialProducts = productsResponse || [];
+    initialTaxRates = taxRatesResponse || [];
+    initialBanks = banksResponse || [];
+    initialSignatures = signaturesResponse || [];
     if (debitNoteResponse?.success && debitNoteResponse?.data) {
       initialDebitNoteData = debitNoteResponse.data;
     }
@@ -34,7 +54,11 @@ const EditDebitNotePage = async ({ params }) => {
   return (
     <EditPurchaseReturnIndex
       id={params.id}
-      initialDropdownData={initialDropdownData}
+      initialVendors={initialVendors}
+      initialProducts={initialProducts}
+      initialTaxRates={initialTaxRates}
+      initialBanks={initialBanks}
+      initialSignatures={initialSignatures}
       initialDebitNoteData={initialDebitNoteData}
     />
   );

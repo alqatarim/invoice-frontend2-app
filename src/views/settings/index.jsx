@@ -50,8 +50,13 @@ const UnifiedSettingsIndex = ({ initialData = {} }) => {
      })
 
      // Permission checks
+     const hasAccountSettings = usePermission('accountSettings', 'view')
      const hasCompanySettings = usePermission('companySettings', 'view')
+     const hasChangePassword = usePermission('changePassword', 'update')
+     const hasInvoiceTemplateSettings = usePermission('invoiceTemplate', 'view')
+     const hasSignatureSettings = usePermission('signature', 'view')
      const hasInvoiceSettings = usePermission('invoiceSettings', 'view')
+     const hasPaymentSettings = usePermission('paymentSettings', 'view')
      const hasPreferenceSettings = usePermission('preferenceSettings', 'view')
      const hasBankSettings = usePermission('bankSettings', 'view')
      const hasTaxSettings = usePermission('taxSettings', 'view')
@@ -77,10 +82,20 @@ const UnifiedSettingsIndex = ({ initialData = {} }) => {
      // Filter tabs based on permissions
      const visibleTabs = settingsTabs.filter(tab => {
           switch (tab.value) {
+               case 'account':
+                    return hasAccountSettings
                case 'company':
                     return hasCompanySettings
+               case 'changePassword':
+                    return hasChangePassword
+               case 'invoiceTemplates':
+                    return hasInvoiceTemplateSettings
+               case 'signatureLists':
+                    return hasSignatureSettings
                case 'invoice':
                     return hasInvoiceSettings
+               case 'payment':
+                    return hasPaymentSettings
                case 'preference':
                     return hasPreferenceSettings
                case 'bank':
@@ -91,16 +106,23 @@ const UnifiedSettingsIndex = ({ initialData = {} }) => {
                     return hasEmailSettings
                case 'notification':
                     return hasNotificationSettings
-               // These tabs don't require specific permissions
-               case 'changePassword':
-               case 'invoiceTemplates':
-               case 'signatureLists':
-               case 'payment':
-                    return true
                default:
                     return true
           }
      })
+
+     useEffect(() => {
+          if (visibleTabs.some(tab => tab.value === activeTab)) return
+
+          const fallbackTab = visibleTabs[0]?.value
+          if (!fallbackTab || fallbackTab === activeTab) return
+
+          setActiveTab(fallbackTab)
+
+          const url = new URL(window.location)
+          url.searchParams.set('tab', fallbackTab)
+          router.push(url.pathname + url.search, { scroll: false })
+     }, [activeTab, router, visibleTabs])
 
      const handleTabChange = (_, value) => {
           setActiveTab(value)

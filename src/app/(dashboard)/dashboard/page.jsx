@@ -1,23 +1,24 @@
-import Dashboard from '@views/dashboard/Dashboard'
-import Grid from '@mui/material/Grid'
-import { getDashboardData } from '@/app/(dashboard)/actions'
+import DashboardIndex from '@/views/dashboard';
+import { getDashboardData } from './actions';
 
-
-export default async function DashboardPage() {
-  let initialDashboardData = null
+export default async function DashboardPage({ searchParams }) {
+  let initialDashboardData = null;
+  const branchId = searchParams?.branchId || '';
 
   try {
-    const response = await getDashboardData()
+    const response = await getDashboardData(branchId);
+
     if (response?.code === 200 && response?.data) {
-      initialDashboardData = response.data
+      initialDashboardData = response.data;
     }
   } catch (error) {
-    console.error('Failed to fetch initial dashboard data:', error)
+    console.error('Failed to fetch initial dashboard data:', error);
   }
 
   return (
-    <Grid container spacing={6}>
-      <Dashboard initialDashboardData={initialDashboardData} />
-    </Grid>
-  )
+    <DashboardIndex
+      initialDashboardData={initialDashboardData}
+      initialBranchId={branchId}
+    />
+  );
 }

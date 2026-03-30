@@ -1,6 +1,6 @@
 import React from 'react';
 import DeliveryChallanView from '@/views/deliveryChallans/viewDeliveryChallans/index';
-import { getDeliveryChallanById } from '@/app/(dashboard)/deliveryChallans/actions';
+import { getDeliveryChallanById } from '../../actions';
 
 /**
  * DeliveryChallanViewPage Component
@@ -12,10 +12,20 @@ import { getDeliveryChallanById } from '@/app/(dashboard)/deliveryChallans/actio
  */
 const DeliveryChallanViewPage = async ({ params }) => {
   const { id } = params;
-  const initialDeliveryChallanData = await getDeliveryChallanById(id);
+  let initialDeliveryChallanData = null;
+  let initialErrorMessage = '';
+
+  try {
+    initialDeliveryChallanData = await getDeliveryChallanById(id);
+  } catch (error) {
+    initialErrorMessage = error?.message || 'Failed to load delivery challan data.';
+  }
 
   return (
-    <DeliveryChallanView id={id} initialDeliveryChallanData={initialDeliveryChallanData} />
+    <DeliveryChallanView
+      initialDeliveryChallanData={initialDeliveryChallanData}
+      initialErrorMessage={initialErrorMessage}
+    />
   );
 }
 

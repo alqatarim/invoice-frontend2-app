@@ -2,7 +2,7 @@ export function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, 
   // Form submit handler
   const handleFormSubmit = async (data, errors, handleError) => {
     try {
-      closeSnackbar();
+      closeSnackbar?.();
       const isValid = await trigger();
       if (!isValid) {
         handleError(errors);
@@ -11,21 +11,27 @@ export function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, 
 
       const currentFormData = data;
       if (currentFormData) {
-        // Create plain object instead of FormData since addInvoice function handles FormData creation
-        const invoiceData = {
-          customerId: currentFormData.customerId,
-          payment_method: currentFormData.payment_method,
+        const debitNoteData = {
+          debit_note_id:
+            currentFormData.debit_note_id || currentFormData.debitNoteNumber || '',
+          vendorId: currentFormData.vendorId,
+          paymentMode:
+            currentFormData.paymentMode || currentFormData.payment_method || '',
           taxableAmount: currentFormData.taxableAmount,
           vat: currentFormData.vat,
           roundOff: currentFormData.roundOff,
           totalDiscount: currentFormData.totalDiscount,
           TotalAmount: currentFormData.TotalAmount,
-          invoiceNumber: currentFormData.invoiceNumber,
           referenceNo: currentFormData.referenceNo || '',
           dueDate: currentFormData.dueDate,
-          invoiceDate: currentFormData.invoiceDate,
+          purchaseOrderDate:
+            currentFormData.purchaseOrderDate || currentFormData.debitNoteDate || '',
           notes: currentFormData.notes || '',
-          bank: currentFormData.bank || '',
+          bank:
+            currentFormData.bank?._id ||
+            currentFormData.bank ||
+            currentFormData.bankId ||
+            '',
           termsAndCondition: currentFormData.termsAndCondition || '',
           sign_type: currentFormData.sign_type || 'manualSignature',
           signatureName: currentFormData.signatureName || '',
@@ -52,10 +58,10 @@ export function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, 
           }))
         };
 
-        const result = await onSave(invoiceData);
+        const result = await onSave(debitNoteData);
 
         if (!result.success) {
-          const errorMessage = result.error?.message || result.message || 'Failed to add invoice';
+          const errorMessage = result.error?.message || result.message || 'Failed to add debit note';
           enqueueSnackbar(errorMessage, {
             variant: 'error',
             autoHideDuration: 5000,
@@ -68,7 +74,7 @@ export function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, 
       }
     } catch (error) {
       console.error('Error in form submission:', error);
-      closeSnackbar();
+      closeSnackbar?.();
       enqueueSnackbar(error.message || 'An error occurred during submission', {
         variant: 'error',
         autoHideDuration: 5000
@@ -79,7 +85,7 @@ export function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, 
 
   // Error handler
   const handleError = (errors) => {
-    closeSnackbar();
+    closeSnackbar?.();
     setTimeout(() => {
       const errorCount = Object.keys(errors).length;
       if (errorCount === 0) return;

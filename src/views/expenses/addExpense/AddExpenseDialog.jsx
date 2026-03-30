@@ -26,19 +26,12 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { useAddExpenseHandlers } from '@/handlers/expenses/addExpense/useAddExpenseHandlers';
-import { formIcons } from '@/data/dataSets';
+import {
+     expensePaymentModeOptions,
+     expenseStatusOptions,
+     formIcons,
+} from '@/data/dataSets';
 import { getNameFromPath } from '@/utils/fileUtils';
-
-const paymentModes = [
-     { label: 'Cash', value: 'Cash' },
-     { label: 'Cheque', value: 'Cheque' }
-];
-
-const paymentStatuses = [
-     { label: 'Paid', value: 'Paid' },
-     { label: 'Pending', value: 'Pending' },
-     { label: 'Cancelled', value: 'Cancelled' }
-];
 
 const AddExpenseDialog = ({ open, onClose, onSave, expenseNumber }) => {
      const theme = useTheme();
@@ -445,7 +438,7 @@ const AddExpenseDialog = ({ open, onClose, onSave, expenseNumber }) => {
                                                                            />
                                                                       }
                                                                  >
-                                                                      {paymentModes.map((mode) => (
+                                                                      {expensePaymentModeOptions.map((mode) => (
                                                                            <MenuItem key={mode.value} value={mode.value}>
                                                                                 {mode.label}
                                                                            </MenuItem>
@@ -511,7 +504,7 @@ const AddExpenseDialog = ({ open, onClose, onSave, expenseNumber }) => {
                                                                            />
                                                                       }
                                                                  >
-                                                                      {paymentStatuses.map((status) => (
+                                                                      {expenseStatusOptions.map((status) => (
                                                                            <MenuItem key={status.value} value={status.value}>
                                                                                 {status.label}
                                                                            </MenuItem>

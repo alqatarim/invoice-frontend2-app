@@ -3,6 +3,12 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import {
+  getCanonicalModuleName,
+  getCanonicalPermissionAction,
+  normalizePermissionFlags,
+  normalizePermissionModules,
+} from '@/common/allModules';
 
 const EMPTY_MODULES = Object.freeze({});
 const FALLBACK_PERMISSIONS = Object.freeze({
@@ -30,15 +36,23 @@ export const PermissionsProvider = ({ children }) => {
       };
     }
 
-    const modules = (permissionRes.modules || []).reduce((acc, module) => {
-      acc[module.module] = module.permissions || {};
+    const modules = normalizePermissionModules(permissionRes.modules || []).reduce((acc, module) => {
+      acc[module.module] = normalizePermissionFlags(module.permissions);
       return acc;
     }, {});
 
     return {
       isAdmin: false,
       modules,
-      hasPermission: (module, action) => Boolean(modules?.[module]?.[action]),
+      hasPermission: (module, action) => {
+        const moduleKey = getCanonicalModuleName(module);
+        const actionKey = getCanonicalPermissionAction(action);
+        const modulePermissions = modules?.[moduleKey];
+
+        if (!modulePermissions) return false;
+
+        return Boolean(modulePermissions.all || modulePermissions[actionKey]);
+      },
     };
   }, [session?.user?.permissionRes]);
 

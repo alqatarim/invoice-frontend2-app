@@ -1,5 +1,5 @@
 import React from 'react';
-import { getDebitNotesList, getVendors } from '@/app/(dashboard)/debitNotes/actions';
+import { getDebitNotesList } from '@/app/(dashboard)/debitNotes/actions';
 import PurchaseReturnListIndex from '@/views/debitNotes/listPurchaseReturn/index';
 
 export const metadata = {
@@ -8,15 +8,16 @@ export const metadata = {
 
 async function DebitNoteListPage() {
   try {
-    const [initialData, vendors] = await Promise.all([
-      getDebitNotesList(),
-      getVendors()
-    ]);
+    const initialData = await getDebitNotesList();
 
     return (
       <PurchaseReturnListIndex
-        initialData={initialData}
-        vendors={vendors}
+        initialDebitNotes={initialData?.data || []}
+        initialPagination={{
+          current: 1,
+          pageSize: 10,
+          total: initialData?.totalRecords || 0,
+        }}
       />
     );
   } catch (error) {

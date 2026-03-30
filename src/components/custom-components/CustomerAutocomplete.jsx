@@ -17,7 +17,10 @@ const CustomerAutocomplete = ({
   includeWalkInOption = false,
   walkInLabel = 'Walk-in Customer',
   onCustomerChange,
-  size = 'small'
+  size = 'small',
+  label = 'Customer',
+  placeholder = '',
+  inputRef = null
 }) => {
   const theme = useTheme()
   const customers = Array.isArray(customersData) ? customersData : []
@@ -135,10 +138,12 @@ const CustomerAutocomplete = ({
             renderInput={params => (
               <TextField
                 {...params}
-                label="Customer"
+                label={label}
+                placeholder={placeholder}
                 error={!!errors.customerId}
                 helperText={errors.customerId?.message}
                 size={size}
+                inputRef={inputRef}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: selectedCustomer ? (

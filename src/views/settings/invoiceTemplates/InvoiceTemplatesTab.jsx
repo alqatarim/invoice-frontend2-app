@@ -1,80 +1,102 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Skeleton, Alert, AlertTitle } from '@mui/material'
+import { useCallback, useEffect, useState } from 'react'
 import InvoiceTemplatesView from './InvoiceTemplatesView'
 import * as settingsActions from '@/app/(dashboard)/settings/actions'
+import { usePermission } from '@/Auth/usePermission'
 
-const InvoiceTemplatesTab = () => {
-  const [state, setState] = useState({
-    loading: true,
+const buildInitialState = (initialData = {}) => {
+  const initialTemplateData = initialData?.invoiceTemplates || null
+
+  return {
+    loading: !initialTemplateData?.defaultTemplateId,
+    updating: false,
     error: null,
-    data: null
+    data: initialTemplateData
+  }
+}
+
+const InvoiceTemplatesTab = ({ initialData = {} }) => {
+  const canUpdate = usePermission('invoiceTemplate', 'update')
+  const [state, setState] = useState({
+    ...buildInitialState(initialData)
   })
 
-  useEffect(() => {
-    const loadData = async () => {
-      setState(prev => ({ ...prev, loading: true, error: null }))
+  const loadData = useCallback(async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }))
 
-      try {
-        const result = await settingsActions.getDefaultInvoiceTemplate()
-        if (result.success) {
-          setState({
-            loading: false,
-            error: null,
-            data: result.data
-          })
-        } else {
-          throw new Error(result.message)
-        }
-      } catch (error) {
-        setState({
+    try {
+      const result = await settingsActions.getDefaultInvoiceTemplate()
+      if (result.success) {
+        setState(prev => ({
+          ...prev,
           loading: false,
-          error: error.message,
-          data: null
-        })
+          error: null,
+          data: result.data
+        }))
+        return result
       }
+
+      throw new Error(result.message || 'Failed to load invoice template settings')
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message,
+        data: prev.data
+      }))
+      return { success: false, message: error.message }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (initialData?.invoiceTemplates?.defaultTemplateId) {
+      setState(buildInitialState(initialData))
+      return
     }
 
     loadData()
-  }, [])
+  }, [initialData, loadData])
 
   const handleUpdate = async (templateId) => {
+    if (!canUpdate) {
+      return { success: false, message: 'You do not have permission to update invoice templates.' }
+    }
+
+    setState(prev => ({ ...prev, updating: true, error: null }))
+
     try {
       const result = await settingsActions.updateDefaultInvoiceTemplate(templateId)
       if (result.success) {
-        setState(prev => ({ ...prev, data: result.data }))
+        setState(prev => ({
+          ...prev,
+          updating: false,
+          data: result.data
+        }))
         return result
-      } else {
-        throw new Error(result.message)
       }
+
+      throw new Error(result.message || 'Failed to update the default template')
     } catch (error) {
+      setState(prev => ({
+        ...prev,
+        updating: false,
+        error: error.message
+      }))
+
       return { success: false, message: error.message }
     }
   }
 
-  if (state.loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton variant="rectangular" width="100%" height={200} />
-        <Skeleton variant="rectangular" width="100%" height={300} />
-      </div>
-    )
-  }
-
-  if (state.error) {
-    return (
-      <Alert severity="error">
-        <AlertTitle>Error</AlertTitle>
-        {state.error}
-      </Alert>
-    )
-  }
-
   return (
     <InvoiceTemplatesView
-      defaultTemplate={state.data}
-      onUpdate={handleUpdate}
+      defaultTemplateId={state.data?.defaultTemplateId}
+      loading={state.loading}
+      updating={state.updating}
+      error={state.error}
+      onSetDefault={handleUpdate}
+      onRefresh={loadData}
+      canUpdate={canUpdate}
     />
   )
 }

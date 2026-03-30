@@ -1,6 +1,14 @@
 import { notFound } from 'next/navigation';
 import EditDeliveryChallanIndex from '@/views/deliveryChallans/editDeliveryChallans/index';
-import { getDeliveryChallanById, getCustomers, getProducts, getTaxRates, getBanks, getSignatures, addBank } from '@/app/(dashboard)/deliveryChallans/actions';
+import {
+  getDeliveryChallanById,
+  getCustomers,
+  getProducts,
+  getTaxRates,
+  getBanks,
+  getSignatures,
+  addBank,
+} from '../../actions';
 
 export const metadata = {
   title: 'Edit Delivery Challan | Kanakku',
@@ -26,12 +34,12 @@ const EditDeliveryChallanPage = async ({ params }) => {
     return (
       <EditDeliveryChallanIndex
         id={id}
-        deliveryChallanData={deliveryChallanData}
-        customersData={customersData}
-        productData={productData}
-        taxRates={taxRates}
+        initialDeliveryChallanData={deliveryChallanData}
+        initialCustomers={customersData}
+        initialProducts={productData}
+        initialTaxRates={taxRates}
         initialBanks={initialBanks}
-        signatures={signatures}
+        initialSignatures={signatures}
         addBank={addBank}
       />
     );

@@ -10,7 +10,8 @@ const ENDPOINTS = {
     UPDATE: '/branches',
     DELETE: '/branches'
   },
-  PROVINCES_CITIES: '/provincesCities'
+  PROVINCES_CITIES: '/provincesCities',
+  USER_LIST: '/manage_users/listUsers'
 };
 
 const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
@@ -220,6 +221,24 @@ export async function getBranchesForDropdown() {
     return [];
   } catch (error) {
     console.error('Error fetching branches:', error);
+    return [];
+  }
+}
+
+export async function getActiveUsersForBranchAssignment() {
+  try {
+    const response = await fetchWithAuth(
+      `${ENDPOINTS.USER_LIST}?page=1&pageSize=500&status=Active`,
+      CACHE_STABLE_DROPDOWN
+    );
+
+    if (response.code === 200) {
+      return response.data || [];
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Error fetching active users for branches:', error);
     return [];
   }
 }

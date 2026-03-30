@@ -4,85 +4,131 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSnackbar } from 'notistack'
 import { updatePermissions } from '@/app/(dashboard)/roles-permission/actions'
+import {
+  buildDefaultPermissionModules,
+  isAlwaysEnabledModule,
+  normalizePermissionModules,
+} from '@/common/allModules'
+
+const normalizePermissionState = (permissionState) => {
+  const baseModules = permissionState?.modules?.length
+    ? permissionState.modules
+    : buildDefaultPermissionModules()
+
+  return {
+    ...permissionState,
+    allModules: Boolean(permissionState?.allModules),
+    modules: normalizePermissionModules(baseModules)
+  }
+}
+
+const hasAllModulesEnabled = (modules) => {
+  return (modules || []).every(module => {
+    if (isAlwaysEnabledModule(module.module)) return true
+
+    return Boolean(module.permissions?.all)
+  })
+}
 
 export const usePermissionsHandler = (initialPermissions) => {
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
-  const [permissions, setPermissions] = useState(initialPermissions || {
-    allModules: false,
-    modules: []
-  })
+  const [permissions, setPermissions] = useState(
+    normalizePermissionState(
+      initialPermissions || {
+        allModules: false,
+        modules: []
+      }
+    )
+  )
   const [loading, setLoading] = useState(false)
 
   // Toggle all modules
   const handleAllModulesChange = useCallback((checked) => {
-    setPermissions(prev => ({
-      ...prev,
-      allModules: checked,
-      modules: prev.modules.map(module => ({
-        ...module,
-        permissions: {
-          create: checked,
-          update: checked,
-          view: checked,
-          delete: checked,
-          all: checked
-        }
-      }))
-    }))
+    setPermissions(prev => {
+      const normalizedState = normalizePermissionState(prev)
+      const modules = normalizePermissionModules(
+        normalizedState.modules.map(module => {
+          if (isAlwaysEnabledModule(module.module)) {
+            return module
+          }
+
+          return {
+            ...module,
+            permissions: {
+              create: checked,
+              update: checked,
+              view: checked,
+              delete: checked,
+              all: checked
+            }
+          }
+        })
+      )
+
+      return {
+        ...normalizedState,
+        allModules: checked,
+        modules
+      }
+    })
   }, [])
 
   // Toggle module's "allow all" permission
   const handleModuleAllChange = useCallback((moduleIndex, checked) => {
-    setPermissions(prev => ({
-      ...prev,
-      modules: prev.modules.map((module, index) => 
-        index === moduleIndex
-          ? {
-              ...module,
-              permissions: {
-                create: checked,
-                update: checked,
-                view: checked,
-                delete: checked,
-                all: checked
-              }
+    setPermissions(prev => {
+      const normalizedState = normalizePermissionState(prev)
+      const modules = normalizePermissionModules(
+        normalizedState.modules.map((module, index) => {
+          if (index !== moduleIndex || isAlwaysEnabledModule(module.module)) {
+            return module
+          }
+
+          return {
+            ...module,
+            permissions: {
+              create: checked,
+              update: checked,
+              view: checked,
+              delete: checked,
+              all: checked
             }
-          : module
+          }
+        })
       )
-    }))
+
+      return {
+        ...normalizedState,
+        allModules: hasAllModulesEnabled(modules),
+        modules
+      }
+    })
   }, [])
 
   // Toggle individual permission
   const handlePermissionChange = useCallback((moduleIndex, permissionType, checked) => {
     setPermissions(prev => {
-      const newModules = [...prev.modules]
-      newModules[moduleIndex] = {
-        ...newModules[moduleIndex],
+      const normalizedState = normalizePermissionState(prev)
+      const targetModule = normalizedState.modules[moduleIndex]
+      if (!targetModule || isAlwaysEnabledModule(targetModule.module)) {
+        return normalizedState
+      }
+
+      const nextModules = [...normalizedState.modules]
+      nextModules[moduleIndex] = {
+        ...targetModule,
         permissions: {
-          ...newModules[moduleIndex].permissions,
+          ...targetModule.permissions,
           [permissionType]: checked
         }
       }
 
-      // Update "all" checkbox if all permissions are checked/unchecked
-      const module = newModules[moduleIndex]
-      const allChecked = module.permissions.create && 
-                        module.permissions.update && 
-                        module.permissions.view && 
-                        module.permissions.delete
-      
-      newModules[moduleIndex].permissions.all = allChecked
-
-      // Update allModules if all modules have all permissions
-      const allModulesChecked = newModules.every(m => 
-        m.permissions.create && m.permissions.update && 
-        m.permissions.view && m.permissions.delete
-      )
+      const modules = normalizePermissionModules(nextModules)
 
       return {
-        allModules: allModulesChecked,
-        modules: newModules
+        ...normalizedState,
+        allModules: hasAllModulesEnabled(modules),
+        modules
       }
     })
   }, [])

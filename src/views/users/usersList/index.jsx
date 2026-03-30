@@ -3,7 +3,7 @@
 import React from 'react';
 import UsersList from './UsersList';
 
-const UsersListIndex = ({ initialData, initialRoles = [] }) => {
+const UsersListIndex = ({ initialData, initialRoles = [], initialBranches = [] }) => {
      // Only extract and pass initial data as props
      const initialUsers = initialData?.users || initialData?.data || [];
      const pagination = initialData?.pagination || {
@@ -17,6 +17,7 @@ const UsersListIndex = ({ initialData, initialRoles = [] }) => {
                initialUsers={initialUsers}
                pagination={pagination}
                initialRoles={initialRoles}
+               initialBranches={initialBranches}
           />
      );
 };

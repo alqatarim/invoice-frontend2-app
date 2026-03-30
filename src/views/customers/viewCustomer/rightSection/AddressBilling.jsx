@@ -8,6 +8,7 @@ import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
 import Box from '@mui/material/Box'
+import { useCallback, useState } from 'react'
 
 // Third-party Imports
 import { countries } from 'country-codes-flags-phone-codes'
@@ -18,9 +19,6 @@ import 'flag-icons/css/flag-icons.min.css'
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'
 import EditAddressDialog from './EditAddressDialog'
-
-// Handler Import
-import { useCustomerAddressHandlers } from '@/handlers/customers/view'
 
 // Helper function to get flag CSS class
 const getFlagIcon = (countryCode) => {
@@ -75,22 +73,34 @@ const displayCountryWithFlag = (countryValue) => {
 }
 
 const CustomerAddressBilling = ({ customerData, onCustomerUpdate }) => {
-  // Address handlers for dialog management
-  const {
-    dialogState,
-    handleOpenBillingAddressDialog,
-    handleCloseBillingAddressDialog,
-    handleOpenShippingAddressDialog,
-    handleCloseShippingAddressDialog,
-    handleUpdateSuccess
-  } = useCustomerAddressHandlers({
-    onSuccess: (message) => {
-      // Success notification will be handled by dialog components
-    },
-    onUpdate: (updatedCustomer) => {
-      onCustomerUpdate?.(updatedCustomer)
-    }
+  const [dialogState, setDialogState] = useState({
+    billingAddress: false,
+    shippingAddress: false
   })
+
+  const handleOpenBillingAddressDialog = useCallback(() => {
+    setDialogState(prev => ({ ...prev, billingAddress: true }))
+  }, [])
+
+  const handleCloseBillingAddressDialog = useCallback(() => {
+    setDialogState(prev => ({ ...prev, billingAddress: false }))
+  }, [])
+
+  const handleOpenShippingAddressDialog = useCallback(() => {
+    setDialogState(prev => ({ ...prev, shippingAddress: true }))
+  }, [])
+
+  const handleCloseShippingAddressDialog = useCallback(() => {
+    setDialogState(prev => ({ ...prev, shippingAddress: false }))
+  }, [])
+
+  const handleUpdateSuccess = useCallback(updatedCustomer => {
+    setDialogState({
+      billingAddress: false,
+      shippingAddress: false
+    })
+    onCustomerUpdate?.(updatedCustomer)
+  }, [onCustomerUpdate])
 
   return (
     <>

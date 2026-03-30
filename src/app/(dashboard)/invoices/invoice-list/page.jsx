@@ -1,25 +1,25 @@
-// app/invoices/page.jsx
-
 import React from 'react';
-import InvoiceListIndex from '@/views/invoices/invoiceList/index';
-import { getInitialInvoiceData } from '@/app/(dashboard)/invoices/actions';
+import InvoiceListIndex from '@/views/invoices/invoiceList';
+import { getInvoiceListPageData } from './actions';
 
-/**
- * InvoicesPage Component
- * Fetches initial invoice data on the server and passes it to the client component.
- *
- * @returns JSX.Element
- */
 const InvoicesPage = async () => {
-  // Fetch only critical list data for faster first render.
-  const initialData = await getInitialInvoiceData();
+  try {
+    const initialListData = await getInvoiceListPageData();
 
-  return (
-    <InvoiceListIndex
-      initialData={initialData}
-      initialCustomers={[]}
-    />
-  );
+    return (
+      <InvoiceListIndex
+        initialListData={initialListData}
+        initialCustomersData={[]}
+      />
+    );
+  } catch (error) {
+    console.error('Error loading invoice list:', error);
+    return (
+      <div className='p-8 text-red-600'>
+        Failed to load invoices. Please refresh or try again later.
+      </div>
+    );
+  }
 };
 
 export default InvoicesPage;

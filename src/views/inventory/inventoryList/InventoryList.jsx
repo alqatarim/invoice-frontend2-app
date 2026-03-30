@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Icon } from '@iconify/react';
 import {
+  Alert,
   Card,
   Button,
   Grid,
@@ -25,6 +26,7 @@ import {
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { usePermission } from '@/Auth/usePermission';
+import { getInventoryMovementHistory } from '@/app/(dashboard)/inventory/actions';
 
 import InventoryHead from '@/views/inventory/inventoryList/inventoryHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
@@ -34,11 +36,77 @@ import { getInventoryColumns } from './inventoryColumns';
 import { getBranchInventoryColumns } from './branchInventoryColumns';
 import BranchStockTable from './BranchStockTable';
 import BranchInventoryTable from './BranchInventoryTable';
+import InventoryMovementDialog from './InventoryMovementDialog';
 import AppSnackbar from '@/components/shared/AppSnackbar';
+import useAccessibleBranchScope from '@/hooks/useAccessibleBranchScope';
 
 /**
  * InventoryList Component
  */
+const getBranchIdentifiers = (branch = {}) => (
+  [branch?.branchId, branch?._id]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+);
+
+const branchMatchesIdentifier = (branch = {}, value = '') => {
+  const normalizedValue = String(value || '').trim();
+  if (!normalizedValue) return false;
+  return getBranchIdentifiers(branch).includes(normalizedValue);
+};
+
+const findBranchByIdentifier = (branchList = [], value = '') =>
+  (Array.isArray(branchList) ? branchList : []).find((branch) =>
+    branchMatchesIdentifier(branch, value)
+  ) || null;
+
+const findInventoryBranchRecord = (inventoryBranches = [], branch = {}) => {
+  const identifiers = new Set(getBranchIdentifiers(branch));
+
+  return (Array.isArray(inventoryBranches) ? inventoryBranches : []).find((entry) =>
+    identifiers.has(String(entry?.branchId || '').trim())
+  ) || null;
+};
+
+const buildLocationTreeFromBranches = (branchList = []) => {
+  const provinceMap = new Map();
+
+  (Array.isArray(branchList) ? branchList : []).forEach((branch) => {
+    const province = String(branch?.province || '').trim();
+    const city = String(branch?.city || '').trim();
+    const district = String(branch?.district || '').trim();
+
+    if (!province || !city) {
+      return;
+    }
+
+    if (!provinceMap.has(province)) {
+      provinceMap.set(province, { province, cities: new Map() });
+    }
+
+    const provinceEntry = provinceMap.get(province);
+    if (!provinceEntry.cities.has(city)) {
+      provinceEntry.cities.set(city, { name: city, districts: new Set() });
+    }
+
+    if (district) {
+      provinceEntry.cities.get(city).districts.add(district);
+    }
+  });
+
+  return [...provinceMap.values()]
+    .sort((left, right) => left.province.localeCompare(right.province))
+    .map((provinceEntry) => ({
+      province: provinceEntry.province,
+      cities: [...provinceEntry.cities.values()]
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map((cityEntry) => ({
+          name: cityEntry.name,
+          districts: [...cityEntry.districts].sort((left, right) => left.localeCompare(right)),
+        })),
+    }));
+};
+
 const InventoryList = ({
   initialInventory = [],
   pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
@@ -75,6 +143,26 @@ const InventoryList = ({
     () => (Array.isArray(initialProvincesCities) ? initialProvincesCities : []),
     [initialProvincesCities]
   );
+  const branchScope = useAccessibleBranchScope({ branchesData: branches });
+  const branchOptions = useMemo(
+    () => (branchScope.branchOptions.length ? branchScope.branchOptions : branches),
+    [branchScope.branchOptions, branches]
+  );
+  const scopedProvincesCities = useMemo(() => {
+    const derivedLocations = buildLocationTreeFromBranches(branchOptions);
+    return derivedLocations.length ? derivedLocations : provincesCities;
+  }, [branchOptions, provincesCities]);
+  const scopeHelperText = useMemo(() => {
+    if (branchScope.isRestrictedToAssignedBranches) {
+      if (branchScope.primaryBranch?.name) {
+        return `Only your assigned branches are visible here. Primary branch: ${branchScope.primaryBranch.name}. Transfers and branch selectors stay inside this scope.`;
+      }
+
+      return 'Only your assigned branches are visible here. Transfers and branch selectors stay inside this scope.';
+    }
+
+    return 'Inventory actions respect your current company access. Branch selectors only show locations available to your role.';
+  }, [branchScope.isRestrictedToAssignedBranches, branchScope.primaryBranch?.name]);
   const [expandedRows, setExpandedRows] = useState({});
   const [expandedBranchRows, setExpandedBranchRows] = useState({});
   const [activeTab, setActiveTab] = useState('inventory');
@@ -98,6 +186,22 @@ const InventoryList = ({
     toDistrict: '',
     toBranchId: '',
     quantity: '',
+    notes: '',
+  });
+
+  const [cycleCountDialog, setCycleCountDialog] = useState({
+    open: false,
+    branchRow: null,
+    countedQuantity: '',
+    notes: '',
+  });
+
+  const [movementDialog, setMovementDialog] = useState({
+    open: false,
+    loading: false,
+    rows: [],
+    productName: '',
+    branchLabel: '',
   });
 
   const handleSnackbarClose = (event, reason) => {
@@ -110,7 +214,7 @@ const InventoryList = ({
   const onSuccess = msg => setSnackbar({ open: true, message: msg, severity: 'success' });
 
   // Initialize handlers with column definitions
-  const columns = useMemo(() => getInventoryColumns({ permissions }), [permissions]);
+  const columns = useMemo(() => getInventoryColumns({ permissions, theme }), [permissions, theme]);
 
   const handlers = useInventoryListHandlers({
     initialInventory,
@@ -229,6 +333,7 @@ const InventoryList = ({
       toDistrict: '',
       toBranchId: '',
       quantity: '',
+      notes: '',
     });
   };
 
@@ -241,6 +346,7 @@ const InventoryList = ({
       toDistrict: '',
       toBranchId: '',
       quantity: '',
+      notes: '',
     });
   };
 
@@ -264,8 +370,8 @@ const InventoryList = ({
 
   // Get transfer dialog options
   const transferProvinceDoc = useMemo(() =>
-    provincesCities.find((p) => p.province === transferDialog.toProvince),
-    [provincesCities, transferDialog.toProvince]
+    scopedProvincesCities.find((p) => p.province === transferDialog.toProvince),
+    [scopedProvincesCities, transferDialog.toProvince]
   );
   const transferCityOptions = transferProvinceDoc?.cities || [];
   const transferCityDoc = useMemo(() =>
@@ -274,30 +380,37 @@ const InventoryList = ({
   );
   const transferDistrictOptions = transferCityDoc?.districts || [];
   const transferFilteredBranches = useMemo(() =>
-    branches.filter((branch) => {
+    branchOptions.filter((branch) => {
       // Exclude source branch
-      if (branch.branchId === transferDialog.branchRow?.branchId) return false;
+      if (branchMatchesIdentifier(branch, transferDialog.branchRow?.branchId)) return false;
       // Filter by location selections
       if (transferDialog.toProvince && branch.province !== transferDialog.toProvince) return false;
       if (transferDialog.toCity && branch.city !== transferDialog.toCity) return false;
       if (transferDialog.toDistrict && branch.district !== transferDialog.toDistrict) return false;
       return true;
     }),
-    [branches, transferDialog.branchRow?.branchId, transferDialog.toProvince, transferDialog.toCity, transferDialog.toDistrict]
+    [branchOptions, transferDialog.branchRow?.branchId, transferDialog.toProvince, transferDialog.toCity, transferDialog.toDistrict]
+  );
+  const selectedTransferDestinationBranch = useMemo(
+    () => findBranchByIdentifier(branchOptions, transferDialog.toBranchId),
+    [branchOptions, transferDialog.toBranchId]
   );
 
   // Get destination branch current stock for this item
   const getDestinationBranchStock = () => {
     if (!transferDialog.toBranchId || !transferDialog.branchRow?.parentItem) return 0;
     const inventoryBranches = transferDialog.branchRow.parentItem?.inventory_Info?.[0]?.branches || [];
-    const destBranch = inventoryBranches.find((b) => b.branchId === transferDialog.toBranchId);
+    const destinationBranch = findBranchByIdentifier(branchOptions, transferDialog.toBranchId);
+    const destBranch = destinationBranch
+      ? findInventoryBranchRecord(inventoryBranches, destinationBranch)
+      : inventoryBranches.find((b) => b.branchId === transferDialog.toBranchId);
     return Number(destBranch?.quantity || 0);
   };
 
   const handleTransferSubmit = async () => {
     try {
       const fromBranch = transferDialog.branchRow;
-      const toBranch = branches.find((branch) => branch.branchId === transferDialog.toBranchId);
+      const toBranch = branchOptions.find((branch) => branch.branchId === transferDialog.toBranchId);
       const quantity = Number(transferDialog.quantity || 0);
 
       if (!fromBranch || !toBranch) {
@@ -321,47 +434,107 @@ const InventoryList = ({
         return;
       }
 
-      const removePayload = {
+      const transferPayload = {
         productId: fromBranch.parentItem?._id,
+        fromBranchId: fromBranch.branchId,
+        toBranchId: toBranch.branchId,
         quantity,
-        notes: `Transfer to ${toBranch.name}`,
-        branchEntries: [
-          {
-            branchId: fromBranch.branchId,
-            branchName: fromBranch.branchName,
-            branchType: fromBranch.branchType,
-            province: fromBranch.province,
-            city: fromBranch.city,
-            district: fromBranch.district,
-            quantity,
-          },
-        ],
+        notes: transferDialog.notes || `Transfer from ${fromBranch.branchName} to ${toBranch.name}`,
       };
 
-      const addPayload = {
-        productId: fromBranch.parentItem?._id,
-        quantity,
-        notes: `Transfer from ${fromBranch.branchName}`,
-        branchEntries: [
-          {
-            branchId: toBranch.branchId,
-            branchName: toBranch.name,
-            branchType: toBranch.branchType,
-            province: toBranch.province,
-            city: toBranch.city,
-            district: toBranch.district,
-            quantity,
-          },
-        ],
-      };
-
-      await handlers.handleRemoveStock(removePayload);
-      await handlers.handleAddStock(addPayload);
+      await handlers.handleTransferStock(transferPayload);
       closeTransferDialog();
       await branchHandlers.fetchData();
     } catch (error) {
       onError(error.message || 'Failed to transfer stock');
     }
+  };
+
+  const openCycleCountDialog = (branchRow) => {
+    setCycleCountDialog({
+      open: true,
+      branchRow,
+      countedQuantity: String(Number(branchRow?.quantity || 0)),
+      notes: '',
+    });
+  };
+
+  const closeCycleCountDialog = () => {
+    setCycleCountDialog({
+      open: false,
+      branchRow: null,
+      countedQuantity: '',
+      notes: '',
+    });
+  };
+
+  const handleCycleCountSubmit = async () => {
+    try {
+      const branchRow = cycleCountDialog.branchRow;
+      const countedQuantity = Number(cycleCountDialog.countedQuantity || 0);
+
+      if (!branchRow?.parentItem?._id) {
+        onError('Select an inventory branch to count');
+        return;
+      }
+
+      if (countedQuantity < 0) {
+        onError('Counted quantity cannot be negative');
+        return;
+      }
+
+      await handlers.handleCycleCount({
+        productId: branchRow.parentItem._id,
+        branchId: branchRow.branchId,
+        countedQuantity,
+        notes: cycleCountDialog.notes || '',
+      });
+
+      closeCycleCountDialog();
+      await branchHandlers.fetchData();
+    } catch (error) {
+      onError(error.message || 'Failed to record cycle count');
+    }
+  };
+
+  const handleOpenMovementHistory = async (branchRow) => {
+    try {
+      const resolvedBranch = findBranchByIdentifier(branchOptions, branchRow?.branchId);
+      setMovementDialog({
+        open: true,
+        loading: true,
+        rows: [],
+        productName: branchRow?.parentItem?.name || branchRow?.name || '',
+        branchLabel: resolvedBranch?.name || branchRow?.branchName || '',
+      });
+
+      const rows = await getInventoryMovementHistory(
+        branchRow?.parentItem?._id || branchRow?.productId,
+        resolvedBranch?.branchId || ''
+      );
+
+      setMovementDialog((prev) => ({
+        ...prev,
+        loading: false,
+        rows,
+      }));
+    } catch (error) {
+      setMovementDialog((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+      onError(error.message || 'Failed to load movement history');
+    }
+  };
+
+  const closeMovementDialog = () => {
+    setMovementDialog({
+      open: false,
+      loading: false,
+      rows: [],
+      productName: '',
+      branchLabel: '',
+    });
   };
 
   // Handler for inline branch entry save from BranchStockTable
@@ -451,19 +624,35 @@ const InventoryList = ({
   const filteredInventory = useMemo(() => (
     Array.isArray(handlers.inventory) ? handlers.inventory : []
   ), [handlers.inventory]);
+  const filteredBranchInventory = useMemo(() => {
+    const rows = Array.isArray(branchHandlers.branches) ? branchHandlers.branches : [];
+
+    if (!branchScope.isRestrictedToAssignedBranches) {
+      return rows;
+    }
+
+    const allowedBranchIds = new Set(branchOptions.flatMap(getBranchIdentifiers));
+    return rows.filter((branch) =>
+      getBranchIdentifiers(branch).some((identifier) => allowedBranchIds.has(identifier))
+    );
+  }, [branchHandlers.branches, branchOptions, branchScope.isRestrictedToAssignedBranches]);
 
   // Render function for expanded row content (branch sub-table)
   const renderExpandableRow = (row) => (
     <BranchStockTable
       inventoryItem={row}
-      branches={branches}
-      provincesCities={provincesCities}
+      branches={branchOptions}
+      provincesCities={scopedProvincesCities}
       permissions={permissions}
       onAddStock={openStockDialog}
       onRemoveStock={openStockDialog}
       onTransfer={openTransferDialog}
+      onCycleCount={openCycleCountDialog}
+      onViewHistory={handleOpenMovementHistory}
       onSaveBranchEntry={handleSaveBranchEntry}
       stockLoading={handlers.stockLoading}
+      isRestrictedToAssignedBranches={branchScope.isRestrictedToAssignedBranches}
+      scopeHelperText={scopeHelperText}
     />
   );
 
@@ -474,8 +663,12 @@ const InventoryList = ({
       onAddStock={openStockDialog}
       onRemoveStock={openStockDialog}
       onTransfer={openTransferDialog}
+      onCycleCount={openCycleCountDialog}
+      onViewHistory={handleOpenMovementHistory}
       onSaveBranchEntry={handleSaveBranchInventoryEntry}
       stockLoading={handlers.stockLoading}
+      isRestrictedToAssignedBranches={branchScope.isRestrictedToAssignedBranches}
+      scopeHelperText={scopeHelperText}
     />
   );
 
@@ -492,6 +685,9 @@ const InventoryList = ({
   const destStock = getDestinationBranchStock();
   const projectedSourceStock = Math.max(0, sourceStock - transferQuantity);
   const projectedDestStock = destStock + transferQuantity;
+  const cycleCountQuantity = Number(cycleCountDialog.countedQuantity || 0);
+  const currentCountStock = Number(cycleCountDialog.branchRow?.quantity || 0);
+  const cycleCountVariance = cycleCountQuantity - currentCountStock;
 
   return (
     <div className='flex flex-col gap-5'>
@@ -499,6 +695,10 @@ const InventoryList = ({
       <InventoryHead
         inventoryListData={initialCardCounts}
       />
+
+      <Alert severity={branchScope.isRestrictedToAssignedBranches ? 'info' : 'success'}>
+        {scopeHelperText}
+      </Alert>
 
       <Box sx={{ mb: 2 }}>
         <Tabs
@@ -548,9 +748,14 @@ const InventoryList = ({
       {activeTab === 'distribution' && (
         <Grid container spacing={3}>
           <Grid size={12}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {branchScope.isRestrictedToAssignedBranches
+                ? 'Distribution is limited to your assigned branches. Use the extra filters to narrow by product, location type, or active status within that scope.'
+                : 'Distribution respects the active company scope. Use the extra filters to narrow by product, location type, or active status.'}
+            </Alert>
             <CustomListTable
               columns={branchTableColumns}
-              rows={branchHandlers.branches}
+              rows={filteredBranchInventory}
               loading={branchHandlers.loading}
               showSearch={true}
               searchValue={branchHandlers.searchTerm || ''}
@@ -572,6 +777,54 @@ const InventoryList = ({
               getRowClassName={() => 'cursor-pointer'}
               expandedRows={expandedBranchRows}
               expandableRowRender={renderBranchExpandableRow}
+              headerActions={(
+                <Box className='flex flex-wrap gap-2'>
+                  <TextField
+                    size='small'
+                    label='Product'
+                    value={branchHandlers.filterValues?.searchProduct || ''}
+                    onChange={(event) =>
+                      branchHandlers.handleFilterChange('searchProduct', event.target.value)
+                    }
+                    sx={{ minWidth: 180 }}
+                  />
+                  <FormControl size='small' sx={{ minWidth: 140 }}>
+                    <InputLabel>Type</InputLabel>
+                    <Select
+                      label='Type'
+                      value={branchHandlers.filterValues?.branchType || ''}
+                      onChange={(event) =>
+                        branchHandlers.handleFilterChange('branchType', event.target.value)
+                      }
+                    >
+                      <MenuItem value=''>All</MenuItem>
+                      <MenuItem value='Store'>Store</MenuItem>
+                      <MenuItem value='Warehouse'>Warehouse</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControl size='small' sx={{ minWidth: 140 }}>
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      label='Status'
+                      value={branchHandlers.filterValues?.status ?? ''}
+                      onChange={(event) =>
+                        branchHandlers.handleFilterChange('status', event.target.value)
+                      }
+                    >
+                      <MenuItem value=''>All</MenuItem>
+                      <MenuItem value='true'>Active</MenuItem>
+                      <MenuItem value='false'>Inactive</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Button
+                    variant='outlined'
+                    color='secondary'
+                    onClick={branchHandlers.resetFilters}
+                  >
+                    Reset
+                  </Button>
+                </Box>
+              )}
             />
           </Grid>
         </Grid>
@@ -825,15 +1078,15 @@ const InventoryList = ({
               {transferDialog.toBranchId ? (
                 <>
                   <Typography variant="subtitle2" fontWeight={600} color="text.primary">
-                    {branches.find((b) => b.branchId === transferDialog.toBranchId)?.name}
+                    {selectedTransferDestinationBranch?.name}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                    {branches.find((b) => b.branchId === transferDialog.toBranchId)?.province}
+                    {selectedTransferDestinationBranch?.province}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {branches.find((b) => b.branchId === transferDialog.toBranchId)?.city}
-                    {branches.find((b) => b.branchId === transferDialog.toBranchId)?.district
-                      ? `, ${branches.find((b) => b.branchId === transferDialog.toBranchId)?.district}`
+                    {selectedTransferDestinationBranch?.city}
+                    {selectedTransferDestinationBranch?.district
+                      ? `, ${selectedTransferDestinationBranch?.district}`
                       : ''}
                   </Typography>
                   <Box
@@ -875,7 +1128,7 @@ const InventoryList = ({
                   sx={{ fontSize: '0.8rem' }}
                 >
                   <MenuItem value=""><em>All</em></MenuItem>
-                  {provincesCities.map((p) => (
+                  {scopedProvincesCities.map((p) => (
                     <MenuItem key={p.province} value={p.province}>
                       {p.province}
                     </MenuItem>
@@ -925,7 +1178,11 @@ const InventoryList = ({
                 onChange={(e) => setTransferDialog((prev) => ({ ...prev, toBranchId: e.target.value }))}
               >
                 {transferFilteredBranches.length === 0 ? (
-                  <MenuItem value="" disabled>No branches available</MenuItem>
+                  <MenuItem value="" disabled>
+                    {branchScope.isRestrictedToAssignedBranches
+                      ? 'No assigned branches available'
+                      : 'No branches available'}
+                  </MenuItem>
                 ) : (
                   transferFilteredBranches.map((branch) => (
                     <MenuItem key={branch.branchId} value={branch.branchId}>
@@ -955,6 +1212,19 @@ const InventoryList = ({
               }}
               inputProps={{ min: 1, max: sourceStock }}
               helperText={`Max: ${sourceStock} units available`}
+            />
+
+            <TextField
+              size='small'
+              label='Transfer Notes'
+              fullWidth
+              multiline
+              minRows={2}
+              value={transferDialog.notes}
+              onChange={(event) =>
+                setTransferDialog((prev) => ({ ...prev, notes: event.target.value }))
+              }
+              sx={{ mt: 2 }}
             />
           </Box>
 
@@ -1014,17 +1284,125 @@ const InventoryList = ({
               !transferDialog.toBranchId ||
               transferQuantity <= 0 ||
               transferQuantity > sourceStock ||
-              handlers.stockLoading?.addStock ||
-              handlers.stockLoading?.removeStock
+              handlers.stockLoading?.transferStock
             }
           >
-            {handlers.stockLoading?.addStock || handlers.stockLoading?.removeStock
+            {handlers.stockLoading?.transferStock
               ? 'Processing...'
               : 'Transfer Stock'
             }
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={cycleCountDialog.open} onClose={closeCycleCountDialog} maxWidth='sm' fullWidth>
+        <DialogTitle>
+          <Box className='flex items-center gap-2'>
+            <Icon icon='mdi:clipboard-check-outline' width={22} color={theme.palette.warning.main} />
+            <Typography variant='h6'>Cycle Count</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent className='flex flex-col gap-4'>
+          <Box
+            sx={{
+              mt: 1,
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: alpha(theme.palette.warning.main, 0.06),
+              border: `1px solid ${alpha(theme.palette.warning.main, 0.12)}`,
+            }}
+          >
+            <Typography variant='subtitle2' fontWeight={600}>
+              {cycleCountDialog.branchRow?.branchName}
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+              {cycleCountDialog.branchRow?.parentItem?.name}
+            </Typography>
+            <Typography variant='caption' color='text.secondary'>
+              Current stock: {currentCountStock} units
+            </Typography>
+          </Box>
+
+          <TextField
+            size='small'
+            label='Counted Quantity *'
+            type='number'
+            fullWidth
+            value={cycleCountDialog.countedQuantity}
+            onChange={(event) =>
+              setCycleCountDialog((prev) => ({
+                ...prev,
+                countedQuantity: event.target.value,
+              }))
+            }
+            inputProps={{ min: 0 }}
+          />
+
+          <TextField
+            size='small'
+            label='Count Notes'
+            fullWidth
+            multiline
+            minRows={2}
+            value={cycleCountDialog.notes}
+            onChange={(event) =>
+              setCycleCountDialog((prev) => ({
+                ...prev,
+                notes: event.target.value,
+              }))
+            }
+          />
+
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: alpha(
+                cycleCountVariance >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                0.06
+              ),
+              border: `1px solid ${alpha(
+                cycleCountVariance >= 0 ? theme.palette.success.main : theme.palette.error.main,
+                0.12
+              )}`,
+            }}
+          >
+            <Typography variant='caption' color='text.secondary'>
+              Variance preview
+            </Typography>
+            <Typography
+              variant='h6'
+              fontWeight={700}
+              color={cycleCountVariance >= 0 ? 'success.main' : 'error.main'}
+            >
+              {cycleCountVariance > 0 ? '+' : ''}
+              {cycleCountVariance}
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeCycleCountDialog} color='secondary'>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCycleCountSubmit}
+            variant='contained'
+            color='warning'
+            disabled={cycleCountQuantity < 0 || handlers.stockLoading?.cycleCount}
+          >
+            {handlers.stockLoading?.cycleCount ? 'Saving...' : 'Record Count'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <InventoryMovementDialog
+        open={movementDialog.open}
+        onClose={closeMovementDialog}
+        rows={movementDialog.rows}
+        loading={movementDialog.loading}
+        title={movementDialog.productName ? `${movementDialog.productName} Movement History` : 'Movement History'}
+        subtitle={movementDialog.branchLabel ? `Filtered to ${movementDialog.branchLabel}` : ''}
+      />
 
       <AppSnackbar
         open={snackbar.open}

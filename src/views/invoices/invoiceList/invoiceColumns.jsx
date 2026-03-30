@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
-import { Typography, Chip, LinearProgress, Box } from '@mui/material';
+import { Typography, LinearProgress, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
-import { statusOptions } from '@/data/dataSets';
 import OptionMenu from '@core/components/option-menu';
 import { actionButtons } from '@/data/dataSets';
+import InvoiceStatusBadge from '@/components/custom-components/InvoiceStatusBadge';
 
 /**
  * Invoice table column definitions
@@ -68,8 +68,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
         <Typography
           variant="caption"
           color="text.secondary"
-          className='text-[0.85rem] truncate select-text'
-          sx={{ userSelect: 'text', cursor: 'text' }}
+          className='cursor-text select-text truncate text-[0.85rem]'
         >
           {row.isWalkIn ? '—' : row.customerId?.phone || 'N/A'}
         </Typography>
@@ -96,7 +95,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
             </div>
           </div>
           <div className="flex-1 w-full">
-            <LinearProgress variant="determinate" color='info' value={percentPaid} sx={{ height: 3 }} />
+            <LinearProgress variant="determinate" color='info' value={percentPaid} className='!h-[3px]' />
           </div>
         </div>
       );
@@ -120,18 +119,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     visible: true,
     align: 'center',
     sortable: true,
-    renderCell: (row) => {
-      const statusOption = statusOptions.find(opt => opt.value === row.status);
-      return (
-        <Chip
-          className='mx-0'
-          size='small'
-          variant='tonal'
-          label={statusOption?.label || ''}
-          color={statusOption?.color || 'default'}
-        />
-      );
-    },
+    renderCell: (row) => <InvoiceStatusBadge status={row.status} />,
   },
   {
     key: 'action',

@@ -14,7 +14,7 @@ const RolesHead = ({ cardCounts }) => {
             <Icon icon="ri-group-line" fontSize={26} />
           </Avatar>
           <Typography variant="h5" className="font-semibold text-primary">
-            Roles & Permissions
+            Access Control
           </Typography>
         </div>
       </div>

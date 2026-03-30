@@ -31,11 +31,19 @@ const BranchInventoryTable = ({
   onAddStock,
   onRemoveStock,
   onTransfer,
+  onCycleCount,
+  onViewHistory,
   onSaveBranchEntry,
   stockLoading,
+  isRestrictedToAssignedBranches = false,
+  scopeHelperText = '',
 }) => {
   const theme = useTheme();
-  const isAnyLoading = stockLoading?.addStock || stockLoading?.removeStock;
+  const isAnyLoading =
+    stockLoading?.addStock ||
+    stockLoading?.removeStock ||
+    stockLoading?.transferStock ||
+    stockLoading?.cycleCount;
   const inventoryItems = Array.isArray(branch?.inventoryItems) ? branch.inventoryItems : [];
 
   const [newRow, setNewRow] = useState(null);
@@ -80,6 +88,20 @@ const BranchInventoryTable = ({
     }
   };
 
+  const handleCycleCountClick = (e, item) => {
+    e.stopPropagation();
+    if (onCycleCount) {
+      onCycleCount(buildBranchRow(item));
+    }
+  };
+
+  const handleHistoryClick = (e, item) => {
+    e.stopPropagation();
+    if (onViewHistory) {
+      onViewHistory(buildBranchRow(item));
+    }
+  };
+
   const buildBranchRow = (item) => ({
     rowType: 'branch',
     branchId: branch?.branchId,
@@ -99,6 +121,11 @@ const BranchInventoryTable = ({
         {
           branches: Array.isArray(item?.branches) ? item.branches : [],
           quantity: Number(item?.totalQuantity || 0),
+          batches: Array.isArray(item?.batches) ? item.batches : [],
+          serialNumbers: Array.isArray(item?.serialNumbers) ? item.serialNumbers : [],
+          valuationMethod: item?.valuationMethod || 'FIFO',
+          lastCycleCount: item?.lastCycleCount || null,
+          transferHistory: Array.isArray(item?.transferHistory) ? item.transferHistory : [],
         },
       ],
     },
@@ -144,6 +171,13 @@ const BranchInventoryTable = ({
           </Typography>
           <Chip
             size="small"
+            label={isRestrictedToAssignedBranches ? 'Assigned Branch Scope' : 'Company Scope'}
+            variant="tonal"
+            color={isRestrictedToAssignedBranches ? 'info' : 'primary'}
+            sx={{ height: 20, fontSize: '0.7rem' }}
+          />
+          <Chip
+            size="small"
             label={`${inventoryItems.length} item${inventoryItems.length !== 1 ? 's' : ''}`}
             variant="outlined"
             color="secondary"
@@ -151,6 +185,12 @@ const BranchInventoryTable = ({
           />
         </Box>
       </Box>
+
+      {scopeHelperText ? (
+        <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 2 }}>
+          {scopeHelperText}
+        </Typography>
+      ) : null}
 
       <TableContainer
         component={Paper}
@@ -184,7 +224,7 @@ const BranchInventoryTable = ({
               <TableCell sx={{ width: 150 }}>Purchase Price</TableCell>
               <TableCell align="center" sx={{ width: 90 }}>Quantity</TableCell>
               {permissions?.canUpdate && (
-                <TableCell align="center" sx={{ width: 140 }}>Actions</TableCell>
+                <TableCell align="center" sx={{ width: 220 }}>Actions</TableCell>
               )}
             </TableRow>
           </TableHead>
@@ -193,9 +233,19 @@ const BranchInventoryTable = ({
               inventoryItems.map((item, index) => (
                 <TableRow key={item.productId || index}>
                   <TableCell>
-                    <Typography variant="body2" color="text.primary">
-                      {item.name || 'N/A'}
-                    </Typography>
+                    <Box className='flex flex-col'>
+                      <Typography variant="body2" color="text.primary">
+                        {item.name || 'N/A'}
+                      </Typography>
+                      <Typography variant='caption' color='text.secondary'>
+                        {(item.valuationMethod || 'FIFO')} | {Array.isArray(item.batches) ? item.batches.length : 0} batches | {Array.isArray(item.serialNumbers) ? item.serialNumbers.length : 0} serials
+                      </Typography>
+                      {item.lastCycleCount?.branchId ? (
+                        <Typography variant='caption' color='text.secondary'>
+                          Last count: {Number(item.lastCycleCount.countedQuantity || 0)} ({Number(item.lastCycleCount.variance || 0) > 0 ? '+' : ''}{Number(item.lastCycleCount.variance || 0)})
+                        </Typography>
+                      ) : null}
+                    </Box>
                   </TableCell>
                   <TableCell>{item.sku || '-'}</TableCell>
                   <TableCell align="center">{item.unitInfo?.[0]?.name || '-'}</TableCell>
@@ -275,6 +325,30 @@ const BranchInventoryTable = ({
                             <Icon icon="mdi:swap-horizontal" width={18} color={theme.palette.info.main} />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Cycle Count" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleCycleCountClick(e, item)}
+                            disabled={isAnyLoading}
+                            color="warning"
+                            skin="light"
+                            variant="tonal"
+                          >
+                            <Icon icon="mdi:clipboard-check-outline" width={18} color={theme.palette.warning.main} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Movement History" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleHistoryClick(e, item)}
+                            disabled={isAnyLoading}
+                            color="secondary"
+                            skin="light"
+                            variant="tonal"
+                          >
+                            <Icon icon="mdi:timeline-clock-outline" width={18} color={theme.palette.secondary.main} />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                   )}
@@ -286,7 +360,9 @@ const BranchInventoryTable = ({
                   <Box className="py-4">
                     <Icon icon="mdi:package-variant-closed" width={28} color={theme.palette.text.secondary} style={{ marginBottom: 4 }} />
                     <Typography variant="body2" color="textSecondary">
-                      No inventory items found
+                      {isRestrictedToAssignedBranches
+                        ? 'No inventory items found in this assigned branch'
+                        : 'No inventory items found'}
                     </Typography>
                   </Box>
                 </TableCell>

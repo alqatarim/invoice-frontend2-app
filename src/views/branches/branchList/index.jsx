@@ -1,14 +1,17 @@
 import BranchList from './BranchList';
 
-const BranchListIndex = ({ initialData, initialProvincesCities = [] }) => {
-  const initialBranches = initialData?.branches || [];
-  const initialPagination = initialData?.pagination || { current: 1, pageSize: 10, total: 0 };
-
+const BranchListIndex = ({
+  initialBranches = [],
+  initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialProvincesCities = [],
+  initialUsers = [],
+}) => {
   return (
     <BranchList
       initialBranches={initialBranches}
       initialPagination={initialPagination}
       initialProvincesCities={initialProvincesCities}
+      initialUsers={initialUsers}
     />
   );
 };

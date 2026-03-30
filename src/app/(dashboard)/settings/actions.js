@@ -449,12 +449,26 @@ export async function updateSignatureStatus(id, status) {
 /**
  * Invoice Template Actions
  */
+const normalizeInvoiceTemplateResponse = (payload = {}) => {
+  const record = payload?.updatedData || payload || {}
+  const defaultTemplateId = String(
+    record?.default_invoice_template ||
+    record?.defaultInvoiceTemplate ||
+    '1'
+  )
+
+  return {
+    ...record,
+    defaultTemplateId
+  }
+}
+
 export async function getDefaultInvoiceTemplate() {
   try {
     const response = await fetchWithAuth(endPoints.invoiceTemplate.view, {
       method: 'GET'
     })
-    return { success: true, data: response.data }
+    return { success: true, data: normalizeInvoiceTemplateResponse(response.data) }
   } catch (error) {
     console.error('Error fetching default invoice template:', error)
     return { success: false, message: error.message }
@@ -465,12 +479,15 @@ export async function updateDefaultInvoiceTemplate(templateId) {
   try {
     const response = await fetchWithAuth(endPoints.invoiceTemplate.update, {
       method: 'PUT',
-      body: JSON.stringify({ defaultInvoiceTemplate: templateId }),
+      body: JSON.stringify({
+        default_invoice_template: templateId,
+        defaultInvoiceTemplate: templateId
+      }),
       headers: {
         'Content-Type': 'application/json'
       }
     })
-    return { success: true, data: response.data }
+    return { success: true, data: normalizeInvoiceTemplateResponse(response.data) }
   } catch (error) {
     console.error('Error updating default invoice template:', error)
     return { success: false, message: error.message }

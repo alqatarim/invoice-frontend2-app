@@ -1,25 +1,38 @@
 import React from 'react';
 import BranchListIndex from '@/views/branches/branchList/index';
-import { getInitialBranchData, getProvincesCities } from '@/app/(dashboard)/branches/actions';
+import {
+  getActiveUsersForBranchAssignment,
+  getInitialBranchData,
+  getProvincesCities,
+} from '@/app/(dashboard)/branches/actions';
 
 export const metadata = {
-  title: 'Branches | Kanakku',
+  title: 'Stores | Kanakku',
 };
 
 const BranchesPage = async () => {
   try {
-    const [initialDataResult, provincesCitiesResult] = await Promise.allSettled([
+    const [initialBranchDataResult, provincesCitiesResult, initialUsersResult] = await Promise.allSettled([
       getInitialBranchData(),
-      getProvincesCities()
+      getProvincesCities(),
+      getActiveUsersForBranchAssignment()
     ]);
 
-    if (initialDataResult.status !== 'fulfilled') {
-      throw initialDataResult.reason;
+    if (initialBranchDataResult.status !== 'fulfilled') {
+      throw initialBranchDataResult.reason;
     }
 
     const provincesCities = provincesCitiesResult.status === 'fulfilled' ? provincesCitiesResult.value : [];
+    const initialBranchData = initialBranchDataResult.value || {};
+    const initialUsers = initialUsersResult.status === 'fulfilled' ? initialUsersResult.value || [] : [];
+
     return (
-      <BranchListIndex initialData={initialDataResult.value} initialProvincesCities={provincesCities} />
+      <BranchListIndex
+        initialBranches={initialBranchData.branches || []}
+        initialPagination={initialBranchData.pagination || { current: 1, pageSize: 10, total: 0 }}
+        initialProvincesCities={provincesCities}
+        initialUsers={initialUsers}
+      />
     );
   } catch (error) {
     console.error('BranchesPage: Error fetching data:', error);

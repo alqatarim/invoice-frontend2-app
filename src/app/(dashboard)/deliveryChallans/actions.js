@@ -27,7 +27,6 @@ const ENDPOINTS = {
   }
 };
 
-const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
 const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
 
 /**
@@ -59,36 +58,6 @@ export async function getInitialDeliveryChallanData() {
   } catch (error) {
     console.error('Error in getInitialDeliveryChallanData:', error);
     throw new Error(error.message || 'Failed to fetch initial delivery challan data');
-  }
-}
-
-/**
- * Get delivery challan stats for dashboard cards.
- */
-export async function getDeliveryChallanStats() {
-  try {
-    const response = await fetchWithAuth(
-      ENDPOINTS.DELIVERY_CHALLANS.LIST + '?skip=0&limit=1000',
-      CACHE_STABLE_LIST
-    );
-
-    if (response.code === 200) {
-      const deliveryChallans = response.data || [];
-      const cardCounts = {
-        all: deliveryChallans.length,
-        active: deliveryChallans.filter(dc => dc.status === 'ACTIVE' || !dc.isDeleted).length,
-        converted: deliveryChallans.filter(dc => dc.status === 'CONVERTED').length,
-        cancelled: deliveryChallans.filter(dc => dc.status === 'CANCELLED').length,
-      };
-
-      return { cardCounts };
-    } else {
-      console.error('Failed to fetch delivery challan stats');
-      throw new Error('Failed to fetch delivery challan stats');
-    }
-  } catch (error) {
-    console.error('Error in getDeliveryChallanStats:', error);
-    throw new Error(error.message || 'Failed to fetch delivery challan stats');
   }
 }
 
@@ -548,13 +517,19 @@ export async function cloneDeliveryChallan(id) {
  */
 export async function convertToInvoice(data) {
   try {
-    const formData = new FormData();
-    formData.append('_id', data._id);
+    const deliveryChallanId = typeof data === 'string' ? data : data?._id;
 
-    if (data.isRecurring !== undefined) {
+    if (!deliveryChallanId) {
+      throw new Error('Delivery challan id is required for conversion.');
+    }
+
+    const formData = new FormData();
+    formData.append('_id', deliveryChallanId);
+
+    if (typeof data === 'object' && data?.isRecurring !== undefined) {
       formData.append('isRecurring', data.isRecurring);
     }
-    if (data.recurringCycle !== undefined) {
+    if (typeof data === 'object' && data?.recurringCycle !== undefined) {
       formData.append('recurringCycle', data.recurringCycle);
     }
 

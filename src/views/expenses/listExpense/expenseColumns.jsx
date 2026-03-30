@@ -1,13 +1,12 @@
-import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import { Typography, Chip, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import OptionMenu from '@core/components/option-menu';
 import { formatDate } from '@/utils/dateUtils';
-import { actionButtons } from '@/data/dataSets';
+import { actionButtons, expenseStatusOptions } from '@/data/dataSets';
 
 // Action cell extracted into its own component so hooks are used at the top level
-const ActionCell = ({ row, handlers, permissions }) => {
+const ActionCell = ({ row, onDelete, onView, onEdit, permissions }) => {
   const viewAction = actionButtons.find(action => action.id === 'view');
   const editAction = actionButtons.find(action => action.id === 'edit');
   const deleteAction = actionButtons.find(action => action.id === 'delete');
@@ -20,7 +19,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers?.handleView?.(row._id)
+        onClick: () => onView?.(row._id)
       }
     });
   }
@@ -31,16 +30,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={editAction?.icon || 'mdi:edit-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers?.handleEdit?.(row._id)
-      }
-    });
-
-    menuOptions.push({
-      text: 'Print & Download',
-      icon: <Icon icon="mdi:printer-outline" />,
-      menuItemProps: {
-        className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers.handlePrintDownload?.(row._id)
+        onClick: () => onEdit?.(row._id)
       }
     });
   }
@@ -51,7 +41,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers.handleDelete?.(row._id)
+        onClick: () => onDelete?.(row._id)
       }
     });
   }
@@ -72,16 +62,22 @@ const ActionCell = ({ row, handlers, permissions }) => {
 /**
  * Expense table column definitions
  */
-export const getExpenseColumns = ({ theme = {}, permissions = {} } = {}) => [
+export const getExpenseColumns = ({
+  theme = {},
+  permissions = {},
+  onDelete,
+  onView,
+  onEdit,
+} = {}) => [
   {
     key: 'expenseId',
     visible: true,
     label: 'Expense ID',
     sortable: true,
-    renderCell: (row, handlers) => (
+    renderCell: (row) => (
       <Typography
         className="cursor-pointer text-primary hover:underline font-medium"
-        onClick={() => handlers?.handleView?.(row._id)}
+        onClick={() => onView?.(row._id)}
       >
         {row.expenseId || 'N/A'}
       </Typography>
@@ -181,20 +177,9 @@ export const getExpenseColumns = ({ theme = {}, permissions = {} } = {}) => [
     align: 'center',
     sortable: true,
     renderCell: (row) => {
-      const getStatusConfig = (status) => {
-        switch (status?.toLowerCase()) {
-          case 'paid':
-            return { color: 'success', label: 'Paid' };
-          case 'pending':
-            return { color: 'warning', label: 'Pending' };
-          case 'cancelled':
-            return { color: 'error', label: 'Cancelled' };
-          default:
-            return { color: 'default', label: status || 'N/A' };
-        }
-      };
-
-      const statusConfig = getStatusConfig(row.status);
+      const statusConfig = expenseStatusOptions.find(
+        (option) => option.value.toLowerCase() === String(row.status || '').toLowerCase()
+      ) || { color: 'default', label: row.status || 'N/A' };
       return (
         <Chip
           className='mx-0'
@@ -211,11 +196,13 @@ export const getExpenseColumns = ({ theme = {}, permissions = {} } = {}) => [
     label: '',
     visible: true,
     align: 'right',
-    renderCell: (row, handlers) => (
+    renderCell: (row) => (
       <ActionCell
         row={row}
-        handlers={handlers}
-        permissions={handlers?.permissions}
+        onDelete={onDelete}
+        onView={onView}
+        onEdit={onEdit}
+        permissions={permissions}
       />
     ),
   },

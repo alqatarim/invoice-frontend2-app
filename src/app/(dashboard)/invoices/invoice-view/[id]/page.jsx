@@ -1,21 +1,26 @@
 import React from 'react';
 
-import { getInvoiceById } from '@/app/(dashboard)/invoices/actions';
-// import { getInvoiceForEditing } from '../actions';
-import InvoiceView from '@/views/invoices/viewInvoice/index';
+import InvoiceView from '@/views/invoices/viewInvoice';
+import {
+  getCompanySettings,
+  getInvoiceById,
+  getInvoiceSettings,
+} from './actions';
 
-/**
- * InvoiceViewPage Component
- * Server-side component to fetch invoice data and render the ViewInvoice client component.
- *
- * @param {Object} params - Dynamic route parameters.
- * @param {string} params.id - Invoice ID from the URL.
- * @returns JSX.Element
- */
+
 const InvoiceViewPage = async ({ params }) => {
   const { id } = params;
+  const invoiceData = await getInvoiceById(id);
+  const companyId = invoiceData?.companyId?._id || invoiceData?.companyId || '';
+  const companyData = companyId ? await getCompanySettings(companyId) : null;
+  const invoiceSettings = await getInvoiceSettings();
+
   return (
-    <InvoiceView id={id} initialInvoiceData={await getInvoiceById(id)} />
+    <InvoiceView
+      initialInvoiceData={invoiceData}
+      initialCompanyData={companyData}
+      initialInvoiceSettings={invoiceSettings}
+    />
   );
 }
 

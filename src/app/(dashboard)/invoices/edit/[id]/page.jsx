@@ -1,8 +1,15 @@
-// app/(dashboard)/invoices/[id]/page.jsx
-
+import React from 'react';
 import { notFound } from 'next/navigation';
-import EditInvoiceIndex from '@/views/invoices/editInvoice/index';
-import { getInvoiceById, getCustomers, getProducts, getTaxRates, getBanks, getManualSignatures } from '@/app/(dashboard)/invoices/actions';
+import EditInvoiceIndex from '@/views/invoices/editInvoice';
+import {
+  getBanks,
+  getBranchesForDropdown,
+  getCustomers,
+  getInvoiceById,
+  getManualSignatures,
+  getProducts,
+  getTaxRates,
+} from './actions';
 
 export const metadata = {
   title: 'Edit Invoice | Kanakku',
@@ -12,28 +19,37 @@ const EditInvoicePage = async ({ params }) => {
   const { id } = params;
 
   try {
-    const [invoiceData, customersData, productData, taxRates, initialBanks, signatures] = await Promise.all([
+    const [
+      initialInvoiceData,
+      initialCustomersData,
+      initialProductData,
+      initialTaxRates,
+      initialBanks,
+      initialSignatures,
+      initialBranchesData,
+    ] = await Promise.all([
       getInvoiceById(id),
       getCustomers(),
       getProducts(),
       getTaxRates(),
       getBanks(),
       getManualSignatures(),
+      getBranchesForDropdown(),
     ]);
 
-    if (!invoiceData) {
+    if (!initialInvoiceData || !initialInvoiceData._id) {
       notFound();
     }
 
     return (
       <EditInvoiceIndex
-        id={id}
-        invoiceData={invoiceData}
-        customersData={customersData}
-        productData={productData}
-        taxRates={taxRates}
+        initialInvoiceData={initialInvoiceData}
+        initialCustomersData={initialCustomersData}
+        initialProductData={initialProductData}
+        initialTaxRates={initialTaxRates}
         initialBanks={initialBanks}
-        signatures={signatures}
+        initialSignatures={initialSignatures}
+        initialBranchesData={initialBranchesData}
       />
     );
   } catch (error) {

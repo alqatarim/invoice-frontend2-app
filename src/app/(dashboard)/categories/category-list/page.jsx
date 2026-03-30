@@ -11,11 +11,13 @@ export const metadata = {
  */
 const CategoriesPage = async () => {
   try {
-    // Single server-side data fetch
-    const initialData = await getInitialCategoryData();
+    const initialCategoryData = await getInitialCategoryData();
 
     return (
-      <CategoryListIndex initialData={initialData} />
+      <CategoryListIndex
+        initialCategories={initialCategoryData?.categories || []}
+        initialPagination={initialCategoryData?.pagination || { current: 1, pageSize: 10, total: 0 }}
+      />
     );
   } catch (error) {
     console.error('CategoriesPage: Error fetching data:', error);

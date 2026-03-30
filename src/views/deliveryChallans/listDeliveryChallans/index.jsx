@@ -3,11 +3,16 @@
 import React from "react";
 import ListDeliveryChallans from "@/views/deliveryChallans/listDeliveryChallans/listDeliveryChallans";
 
-const DeliveryChallanListIndex = ({ initialData, customers }) => {
+const DeliveryChallanListIndex = ({
+     initialDeliveryChallans = [],
+     initialPagination,
+     initialErrorMessage = '',
+}) => {
      return (
           <ListDeliveryChallans
-               initialData={initialData}
-               customers={customers}
+               initialDeliveryChallans={initialDeliveryChallans}
+               initialPagination={initialPagination}
+               initialErrorMessage={initialErrorMessage}
           />
      );
 };

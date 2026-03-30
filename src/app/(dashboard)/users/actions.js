@@ -36,7 +36,8 @@ export async function getUserById(id) {
           });
 
           // Assuming a successful response contains a 'data' property
-          return response.data?.user_details || {};
+          const userDetails = response.data?.user_details;
+          return Array.isArray(userDetails) ? null : userDetails || null;
      } catch (error) {
           console.error('Error in getUserById:', error);
           throw error; // Propagate the error to be handled by the caller
@@ -145,7 +146,22 @@ export async function getFilteredUsers(page, pageSize, filters = {}, sortBy = ''
  * @throws {Error} - Throws an error with a detailed message if the operation fails.
  */
 export async function addUser(userData) {
-     const { firstName, lastName, userName, email, mobileNumber, role, password, status, image } = userData;
+     const {
+          firstName,
+          lastName,
+          userName,
+          email,
+          mobileNumber,
+          role,
+          roleId,
+          companyRole,
+          assignedBranchIds = [],
+          primaryBranchId = '',
+          branchRole = '',
+          password,
+          status,
+          image
+     } = userData;
 
      if (!firstName || typeof firstName !== 'string') {
           throw new Error('Invalid first name');
@@ -182,6 +198,11 @@ export async function addUser(userData) {
      formData.append('email', email);
      formData.append('mobileNumber', mobileNumber || '');
      formData.append('role', role);
+     formData.append('roleId', roleId || '');
+     formData.append('companyRole', companyRole || 'COMPANY_MEMBER');
+     formData.append('assignedBranchIds', JSON.stringify(assignedBranchIds || []));
+     formData.append('primaryBranchId', primaryBranchId || '');
+     formData.append('branchRole', branchRole || '');
      formData.append('password', password);
      formData.append('status', status);
 
@@ -228,7 +249,22 @@ export async function updateUser(id, userData) {
           throw new Error('Invalid user ID');
      }
 
-     const { firstName, lastName, userName, email, mobileNumber, role, status, image } = userData;
+     const {
+          firstName,
+          lastName,
+          userName,
+          email,
+          mobileNumber,
+          role,
+          roleId,
+          companyRole,
+          assignedBranchIds = [],
+          primaryBranchId = '',
+          branchRole = '',
+          status,
+          image,
+          imageRemoved = false
+     } = userData;
 
      if (!firstName || typeof firstName !== 'string') {
           throw new Error('Invalid first name');
@@ -261,13 +297,17 @@ export async function updateUser(id, userData) {
      formData.append('email', email);
      formData.append('mobileNumber', mobileNumber || '');
      formData.append('role', role);
+     formData.append('roleId', roleId || '');
+     formData.append('companyRole', companyRole || 'COMPANY_MEMBER');
+     formData.append('assignedBranchIds', JSON.stringify(assignedBranchIds || []));
+     formData.append('primaryBranchId', primaryBranchId || '');
+     formData.append('branchRole', branchRole || '');
      formData.append('status', status);
 
-     // Handle image upload - if image is provided, append it, otherwise handle removal
+     // Only remove the image when the dialog explicitly requests it.
      if (image && image instanceof File) {
           formData.append('image', image);
-     } else if (image === null || image === undefined) {
-          // For image removal, we might need to handle this differently based on backend requirements
+     } else if (imageRemoved) {
           formData.append('image', 'remove');
      }
 

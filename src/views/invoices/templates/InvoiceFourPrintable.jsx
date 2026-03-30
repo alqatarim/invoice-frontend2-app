@@ -1,21 +1,12 @@
 /* eslint-disable react/prop-types */
-import React, { useEffect } from "react";
-import { InvoiceLogo1 } from "../../../../common/imagepath";
-import { Link } from "react-router-dom";
+import React from "react";
 import { Table } from "antd";
-import { amountFormat, toTitleCase } from "../../../../common/helper";
-import AmountToWords from "../../../../common/AmountToWords";
+import { InvoiceLogo1 } from "@/common/imagepath";
+import { amountFormat, toTitleCase } from "@/common/helper";
+import AmountToWords from "@/common/AmountToWords";
 import moment from "moment";
 
 const InvoiceFourprint = ({ data, invoiceLogo, currencyData, companyData }) => {
-  useEffect(() => {
-    document.body.classList.add("darktheme");
-
-    return () => {
-      document.body.classList.remove("darktheme");
-    };
-  }, []);
-
   const dataSources = data.items;
 
   const columns = [
@@ -82,7 +73,7 @@ const InvoiceFourprint = ({ data, invoiceLogo, currencyData, companyData }) => {
               <div className="invoicenine-header">
                 <div className="invoice-header">
                   <div className="inv-header-left">
-                    <Link to="#">
+                    <div>
                       <img
                         src={invoiceLogo}
                         onError={(event) => {
@@ -90,7 +81,7 @@ const InvoiceFourprint = ({ data, invoiceLogo, currencyData, companyData }) => {
                         }}
                         alt="Logo"
                       />
-                    </Link>
+                    </div>
                   </div>
                   <div className="inv-header-right">
                     <div className="invoice-title">TAX INVOICE</div>

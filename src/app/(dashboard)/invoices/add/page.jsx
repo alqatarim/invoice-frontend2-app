@@ -1,6 +1,14 @@
 import React from 'react';
-import AddInvoiceIndex from '@/views/invoices/addInvoice/index';
-import { getCustomers, getProducts, getTaxRates, getBanks, getManualSignatures, getNextInvoiceNumber } from '@/app/(dashboard)/invoices/actions';
+import AddInvoiceIndex from '@/views/invoices/addInvoice';
+import {
+  getBanks,
+  getBranchesForDropdown,
+  getCustomers,
+  getManualSignatures,
+  getNextInvoiceNumber,
+  getProducts,
+  getTaxRates,
+} from './actions';
 
 export const metadata = {
   title: 'Add Invoice | Kanakku',
@@ -8,23 +16,33 @@ export const metadata = {
 
 const AddInvoicePage = async () => {
   try {
-    const [customersData, productData, taxRates, initialBanks, signatures, invoiceNumber] = await Promise.all([
+    const [
+      initialCustomersData,
+      initialProductData,
+      initialTaxRates,
+      initialBanks,
+      initialSignatures,
+      initialInvoiceNumber,
+      initialBranchesData,
+    ] = await Promise.all([
       getCustomers(),
       getProducts(),
       getTaxRates(),
       getBanks(),
       getManualSignatures(),
       getNextInvoiceNumber(),
+      getBranchesForDropdown(),
     ]);
 
     return (
       <AddInvoiceIndex
-        customersData={customersData}
-        productData={productData}
-        taxRates={taxRates}
+        initialCustomersData={initialCustomersData}
+        initialProductData={initialProductData}
+        initialTaxRates={initialTaxRates}
         initialBanks={initialBanks}
-        signatures={signatures}
-        invoiceNumber={invoiceNumber}
+        initialSignatures={initialSignatures}
+        initialInvoiceNumber={initialInvoiceNumber}
+        initialBranchesData={initialBranchesData}
       />
     );
   } catch (error) {

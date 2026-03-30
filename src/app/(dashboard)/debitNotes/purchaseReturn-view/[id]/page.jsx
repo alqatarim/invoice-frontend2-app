@@ -9,6 +9,7 @@ export const metadata = {
 
 const ViewDebitNotePage = async ({ params }) => {
   let initialDebitNoteData = null;
+  let initialErrorMessage = '';
 
   try {
     const response = await getDebitNoteDetails(params.id);
@@ -17,12 +18,13 @@ const ViewDebitNotePage = async ({ params }) => {
     }
   } catch (error) {
     console.error('Failed to fetch debit note details:', error);
+    initialErrorMessage = error?.message || 'Failed to fetch debit note details.';
   }
 
   return (
     <ViewDebitNoteIndex
-      debitNoteId={params.id}
       initialDebitNoteData={initialDebitNoteData}
+      initialErrorMessage={initialErrorMessage}
     />
   );
 };

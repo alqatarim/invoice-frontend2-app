@@ -27,6 +27,10 @@ import {
 import { Icon } from '@iconify/react'
 import { useSnackbar } from 'notistack'
 import { getPermissionsByRoleId, updatePermissions } from '@/app/(dashboard)/roles-permission/actions'
+import {
+  isAlwaysEnabledModule,
+  normalizePermissionModules,
+} from '@/common/allModules'
 
 const PermissionsDialog = ({ open, onClose, roleId, roleName }) => {
   const theme = useTheme()
@@ -39,16 +43,6 @@ const PermissionsDialog = ({ open, onClose, roleId, roleName }) => {
   const [originalPermissions, setOriginalPermissions] = useState(null)
   const [permissionId, setPermissionId] = useState(null)
 
-  // Special modules that are always enabled
-  const alwaysEnabledModules = ['dashboard', 'accountSettings']
-
-  // Utility function to convert camelCase to spaced string
-  const camelCaseToSpaced = (camelCaseString) => {
-    return camelCaseString
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, (str) => str.toUpperCase())
-  }
-
   // Load permissions data
   const loadPermissions = async () => {
     if (!roleId) return
@@ -58,8 +52,13 @@ const PermissionsDialog = ({ open, onClose, roleId, roleName }) => {
       const result = await getPermissionsByRoleId(roleId)
       
       if (result && result.permissions) {
-        setPermissions(result.permissions)
-        setOriginalPermissions(JSON.parse(JSON.stringify(result.permissions)))
+        const normalizedPermissions = {
+          ...result.permissions,
+          modules: normalizePermissionModules(result.permissions.modules || [])
+        }
+
+        setPermissions(normalizedPermissions)
+        setOriginalPermissions(JSON.parse(JSON.stringify(normalizedPermissions)))
         setPermissionId(result.permissions._id)
       } else {
         enqueueSnackbar('No permissions data found', { variant: 'warning' })
@@ -83,23 +82,41 @@ const PermissionsDialog = ({ open, onClose, roleId, roleName }) => {
     }
   }, [open, roleId])
 
+  const hasAllModulesEnabled = (modules = []) => {
+    return modules.every(module => {
+      if (isAlwaysEnabledModule(module.module)) return true
+
+      return Boolean(module.permissions?.all)
+    })
+  }
+
   // Handle All Modules toggle
   const handleAllModulesChange = (checked) => {
     if (!permissions) return
 
+    const modules = normalizePermissionModules(
+      permissions.modules.map(module => {
+        if (isAlwaysEnabledModule(module.module)) {
+          return module
+        }
+
+        return {
+          ...module,
+          permissions: {
+            create: checked,
+            update: checked,
+            delete: checked,
+            view: checked,
+            all: checked
+          }
+        }
+      })
+    )
+
     const updatedPermissions = {
       ...permissions,
       allModules: checked,
-      modules: permissions.modules.map(module => ({
-        ...module,
-        permissions: {
-          create: checked,
-          update: checked,
-          delete: checked,
-          view: checked,
-          all: checked
-        }
-      }))
+      modules
     }
 
     setPermissions(updatedPermissions)
@@ -108,6 +125,7 @@ const PermissionsDialog = ({ open, onClose, roleId, roleName }) => {
   // Handle individual permission change
   const handlePermissionChange = (moduleIndex, permissionType, checked) => {
     if (!permissions) return
+    if (isAlwaysEnabledModule(permissions.modules?.[moduleIndex]?.module)) return
 
     const updatedModules = [...permissions.modules]
     updatedModules[moduleIndex] = {
@@ -125,21 +143,22 @@ const PermissionsDialog = ({ open, onClose, roleId, roleName }) => {
     )
     updatedModules[moduleIndex].permissions.all = allPermissionsChecked
 
+    const normalizedModules = normalizePermissionModules(updatedModules)
+
     // Check if all modules have all permissions to update global allModules
-    const allModulesChecked = updatedModules.every(module => 
-      module.permissions.all || alwaysEnabledModules.includes(module.module)
-    )
+      const allModulesChecked = hasAllModulesEnabled(normalizedModules)
 
     setPermissions({
       ...permissions,
       allModules: allModulesChecked,
-      modules: updatedModules
+      modules: normalizedModules
     })
   }
 
   // Handle module "all" permission toggle
   const handleModuleAllChange = (moduleIndex, checked) => {
     if (!permissions) return
+    if (isAlwaysEnabledModule(permissions.modules?.[moduleIndex]?.module)) return
 
     const updatedModules = [...permissions.modules]
     updatedModules[moduleIndex] = {
@@ -153,15 +172,15 @@ const PermissionsDialog = ({ open, onClose, roleId, roleName }) => {
       }
     }
 
+    const normalizedModules = normalizePermissionModules(updatedModules)
+
     // Check if all modules have all permissions to update global allModules
-    const allModulesChecked = updatedModules.every(module => 
-      module.permissions.all || alwaysEnabledModules.includes(module.module)
-    )
+    const allModulesChecked = hasAllModulesEnabled(normalizedModules)
 
     setPermissions({
       ...permissions,
       allModules: allModulesChecked,
-      modules: updatedModules
+      modules: normalizedModules
     })
   }
 
@@ -384,7 +403,7 @@ const PermissionsDialog = ({ open, onClose, roleId, roleName }) => {
                 </TableHead>
                 <TableBody>
                   {permissions.modules?.map((module, index) => {
-                    const isAlwaysEnabled = alwaysEnabledModules.includes(module.module)
+                    const isAlwaysEnabled = isAlwaysEnabledModule(module.module)
                     const isDisabled = saving || isAdmin || isAlwaysEnabled
 
                     return (

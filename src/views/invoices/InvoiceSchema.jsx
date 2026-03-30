@@ -26,6 +26,10 @@ export const InvoiceSchema = yup.object().shape({
     .string()
     .required("Choose payment method"),
 
+  branchId: yup
+    .string()
+    .required("Choose a store"),
+
   invoiceDate: yup
     .date()
     .required("Invoice date is required")

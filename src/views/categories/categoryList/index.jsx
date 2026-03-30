@@ -1,13 +1,16 @@
-'use client'
+'use client';
 
-import React from "react";
-import CategoryList from "@/views/categories/categoryList/CategoryList";
+import React from 'react';
+import CategoryList from './CategoryList';
 
-const CategoryListIndex = ({ initialData }) => {
+const CategoryListIndex = ({
+  initialCategories = [],
+  initialPagination = { current: 1, pageSize: 10, total: 0 },
+}) => {
   return (
     <CategoryList
-      initialCategories={initialData?.categories || []}
-      initialPagination={initialData?.pagination || { current: 1, pageSize: 10, total: 0 }}
+      initialCategories={initialCategories}
+      initialPagination={initialPagination}
     />
   );
 };

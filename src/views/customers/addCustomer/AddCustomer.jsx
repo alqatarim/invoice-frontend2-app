@@ -23,8 +23,8 @@ import {
 } from '@mui/material'
 import { Icon } from '@iconify/react'
 import { usePermission } from '@/Auth/usePermission'
-import { useAddCustomerHandlers } from '@/handlers/customers/addCustomer'
 import AppSnackbar from '@/components/shared/AppSnackbar'
+import { useAddCustomerHandler } from './handler'
 
 const AddCustomer = () => {
   const [imagePreview, setImagePreview] = useState(null)
@@ -42,7 +42,7 @@ const AddCustomer = () => {
   const onSuccess = (msg) => setSnackbar({ open: true, message: msg, severity: 'success' })
 
   // Initialize handlers
-  const handlers = useAddCustomerHandlers({ onError, onSuccess })
+  const handlers = useAddCustomerHandler({ onError, onSuccess })
 
   if (!canCreate) {
     return (

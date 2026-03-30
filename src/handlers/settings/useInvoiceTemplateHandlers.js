@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as invoiceTemplatesActions from '@/app/(dashboard)/settings/actions'
+import { invoiceTemplateCatalog } from '@/common/invoiceTemplateCatalog'
 
 /**
  * Invoice Template Handlers Hook
@@ -7,8 +8,11 @@ import * as invoiceTemplatesActions from '@/app/(dashboard)/settings/actions'
  */
 export const useInvoiceTemplateHandlers = (initialData = {}) => {
   const [state, setState] = useState({
-    templates: initialData.templates || [],
-    defaultTemplate: initialData.defaultTemplate || null,
+    templates: initialData.templates || invoiceTemplateCatalog,
+    defaultTemplateId:
+      initialData.defaultTemplateId ||
+      initialData.invoiceTemplates?.defaultTemplateId ||
+      null,
     loading: false,
     updating: false,
     error: null
@@ -22,7 +26,7 @@ export const useInvoiceTemplateHandlers = (initialData = {}) => {
         if (result.success) {
           setState(prev => ({
             ...prev,
-            defaultTemplate: result.data,
+            defaultTemplateId: result.data?.defaultTemplateId,
             loading: false
           }))
           return result
@@ -45,7 +49,7 @@ export const useInvoiceTemplateHandlers = (initialData = {}) => {
         if (result.success) {
           setState(prev => ({
             ...prev,
-            defaultTemplate: result.data,
+            defaultTemplateId: result.data?.defaultTemplateId,
             updating: false
           }))
           return result

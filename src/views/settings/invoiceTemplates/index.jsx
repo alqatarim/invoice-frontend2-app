@@ -20,7 +20,7 @@ const InvoiceTemplatesIndex = ({ initialData = {} }) => {
     >
       <InvoiceTemplatesView
         templates={state.templates || []}
-        defaultTemplate={state.defaultTemplate}
+        defaultTemplateId={state.defaultTemplateId}
         loading={state.loading}
         updating={state.updating}
         error={state.error}

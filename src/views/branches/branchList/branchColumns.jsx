@@ -77,14 +77,14 @@ export const getBranchColumns = ({ permissions = {} } = {}) => [
     },
   },
   {
-    key: 'branchId',
+    key: 'storeCode',
     visible: true,
-    label: 'Branch ID',
+    label: 'Store Code',
     align: 'left',
     sortable: true,
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
-        {row.branchId || 'N/A'}
+        {row.storeCode || row.branchId || 'N/A'}
       </Typography>
     ),
   },
@@ -100,12 +100,12 @@ export const getBranchColumns = ({ permissions = {} } = {}) => [
     ),
   },
   {
-    key: 'branchType',
+    key: 'kind',
     visible: true,
-    label: 'Type',
+    label: 'Kind',
     align: 'center',
     renderCell: (row) => {
-      const isStore = row.branchType === 'Store';
+      const isStore = row.kind === 'STORE' || row.branchType === 'Store';
       return (
         <Chip
           size='small'
@@ -115,6 +115,22 @@ export const getBranchColumns = ({ permissions = {} } = {}) => [
         />
       );
     },
+  },
+  {
+    key: 'defaultAdminName',
+    visible: true,
+    label: 'Default Admin',
+    align: 'left',
+    renderCell: (row) => (
+      <Box className='flex flex-col'>
+        <Typography variant="body2" color='text.primary' fontWeight={500}>
+          {row.defaultAdminName || (row.kind === 'STORE' ? 'Not assigned' : 'N/A')}
+        </Typography>
+        <Typography variant="caption" color='text.secondary'>
+          {row.defaultAdminEmail || (row.kind === 'STORE' ? 'Store admin required' : 'Warehouse')}
+        </Typography>
+      </Box>
+    ),
   },
   {
     key: 'province',
@@ -151,7 +167,7 @@ export const getBranchColumns = ({ permissions = {} } = {}) => [
   },
   {
     key: 'status',
-    visible: false,
+    visible: true,
     label: 'Status',
     align: 'center',
     renderCell: (row) => {

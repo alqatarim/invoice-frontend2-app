@@ -438,6 +438,13 @@ const CompanySettingsForm = ({
           </Alert>
         )}
 
+        {(resolvedCompanySettings.ownerUserId || resolvedCompanySettings.companyRole) && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            {`Company scope: ${resolvedCompanySettings.companyRole || 'STAFF'} account`}
+            {resolvedCompanySettings.isCompanyOwner ? ' with owner access.' : '.'}
+          </Alert>
+        )}
+
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
           <input type="hidden" {...register('googleLocationAddress')} />
           <input type="hidden" {...register('googleLocationPlaceId')} />

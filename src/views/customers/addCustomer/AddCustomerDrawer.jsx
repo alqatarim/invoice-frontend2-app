@@ -2,7 +2,6 @@
 
 // React Imports
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 // MUI Imports
 import Button from '@mui/material/Button'
@@ -54,10 +53,7 @@ const getCountryCodeFromName = (countryName) => {
 
 const AddCustomerDialog = props => {
   // Props
-  const { open, handleClose, onSuccess, onError, setData, customerData } = props
-
-  // Router
-  const router = useRouter()
+  const { open, handleClose, onSuccess, onError, onCreated, setData, customerData } = props
 
   // Permissions
   const canCreate = usePermission('customer', 'create')
@@ -164,9 +160,12 @@ const AddCustomerDialog = props => {
         resetForm()
         setBillingAsSameAddress(true)
         handleClose()
-        
-        // Refresh the page to show the new customer
-        window.location.reload()
+
+        if (onCreated) {
+          await onCreated()
+        } else {
+          window.location.reload()
+        }
       } else {
         if (onError) {
           onError(response?.data?.message || response?.message || 'Failed to add customer')

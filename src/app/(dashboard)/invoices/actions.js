@@ -47,6 +47,18 @@ const ENDPOINTS = {
 
 const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
 
+export const normalizePaymentMethodValue = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+
+  if (normalized === 'cash' || normalized === 'cash value') return 'Cash';
+  if (normalized === 'card' || normalized === 'credit card' || normalized === 'debit card') return 'Card';
+  if (normalized === 'bank' || normalized === 'bank transfer') return 'Bank';
+  if (normalized === 'online') return 'Online';
+  if (normalized === 'cheque' || normalized === 'check') return 'Cheque';
+
+  return value || 'Cash';
+};
+
 /*
  * Get invoice details by ID.
  *
@@ -105,7 +117,7 @@ export async function addPayment(paymentData) {
   const payload = {
     invoiceId,
     amount,
-    payment_method: paymentMethod,
+    payment_method: normalizePaymentMethodValue(paymentMethod),
     notes: notes || '',
     received_on: received_on ? moment(received_on).format('DD/MM/YYYY') : null,
   };
@@ -529,11 +541,25 @@ export async function updateInvoice(id, updatedFormData) {
     formData.append(`items[${i}][form_updated_discount]`, dataSource[i]?.form_updated_discount);
     formData.append(`items[${i}][form_updated_rate]`, dataSource[i]?.form_updated_rate);
     formData.append(`items[${i}][form_updated_tax]`, dataSource[i]?.form_updated_tax);
+    formData.append(`items[${i}][promotionAutoApplied]`, dataSource[i]?.promotionAutoApplied ? 'true' : 'false');
+    if (dataSource[i]?.promotionSummary) {
+      formData.append(`items[${i}][promotionSummary]`, dataSource[i].promotionSummary);
+    }
+    if (dataSource[i]?.promotionMeta) {
+      formData.append(`items[${i}][promotionMeta]`, JSON.stringify(dataSource[i].promotionMeta));
+    }
+    if (dataSource[i]?.scaleBarcodeSummary) {
+      formData.append(`items[${i}][scaleBarcodeSummary]`, dataSource[i].scaleBarcodeSummary);
+    }
+    if (dataSource[i]?.scaleBarcodeMeta) {
+      formData.append(`items[${i}][scaleBarcodeMeta]`, JSON.stringify(dataSource[i].scaleBarcodeMeta));
+    }
   }
 
   formData.append("invoiceNumber", updatedFormData.invoiceNumber);
   formData.append("customerId", updatedFormData.customerId);
-  formData.append("payment_method", updatedFormData.payment_method);
+  formData.append("payment_method", normalizePaymentMethodValue(updatedFormData.payment_method));
+  formData.append("branchId", updatedFormData.branchId || "");
   formData.append("dueDate", updatedFormData?.dueDate);
   formData.append("invoiceDate", updatedFormData?.invoiceDate);
   formData.append("referenceNo", updatedFormData.referenceNo);
@@ -708,11 +734,25 @@ export async function addInvoice(invoiceData) {
     formData.append(`items[${i}][form_updated_discount]`, dataSource[i]?.form_updated_discount);
     formData.append(`items[${i}][form_updated_rate]`, dataSource[i]?.form_updated_rate);
     formData.append(`items[${i}][form_updated_tax]`, dataSource[i]?.form_updated_tax);
+    formData.append(`items[${i}][promotionAutoApplied]`, dataSource[i]?.promotionAutoApplied ? 'true' : 'false');
+    if (dataSource[i]?.promotionSummary) {
+      formData.append(`items[${i}][promotionSummary]`, dataSource[i].promotionSummary);
+    }
+    if (dataSource[i]?.promotionMeta) {
+      formData.append(`items[${i}][promotionMeta]`, JSON.stringify(dataSource[i].promotionMeta));
+    }
+    if (dataSource[i]?.scaleBarcodeSummary) {
+      formData.append(`items[${i}][scaleBarcodeSummary]`, dataSource[i].scaleBarcodeSummary);
+    }
+    if (dataSource[i]?.scaleBarcodeMeta) {
+      formData.append(`items[${i}][scaleBarcodeMeta]`, JSON.stringify(dataSource[i].scaleBarcodeMeta));
+    }
   }
 
   formData.append("invoiceNumber", invoiceData.invoiceNumber);
   formData.append("customerId", invoiceData.customerId);
-  formData.append("payment_method", invoiceData.payment_method);
+  formData.append("payment_method", normalizePaymentMethodValue(invoiceData.payment_method));
+  formData.append("branchId", invoiceData.branchId || "");
   formData.append("dueDate", invoiceData?.dueDate);
   formData.append("invoiceDate", invoiceData?.invoiceDate);
   formData.append("referenceNo", invoiceData.referenceNo);

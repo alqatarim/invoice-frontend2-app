@@ -3,6 +3,7 @@ const path = require('path');
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  distDir: process.env.BUILD_DIR || '.next',
   images: {
     remotePatterns: [
       {

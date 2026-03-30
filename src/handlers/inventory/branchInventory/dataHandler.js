@@ -20,22 +20,27 @@ export function branchInventoryDataHandler({
     sortBy: initialSortBy,
     sortDirection: initialSortDirection,
   });
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filterValues, setFilterValues] = useState({
+    searchBranch: '',
+    searchProduct: '',
+    branchType: '',
+    status: '',
+  });
   const loadingRef = useRef(false);
 
   const stateRef = useRef({
-    searchTerm,
     pagination,
     sorting,
+    filterValues,
   });
 
   useEffect(() => {
     stateRef.current = {
-      searchTerm,
       pagination,
       sorting,
+      filterValues,
     };
-  }, [searchTerm, pagination, sorting]);
+  }, [pagination, sorting, filterValues]);
 
   const fetchData = useCallback(async (params = {}) => {
     if (loadingRef.current) return;
@@ -49,13 +54,18 @@ export function branchInventoryDataHandler({
         pageSize = currentState.pagination.pageSize,
         sortBy = currentState.sorting.sortBy,
         sortDirection = currentState.sorting.sortDirection,
-        search = currentState.searchTerm,
+        filters = currentState.filterValues,
       } = params;
 
       const response = await getBranchInventory(
         page,
         pageSize,
-        { search_branch: search },
+        {
+          search_branch: filters.searchBranch,
+          search_product: filters.searchProduct,
+          branchType: filters.branchType,
+          status: filters.status,
+        },
         sortBy,
         sortDirection
       );
@@ -112,13 +122,49 @@ export function branchInventoryDataHandler({
   }, [fetchData]);
 
   const handleSearchInputChange = useCallback(async (value) => {
-    if (value === stateRef.current.searchTerm) return;
-    setSearchTerm(value);
+    if (value === stateRef.current.filterValues.searchBranch) return;
+    const nextFilters = {
+      ...stateRef.current.filterValues,
+      searchBranch: value,
+    };
+    setFilterValues(nextFilters);
     try {
-      await fetchData({ search: value, page: 1 });
+      await fetchData({ filters: nextFilters, page: 1 });
     } catch (error) {
       console.error('Error searching branch inventory:', error);
       onError?.(error.message || 'Search failed');
+    }
+  }, [fetchData, onError]);
+
+  const handleFilterChange = useCallback(async (field, value) => {
+    const nextFilters = {
+      ...stateRef.current.filterValues,
+      [field]: value,
+    };
+    setFilterValues(nextFilters);
+
+    try {
+      await fetchData({ filters: nextFilters, page: 1 });
+    } catch (error) {
+      console.error('Error updating branch inventory filters:', error);
+      onError?.(error.message || 'Failed to update filters');
+    }
+  }, [fetchData, onError]);
+
+  const resetFilters = useCallback(async () => {
+    const nextFilters = {
+      searchBranch: '',
+      searchProduct: '',
+      branchType: '',
+      status: '',
+    };
+    setFilterValues(nextFilters);
+
+    try {
+      await fetchData({ filters: nextFilters, page: 1, sortBy: '', sortDirection: 'asc' });
+    } catch (error) {
+      console.error('Error resetting branch inventory filters:', error);
+      onError?.(error.message || 'Failed to reset filters');
     }
   }, [fetchData, onError]);
 
@@ -127,11 +173,14 @@ export function branchInventoryDataHandler({
     pagination,
     loading,
     ...sorting,
-    searchTerm,
+    searchTerm: filterValues.searchBranch,
+    filterValues,
     fetchData,
     handlePageChange,
     handlePageSizeChange,
     handleSortRequest,
     handleSearchInputChange,
+    handleFilterChange,
+    resetFilters,
   };
 }

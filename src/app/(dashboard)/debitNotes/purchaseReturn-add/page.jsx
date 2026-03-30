@@ -1,12 +1,42 @@
 import React from 'react';
 import AddDebitNoteIndex from '@/views/debitNotes/addPurchaseReturn/index';
-import { getDropdownData } from '@/app/(dashboard)/debitNotes/actions';
+import {
+  getBanks,
+  getDebitNoteNumber,
+  getProducts,
+  getSignatures,
+  getTaxRates,
+  getVendors,
+} from '@/app/(dashboard)/debitNotes/actions';
 
 const AddDebitNotePage = async () => {
-  const initialDropdownData = await getDropdownData();
+  const [
+    initialVendors,
+    initialProducts,
+    initialTaxRates,
+    initialBanks,
+    initialSignatures,
+    initialDebitNoteNumberResponse,
+  ] = await Promise.all([
+    getVendors(),
+    getProducts(),
+    getTaxRates(),
+    getBanks(),
+    getSignatures(),
+    getDebitNoteNumber(),
+  ]);
 
   return (
-    <AddDebitNoteIndex initialDropdownData={initialDropdownData} />
+    <AddDebitNoteIndex
+      initialVendors={initialVendors}
+      initialProducts={initialProducts}
+      initialTaxRates={initialTaxRates}
+      initialBanks={initialBanks}
+      initialSignatures={initialSignatures}
+      initialDebitNoteNumber={
+        initialDebitNoteNumberResponse?.success ? initialDebitNoteNumberResponse.data || '' : ''
+      }
+    />
   );
 };
 

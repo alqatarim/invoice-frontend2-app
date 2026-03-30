@@ -9,12 +9,12 @@ import { Icon } from '@iconify/react';
 
 const EditDeliveryChallanContent = ({ 
   id,
-  deliveryChallanData, 
-  customersData, 
-  productData, 
-  taxRates, 
+  initialDeliveryChallanData, 
+  initialCustomers, 
+  initialProducts, 
+  initialTaxRates, 
   initialBanks, 
-  signatures,
+  initialSignatures,
   addBank
 }) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -56,12 +56,12 @@ const EditDeliveryChallanContent = ({
   return (
     <EditDeliveryChallan
       id={id}
-      deliveryChallanData={deliveryChallanData}
-      customersData={customersData}
-      productData={productData}
-      taxRates={taxRates}
+      deliveryChallanData={initialDeliveryChallanData}
+      customersData={initialCustomers}
+      productData={initialProducts}
+      taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      signatures={signatures}
+      signatures={initialSignatures}
       onSave={handleUpdate}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}

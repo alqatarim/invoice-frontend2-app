@@ -71,8 +71,11 @@ export default function useAddDebitNoteHandlers({
 
   // Submission Handler
   const submissionHandler = useSubmissionHandler({
+    trigger,
+    closeSnackbar,
+    enqueueSnackbar,
     onSave,
-    enqueueSnackbar
+    getValues,
   });
 
   return {

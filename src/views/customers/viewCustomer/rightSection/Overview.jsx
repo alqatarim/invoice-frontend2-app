@@ -1,5 +1,6 @@
 // React Imports
-import { useMemo, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import moment from "moment";
 
 // Next Imports
 import dynamic from "next/dynamic";
@@ -20,21 +21,13 @@ const MultiBarProgress = dynamic(() => import("@components/card-statistics/Multi
 import { getCustomerInvoiceColumns } from "./tableColumns";
 import { statusOptions } from "@/data/dataSets";
 
-// Handler Import
-import { useOverviewHandlers } from "@/handlers/customers/view";
-
 const CustomerOverview = ({ invoices = [], cardDetails }) => {
-	// Handler for overview data management
-	const {
-		searchValue,
-		pagination,
-		filteredInvoices,
-		// totalAmount,
-		handlePageChange,
-		handleRowsPerPageChange,
-		handleSearchChange,
-		getRowKey,
-	} = useOverviewHandlers({ invoices, cardDetails });
+	const [searchValue, setSearchValue] = useState("");
+	const [pagination, setPagination] = useState({ page: 0, pageSize: 10, total: 0 });
+
+	useEffect(() => {
+		setPagination(prev => ({ ...prev, page: 0 }));
+	}, [searchValue]);
 
 	// Table columns configuration
 	const columns = useMemo(() => getCustomerInvoiceColumns(), []);
@@ -47,6 +40,45 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 		});
 		return map;
 	}, []);
+
+	const getStatusLabel = useCallback(status => {
+		const statusUpper = status?.toUpperCase();
+		const statusOption = statusOptionsMap.get(statusUpper);
+		return statusOption?.label || status || "Unpaid";
+	}, [statusOptionsMap]);
+
+	const filteredInvoices = useMemo(
+		() =>
+			invoices.filter(invoice =>
+				invoice.invoiceNumber?.toLowerCase().includes(searchValue.toLowerCase()) ||
+				getStatusLabel(invoice.status).toLowerCase().includes(searchValue.toLowerCase()) ||
+				moment(invoice.invoiceDate).format("MMM DD, YYYY").toLowerCase().includes(searchValue.toLowerCase())
+			),
+		[invoices, searchValue, getStatusLabel]
+	);
+
+	const tablePagination = useMemo(
+		() => ({
+			page: pagination.page,
+			pageSize: pagination.pageSize,
+			total: filteredInvoices.length
+		}),
+		[pagination.page, pagination.pageSize, filteredInvoices.length]
+	);
+
+	const handlePageChange = useCallback(page => {
+		setPagination(prev => ({ ...prev, page }));
+	}, []);
+
+	const handleRowsPerPageChange = useCallback(pageSize => {
+		setPagination(prev => ({ ...prev, pageSize, page: 0 }));
+	}, []);
+
+	const handleSearchChange = useCallback(value => {
+		setSearchValue(value);
+	}, []);
+
+	const getRowKey = useCallback(row => row._id, []);
 
 	// Create stats array for breakdown statistics with optimized lookups
 	const breakdownStats = useMemo(
@@ -179,7 +211,7 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 					columns={columns}
 					rows={filteredInvoices}
 					rowKey={getRowKey}
-					pagination={pagination}
+					pagination={tablePagination}
 					onPageChange={handlePageChange}
 					onRowsPerPageChange={handleRowsPerPageChange}
 					showSearch={true}

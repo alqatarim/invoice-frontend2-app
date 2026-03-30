@@ -1,6 +1,7 @@
 import React from 'react';
 import UsersListIndex from '@/views/users/usersList/index';
 import { getInitialUsersData, getRoles } from '@/app/(dashboard)/users/actions';
+import { getBranchesForDropdown } from '@/app/(dashboard)/branches/actions';
 
 /**
  * UsersPage Component
@@ -10,9 +11,10 @@ import { getInitialUsersData, getRoles } from '@/app/(dashboard)/users/actions';
  */
 const UsersPage = async () => {
      // Fetch initial users data on the server
-     const [initialData, initialRoles] = await Promise.all([
+     const [initialData, initialRoles, initialBranches] = await Promise.all([
           getInitialUsersData(),
           getRoles(),
+          getBranchesForDropdown(),
      ]);
 
 
@@ -21,6 +23,7 @@ const UsersPage = async () => {
           <UsersListIndex
                initialData={initialData}
                initialRoles={initialRoles}
+               initialBranches={initialBranches}
           />
      );
 };

@@ -36,11 +36,26 @@ const BranchStockTable = ({
   onAddStock,
   onRemoveStock,
   onTransfer,
+  onCycleCount,
+  onViewHistory,
   onSaveBranchEntry,
   stockLoading,
+  isRestrictedToAssignedBranches = false,
+  scopeHelperText = '',
 }) => {
   const theme = useTheme();
-  const isAnyLoading = stockLoading?.addStock || stockLoading?.removeStock;
+  const isAnyLoading =
+    stockLoading?.addStock ||
+    stockLoading?.removeStock ||
+    stockLoading?.transferStock ||
+    stockLoading?.cycleCount;
+  const inventoryInfo = inventoryItem?.inventory_Info?.[0] || {};
+  const batches = Array.isArray(inventoryInfo?.batches) ? inventoryInfo.batches : [];
+  const serialNumbers = Array.isArray(inventoryInfo?.serialNumbers) ? inventoryInfo.serialNumbers : [];
+  const recentTransfers = Array.isArray(inventoryInfo?.transferHistory)
+    ? inventoryInfo.transferHistory.slice(0, 3)
+    : [];
+  const lastCycleCount = inventoryInfo?.lastCycleCount || null;
 
   // State for new row being added
   const [newRow, setNewRow] = useState(null);
@@ -96,6 +111,28 @@ const BranchStockTable = ({
     e.stopPropagation();
     if (onTransfer) {
       onTransfer({
+        rowType: 'branch',
+        ...branch,
+        parentItem: inventoryItem,
+      });
+    }
+  };
+
+  const handleCycleCountClick = (e, branch) => {
+    e.stopPropagation();
+    if (onCycleCount) {
+      onCycleCount({
+        rowType: 'branch',
+        ...branch,
+        parentItem: inventoryItem,
+      });
+    }
+  };
+
+  const handleHistoryClick = (e, branch) => {
+    e.stopPropagation();
+    if (onViewHistory) {
+      onViewHistory({
         rowType: 'branch',
         ...branch,
         parentItem: inventoryItem,
@@ -185,6 +222,13 @@ const BranchStockTable = ({
             Branch Stock Allocations
           </Typography>
           <Chip
+            size='small'
+            label={isRestrictedToAssignedBranches ? 'Assigned Branch Scope' : 'Company Scope'}
+            variant='tonal'
+            color={isRestrictedToAssignedBranches ? 'info' : 'primary'}
+            sx={{ height: 20, fontSize: '0.7rem' }}
+          />
+          <Chip
             size="small"
             label={`${branchesWithStock.length} branch${branchesWithStock.length !== 1 ? 'es' : ''}`}
             variant="outlined"
@@ -193,6 +237,77 @@ const BranchStockTable = ({
           />
         </Box>
       </Box>
+
+      {scopeHelperText ? (
+        <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 2 }}>
+          {scopeHelperText}
+        </Typography>
+      ) : null}
+
+      <Box className='flex flex-wrap gap-2 mb-3'>
+        <Chip
+          size='small'
+          label={`Valuation: ${inventoryInfo?.valuationMethod || 'FIFO'}`}
+          variant='tonal'
+          color='primary'
+        />
+        <Chip
+          size='small'
+          label={`Batches: ${batches.length}`}
+          variant='outlined'
+          color='secondary'
+        />
+        <Chip
+          size='small'
+          label={`Serials: ${serialNumbers.length}`}
+          variant='outlined'
+          color='secondary'
+        />
+        <Chip
+          size='small'
+          label={`Transfers: ${recentTransfers.length}`}
+          variant='outlined'
+          color='info'
+        />
+        {lastCycleCount?.branchId ? (
+          <Chip
+            size='small'
+            label={`Last Count: ${Number(lastCycleCount.countedQuantity || 0)} (${lastCycleCount.variance > 0 ? '+' : ''}${Number(lastCycleCount.variance || 0)})`}
+            variant='outlined'
+            color={Number(lastCycleCount.variance || 0) === 0 ? 'success' : 'warning'}
+          />
+        ) : null}
+      </Box>
+
+      {(recentTransfers.length > 0 || serialNumbers.length > 0) && (
+        <Box
+          sx={{
+            mb: 3,
+            p: 2,
+            borderRadius: 2,
+            border: `1px solid ${alpha(theme.palette.divider, 0.16)}`,
+            backgroundColor: alpha(theme.palette.background.default, 0.4),
+          }}
+        >
+          {lastCycleCount?.branchId ? (
+            <Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
+              Last cycle count was recorded for {lastCycleCount.branchId} with a variance of{' '}
+              {lastCycleCount.variance > 0 ? '+' : ''}
+              {Number(lastCycleCount.variance || 0)}.
+            </Typography>
+          ) : null}
+          {recentTransfers.length > 0 ? (
+            <Typography variant='body2' color='text.secondary'>
+              Recent transfers: {recentTransfers.map((entry) => `${entry.fromBranchName || entry.fromBranchId} -> ${entry.toBranchName || entry.toBranchId} (${entry.quantity})`).join(' | ')}
+            </Typography>
+          ) : null}
+          {!recentTransfers.length && serialNumbers.length > 0 ? (
+            <Typography variant='body2' color='text.secondary'>
+              Serial tracking is enabled for this item with {serialNumbers.length} recorded serial number{serialNumbers.length === 1 ? '' : 's'}.
+            </Typography>
+          ) : null}
+        </Box>
+      )}
 
       {/* Branch Table - Override inherited styles from parent table */}
       <TableContainer
@@ -239,7 +354,7 @@ const BranchStockTable = ({
               <TableCell sx={{ width: 140 }}>District</TableCell>
               <TableCell align="center" sx={{ width: 90 }}>Quantity</TableCell>
               {permissions?.canUpdate && (
-                <TableCell align="center" sx={{ width: 140 }}>Actions</TableCell>
+                <TableCell align="center" sx={{ width: 210 }}>Actions</TableCell>
               )}
             </TableRow>
           </TableHead>
@@ -322,6 +437,30 @@ const BranchStockTable = ({
                             <Icon icon="mdi:swap-horizontal" width={18} color={theme.palette.info.main} />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Cycle Count" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleCycleCountClick(e, branch)}
+                            disabled={isAnyLoading}
+                            color="warning"
+                            skin="light"
+                            variant="tonal"
+                          >
+                            <Icon icon="mdi:clipboard-check-outline" width={18} color={theme.palette.warning.main} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Movement History" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleHistoryClick(e, branch)}
+                            disabled={isAnyLoading}
+                            color="secondary"
+                            skin="light"
+                            variant="tonal"
+                          >
+                            <Icon icon="mdi:timeline-clock-outline" width={18} color={theme.palette.secondary.main} />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                   )}
@@ -333,7 +472,9 @@ const BranchStockTable = ({
                   <Box className="py-4">
                     <Icon icon="mdi:store-off-outline" width={28} color={theme.palette.text.secondary} style={{ marginBottom: 4 }} />
                     <Typography variant="body2" color="textSecondary">
-                      No branch allocations found
+                      {isRestrictedToAssignedBranches
+                        ? 'No branch allocations found in your assigned scope'
+                        : 'No branch allocations found'}
                     </Typography>
                   </Box>
                 </TableCell>
@@ -353,7 +494,9 @@ const BranchStockTable = ({
                       sx={selectSx}
                     >
                       <MenuItem value="" disabled>
-                        <Typography color="text.secondary" fontSize="0.8rem">Select Branch</Typography>
+                        <Typography color="text.secondary" fontSize="0.8rem">
+                          {isRestrictedToAssignedBranches ? 'Select Assigned Branch' : 'Select Branch'}
+                        </Typography>
                       </MenuItem>
                       {filteredBranches.map((branch) => (
                         <MenuItem key={branch.branchId} value={branch.branchId} sx={{ fontSize: '0.8rem' }}>
@@ -531,7 +674,7 @@ const BranchStockTable = ({
                       },
                     }}
                   >
-                    Add Entry
+                    {isRestrictedToAssignedBranches ? 'Add Scoped Entry' : 'Add Entry'}
                   </Button>
                 </TableCell>
                 <TableCell colSpan={permissions?.canUpdate ? 6 : 5} />

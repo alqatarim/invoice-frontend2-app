@@ -16,6 +16,7 @@ import { alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
 import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
+import { productSupportsScaleBarcode } from '@/utils/productScaleBarcode';
 
 const getProductCategoryLabel = (product) => {
   if (!product) return '—';
@@ -27,6 +28,23 @@ const getProductUnitLabel = (product) => {
   if (!product) return '—';
   if (typeof product.units === 'string') return product.units;
   return product.units?.name || '—';
+};
+
+const normalizeQuantityInput = (value, allowDecimals = false) => {
+  const parsed = Number(String(value ?? '').replace(/,/g, '.'));
+  if (!Number.isFinite(parsed)) return 0;
+
+  const normalizedValue = Math.max(0, parsed);
+  return allowDecimals
+    ? Number(normalizedValue.toFixed(3))
+    : Math.floor(normalizedValue);
+};
+
+const normalizeRateInput = (value) => {
+  const parsed = Number(String(value ?? '').replace(/,/g, '.'));
+  if (!Number.isFinite(parsed)) return 0;
+
+  return Math.max(0, Number(parsed.toFixed(4)));
 };
 
 export const getInvoiceFormColumns = ({
@@ -44,6 +62,8 @@ export const getInvoiceFormColumns = ({
   theme,
   updateCalculatedFields,
   handleUpdateItemProduct,
+  handleClearAppliedPromotion,
+  handleClearScaleBarcode,
   handleDeleteItem,
   handleAddEmptyRow,
   handleMenuItemClick,
@@ -144,56 +164,57 @@ export const getInvoiceFormColumns = ({
             });
 
             return (
-              <Autocomplete
-                fullWidth
-                options={options}
-                value={selectedProduct}
-                getOptionLabel={(option) => option?.name || ''}
-                filterOptions={(options, { inputValue }) => {
-                  const search = inputValue.trim().toLowerCase();
-                  if (!search) return options;
-                  return options.filter((option) => {
-                    const name = option?.name || '';
-                    const sku = option?.sku || '';
-                    const category = getProductCategoryLabel(option);
-                    return [name, sku, category]
-                      .filter(Boolean)
-                      .some((value) => String(value).toLowerCase().includes(search));
-                  });
-                }}
-                onChange={(_, newValue) => {
-                  if (!newValue?._id) {
-                    field.onChange('');
-                    return;
-                  }
-                  field.onChange(newValue._id);
-                  handleUpdateItemProduct(index, newValue._id, field.value);
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    size="small"
-                    placeholder="Select Product"
-                    autoFocus={autoFocusFirstProductCell && index === 0}
-                    error={!!errors.items?.[index]?.productId}
-                    inputProps={{
-                      ...params.inputProps,
-                      className: `${params.inputProps?.className ?? ''} text-[0.85rem]`,
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'secondary.light'
-                      },
-                      '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'secondary.main'
-                      },
-                      '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'primary.main'
-                      }
-                    }}
-                  />
-                )}
-                renderOption={(props, option, { index: optionIndex }) => {
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Autocomplete
+                  fullWidth
+                  options={options}
+                  value={selectedProduct}
+                  getOptionLabel={(option) => option?.name || ''}
+                  filterOptions={(options, { inputValue }) => {
+                    const search = inputValue.trim().toLowerCase();
+                    if (!search) return options;
+                    return options.filter((option) => {
+                      const name = option?.name || '';
+                      const sku = option?.sku || '';
+                      const category = getProductCategoryLabel(option);
+                      return [name, sku, category]
+                        .filter(Boolean)
+                        .some((value) => String(value).toLowerCase().includes(search));
+                    });
+                  }}
+                  onChange={(_, newValue) => {
+                    if (!newValue?._id) {
+                      field.onChange('');
+                      return;
+                    }
+                    field.onChange(newValue._id);
+                    handleUpdateItemProduct(index, newValue._id, field.value);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      size="small"
+                      placeholder="Select Product"
+                      autoFocus={autoFocusFirstProductCell && index === 0}
+                      error={!!errors.items?.[index]?.productId}
+                      inputProps={{
+                        ...params.inputProps,
+                        className: `${params.inputProps?.className ?? ''} text-[0.85rem]`,
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'secondary.light'
+                        },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'secondary.main'
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'primary.main'
+                        }
+                      }}
+                    />
+                  )}
+                  renderOption={(props, option, { index: optionIndex }) => {
                   const { key, ...optionProps } = props;
                   const zebraBg = optionIndex % 2 ? alpha(theme.palette.primary.main, 0.015) : 'transparent';
 
@@ -263,52 +284,63 @@ export const getInvoiceFormColumns = ({
                       </Typography>
                     </Box>
                   );
-                }}
-                noOptionsText={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2, px: 1 }}>
-                    <Icon icon="mdi:package-variant-closed" width={22} color={theme.palette.text.secondary} />
-                    <Typography variant="body2" color="text.secondary">
-                      No products found
-                    </Typography>
-                  </Box>
-                }
-                slots={{ listbox: ProductOptionsListbox }}
-                PaperProps={{
-                  sx: {
-
-                    borderRadius: '12px',
-                    boxShadow: theme.shadows[8],
-                    border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
-                    mt: 1,
-                    overflow: 'hidden'
+                  }}
+                  noOptionsText={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2, px: 1 }}>
+                      <Icon icon="mdi:package-variant-closed" width={22} color={theme.palette.text.secondary} />
+                      <Typography variant="body2" color="text.secondary">
+                        No products found
+                      </Typography>
+                    </Box>
                   }
-                }}
-                slotProps={{
-
-                  htmlInput: {
-                    className: 'text-[0.85rem]',
-                  },
-                  popper: {
-
-                    placement: 'bottom-start',
+                  slots={{ listbox: ProductOptionsListbox }}
+                  PaperProps={{
                     sx: {
-                      width: 'auto !important',
-                      minWidth: 520,
-                      maxWidth: 'min(760px, calc(100vw - 32px))',
+
+                      borderRadius: '12px',
+                      boxShadow: theme.shadows[8],
+                      border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
+                      mt: 1,
+                      overflow: 'hidden'
                     }
-                  },
-                  listbox: {
-                    sx: {
-                      maxHeight: 320,
-                      py: 0
-                    }
-                  },
-                }}
-                isOptionEqualToValue={(option, value) => option._id === value._id}
-                disableClearable
-                autoHighlight
-                openOnFocus
-              />
+                  }}
+                  slotProps={{
+
+                    htmlInput: {
+                      className: 'text-[0.85rem]',
+                    },
+                    popper: {
+
+                      placement: 'bottom-start',
+                      sx: {
+                        width: 'auto !important',
+                        minWidth: 520,
+                        maxWidth: 'min(760px, calc(100vw - 32px))',
+                      }
+                    },
+                    listbox: {
+                      sx: {
+                        maxHeight: 320,
+                        py: 0
+                      }
+                    },
+                  }}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                  disableClearable
+                  autoHighlight
+                  openOnFocus
+                />
+                {watched.promotionAutoApplied && watched.promotionSummary ? (
+                  <Typography variant="caption" color="success.main" sx={{ lineHeight: 1.2, pl: 0.5 }}>
+                    {watched.promotionSummary}
+                  </Typography>
+                ) : null}
+                {watched.scaleBarcodeSummary ? (
+                  <Typography variant="caption" color="info.main" sx={{ lineHeight: 1.2, pl: 0.5 }}>
+                    {watched.scaleBarcodeSummary}
+                  </Typography>
+                ) : null}
+              </Box>
             );
           }}
         />
@@ -351,44 +383,58 @@ export const getInvoiceFormColumns = ({
       label: <Typography variant="overline" fontWeight={500} >Qty</Typography>,
       width: '10%',
       align: 'center',
-      renderCell: (item, index) => (
-        <Controller
-          name={`items.${index}.quantity`}
-          control={control}
-          render={({ field }) => (
-            <FormControl error={!!errors.items?.[index]?.quantity} fullWidth>
-              <TextField
-                {...field}
-                type="number"
-                variant="outlined"
-                size="small"
-                placeholder="Quantity"
-                className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
-                slotProps={{
-                  htmlInput: {
-                    className: 'text-[0.85rem]',
-                    min: 1,
-                    step: 1,
-                    onKeyDown: (event) => {
-                      if (event.key === '.') event.preventDefault();
+      renderCell: (item, index) => {
+        const watched = watchItems?.[index] || {};
+        const product = resolveProductById(watched.productId);
+        const allowDecimalQuantity = Boolean(
+          watched.scaleBarcodeSummary || productSupportsScaleBarcode(product)
+        );
+
+        return (
+          <Controller
+            name={`items.${index}.quantity`}
+            control={control}
+            render={({ field }) => (
+              <FormControl error={!!errors.items?.[index]?.quantity} fullWidth>
+                <TextField
+                  {...field}
+                  type="number"
+                  variant="outlined"
+                  size="small"
+                  placeholder="Quantity"
+                  className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
+                  slotProps={{
+                    htmlInput: {
+                      className: 'text-[0.85rem]',
+                      min: 0,
+                      step: allowDecimalQuantity ? 0.001 : 1,
+                      onKeyDown: (event) => {
+                        if (!allowDecimalQuantity && event.key === '.') {
+                          event.preventDefault();
+                        }
+                      },
                     },
-                  },
-                }}
-                onChange={(event) => {
-                  const raw = String(event.target.value ?? '');
-                  const normalized = raw.replace(/^0+(?=\d)/, '');
-                  const quantity = Math.max(0, Math.floor(Number(normalized || 0)));
-                  setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
-                  setValue(`items.${index}.isRateFormUpadted`, true);
-                  const nextItem = getValues(`items.${index}`);
-                  updateCalculatedFields(index, { ...nextItem, quantity }, setValue);
-                }}
-                error={!!errors.items?.[index]?.quantity}
-              />
-            </FormControl>
-          )}
-        />
-      )
+                  }}
+                  onChange={(event) => {
+                    const quantity = normalizeQuantityInput(
+                      event.target.value,
+                      allowDecimalQuantity
+                    );
+                    if (watched.scaleBarcodeSummary) {
+                      handleClearScaleBarcode(index);
+                    }
+                    setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
+                    setValue(`items.${index}.isRateFormUpadted`, true);
+                    const nextItem = getValues(`items.${index}`);
+                    updateCalculatedFields(index, { ...nextItem, quantity }, setValue);
+                  }}
+                  error={!!errors.items?.[index]?.quantity}
+                />
+              </FormControl>
+            )}
+          />
+        );
+      }
     },
     {
       key: 'rate',
@@ -419,14 +465,15 @@ export const getInvoiceFormColumns = ({
                     className: 'text-[0.85rem]',
                     sx: { paddingLeft: '4px' },
                     min: 0,
-                    step: 1,
-                    onKeyDown: (event) => {
-                      if (event.key === '.') event.preventDefault();
-                    },
+                    step: 0.01,
                   },
                 }}
                 onChange={(event) => {
-                  const rate = Number(event.target.value);
+                  const watched = watchItems?.[index] || {};
+                  const rate = normalizeRateInput(event.target.value);
+                  if (watched.scaleBarcodeSummary) {
+                    handleClearScaleBarcode(index);
+                  }
                   setValue(`items.${index}.rate`, rate);
                   setValue(`items.${index}.form_updated_rate`, Number(rate || 0).toFixed(4));
                   setValue(`items.${index}.isRateFormUpadted`, 'true');
@@ -497,6 +544,7 @@ export const getInvoiceFormColumns = ({
                     const normalized = raw.replace(/^0+(?=\d)/, '');
                     let value = Number(normalized || 0);
                     value = Math.min(100, Math.max(0, value));
+                    handleClearAppliedPromotion(index);
                     field.onChange(value);
                     setValue(`items.${index}.isRateFormUpadted`, true);
                     const nextItem = getValues(`items.${index}`);
@@ -554,6 +602,7 @@ export const getInvoiceFormColumns = ({
                     const normalized = raw.replace(/^0+(?=\d)/, '');
                     let value = Number(normalized || 0);
                     value = Math.max(0, value);
+                    handleClearAppliedPromotion(index);
                     field.onChange(value);
                     setValue(`items.${index}.form_updated_discount`, value);
                     setValue(`items.${index}.isRateFormUpadted`, true);

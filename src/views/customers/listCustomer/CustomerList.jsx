@@ -1,24 +1,36 @@
 'use client'
 
-import React, { useState, useMemo, useCallback, useRef } from 'react'
-import { useTheme, Button, Card, CardContent, Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Popper, Fade, Paper, Typography, ClickAwayListener } from '@mui/material'
+import React, { useCallback, useMemo, useState } from 'react'
+import {
+  Box,
+  Button,
+  ClickAwayListener,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Fade,
+  Paper,
+  Popper,
+  Typography,
+} from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import { AddCustomerDrawer } from '../addCustomer'
 import { getCustomerColumns } from './customerColumns'
 import { usePermission } from '@/Auth/usePermission'
-import { useCustomerListHandlers } from '@/handlers/customers/useCustomerListHandlers'
 import CustomerHead from '@/views/customers/listCustomer/customerHead'
 import AppSnackbar from '@/components/shared/AppSnackbar'
+import { useCustomerListHandler } from './handler'
 
-/**
- * CustomerList Component - Now using TanStack Table like template with proper search integration
- */
 const CustomerList = ({
   initialCustomers = [],
-  pagination = { current: 1, pageSize: 10, total: 0 },
-  cardCounts = { totalCustomers: 0, activeCustomers: 0, inactiveCustomers: 0 },
+  initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialCardCounts = { totalCustomers: 0, activeCustomers: 0, inactiveCustomers: 0 },
 }) => {
-  // Permissions
+  const theme = useTheme()
+
   const permissions = {
     canCreate: usePermission('customer', 'create'),
     canEdit: usePermission('customer', 'edit'),
@@ -26,184 +38,182 @@ const CustomerList = ({
     canDelete: usePermission('customer', 'delete'),
   }
 
-  // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success',
   })
+  const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false)
 
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') return
-    setSnackbar(prev => ({ ...prev, open: false }))
-  }
+  const onError = useCallback(message => {
+    setSnackbar({
+      open: true,
+      message,
+      severity: 'error',
+    })
+  }, [])
 
-  // Use refs for notification handlers to ensure stable references
-  const onErrorRef = useRef()
-  const onSuccessRef = useRef()
-  
-  onErrorRef.current = (msg) => setSnackbar({ open: true, message: msg, severity: 'error' })
-  onSuccessRef.current = (msg) => setSnackbar({ open: true, message: msg, severity: 'success' })
+  const onSuccess = useCallback(message => {
+    setSnackbar({
+      open: true,
+      message,
+      severity: 'success',
+    })
+  }, [])
 
-  // Stable callback wrappers
-  const onError = useCallback((msg) => onErrorRef.current(msg), [])
-  const onSuccess = useCallback((msg) => onSuccessRef.current(msg), [])
+  const handleSnackbarClose = useCallback((_, reason) => {
+    if (reason === 'clickaway') {
+      return
+    }
 
-  const theme = useTheme()
+    setSnackbar(current => ({
+      ...current,
+      open: false,
+    }))
+  }, [])
 
-  // Add Customer Drawer state
-  const [customerUserOpen, setCustomerUserOpen] = useState(false)
+  const stablePermissions = useMemo(
+    () => ({
+      canCreate: permissions.canCreate,
+      canEdit: permissions.canEdit,
+      canView: permissions.canView,
+      canDelete: permissions.canDelete,
+    }),
+    [permissions.canCreate, permissions.canDelete, permissions.canEdit, permissions.canView]
+  )
 
-  // Stable permissions object - only recreate when actual permissions change
-  const stablePermissions = useMemo(() => ({
-    canCreate: permissions.canCreate,
-    canEdit: permissions.canEdit,
-    canView: permissions.canView,
-    canDelete: permissions.canDelete,
-  }), [permissions.canCreate, permissions.canEdit, permissions.canView, permissions.canDelete])
-
-  // Memoize columns with stable dependencies
-  const columns = useMemo(() => {
-    return getCustomerColumns({ theme, permissions: stablePermissions })
-  }, [theme?.palette?.mode, stablePermissions]) // Only depend on theme mode, not entire theme object
-
-  // Handlers - properly configured with all functionality
-  const handlers = useCustomerListHandlers({
-    initialCustomers: initialCustomers,
-    initialPagination: pagination,
+  const handler = useCustomerListHandler({
+    initialCustomers,
+    initialPagination,
     initialSortBy: 'createdAt',
     initialSortDirection: 'desc',
-    initialColumns: columns,
     onError,
     onSuccess,
   })
 
-  // Build table columns with action handlers
+  const columns = useMemo(
+    () => getCustomerColumns({ theme, permissions: stablePermissions }),
+    [stablePermissions, theme]
+  )
+
   const tableColumns = useMemo(
     () =>
-      columns.map(col => ({
-        ...col,
-        renderCell: col.renderCell
-          ? (row, idx) =>
-              col.renderCell(row, {
-                handleDeleteClick: handlers.handleDeleteClick,
-                handleActivateClick: handlers.handleActivateClick,
-                handleDeactivateClick: handlers.handleDeactivateClick,
-                handleEdit: handlers.handleEdit,
-                handleView: handlers.handleView,
+      columns.map(column => ({
+        ...column,
+        renderCell: column.renderCell
+          ? row =>
+              column.renderCell(row, {
+                handleDeleteClick: handler.handleDeleteClick,
+                handleActivateClick: handler.handleActivateClick,
+                handleDeactivateClick: handler.handleDeactivateClick,
+                handleEdit: handler.handleEdit,
+                handleView: handler.handleView,
                 permissions,
-                pagination: handlers.pagination,
+                pagination: handler.pagination,
               })
           : undefined,
       })),
-    [columns, handlers.handleDeleteClick, handlers.handleActivateClick, 
-     handlers.handleDeactivateClick, handlers.handleEdit, handlers.handleView, 
-     handlers.pagination, permissions]
+    [columns, handler, permissions]
+  )
+
+  const tablePagination = useMemo(
+    () => ({
+      page: handler.pagination.current - 1,
+      pageSize: handler.pagination.pageSize,
+      total: handler.pagination.total,
+    }),
+    [handler.pagination]
   )
 
   return (
     <Box className='flex flex-col gap-5'>
-      {/* Header and Stats */}
-      <CustomerHead
-        customerListData={cardCounts}
-        currencyData={'SAR'}
-        isLoading={false}
-      />
+      <CustomerHead customerListData={initialCardCounts} currencyData='SAR' isLoading={false} />
 
-      {/* Main Customer Table - Properly connected to handlers */}
       <CustomListTable
         addRowButton={
-          <Button
-            variant='contained'
-            color='primary'
-            className=''
-            startIcon={<i className='ri-add-line' />}
-            onClick={() => setCustomerUserOpen(true)}
-          >
-            Add Customer
-          </Button>
+          permissions.canCreate && (
+            <Button
+              variant='contained'
+              color='primary'
+              startIcon={<i className='ri-add-line' />}
+              onClick={() => setCustomerDrawerOpen(true)}
+            >
+              Add Customer
+            </Button>
+          )
         }
-        showSearch={true}
-        searchValue={handlers.searchTerm || ''}
-        onSearchChange={handlers.handleSearchInputChange}
-        searchPlaceholder="Search customers..."
+        showSearch
+        searchValue={handler.searchTerm || ''}
+        onSearchChange={handler.handleSearchInputChange}
+        searchPlaceholder='Search customers...'
         columns={tableColumns}
-        rows={handlers.customers}
-        loading={handlers.loading}
-        pagination={{
-          page: handlers.pagination.current - 1,
-          pageSize: handlers.pagination.pageSize,
-          total: handlers.pagination.total,
-        }}
-        onPageChange={handlers.handlePageChange}
-        onRowsPerPageChange={handlers.handlePageSizeChange}
-        onSort={handlers.handleSortChange}
-        sortBy={handlers.sortBy}
-        sortDirection={handlers.sortDirection}
+        rows={handler.customers}
+        loading={handler.loading}
+        pagination={tablePagination}
+        onPageChange={handler.handlePageChange}
+        onRowsPerPageChange={handler.handlePageSizeChange}
+        onSort={handler.handleSortChange}
+        sortBy={handler.sortBy}
+        sortDirection={handler.sortDirection}
         noDataText='No customers found.'
         rowKey={row => row._id || row.id}
-        onRowClick={
-          permissions.canView
-            ? (row) => handlers.handleView(row)
-            : undefined
-        }
+        onRowClick={permissions.canView ? row => handler.handleView(row) : undefined}
         enableHover
       />
- 
+
       <AddCustomerDrawer
-        open={customerUserOpen}
-        handleClose={() => setCustomerUserOpen(false)}
+        open={customerDrawerOpen}
+        handleClose={() => setCustomerDrawerOpen(false)}
         setData={() => {}}
-        customerData={handlers.customers}
+        customerData={handler.customers}
         onSuccess={onSuccess}
         onError={onError}
+        onCreated={handler.refreshData}
       />
 
-      {/* Delete Confirmation Dialog */}
       <Dialog
-        open={handlers.deleteDialogOpen}
-        onClose={handlers.handleDeleteCancel}
-        aria-labelledby="delete-dialog-title"
-        aria-describedby="delete-dialog-description"
+        open={handler.deleteDialogOpen}
+        onClose={handler.handleDeleteCancel}
+        aria-labelledby='delete-dialog-title'
+        aria-describedby='delete-dialog-description'
       >
-        <DialogTitle id="delete-dialog-title">Delete Customer</DialogTitle>
+        <DialogTitle id='delete-dialog-title'>Delete Customer</DialogTitle>
         <DialogContent>
-          <DialogContentText id="delete-dialog-description">
+          <DialogContentText id='delete-dialog-description'>
             Are you sure you want to delete this customer? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handlers.handleDeleteCancel} color="primary">
+          <Button onClick={handler.handleDeleteCancel} color='primary'>
             Cancel
           </Button>
-          <Button onClick={handlers.handleDeleteConfirm} color="error" variant="contained">
+          <Button onClick={handler.handleDeleteConfirm} color='error' variant='contained'>
             Delete
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Activate Confirmation Popover */}
       <Popper
-        open={handlers.activateDialogOpen}
-        anchorEl={handlers.activateAnchorEl}
-        placement="bottom-start"
+        open={handler.activateDialogOpen}
+        anchorEl={handler.activateAnchorEl}
+        placement='bottom-start'
         transition
         disablePortal
         sx={{ zIndex: 1300 }}
       >
         {({ TransitionProps }) => (
           <Fade {...TransitionProps}>
-            <Paper className="p-4 max-w-xs shadow-lg border">
-              <ClickAwayListener onClickAway={handlers.handleActivateCancel}>
+            <Paper className='max-w-xs border p-4 shadow-lg'>
+              <ClickAwayListener onClickAway={handler.handleActivateCancel}>
                 <Box>
-                  <Typography variant="subtitle1" className="font-medium mb-2">
+                  <Typography variant='subtitle1' className='mb-2 font-medium'>
                     Are you sure you want to activate?
                   </Typography>
-                  <Box className="flex gap-2 justify-end">
-                    <Button size="small" onClick={handlers.handleActivateCancel} color="primary">
+                  <Box className='flex justify-end gap-2'>
+                    <Button size='small' onClick={handler.handleActivateCancel} color='primary'>
                       Cancel
                     </Button>
-                    <Button size="small" onClick={handlers.handleActivateConfirm} color="success" variant="contained">
+                    <Button size='small' onClick={handler.handleActivateConfirm} color='success' variant='contained'>
                       Activate
                     </Button>
                   </Box>
@@ -214,28 +224,27 @@ const CustomerList = ({
         )}
       </Popper>
 
-      {/* Deactivate Confirmation Popover */}
       <Popper
-        open={handlers.deactivateDialogOpen}
-        anchorEl={handlers.deactivateAnchorEl}
-        placement="bottom-start"
+        open={handler.deactivateDialogOpen}
+        anchorEl={handler.deactivateAnchorEl}
+        placement='bottom-start'
         transition
         disablePortal
         sx={{ zIndex: 1300 }}
       >
         {({ TransitionProps }) => (
           <Fade {...TransitionProps}>
-            <Paper className="p-4 max-w-xs shadow-lg border">
-              <ClickAwayListener onClickAway={handlers.handleDeactivateCancel}>
+            <Paper className='max-w-xs border p-4 shadow-lg'>
+              <ClickAwayListener onClickAway={handler.handleDeactivateCancel}>
                 <Box>
-                  <Typography variant="subtitle1" className="font-medium mb-2">
+                  <Typography variant='subtitle1' className='mb-2 font-medium'>
                     Are you sure you want to deactivate?
                   </Typography>
-                  <Box className="flex gap-2 justify-end">
-                    <Button size="small" onClick={handlers.handleDeactivateCancel} color="primary">
+                  <Box className='flex justify-end gap-2'>
+                    <Button size='small' onClick={handler.handleDeactivateCancel} color='primary'>
                       Cancel
                     </Button>
-                    <Button size="small" onClick={handlers.handleDeactivateConfirm} color="warning" variant="contained">
+                    <Button size='small' onClick={handler.handleDeactivateConfirm} color='warning' variant='contained'>
                       Deactivate
                     </Button>
                   </Box>
@@ -245,7 +254,7 @@ const CustomerList = ({
           </Fade>
         )}
       </Popper>
-      
+
       <AppSnackbar
         open={snackbar.open}
         message={snackbar.message}

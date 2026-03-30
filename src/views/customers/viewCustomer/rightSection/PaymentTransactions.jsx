@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -35,6 +35,7 @@ import EditBankDetailsDialog from './EditBankDetailsDialog'
 
 // Utils Imports
 import { formatDate } from '@/utils/dateUtils'
+import { updateCustomer } from '@/app/(dashboard)/customers/actions'
 
 // Local currency formatter
 const formatCurrency = (amount) => {
@@ -45,9 +46,6 @@ const formatCurrency = (amount) => {
     minimumFractionDigits: 2,
   }).format(amount)
 }
-
-// Handler Import
-import { useCustomerAddressHandlers } from '@/handlers/customers/view'
 
 // Helper function to check if customer has any bank details
 const hasBankDetails = (customerData) => {
@@ -143,23 +141,22 @@ const PaymentTransactions = ({ customerData, onCustomerUpdate }) => {
   const [loading, setLoading] = useState(true)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [dialogState, setDialogState] = useState({ bankDetails: false })
   const { enqueueSnackbar } = useSnackbar()
 
-  // Address handlers for dialog management
-  const {
-    dialogState,
-    handleOpenBankDetailsDialog,
-    handleCloseBankDetailsDialog,
-    handleUpdateSuccess
-  } = useCustomerAddressHandlers({
-    onSuccess: (message) => {
-      // Success notification will be handled by dialog components
-    },
-    onUpdate: (updatedCustomer) => {
-      onCustomerUpdate?.(updatedCustomer)
+  const handleOpenBankDetailsDialog = useCallback(() => {
+    setDialogState({ bankDetails: true })
+  }, [])
 
-    }
-  })
+  const handleCloseBankDetailsDialog = useCallback(() => {
+    setDialogState({ bankDetails: false })
+  }, [])
+
+  const handleUpdateSuccess = useCallback((updatedCustomer, message = 'Bank details updated successfully!') => {
+    setDialogState({ bankDetails: false })
+    onCustomerUpdate?.(updatedCustomer)
+    enqueueSnackbar(message, { variant: 'success' })
+  }, [enqueueSnackbar, onCustomerUpdate])
 
   // Open delete confirmation dialog
   const handleDeleteBankDetails = () => {
@@ -178,10 +175,7 @@ const PaymentTransactions = ({ customerData, onCustomerUpdate }) => {
 
     try {
       enqueueSnackbar('Removing bank details...', { variant: 'info' })
-      
-      // Import the update action
-      const { updateCustomer } = await import('@/app/(dashboard)/customers/actions')
-      
+
       // Prepare customer data with empty bank details
       const updateData = {
         ...customerData,

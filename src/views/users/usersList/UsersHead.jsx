@@ -15,13 +15,17 @@ const UsersHead = ({ users = [] }) => {
      // Calculate statistics based on actual users data
      const statsData = useMemo(() => {
           const totalUsers = users.length;
-          const activeUsers = users.filter(user => user.status === 'Active').length;
-          const inactiveUsers = users.filter(user => user.status === 'Inactive').length;
+          const companyAdmins = users.filter(user =>
+               ['OWNER', 'COMPANY_ADMIN'].includes(user.companyRole || user.orgRole)
+          ).length;
+          const storeScopedUsers = users.filter(
+               user => Array.isArray(user.assignedBranchIds) && user.assignedBranchIds.length > 0
+          ).length;
 
           return {
                totalUsers: { count: totalUsers, amount: totalUsers },
-               activeUsers: { count: activeUsers, amount: activeUsers },
-               inactiveUsers: { count: inactiveUsers, amount: inactiveUsers },
+               companyAdmins: { count: companyAdmins, amount: companyAdmins },
+               storeScopedUsers: { count: storeScopedUsers, amount: storeScopedUsers },
           };
      }, [users]);
 
@@ -34,7 +38,7 @@ const UsersHead = ({ users = [] }) => {
                               <Icon icon="mdi:account-group" fontSize={26} />
                          </Avatar>
                          <Typography variant="h5" className="font-semibold text-primary">
-                              Users
+                              Team
                          </Typography>
                     </div>
                </div>
@@ -44,8 +48,8 @@ const UsersHead = ({ users = [] }) => {
                     <Grid container spacing={4}>
                          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <HorizontalWithBorder
-                                   title="Total Users"
-                                   subtitle="All Users"
+                                   title="Total Members"
+                                   subtitle="Company And Store Team"
                                    titleVariant='h5'
                                    subtitleVariant='body2'
                                    stats={statsData.totalUsers.count}
@@ -60,32 +64,32 @@ const UsersHead = ({ users = [] }) => {
 
                          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <HorizontalWithBorder
-                                   title="Active Users"
-                                   subtitle="Currently Active"
+                                   title="Company Admins"
+                                   subtitle="Owner And Company Admin"
                                    titleVariant='h5'
                                    subtitleVariant='body2'
-                                   stats={statsData.activeUsers.count}
+                                   stats={statsData.companyAdmins.count}
                                    statsVariant='h4'
-                                   trendNumber={statsData.activeUsers.count}
+                                   trendNumber={statsData.companyAdmins.count}
                                    trendNumberVariant='body1'
-                                   avatarIcon='mdi:account-check-outline'
-                                   color="success"
+                                   avatarIcon='mdi:shield-account-outline'
+                                   color="info"
                                    iconSize='30px'
                               />
                          </Grid>
 
                          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <HorizontalWithBorder
-                                   title="Inactive Users"
-                                   subtitle="Currently Inactive"
+                                   title="Store Members"
+                                   subtitle="Assigned To One Or More Stores"
                                    titleVariant='h5'
                                    subtitleVariant='body2'
-                                   stats={statsData.inactiveUsers.count}
+                                   stats={statsData.storeScopedUsers.count}
                                    statsVariant='h4'
-                                   trendNumber={statsData.inactiveUsers.count}
+                                   trendNumber={statsData.storeScopedUsers.count}
                                    trendNumberVariant='body1'
-                                   avatarIcon='mdi:account-off-outline'
-                                   color="warning"
+                                   avatarIcon='mdi:store-cog-outline'
+                                   color="success"
                                    iconSize='30px'
                               />
                          </Grid>

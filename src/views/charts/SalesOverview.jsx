@@ -17,6 +17,7 @@ import { alpha } from "@mui/material/styles";
 
 import CustomAvatar from "@core/components/mui/Avatar";
 import { statusOptions } from "@/data/dataSets";
+import { formatWholeNumber } from "@/utils/numberUtils";
 
 const AppReactApexCharts = dynamic(
 	() => import("@/libs/styles/AppReactApexCharts"),
@@ -51,11 +52,6 @@ const APEX_STATUS_COLORS = {
 
 const normalizeStatus = (value = "") =>
 	String(value).trim().replace(/\s+/g, "_").toUpperCase();
-
-const formatMoney = (value) =>
-	Number(value || 0).toLocaleString("en-US", {
-		maximumFractionDigits: 0,
-	});
 
 const CardWidgetsSalesOverview = ({
 	labels = [],
@@ -160,7 +156,7 @@ const CardWidgetsSalesOverview = ({
 								offsetY: -14,
 								fontWeight: 600,
 								fontSize: "1rem",
-								formatter: (value) => formatMoney(value),
+								formatter: (value) => formatWholeNumber(value),
 								color: "var(--mui-palette-text-primary)",
 							},
 							total: {
@@ -168,7 +164,7 @@ const CardWidgetsSalesOverview = ({
 								label: `${currencyData} Total`,
 								fontSize: "0.8rem",
 								color: "var(--mui-palette-text-secondary)",
-								formatter: () => formatMoney(totalAmount),
+								formatter: () => formatWholeNumber(totalAmount),
 							},
 						},
 					},
@@ -176,7 +172,7 @@ const CardWidgetsSalesOverview = ({
 			},
 			tooltip: {
 				y: {
-					formatter: (value) => `${formatMoney(value)} ${currencyData}`,
+					formatter: (value) => `${formatWholeNumber(value)} ${currencyData}`,
 				},
 			},
 		};
@@ -282,7 +278,7 @@ const CardWidgetsSalesOverview = ({
 
 										<Box sx={{ textAlign: "right" }}>
 											<Typography variant="body2" sx={{ fontWeight: 600 }}>
-												{formatMoney(status.amount)} {currencyData}
+												{formatWholeNumber(status.amount)} {currencyData}
 											</Typography>
 											<Typography variant="caption" color="text.secondary">
 												{status.share.toFixed(1)}%
