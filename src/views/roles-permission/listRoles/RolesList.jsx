@@ -26,9 +26,16 @@ import { useRolesListHandlers } from '@/handlers/roles-permission/useRolesListHa
 import AppSnackbar from '@/components/shared/AppSnackbar'
 import rolesColumns from './rolesColumns'
 
-const RolesList = ({ initialData }) => {
+const RolesList = ({
+  initialRoles = [],
+  initialCardCounts = {},
+  initialErrorMessage = ''
+}) => {
   const theme = useTheme()
-  const handlers = useRolesListHandlers(initialData)
+  const handlers = useRolesListHandlers({
+    initialRoles,
+    initialCardCounts
+  })
 
   // Permissions
   const permissions = {
@@ -40,9 +47,9 @@ const RolesList = ({ initialData }) => {
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'success',
   })
 
   const handleSnackbarClose = (event, reason) => {

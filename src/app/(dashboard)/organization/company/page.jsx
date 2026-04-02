@@ -21,9 +21,7 @@ const CompanyProfilePage = async () => {
       </div>
 
       <CompanySettingsTab
-        initialData={{
-          companySettings: result?.success ? result.data : {}
-        }}
+        initialData={{ companySettings: result?.success ? result.data : {} }}
       />
     </div>
   )

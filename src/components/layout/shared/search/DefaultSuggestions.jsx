@@ -102,11 +102,6 @@ const defaultSuggestions = [
         label: 'Form Wizard',
         href: '/forms/form-wizard',
         icon: 'ri-equalizer-line'
-      },
-      {
-        label: 'Apex Charts',
-        href: '/charts/apex-charts',
-        icon: 'ri-line-chart-line'
       }
     ]
   }

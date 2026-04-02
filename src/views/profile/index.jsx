@@ -19,58 +19,22 @@ import TeamsTab from './TeamsTab'
 import ProjectsTab from './ProjectsTab'
 import ConnectionsTab from './ConnectionsTab'
 import CustomTabList from '@core/components/mui/TabList'
-import { updateProfile } from '@/app/(dashboard)/profile/actions'
 import { profileTabs } from '@/data/dataSets'
+import { useProfileHandler } from './handler'
 
-const ProfileContent = ({ initialData }) => {
-  const [profile, setProfile] = useState(initialData.profile)
-  const [loading, setLoading] = useState(initialData.loading)
-  const [updating, setUpdating] = useState(false)
-  const [error, setError] = useState(initialData.error)
-  const [activeTab, setActiveTab] = useState('profile')
-
+const ProfileContent = ({ initialProfile = {}, initialErrorMessage = '' }) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar()
-
-  const handleUpdate = async (formData) => {
-    setUpdating(true)
-    setError(null)
-
-    try {
-      const loadingKey = enqueueSnackbar('Updating profile...', {
-        variant: 'info',
-        persist: true,
-        preventDuplicate: true,
-      })
-
-      const result = await updateProfile(formData)
-      closeSnackbar(loadingKey)
-
-      if (result.success) {
-        setProfile(result.data)
-        return { success: true }
-      } else {
-        const errorMessage = result.message || 'Failed to update profile'
-        enqueueSnackbar(errorMessage, {
-          variant: 'error',
-          autoHideDuration: 5000,
-          preventDuplicate: true,
-        })
-        setError(errorMessage)
-        return { success: false, message: errorMessage }
-      }
-    } catch (error) {
-      closeSnackbar()
-      const errorMessage = error.message || 'Failed to update profile'
-      enqueueSnackbar(errorMessage, {
-        variant: 'error',
-        autoHideDuration: 5000,
-      })
-      setError(errorMessage)
-      return { success: false, message: errorMessage }
-    } finally {
-      setUpdating(false)
-    }
-  }
+  const {
+    profile,
+    updating,
+    error,
+    activeTab,
+    setActiveTab,
+    handleUpdate,
+  } = useProfileHandler({
+    initialProfile,
+    initialErrorMessage,
+  })
 
   const handleTabChange = (event, value) => {
     setActiveTab(value)
@@ -81,7 +45,7 @@ const ProfileContent = ({ initialData }) => {
     profile: (
       <ProfileTab
         data={profile}
-        onUpdate={handleUpdate}
+        onUpdate={(formData) => handleUpdate(formData, enqueueSnackbar, closeSnackbar)}
         updating={updating}
         error={error}
         enqueueSnackbar={enqueueSnackbar}

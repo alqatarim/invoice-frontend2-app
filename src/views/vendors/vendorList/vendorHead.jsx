@@ -5,7 +5,6 @@ import { Grid, Avatar, Typography } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { amountFormat } from '@/utils/numberUtils';
-import { getInitialVendorData } from '@/app/(dashboard)/vendors/actions';
 import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
 
 /**

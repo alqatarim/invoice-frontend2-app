@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 // Component Imports
 import PreferenceSettingsForm from './PreferenceSettingsForm'
@@ -19,16 +19,6 @@ const PreferenceSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
     updatePreferenceSettings,
     clearError
   } = usePreferenceSettingsHandlers(initialData)
-
-  // Load preference settings data only if not provided
-  useEffect(() => {
-    if (!initialData.preferenceSettings) {
-      getPreferenceSettings()
-    }
-    if (!initialData.currencies || initialData.currencies.length === 0) {
-      getCurrencies()
-    }
-  }, [])
 
   const handleUpdate = async (formData) => {
     try {

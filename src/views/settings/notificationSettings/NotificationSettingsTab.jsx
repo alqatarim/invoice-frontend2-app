@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 // Component Imports
 import NotificationSettingsForm from './NotificationSettingsForm'
@@ -17,13 +17,6 @@ const NotificationSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
     updateNotificationSettings,
     clearError
   } = useNotificationSettingsHandlers(initialData)
-
-  // Load notification settings data only if not provided
-  useEffect(() => {
-    if (!initialData.notificationSettings) {
-      getNotificationSettings()
-    }
-  }, [])
 
   const handleUpdate = async (formData) => {
     try {

@@ -26,13 +26,10 @@ import {
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
-import { useSession } from 'next-auth/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
-import { usePermission } from '@/Auth/usePermission';
 import CustomerAutocomplete from '@/components/custom-components/CustomerAutocomplete';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import AppSnackbar from '@/components/shared/AppSnackbar';
-import usePosPageHandlers from '@/handlers/pos/usePosPageHandlers';
 import { getPosColumns } from './posColumns';
 import PosReceiptDialog from './components/PosReceiptDialog';
 import PosAdvancedDrawer from './components/PosAdvancedDrawer';
@@ -44,74 +41,19 @@ const getBranchIdentifiers = (branch) =>
     .map((entry) => String(entry || '').trim())
     .filter(Boolean);
 
-const findBranchByIdentifier = (branches = [], value = '') =>
-  (Array.isArray(branches) ? branches : []).find((branch) =>
-    getBranchIdentifiers(branch).includes(String(value || '').trim())
-  ) || null;
-
-const isStoreBranch = (branch) =>
-  String(branch?.branchType || branch?.kind || '').trim().toLowerCase() === 'store';
-
 const resolveBranchId = (branch) => getBranchIdentifiers(branch)[0] || '';
 
 const PosPage = ({
-  customersData,
-  productData,
-  taxRates,
-  initialBanks,
-  signatures,
-  branchesData,
-  posSettings,
-  paymentMethods,
-  invoiceNumber,
-  onSave,
-  enqueueSnackbar,
-  closeSnackbar,
+  initialCustomersData = [],
+  initialProductData = [],
+  initialTaxRates = [],
+  initialInvoiceNumber = '',
+  controller,
+  canAccessPos,
+  canCreateInvoice,
+  primaryStore,
 }) => {
   const theme = useTheme();
-  const { data: session } = useSession();
-  const canViewInvoice = usePermission('invoice', 'view');
-  const canCreateInvoice = usePermission('invoice', 'create');
-  const canAccessPos = canViewInvoice || canCreateInvoice;
-  const companyMembership = session?.user?.companyMembership || {};
-  const accessibleStores = Array.isArray(companyMembership?.accessibleBranches)
-    ? companyMembership.accessibleBranches.filter(isStoreBranch)
-    : [];
-  const bootstrapStores = useMemo(
-    () => (Array.isArray(branchesData) ? branchesData : []).filter(isStoreBranch),
-    [branchesData]
-  );
-  const allowedPosStores = useMemo(() => {
-    if (accessibleStores.length === 0) return [];
-
-    const bootstrapStoreMap = new Map();
-    bootstrapStores.forEach((branch) => {
-      getBranchIdentifiers(branch).forEach((identifier) => {
-        bootstrapStoreMap.set(identifier, branch);
-      });
-    });
-
-    const seenBranchIds = new Set();
-
-    return accessibleStores.reduce((stores, accessibleBranch) => {
-      const bootstrapMatch = getBranchIdentifiers(accessibleBranch)
-        .map((identifier) => bootstrapStoreMap.get(identifier))
-        .find(Boolean);
-      const mergedBranch = bootstrapMatch
-        ? { ...accessibleBranch, ...bootstrapMatch }
-        : accessibleBranch;
-      const canonicalBranchId = resolveBranchId(mergedBranch);
-
-      if (!canonicalBranchId || seenBranchIds.has(canonicalBranchId)) {
-        return stores;
-      }
-
-      seenBranchIds.add(canonicalBranchId);
-      stores.push(mergedBranch);
-      return stores;
-    }, []);
-  }, [accessibleStores, bootstrapStores]);
-  const primaryStore = findBranchByIdentifier(allowedPosStores, companyMembership?.primaryBranchId);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showHeldSales, setShowHeldSales] = useState(false);
@@ -119,21 +61,7 @@ const PosPage = ({
   const barcodeInputRef = useRef(null);
   const customerInputRef = useRef(null);
   const tenderInputRef = useRef(null);
-
-  const handlers = usePosPageHandlers({
-    customersData,
-    productData,
-    initialBanks,
-    signatures,
-    invoiceNumber,
-    allowedBranchesData: allowedPosStores,
-    posSettings,
-    bootstrapPaymentMethods: paymentMethods,
-    onSave,
-    enqueueSnackbar,
-    closeSnackbar,
-    preferredBranchId: primaryStore?.branchId || primaryStore?._id || '',
-  });
+  const handlers = controller;
 
   const {
     control,
@@ -424,12 +352,12 @@ const PosPage = ({
         setValue,
         getValues,
         watchItems,
-        productData,
+        productData: initialProductData,
         productsCloneData,
         discountMenu,
         setDiscountMenu,
         taxMenu,
-        taxRates,
+        taxRates: initialTaxRates,
         theme,
         updateCalculatedFields,
         handleUpdateItemProduct,
@@ -449,12 +377,12 @@ const PosPage = ({
       setValue,
       getValues,
       watchItems,
-      productData,
+      initialProductData,
       productsCloneData,
       discountMenu,
       setDiscountMenu,
       taxMenu,
-      taxRates,
+      initialTaxRates,
       theme,
       updateCalculatedFields,
       handleUpdateItemProduct,
@@ -555,7 +483,7 @@ const PosPage = ({
                 <Grid size={{ xs: 12, md: 1.5 }}>
                   <TextField
                     label="Invoice No"
-                    value={watch('invoiceNumber') || invoiceNumber || ''}
+                    value={watch('invoiceNumber') || initialInvoiceNumber || ''}
                     variant="outlined"
                     fullWidth
                     size="medium"
@@ -656,7 +584,7 @@ const PosPage = ({
                       inputRef={customerInputRef}
                       control={control}
                       errors={errors}
-                      customersData={customersData}
+                      customersData={initialCustomersData}
                       includeWalkInOption={false}
                       onCustomerChange={handleCustomerChange}
                     />

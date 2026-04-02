@@ -25,9 +25,16 @@ import { getUnitById, getUnitDropdownData } from '@/app/(dashboard)/units/action
 import { useEditUnitHandlers } from '@/handlers/units/editUnit';
 import { formIcons } from '@/data/dataSets';
 
-const EditUnitDialog = ({ open, unitId, onClose, onSave }) => {
+const EditUnitDialog = ({
+  open,
+  unitId,
+  onClose,
+  onSave,
+  initialUnitData = null,
+  initialDropdownOptions = { units: [] }
+}) => {
   const theme = useTheme();
-  const [unitData, setUnitData] = useState(null);
+  const [unitData, setUnitData] = useState(initialUnitData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -49,13 +56,17 @@ const EditUnitDialog = ({ open, unitId, onClose, onSave }) => {
     },
   });
 
-  const [dropdownOptions, setDropdownOptions] = useState({ units: [] });
+  const [dropdownOptions, setDropdownOptions] = useState(initialDropdownOptions || { units: [] });
   const [optionsLoading, setOptionsLoading] = useState(false);
   const baseUnitOptions = (dropdownOptions.units || []).filter(unit => unit._id !== unitId);
 
   useEffect(() => {
     const loadDropdowns = async () => {
       if (!open) return;
+      if ((initialDropdownOptions?.units || []).length > 0) {
+        setDropdownOptions(initialDropdownOptions);
+        return;
+      }
       setOptionsLoading(true);
       try {
         const response = await getUnitDropdownData();
@@ -72,12 +83,17 @@ const EditUnitDialog = ({ open, unitId, onClose, onSave }) => {
     };
 
     loadDropdowns();
-  }, [open]);
+  }, [open, initialDropdownOptions]);
 
   // Fetch unit data when dialog opens
   useEffect(() => {
     const fetchData = async () => {
       if (open && unitId) {
+        if (initialUnitData && initialUnitData._id === unitId) {
+          setUnitData(initialUnitData);
+          setError(null);
+          return;
+        }
         setLoading(true);
         setError(null);
         try {
@@ -99,7 +115,7 @@ const EditUnitDialog = ({ open, unitId, onClose, onSave }) => {
     };
 
     fetchData();
-  }, [open, unitId]);
+  }, [open, unitId, initialUnitData]);
 
   const handleClose = () => {
     setUnitData(null);

@@ -8,21 +8,26 @@ import { getInitialVendorData } from '@/app/(dashboard)/vendors/actions';
  * VendorsPage Component - Optimized to prevent race conditions
  */
 const VendorsPage = async () => {
-  try {
-    // Single server-side data fetch
-    const initialData = await getInitialVendorData();
+  let initialVendors = [];
+  let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialErrorMessage = '';
 
-    return (
-      <VendorListIndex initialData={initialData} />
-    );
+  try {
+    const initialData = await getInitialVendorData();
+    initialVendors = initialData?.vendors || [];
+    initialPagination = initialData?.pagination || initialPagination;
   } catch (error) {
     console.error('VendorsPage: Error fetching data:', error);
-    return (
-      <div className="text-red-600 p-8">
-        Failed to load vendor data: {error.message}
-      </div>
-    );
+    initialErrorMessage = error?.message || 'Failed to load vendor data.';
   }
+
+  return (
+    <VendorListIndex
+      initialVendors={initialVendors}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 };
 
 export default VendorsPage;

@@ -3,21 +3,24 @@
 import React from 'react';
 import UsersList from './UsersList';
 
-const UsersListIndex = ({ initialData, initialRoles = [], initialBranches = [] }) => {
-     // Only extract and pass initial data as props
-     const initialUsers = initialData?.users || initialData?.data || [];
-     const pagination = initialData?.pagination || {
+const UsersListIndex = ({
+     initialUsers = [],
+     initialPagination = {
           current: 1,
           pageSize: 10,
           total: 0,
-     };
-
+     },
+     initialRoles = [],
+     initialBranches = [],
+     initialErrorMessage = '',
+}) => {
      return (
           <UsersList
                initialUsers={initialUsers}
-               pagination={pagination}
+               pagination={initialPagination}
                initialRoles={initialRoles}
                initialBranches={initialBranches}
+               initialErrorMessage={initialErrorMessage}
           />
      );
 };

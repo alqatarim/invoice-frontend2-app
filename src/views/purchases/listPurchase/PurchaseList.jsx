@@ -30,7 +30,12 @@ import AppSnackbar from '@/components/shared/AppSnackbar';
 /**
  * Simplified PurchaseList Component - matches purchase order list structure
  */
-const PurchaseList = ({ initialPurchases, initialPagination, vendors = [] }) => {
+const PurchaseList = ({
+     initialPurchases,
+     initialPagination,
+     vendors = [],
+     initialErrorMessage = ''
+}) => {
      const theme = useTheme();
      const { data: session } = useSession();
      const searchParams = useSearchParams();
@@ -45,9 +50,9 @@ const PurchaseList = ({ initialPurchases, initialPagination, vendors = [] }) => 
 
      // Snackbar state
      const [snackbar, setSnackbar] = useState({
-          open: false,
-          message: '',
-          severity: 'success',
+          open: Boolean(initialErrorMessage),
+          message: initialErrorMessage || '',
+          severity: initialErrorMessage ? 'error' : 'success',
      });
 
      // Notification handlers

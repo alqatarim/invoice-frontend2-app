@@ -10,21 +10,26 @@ export const metadata = {
  * ProductsPage Component - Optimized to prevent race conditions
  */
 const ProductsPage = async () => {
-  try {
-    // Single server-side data fetch
-    const initialData = await getInitialProductData();
+  let initialProducts = [];
+  let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialErrorMessage = '';
 
-    return (
-      <ProductListIndex initialData={initialData} />
-    );
+  try {
+    const initialData = await getInitialProductData();
+    initialProducts = initialData?.products || [];
+    initialPagination = initialData?.pagination || initialPagination;
   } catch (error) {
     console.error('ProductsPage: Error fetching data:', error);
-    return (
-      <div className="text-red-600 p-8">
-        Failed to load product data: {error.message}
-      </div>
-    );
+    initialErrorMessage = error?.message || 'Failed to load product data.';
   }
+
+  return (
+    <ProductListIndex
+      initialProducts={initialProducts}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 };
 
 export default ProductsPage;

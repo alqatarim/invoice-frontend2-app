@@ -30,42 +30,10 @@ const ENDPOINTS = {
 const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
 
 /**
- * Get initial delivery challan data with default pagination.
- */
-export async function getInitialDeliveryChallanData() {
-  try {
-    const response = await fetchWithAuth(`${ENDPOINTS.DELIVERY_CHALLANS.LIST}?skip=0&limit=10`);
-
-    if (response.code === 200) {
-      const deliveryChallans = response.data || [];
-      const total = response.totalRecords || deliveryChallans.length;
-      return {
-        deliveryChallans,
-        pagination: {
-          current: 1,
-          pageSize: 10,
-          total,
-        },
-        cardCounts: {
-          all: deliveryChallans.length,
-          active: deliveryChallans.filter(dc => !dc.isDeleted).length
-        }
-      };
-    } else {
-      console.error('Failed to fetch initial delivery challan data');
-      throw new Error('Failed to fetch initial delivery challan data');
-    }
-  } catch (error) {
-    console.error('Error in getInitialDeliveryChallanData:', error);
-    throw new Error(error.message || 'Failed to fetch initial delivery challan data');
-  }
-}
-
-/**
- * Get filtered delivery challans with pagination.
+ * Get delivery challans with pagination.
  * Note: Backend only supports customer filter and fixed sorting by newest first.
  */
-export async function getFilteredDeliveryChallans(tab, page, pageSize, filters = {}, sortBy = '', sortDirection = 'asc') {
+export async function getFilteredDeliveryChallans(page, pageSize, filters = {}) {
   try {
     const skip = (page - 1) * pageSize;
     let url = ENDPOINTS.DELIVERY_CHALLANS.LIST + `?skip=${skip}&limit=${pageSize}`;

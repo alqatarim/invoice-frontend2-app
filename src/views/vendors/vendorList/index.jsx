@@ -3,11 +3,16 @@
 import React from "react";
 import VendorList from "@/views/vendors/vendorList/VendorList";
 
-const VendorListIndex = ({ initialData }) => {
+const VendorListIndex = ({
+  initialVendors = [],
+  initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialErrorMessage = '',
+}) => {
   return (
     <VendorList
-      initialVendors={initialData?.vendors || []}
-      initialPagination={initialData?.pagination || { current: 1, pageSize: 10, total: 0 }}
+      initialVendors={initialVendors}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
     />
   );
 };

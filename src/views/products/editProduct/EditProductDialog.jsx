@@ -43,11 +43,19 @@ import { normalizeScaleBarcodeConfig } from '@/utils/productScaleBarcode';
 
 
 
-const EditProductDialog = ({ open, productId, initialProductData = null, onClose, onSave, variant = 'dialog' }) => {
+const EditProductDialog = ({
+  open,
+  productId,
+  initialProductData = null,
+  initialDropdownData = { units: [], categories: [], taxes: [] },
+  onClose,
+  onSave,
+  variant = 'dialog'
+}) => {
   const theme = useTheme();
   const isDialog = variant === 'dialog';
   const [productData, setProductData] = useState(initialProductData);
-  const [dropdownData, setDropdownData] = useState({ units: [], categories: [], taxes: [] });
+  const [dropdownData, setDropdownData] = useState(initialDropdownData || { units: [], categories: [], taxes: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -494,6 +502,20 @@ const EditProductDialog = ({ open, productId, initialProductData = null, onClose
   useEffect(() => {
     const fetchData = async () => {
       if (open && productId) {
+        if (
+          initialProductData &&
+          initialProductData._id === productId &&
+          (
+            (initialDropdownData?.units || []).length > 0 ||
+            (initialDropdownData?.categories || []).length > 0 ||
+            (initialDropdownData?.taxes || []).length > 0
+          )
+        ) {
+          setProductData(initialProductData);
+          setDropdownData(initialDropdownData);
+          setError(null);
+          return;
+        }
         setLoading(true);
         setError(null);
         try {
@@ -524,7 +546,7 @@ const EditProductDialog = ({ open, productId, initialProductData = null, onClose
     };
 
     fetchData();
-  }, [open, productId, initialProductData]);
+  }, [open, productId, initialProductData, initialDropdownData]);
 
   useEffect(() => {
     if (open && productData) {

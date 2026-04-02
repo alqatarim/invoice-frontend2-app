@@ -16,33 +16,6 @@ const ENDPOINTS = {
 }
 
 /**
- * Get initial payment summary data with default pagination.
- * @returns {Promise<Object>} Initial payment summary data including payments and pagination
- */
-export async function getInitialPaymentSummaryData() {
-  try {
-    const response = await fetchWithAuth(`${ENDPOINTS.PAYMENT.LIST}?limit=10&skip=0`)
-
-    if (response.code === 200) {
-      return {
-        payments: response.data || [],
-        pagination: {
-          current: 1,
-          pageSize: 10,
-          total: response.totalRecords || 0,
-        }
-      }
-    } else {
-      console.error('Failed to fetch initial payment summary data')
-      throw new Error(response.message || 'Failed to fetch initial payment summary data')
-    }
-  } catch (error) {
-    console.error('Error in getInitialPaymentSummaryData:', error)
-    throw new Error(error.message || 'Failed to fetch initial payment summary data')
-  }
-}
-
-/**
  * Get filtered payment summaries with pagination and filters.
  * @param {number} page - Page number (1-based)
  * @param {number} pageSize - Number of items per page

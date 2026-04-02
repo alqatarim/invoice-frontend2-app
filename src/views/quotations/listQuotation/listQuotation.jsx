@@ -68,7 +68,12 @@ const paymentMethodOptions = [
      { value: 'Online', label: 'Online Payment' }
 ];
 
-const ListQuotation = ({ initialData, customers }) => {
+const ListQuotation = ({
+     initialQuotations = [],
+     initialPagination = { current: 1, pageSize: 10, total: 0 },
+     initialCustomers = [],
+     initialErrorMessage = ''
+}) => {
      const theme = useTheme();
      const router = useRouter();
      const searchParams = useSearchParams();
@@ -89,15 +94,15 @@ const ListQuotation = ({ initialData, customers }) => {
           canDelete: usePermission('quotation', 'delete'),
      };
 
-     const [quotations, setQuotations] = useState(initialData?.data || []);
+     const [quotations, setQuotations] = useState(initialQuotations);
      const [searchTerm, setSearchTerm] = useState('');
-     const [filteredQuotations, setFilteredQuotations] = useState(initialData?.data || []);
+     const [filteredQuotations, setFilteredQuotations] = useState(initialQuotations);
      const [loading, setLoading] = useState(false);
 
      const [pagination, setPagination] = useState({
-          current: 1,
-          pageSize: 10,
-          total: initialData?.totalRecords || initialData?.data?.length || 0
+          current: initialPagination.current || 1,
+          pageSize: initialPagination.pageSize || 10,
+          total: initialPagination.total || 0
      });
 
      const [selectedQuotation, setSelectedQuotation] = useState(null);
@@ -108,9 +113,9 @@ const ListQuotation = ({ initialData, customers }) => {
 
      // Snackbar state
      const [snackbar, setSnackbar] = useState({
-          open: false,
-          message: '',
-          severity: 'success',
+          open: Boolean(initialErrorMessage),
+          message: initialErrorMessage || '',
+          severity: initialErrorMessage ? 'error' : 'success',
      });
 
      // Notification handlers
@@ -164,11 +169,6 @@ const ListQuotation = ({ initialData, customers }) => {
                setLoading(false);
           }
      }, [onError, pagination.current, pagination.pageSize]);
-
-     useEffect(() => {
-          if ((initialData?.data || []).length > 0) return;
-          fetchQuotations();
-     }, [fetchQuotations, initialData?.data]);
 
      // Search functionality
      useEffect(() => {

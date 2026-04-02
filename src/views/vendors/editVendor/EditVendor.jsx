@@ -25,9 +25,15 @@ import { getVendorById } from '@/app/(dashboard)/vendors/actions';
 
 import { useEditVendorHandlers } from '@/handlers/vendors/editVendor';
 
-const EditVendorDialog = ({ open, vendorId, onClose, onSave }) => {
+const EditVendorDialog = ({
+  open,
+  vendorId,
+  onClose,
+  onSave,
+  initialVendorData = null
+}) => {
   const theme = useTheme();
-  const [vendorData, setVendorData] = React.useState(null);
+  const [vendorData, setVendorData] = React.useState(initialVendorData);
   const [loading, setLoading] = React.useState(false);
 
   const {
@@ -58,6 +64,10 @@ const EditVendorDialog = ({ open, vendorId, onClose, onSave }) => {
   useEffect(() => {
     const fetchVendorData = async () => {
       if (open && vendorId) {
+        if (initialVendorData && initialVendorData._id === vendorId) {
+          setVendorData(initialVendorData);
+          return;
+        }
         setLoading(true);
         try {
           const data = await getVendorById(vendorId);
@@ -71,7 +81,7 @@ const EditVendorDialog = ({ open, vendorId, onClose, onSave }) => {
     };
 
     fetchVendorData();
-  }, [open, vendorId]);
+  }, [open, vendorId, initialVendorData]);
 
   const handleClose = () => {
     setVendorData(null);

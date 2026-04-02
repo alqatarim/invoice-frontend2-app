@@ -6,9 +6,18 @@ import AppSnackbar from '@/components/shared/AppSnackbar';
 import EditProductDialog from './EditProductDialog';
 import { updateProduct } from '@/app/(dashboard)/products/actions';
 
-const EditProductPage = ({ id, initialProductData = null }) => {
+const EditProductPage = ({
+  id,
+  initialProductData = null,
+  initialDropdownData = { units: [], categories: [], taxes: [] },
+  initialErrorMessage = '',
+}) => {
   const router = useRouter();
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [snackbar, setSnackbar] = useState({
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'success',
+  });
 
   const handleClose = useCallback(() => {
     router.push('/products/product-list');
@@ -39,6 +48,7 @@ const EditProductPage = ({ id, initialProductData = null }) => {
         variant="page"
         productId={id}
         initialProductData={initialProductData}
+        initialDropdownData={initialDropdownData}
         onClose={handleClose}
         onSave={handleSave}
       />

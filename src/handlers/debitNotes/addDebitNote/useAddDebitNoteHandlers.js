@@ -4,7 +4,7 @@ import { useItemsHandler } from './itemsHandler';
 import { useBankHandler } from './bankHandler';
 import { useSignatureHandler } from './signatureHandler';
 import { useDialogHandler } from './dialogHandler';
-import { useSubmissionHandler } from './submissionHandler';
+import { useDebitNoteSubmissionHandler } from '../submissionHandler';
 import { paymentMethods } from '@/data/dataSets';
 
 export default function useAddDebitNoteHandlers({
@@ -70,12 +70,13 @@ export default function useAddDebitNoteHandlers({
   });
 
   // Submission Handler
-  const submissionHandler = useSubmissionHandler({
+  const submissionHandler = useDebitNoteSubmissionHandler({
     trigger,
     closeSnackbar,
     enqueueSnackbar,
     onSave,
     getValues,
+    failureMessage: 'Failed to add debit note',
   });
 
   return {

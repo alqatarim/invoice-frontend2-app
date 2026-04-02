@@ -359,22 +359,6 @@ const horizontalMenuData = (dictionary, params) => [
     ]
   },
   {
-    label: dictionary['navigation'].charts,
-    icon: 'ri-bar-chart-2-line',
-    children: [
-      {
-        label: dictionary['navigation'].recharts,
-        icon: 'ri-bar-chart-line',
-        href: '/charts/recharts'
-      },
-      {
-        label: dictionary['navigation'].apex,
-        icon: 'ri-line-chart-line',
-        href: '/charts/apex-charts'
-      }
-    ]
-  },
-  {
     label: dictionary['navigation'].others,
     icon: 'ri-more-line',
     children: [

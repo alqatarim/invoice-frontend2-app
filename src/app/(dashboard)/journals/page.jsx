@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ManualEntriesView from '@/views/accounting/ManualEntriesView';
+import ManualEntriesIndex from '@/views/accounting/manualEntries';
 import { getAccountDropdown, getManualJournals } from '@/app/(dashboard)/accounting/actions';
 
 const JournalsPage = async () => {
@@ -10,11 +10,11 @@ const JournalsPage = async () => {
   ]);
 
   return (
-    <ManualEntriesView
+    <ManualEntriesIndex
       type='journal'
       initialEntries={journalData?.entries || []}
       initialPagination={journalData?.pagination || { current: 1, pageSize: 10, total: 0 }}
-      accountOptions={accountOptions || []}
+      initialAccountOptions={accountOptions || []}
     />
   );
 };

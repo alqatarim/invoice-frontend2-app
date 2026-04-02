@@ -58,12 +58,12 @@ const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) =>
 
 const EditSalesReturnContent = ({
   id,
-  salesReturnData,
-  customersData,
-  productData,
-  taxRates,
+  initialSalesReturnData,
+  initialCustomers,
+  initialProducts,
+  initialTaxRates,
   initialBanks,
-  signatures
+  initialSignatures
 }) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
@@ -80,7 +80,7 @@ const EditSalesReturnContent = ({
       const response = await updateSalesReturn({
         ...data,
         id: id,
-        credit_note_id: data.credit_note_id || salesReturnData.credit_note_id
+        credit_note_id: data.credit_note_id || initialSalesReturnData.credit_note_id
       });
 
       closeSnackbar(loadingKey);
@@ -115,12 +115,12 @@ const EditSalesReturnContent = ({
 
   return (
     <EditSalesReturn
-      salesReturnData={salesReturnData}
-      customersData={customersData}
-      productData={productData}
-      taxRates={taxRates}
+      salesReturnData={initialSalesReturnData}
+      customersData={initialCustomers}
+      productData={initialProducts}
+      taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      signatures={signatures}
+      signatures={initialSignatures}
       onSave={handleSave}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}

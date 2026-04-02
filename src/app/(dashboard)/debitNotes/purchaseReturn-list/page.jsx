@@ -7,23 +7,34 @@ export const metadata = {
 };
 
 async function DebitNoteListPage() {
+  let initialDebitNotes = [];
+  let initialPagination = {
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  };
+  let initialErrorMessage = '';
+
   try {
     const initialData = await getDebitNotesList();
-
-    return (
-      <PurchaseReturnListIndex
-        initialDebitNotes={initialData?.data || []}
-        initialPagination={{
-          current: 1,
-          pageSize: 10,
-          total: initialData?.totalRecords || 0,
-        }}
-      />
-    );
+    initialDebitNotes = initialData?.data || [];
+    initialPagination = {
+      current: 1,
+      pageSize: 10,
+      total: initialData?.totalRecords || 0,
+    };
   } catch (error) {
     console.error('Error loading debit note list data:', error);
-    return <div className="text-red-600 p-8">Failed to load debit note list.</div>;
+    initialErrorMessage = error?.message || 'Failed to load debit note list.';
   }
+
+  return (
+    <PurchaseReturnListIndex
+      initialDebitNotes={initialDebitNotes}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 }
 
 export default DebitNoteListPage;

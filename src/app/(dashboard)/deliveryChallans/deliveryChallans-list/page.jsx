@@ -1,5 +1,5 @@
 import React from 'react';
-import { getInitialDeliveryChallanData } from '../actions';
+import { getFilteredDeliveryChallans } from '../actions';
 import DeliveryChallanListIndex from '@/views/deliveryChallans/listDeliveryChallans/index';
 
 export const metadata = {
@@ -7,25 +7,30 @@ export const metadata = {
 };
 
 async function DeliveryChallanListPage() {
-  try {
-    const initialData = await getInitialDeliveryChallanData();
+  let initialDeliveryChallans = [];
+  let initialPagination = {
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  };
+  let initialErrorMessage = '';
 
-    return (
-      <DeliveryChallanListIndex
-        initialDeliveryChallans={initialData?.deliveryChallans || []}
-        initialPagination={
-          initialData?.pagination || {
-            current: 1,
-            pageSize: 10,
-            total: 0,
-          }
-        }
-      />
-    );
+  try {
+    const initialListData = await getFilteredDeliveryChallans(1, 10, {});
+    initialDeliveryChallans = initialListData?.deliveryChallans || [];
+    initialPagination = initialListData?.pagination || initialPagination;
   } catch (error) {
     console.error('Error loading delivery challan list data:', error);
-    return <div className="text-red-600 p-8">Failed to load delivery challan list.</div>;
+    initialErrorMessage = error?.message || 'Failed to load delivery challan list.';
   }
+
+  return (
+    <DeliveryChallanListIndex
+      initialDeliveryChallans={initialDeliveryChallans}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 }
 
 export default DeliveryChallanListPage;

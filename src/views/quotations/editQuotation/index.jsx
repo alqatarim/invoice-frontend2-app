@@ -23,30 +23,31 @@ import { formatISO } from 'date-fns'
 import { updateQuotation } from 'src/app/(dashboard)/quotations/actions'
 
 const EditQuotationIndex = ({
-  quotationData = null,
-  customers = [],
-  products = [],
-  taxRates = [],
-  banks = [],
-  signatures = [],
-  units = []
+  initialQuotationData = null,
+  initialCustomers = [],
+  initialProducts = [],
+  initialTaxRates = [],
+  initialBanks = [],
+  initialSignatures = [],
+  initialUnits = [],
+  initialErrorMessage = ''
 }) => {
   // ** Hooks
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
 
   // ** States
-  const [quotation, setQuotation] = useState(quotationData)
+  const [quotation, setQuotation] = useState(initialQuotationData)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isLoading, setIsLoading] = useState(!quotationData)
+  const [isLoading, setIsLoading] = useState(!initialQuotationData)
 
   // Process initial data if available
   useEffect(() => {
-    if (quotationData) {
-      setQuotation(quotationData)
+    if (initialQuotationData) {
+      setQuotation(initialQuotationData)
       setIsLoading(false)
     }
-  }, [quotationData])
+  }, [initialQuotationData])
 
 
 
@@ -107,8 +108,8 @@ const EditQuotationIndex = ({
   // Handle reset form data
   const handleResetData = () => {
     // Reset data is handled by the component itself
-    if (quotationData) {
-      setQuotation(quotationData)
+    if (initialQuotationData) {
+      setQuotation(initialQuotationData)
     }
   }
 
@@ -136,11 +137,11 @@ const EditQuotationIndex = ({
 
       <EditQuotation
         quotation={quotation}
-        customers={customers}
-        productData={products}
-        taxRates={taxRates}
-        initialBanks={banks}
-        signatures={signatures}
+        customers={initialCustomers}
+        productData={initialProducts}
+        taxRates={initialTaxRates}
+        initialBanks={initialBanks}
+        signatures={initialSignatures}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
         resetData={handleResetData}

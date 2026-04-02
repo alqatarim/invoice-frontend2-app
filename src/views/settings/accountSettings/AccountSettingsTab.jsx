@@ -1,6 +1,3 @@
-// React Imports
-import { useEffect } from 'react'
-
 // Component Imports
 import AccountSettingsForm from './AccountSettingsForm'
 
@@ -16,14 +13,7 @@ const AccountSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
           getAccountSettings,
           updateAccountSettings,
           clearError
-     } = useAccountSettingsHandlers()
-
-     // Load account settings on mount
-     useEffect(() => {
-          if (!initialData?.accountSettings) {
-               getAccountSettings()
-          }
-     }, [])
+     } = useAccountSettingsHandlers(initialData?.accountSettings || null)
 
      const handleUpdate = async (formData) => {
           try {

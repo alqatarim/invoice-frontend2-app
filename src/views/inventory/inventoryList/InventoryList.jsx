@@ -25,20 +25,16 @@ import {
   Tab,
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
-import { usePermission } from '@/Auth/usePermission';
 import { getInventoryMovementHistory } from '@/app/(dashboard)/inventory/actions';
 
 import InventoryHead from '@/views/inventory/inventoryList/inventoryHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import { useInventoryListHandlers } from '@/handlers/inventory/useInventoryListHandlers';
-import { useBranchInventoryHandlers } from '@/handlers/inventory/useBranchInventoryHandlers';
 import { getInventoryColumns } from './inventoryColumns';
 import { getBranchInventoryColumns } from './branchInventoryColumns';
 import BranchStockTable from './BranchStockTable';
 import BranchInventoryTable from './BranchInventoryTable';
 import InventoryMovementDialog from './InventoryMovementDialog';
 import AppSnackbar from '@/components/shared/AppSnackbar';
-import useAccessibleBranchScope from '@/hooks/useAccessibleBranchScope';
 
 /**
  * InventoryList Component
@@ -68,101 +64,27 @@ const findInventoryBranchRecord = (inventoryBranches = [], branch = {}) => {
   ) || null;
 };
 
-const buildLocationTreeFromBranches = (branchList = []) => {
-  const provinceMap = new Map();
-
-  (Array.isArray(branchList) ? branchList : []).forEach((branch) => {
-    const province = String(branch?.province || '').trim();
-    const city = String(branch?.city || '').trim();
-    const district = String(branch?.district || '').trim();
-
-    if (!province || !city) {
-      return;
-    }
-
-    if (!provinceMap.has(province)) {
-      provinceMap.set(province, { province, cities: new Map() });
-    }
-
-    const provinceEntry = provinceMap.get(province);
-    if (!provinceEntry.cities.has(city)) {
-      provinceEntry.cities.set(city, { name: city, districts: new Set() });
-    }
-
-    if (district) {
-      provinceEntry.cities.get(city).districts.add(district);
-    }
-  });
-
-  return [...provinceMap.values()]
-    .sort((left, right) => left.province.localeCompare(right.province))
-    .map((provinceEntry) => ({
-      province: provinceEntry.province,
-      cities: [...provinceEntry.cities.values()]
-        .sort((left, right) => left.name.localeCompare(right.name))
-        .map((cityEntry) => ({
-          name: cityEntry.name,
-          districts: [...cityEntry.districts].sort((left, right) => left.localeCompare(right)),
-        })),
-    }));
-};
-
 const InventoryList = ({
   initialInventory = [],
   pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
   cardCounts: initialCardCounts = {},
   initialBranchInventory = [],
   initialBranchPagination = { current: 1, pageSize: 10, total: 0 },
-  initialBranches = [],
-  initialProvincesCities = [],
+  permissions = {},
+  handlers,
+  branchHandlers,
+  branchScope,
+  branchOptions = [],
+  scopedProvincesCities = [],
+  scopeHelperText = '',
+  onError,
+  snackbar,
+  onSnackbarClose,
   filters: initialFilters = {},
   sortBy: initialSortBy = '',
   sortDirection: initialSortDirection = 'asc',
 }) => {
   const theme = useTheme();
-
-  // Permissions
-  const permissions = {
-    canCreate: usePermission('inventory', 'create'),
-    canUpdate: usePermission('inventory', 'update'),
-    canView: usePermission('inventory', 'view'),
-    canDelete: usePermission('inventory', 'delete'),
-  };
-
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-  const branches = useMemo(
-    () => (Array.isArray(initialBranches) ? initialBranches : []),
-    [initialBranches]
-  );
-  const provincesCities = useMemo(
-    () => (Array.isArray(initialProvincesCities) ? initialProvincesCities : []),
-    [initialProvincesCities]
-  );
-  const branchScope = useAccessibleBranchScope({ branchesData: branches });
-  const branchOptions = useMemo(
-    () => (branchScope.branchOptions.length ? branchScope.branchOptions : branches),
-    [branchScope.branchOptions, branches]
-  );
-  const scopedProvincesCities = useMemo(() => {
-    const derivedLocations = buildLocationTreeFromBranches(branchOptions);
-    return derivedLocations.length ? derivedLocations : provincesCities;
-  }, [branchOptions, provincesCities]);
-  const scopeHelperText = useMemo(() => {
-    if (branchScope.isRestrictedToAssignedBranches) {
-      if (branchScope.primaryBranch?.name) {
-        return `Only your assigned branches are visible here. Primary branch: ${branchScope.primaryBranch.name}. Transfers and branch selectors stay inside this scope.`;
-      }
-
-      return 'Only your assigned branches are visible here. Transfers and branch selectors stay inside this scope.';
-    }
-
-    return 'Inventory actions respect your current company access. Branch selectors only show locations available to your role.';
-  }, [branchScope.isRestrictedToAssignedBranches, branchScope.primaryBranch?.name]);
   const [expandedRows, setExpandedRows] = useState({});
   const [expandedBranchRows, setExpandedBranchRows] = useState({});
   const [activeTab, setActiveTab] = useState('inventory');
@@ -204,34 +126,8 @@ const InventoryList = ({
     branchLabel: '',
   });
 
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
-
-  // Notification handlers
-  const onError = msg => setSnackbar({ open: true, message: msg, severity: 'error' });
-  const onSuccess = msg => setSnackbar({ open: true, message: msg, severity: 'success' });
-
   // Initialize handlers with column definitions
   const columns = useMemo(() => getInventoryColumns({ permissions, theme }), [permissions, theme]);
-
-  const handlers = useInventoryListHandlers({
-    initialInventory,
-    initialPagination,
-    initialFilters,
-    initialSortBy,
-    initialSortDirection,
-    initialColumns: columns,
-    onError,
-    onSuccess,
-  });
-
-  const branchHandlers = useBranchInventoryHandlers({
-    initialBranches: initialBranchInventory,
-    initialPagination: initialBranchPagination,
-    onError,
-  });
 
   const toggleRow = (rowId) => {
     setExpandedRows((prev) => ({
@@ -1408,7 +1304,7 @@ const InventoryList = ({
         open={snackbar.open}
         message={snackbar.message}
         severity={snackbar.severity}
-        onClose={handleSnackbarClose}
+        onClose={onSnackbarClose}
         autoHideDuration={6000}
       />
     </div>

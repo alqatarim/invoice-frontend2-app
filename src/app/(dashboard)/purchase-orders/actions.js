@@ -580,32 +580,6 @@ export async function updatePurchaseOrder(id, data, signatureURL) {
   }
 }
 
-export async function getDropdownData() {
-  try {
-    const [vendors, products, taxRates, banks, signatures] = await Promise.all([
-      getVendors(),
-      getProducts(),
-      getTaxRates(),
-      getBanks(),
-      getSignatures()
-    ]);
-
-    return {
-      success: true,
-      data: {
-        vendors,
-        products,
-        taxRates,
-        banks,
-        signatures
-      }
-    };
-  } catch (error) {
-    console.error('Error fetching dropdown data:', error);
-    return { success: false, message: error.message };
-  }
-}
-
 export async function addBank(bankData) {
   try {
     const response = await fetchWithAuth('/bankSettings/addBank', {
@@ -680,37 +654,6 @@ export async function getPurchaseOrderStats() {
         completedOrders: 0,
         totalAmount: 0,
         avgOrderValue: 0
-      }
-    };
-  }
-}
-
-export async function getInitialPurchaseOrderData() {
-  try {
-    const response = await fetchWithAuth('/purchase_orders/getAllData');
-
-    if (response.code === 200) {
-      return {
-        purchaseOrders: response.data || [],
-        cardCounts: response.cardCounts || {},
-        pagination: {
-          current: 1,
-          pageSize: 10,
-          total: response.total || 0
-        }
-      };
-    }
-
-    throw new Error(response.message || 'Failed to fetch purchase order data');
-  } catch (error) {
-    console.error('Error fetching initial purchase order data:', error);
-    return {
-      purchaseOrders: [],
-      cardCounts: {},
-      pagination: {
-        current: 1,
-        pageSize: 10,
-        total: 0
       }
     };
   }

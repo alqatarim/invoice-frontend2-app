@@ -35,6 +35,7 @@ const UsersList = ({
      pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
      initialRoles = [],
      initialBranches = [],
+     initialErrorMessage = '',
      tab: initialTab = 'ALL',
      filters: initialFilters = {},
      sortBy: initialSortBy = '',
@@ -54,9 +55,9 @@ const UsersList = ({
 
      // Snackbar state
      const [snackbar, setSnackbar] = useState({
-          open: false,
-          message: '',
-          severity: 'success',
+          open: Boolean(initialErrorMessage),
+          message: initialErrorMessage || '',
+          severity: initialErrorMessage ? 'error' : 'success',
      });
 
      const handleSnackbarClose = (event, reason) => {

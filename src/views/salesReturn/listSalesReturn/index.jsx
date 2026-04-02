@@ -3,19 +3,20 @@
 import React from 'react'
 import SalesReturnList from './SalesReturnList'
 
-const SalesReturnListIndex = ({ initialData, initialSalesReturns }) => {
-  // Extract and pass initial data as props
-  const initialSalesReturnList = initialData?.salesReturns || initialSalesReturns || [];
-  const pagination = initialData?.pagination || {
+const SalesReturnListIndex = ({
+  initialSalesReturns = [],
+  initialPagination = {
     current: 1,
     pageSize: 10,
     total: 0
-  };
-
+  },
+  initialErrorMessage = ''
+}) => {
   return (
     <SalesReturnList
-      initialSalesReturns={initialSalesReturnList}
-      pagination={pagination}
+      initialSalesReturns={initialSalesReturns}
+      pagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
     />
   );
 };

@@ -1,7 +1,7 @@
 'use client'
 
 // ** React Imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // ** Next Imports
 import { useRouter } from 'next/navigation'
@@ -14,12 +14,26 @@ import { useSnackbar } from 'notistack'
 import AddQuotation from '@/views/quotations/addQuotation/AddQuotation'
 
 // ** API Import
-import { createQuotation, getAllCustomers } from 'src/app/(dashboard)/quotations/actions'
+import { createQuotation } from 'src/app/(dashboard)/quotations/actions'
 
-const AddQuotationIndex = ({ customersData = [], productData = [], taxRates = [], initialBanks = [], signatures = [], quotationNumber }) => {
+const AddQuotationIndex = ({
+  initialCustomers = [],
+  initialProducts = [],
+  initialTaxRates = [],
+  initialBanks = [],
+  initialSignatures = [],
+  initialQuotationNumber = '',
+  initialErrorMessage = ''
+}) => {
   // ** Hooks
   const router = useRouter()
   const { enqueueSnackbar, closeSnackbar } = useSnackbar()
+
+  useEffect(() => {
+    if (initialErrorMessage) {
+      enqueueSnackbar(initialErrorMessage, { variant: 'error' })
+    }
+  }, [enqueueSnackbar, initialErrorMessage])
 
   // ** Form submission handler
   const handleFormSubmit = async formData => {
@@ -68,15 +82,15 @@ const AddQuotationIndex = ({ customersData = [], productData = [], taxRates = []
 
   return (
     <AddQuotation
-      customersData={customersData}
-      productData={productData}
-      taxRates={taxRates}
+      customersData={initialCustomers}
+      productData={initialProducts}
+      taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      signatures={signatures}
+      signatures={initialSignatures}
       onSave={handleFormSubmit}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}
-      quotationNumber={quotationNumber}
+      quotationNumber={initialQuotationNumber}
     />
   )
 }

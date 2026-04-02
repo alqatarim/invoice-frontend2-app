@@ -25,7 +25,12 @@ import { useAddUnitHandlers } from '@/handlers/units/addUnit';
 import { getUnitDropdownData } from '@/app/(dashboard)/units/actions';
 import { formIcons } from '@/data/dataSets';
 
-const AddUnitDialog = ({ open, onClose, onSave }) => {
+const AddUnitDialog = ({
+  open,
+  onClose,
+  onSave,
+  initialDropdownOptions = { units: [] }
+}) => {
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -48,12 +53,16 @@ const AddUnitDialog = ({ open, onClose, onSave }) => {
     },
   });
 
-  const [dropdownOptions, setDropdownOptions] = useState({ units: [] });
+  const [dropdownOptions, setDropdownOptions] = useState(initialDropdownOptions || { units: [] });
   const [optionsLoading, setOptionsLoading] = useState(false);
 
   useEffect(() => {
     const loadDropdowns = async () => {
       if (!open) return;
+      if ((initialDropdownOptions?.units || []).length > 0) {
+        setDropdownOptions(initialDropdownOptions);
+        return;
+      }
       setOptionsLoading(true);
       try {
         const response = await getUnitDropdownData();
@@ -70,7 +79,7 @@ const AddUnitDialog = ({ open, onClose, onSave }) => {
     };
 
     loadDropdowns();
-  }, [open]);
+  }, [open, initialDropdownOptions]);
 
   const handleClose = () => {
     reset();

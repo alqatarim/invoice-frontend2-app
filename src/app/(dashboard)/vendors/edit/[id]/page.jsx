@@ -10,6 +10,8 @@ export const metadata = {
 
 const EditVendorPage = async ({ params }) => {
   const { id } = params;
+  let initialVendorData = null;
+  let initialErrorMessage = '';
 
   try {
     const vendorData = await getVendorById(id);
@@ -18,16 +20,19 @@ const EditVendorPage = async ({ params }) => {
       notFound();
     }
 
-    return (
-      <EditVendorIndex
-        id={id}
-        vendorData={vendorData}
-      />
-    );
+    initialVendorData = vendorData;
   } catch (error) {
     console.error('Error loading vendor data:', error);
-    notFound();
+    initialErrorMessage = error?.message || 'Failed to load vendor data.';
   }
+
+  return (
+    <EditVendorIndex
+      id={id}
+      initialVendorData={initialVendorData}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 };
 
 export default EditVendorPage;

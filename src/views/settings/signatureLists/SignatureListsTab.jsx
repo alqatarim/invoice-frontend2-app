@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
      Card,
      CardContent,
@@ -16,7 +16,6 @@ import { usePermission } from '@/Auth/usePermission'
 
 // Import existing components
 import SignatureListView from './listSignatures/SignatureListView'
-import { getInitialSignaturesData } from '@/app/(dashboard)/settings/actions'
 
 const SignatureListsTab = ({ initialData = {}, enqueueSnackbar }) => {
      const permissions = {
@@ -26,31 +25,8 @@ const SignatureListsTab = ({ initialData = {}, enqueueSnackbar }) => {
           canView: usePermission('signature', 'view')
      }
      const [signatures, setSignatures] = useState(initialData.signatures || [])
-     const [loading, setLoading] = useState(!Array.isArray(initialData.signatures))
+     const [loading, setLoading] = useState(false)
      const [error, setError] = useState(null)
-
-     // Load signatures data only if not provided as initial data
-     useEffect(() => {
-          if (!Array.isArray(initialData.signatures) || initialData.signatures.length === 0) {
-               const loadData = async () => {
-                    try {
-                         setLoading(true)
-                         const result = await getInitialSignaturesData()
-                         if (result.success) {
-                              setSignatures(result.data || [])
-                         } else {
-                              setError(result.message)
-                         }
-                    } catch (err) {
-                         setError(err.message)
-                    } finally {
-                         setLoading(false)
-                    }
-               }
-
-               loadData()
-          }
-     }, [initialData.signatures])
 
      if (loading) {
           return (

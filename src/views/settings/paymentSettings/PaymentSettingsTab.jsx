@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 // Component Imports
 import PaymentSettingsForm from './PaymentSettingsForm'
@@ -17,13 +17,6 @@ const PaymentSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
     updatePaymentSettings,
     clearError
   } = usePaymentSettingsHandlers(initialData)
-
-  // Load payment settings data only if not provided
-  useEffect(() => {
-    if (!initialData.paymentSettings) {
-      getPaymentSettings()
-    }
-  }, [])
 
   const handleUpdate = async (formData) => {
     try {

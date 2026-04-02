@@ -22,15 +22,19 @@ import UnitHead from '@/views/units/unitList/UnitHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { useUnitListHandlers } from '@/handlers/units/useUnitListHandlers';
 import { getUnitColumns } from './unitColumns';
-import AddUnitDialog from '@/views/units/addUnit';
-import EditUnitDialog from '@/views/units/editUnit';
+import AddUnitDialog from '@/views/units/addUnit/AddUnit';
+import EditUnitDialog from '@/views/units/editUnit/EditUnit';
 import { addUnit, updateUnit } from '@/app/(dashboard)/units/actions';
 import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * Simplified UnitList Component - eliminates redundant state and complexity
  */
-const UnitList = ({ initialUnits, initialPagination }) => {
+const UnitList = ({
+  initialUnits,
+  initialPagination,
+  initialErrorMessage = ''
+}) => {
   const theme = useTheme();
   const { data: session } = useSession();
 
@@ -44,9 +48,9 @@ const UnitList = ({ initialUnits, initialPagination }) => {
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'success',
   });
 
   // Dialog states

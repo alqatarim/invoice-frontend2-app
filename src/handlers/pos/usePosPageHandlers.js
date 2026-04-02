@@ -73,6 +73,7 @@ export default function usePosPageHandlers({
   enqueueSnackbar,
   closeSnackbar,
   preferredBranchId = '',
+  initialErrorMessage = '',
 }) {
   const [barcodeDraft, setBarcodeDraft] = useState('');
   const [tenderedAmount, setTenderedAmount] = useState('');
@@ -82,9 +83,9 @@ export default function usePosPageHandlers({
   const [posReceiptOpen, setPosReceiptOpen] = useState(false);
   const [posReceiptData, setPosReceiptData] = useState(null);
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'success',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [branchError, setBranchError] = useState('');

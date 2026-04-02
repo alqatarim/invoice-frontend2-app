@@ -7,7 +7,18 @@ const ENDPOINTS = {
     BOOTSTRAP: '/pos/bootstrap',
     CHECKOUT: '/pos/checkout',
   },
+  DROPDOWN: {
+    CUSTOMER: '/drop_down/customer',
+    PRODUCT: '/drop_down/product',
+    TAX: '/drop_down/tax',
+    SIGNATURE: '/drop_down/signature',
+  },
+  BANK: {
+    LIST: '/bankSettings/listBanks',
+  },
 };
+
+const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
 
 const normalizePaymentMethodValue = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -34,6 +45,81 @@ const getResponseMessage = (response, fallbackMessage) => {
 
   return response?.data?.message || response?.message || fallbackMessage;
 };
+
+export async function getCustomers() {
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER, CACHE_STABLE_DROPDOWN);
+
+    if (response?.code !== 200) {
+      throw new Error(response?.message || 'Failed to fetch POS customers');
+    }
+
+    return response?.data || [];
+  } catch (error) {
+    console.error('Error fetching POS customers:', error);
+    throw error;
+  }
+}
+
+export async function getProducts() {
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, CACHE_STABLE_DROPDOWN);
+
+    if (response?.code !== 200) {
+      throw new Error(response?.message || 'Failed to fetch POS products');
+    }
+
+    return response?.data || [];
+  } catch (error) {
+    console.error('Error fetching POS products:', error);
+    throw error;
+  }
+}
+
+export async function getTaxRates() {
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, CACHE_STABLE_DROPDOWN);
+
+    if (response?.code !== 200) {
+      throw new Error(response?.message || 'Failed to fetch POS tax rates');
+    }
+
+    return response?.data || [];
+  } catch (error) {
+    console.error('Error fetching POS tax rates:', error);
+    throw error;
+  }
+}
+
+export async function getBanks() {
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.BANK.LIST, CACHE_STABLE_DROPDOWN);
+
+    if (response?.code !== 200) {
+      throw new Error(response?.message || 'Failed to fetch POS banks');
+    }
+
+    return response?.data || [];
+  } catch (error) {
+    console.error('Error fetching POS banks:', error);
+    throw error;
+  }
+}
+
+export async function getManualSignatures() {
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, CACHE_STABLE_DROPDOWN);
+
+    if (response?.code !== 200) {
+      throw new Error(response?.message || 'Failed to fetch POS signatures');
+    }
+
+    return response?.data || [];
+  } catch (error) {
+    console.error('Error fetching POS signatures:', error);
+    throw error;
+  }
+}
 
 export async function getPosBootstrap() {
   try {

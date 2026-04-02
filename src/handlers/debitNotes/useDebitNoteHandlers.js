@@ -4,7 +4,7 @@ import { useItemsHandler } from './editDebitNote/itemsHandler';
 import { useBankHandler } from './editDebitNote/bankHandler';
 import { useSignatureHandler } from './editDebitNote/signatureHandler';
 import { useDialogHandler } from './editDebitNote/dialogHandler';
-import { useSubmissionHandler } from './editDebitNote/submissionHandler';
+import { useDebitNoteSubmissionHandler } from './submissionHandler';
 import { paymentMethods } from '@/data/dataSets';
 
 export default function useDebitNoteHandlers({
@@ -68,9 +68,13 @@ export default function useDebitNoteHandlers({
   });
 
   // Submission Handler
-  const submissionHandler = useSubmissionHandler({
+  const submissionHandler = useDebitNoteSubmissionHandler({
+    trigger,
+    closeSnackbar,
+    enqueueSnackbar,
     onSave,
-    enqueueSnackbar
+    getValues,
+    includeId: true,
   });
 
   return {

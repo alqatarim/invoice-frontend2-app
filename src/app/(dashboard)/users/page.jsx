@@ -10,20 +10,39 @@ import { getBranchesForDropdown } from '@/app/(dashboard)/branches/actions';
  * @returns JSX.Element
  */
 const UsersPage = async () => {
-     // Fetch initial users data on the server
-     const [initialData, initialRoles, initialBranches] = await Promise.all([
-          getInitialUsersData(),
-          getRoles(),
-          getBranchesForDropdown(),
-     ]);
+     let initialUsers = [];
+     let initialPagination = {
+          current: 1,
+          pageSize: 10,
+          total: 0,
+     };
+     let initialRoles = [];
+     let initialBranches = [];
+     let initialErrorMessage = '';
 
+     try {
+          const [initialUsersData, roles, branches] = await Promise.all([
+               getInitialUsersData(),
+               getRoles(),
+               getBranchesForDropdown(),
+          ]);
 
+          initialUsers = initialUsersData?.users || [];
+          initialPagination = initialUsersData?.pagination || initialPagination;
+          initialRoles = roles || [];
+          initialBranches = branches || [];
+     } catch (error) {
+          console.error('Failed to load users data:', error);
+          initialErrorMessage = error?.message || 'Failed to load users.';
+     }
 
      return (
           <UsersListIndex
-               initialData={initialData}
+               initialUsers={initialUsers}
+               initialPagination={initialPagination}
                initialRoles={initialRoles}
                initialBranches={initialBranches}
+               initialErrorMessage={initialErrorMessage}
           />
      );
 };

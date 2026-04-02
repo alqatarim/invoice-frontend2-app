@@ -341,34 +341,3 @@ export async function getUnits() {
      }
 }
 
-export async function getDropdownData() {
-     try {
-          const [vendors, products, taxRates, banks, signatures, units] = await Promise.all([
-               getVendors(),
-               getProducts(),
-               getTaxRates(),
-               getBanks(),
-               getSignatures(),
-               getUnits()
-          ]);
-
-          return {
-               vendors,
-               products,
-               taxRates,
-               banks,
-               signatures,
-               units
-          };
-     } catch (error) {
-          console.error('Error fetching dropdown data:', error);
-          return {
-               vendors: [],
-               products: [],
-               taxRates: [],
-               banks: [],
-               signatures: [],
-               units: []
-          };
-     }
-}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getInitialPaymentSummaryData, getCustomers } from '../actions';
+import { getFilteredPaymentSummaries } from '../actions';
 import PaymentSummaryListIndex from '@/views/payment-summary/listPaymentSummary/index';
 
 export const metadata = {
@@ -7,25 +7,30 @@ export const metadata = {
 };
 
 async function PaymentSummaryListPage() {
-  try {
-    const [initialData, customers] = await Promise.all([
-      getInitialPaymentSummaryData(),
-      getCustomers()
-    ]);
+  let initialPaymentSummaries = [];
+  let initialPagination = {
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  };
+  let initialErrorMessage = '';
 
-    return (
-      <PaymentSummaryListIndex
-        initialData={{
-          data: initialData?.payments || [],
-          totalRecords: initialData?.pagination?.total || 0
-        }}
-        customers={customers}
-      />
-    );
+  try {
+    const initialListData = await getFilteredPaymentSummaries(1, 10, {});
+    initialPaymentSummaries = initialListData?.payments || [];
+    initialPagination = initialListData?.pagination || initialPagination;
   } catch (error) {
     console.error('Error loading payment summary list data:', error);
-    return <div className="text-red-600 p-8">Failed to load payment summary list.</div>;
+    initialErrorMessage = error?.message || 'Failed to load payment summary list.';
   }
+
+  return (
+    <PaymentSummaryListIndex
+      initialPaymentSummaries={initialPaymentSummaries}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 }
 
 export default PaymentSummaryListPage;

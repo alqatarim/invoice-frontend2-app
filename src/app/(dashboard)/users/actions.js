@@ -60,7 +60,6 @@ export async function getInitialUsersData() {
           if (response.code === 200) {
                return {
                    users: response.data || [],
-                   data: response.data || [],
                     pagination: {
                          current: 1,
                          pageSize: 10,

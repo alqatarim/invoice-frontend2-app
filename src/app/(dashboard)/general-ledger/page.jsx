@@ -4,7 +4,7 @@ import GeneralLedgerIndex from '@/views/accounting/generalLedger';
 import {
   getAccountDropdown,
   getGeneralLedger,
-} from './actions';
+} from '@/app/(dashboard)/accounting/actions';
 
 const GeneralLedgerPage = async ({ searchParams }) => {
   const accountId = searchParams?.accountId || '';

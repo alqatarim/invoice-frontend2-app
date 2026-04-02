@@ -8,9 +8,15 @@ export const metadata = {
 
 const EditSalesReturnPage = async ({ params }) => {
   const { id } = params;
+  let initialSalesReturnData = null;
+  let initialCustomers = [];
+  let initialProducts = [];
+  let initialTaxRates = [];
+  let initialBanks = [];
+  let initialSignatures = [];
 
   try {
-    const [salesReturnData, customersData, productData, taxRates, initialBanks, signatures] = await Promise.all([
+    const [salesReturnData, customersData, productData, taxRates, banksData, signatures] = await Promise.all([
       getSalesReturnDetails(id),
       getCustomers(),
       getProducts(),
@@ -23,21 +29,28 @@ const EditSalesReturnPage = async ({ params }) => {
       notFound();
     }
 
-    return (
-      <EditSalesReturnIndex
-        id={id}
-        salesReturnData={salesReturnData}
-        customersData={customersData}
-        productData={productData}
-        taxRates={taxRates}
-        initialBanks={initialBanks}
-        signatures={signatures}
-      />
-    );
+    initialSalesReturnData = salesReturnData;
+    initialCustomers = customersData;
+    initialProducts = productData;
+    initialTaxRates = taxRates;
+    initialBanks = banksData;
+    initialSignatures = signatures;
   } catch (error) {
     console.error('Error loading sales return data:', error);
     notFound();
   }
+
+  return (
+    <EditSalesReturnIndex
+      id={id}
+      initialSalesReturnData={initialSalesReturnData}
+      initialCustomers={initialCustomers}
+      initialProducts={initialProducts}
+      initialTaxRates={initialTaxRates}
+      initialBanks={initialBanks}
+      initialSignatures={initialSignatures}
+    />
+  );
 };
 
 export default EditSalesReturnPage;

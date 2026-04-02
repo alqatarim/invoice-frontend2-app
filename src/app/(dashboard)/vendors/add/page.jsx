@@ -12,7 +12,7 @@ const AddVendorPage = async () => {
     );
   } catch (error) {
     console.error('Error loading add vendor data:', error);
-    return <div className="text-red-600 p-8">Failed to load data for Add Vendor.</div>;
+    return <AddVendorIndex initialErrorMessage={error?.message || 'Failed to load data for Add Vendor.'} />;
   }
 };
 

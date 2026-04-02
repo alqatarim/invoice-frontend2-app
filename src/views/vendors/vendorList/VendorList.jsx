@@ -22,16 +22,20 @@ import VendorFilter from '@/views/vendors/vendorList/vendorFilter';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { useVendorListHandlers } from '@/handlers/vendors/useVendorListHandlers';
 import { getVendorColumns } from './vendorColumns';
-import AddVendorDialog from '@/views/vendors/addVendor';
-import EditVendorDialog from '@/views/vendors/editVendor';
-import ViewVendorDialog from '@/views/vendors/viewVendor';
+import AddVendorDialog from '@/views/vendors/addVendor/AddVendor';
+import EditVendorDialog from '@/views/vendors/editVendor/EditVendor';
+import ViewVendorDialog from '@/views/vendors/viewVendor/ViewVendor';
 import { addVendor, updateVendor } from '@/app/(dashboard)/vendors/actions';
 import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * Simplified VendorList Component - eliminates redundant state and complexity
  */
-const VendorList = ({ initialVendors, initialPagination }) => {
+const VendorList = ({
+  initialVendors,
+  initialPagination,
+  initialErrorMessage = ''
+}) => {
   const theme = useTheme();
   const { data: session } = useSession();
 
@@ -50,9 +54,9 @@ const VendorList = ({ initialVendors, initialPagination }) => {
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'success',
   });
 
   // Dialog states

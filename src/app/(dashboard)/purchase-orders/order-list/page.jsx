@@ -1,6 +1,6 @@
 import React from 'react';
 import PurchaseOrderListIndex from '@/views/purchase-orders/listOrder/index';
-import { getInitialPurchaseOrderData } from '@/app/(dashboard)/purchase-orders/actions';
+import { getPurchaseOrderList } from '@/app/(dashboard)/purchase-orders/actions';
 
 /**
  * PurchaseOrderListPage Component
@@ -9,12 +9,28 @@ import { getInitialPurchaseOrderData } from '@/app/(dashboard)/purchase-orders/a
  * @returns JSX.Element
  */
 const PurchaseOrderListPage = async () => {
-  // Fetch initial purchase order data on the server
-  const initialData = await getInitialPurchaseOrderData();
+  let initialPurchaseOrders = [];
+  let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialErrorMessage = '';
+
+  try {
+    const initialData = await getPurchaseOrderList(1, 10);
+    initialPurchaseOrders = initialData?.data || [];
+    initialPagination = {
+      current: 1,
+      pageSize: 10,
+      total: initialData?.totalRecords || 0
+    };
+  } catch (error) {
+    console.error('Failed to fetch initial purchase order data:', error);
+    initialErrorMessage = error?.message || 'Failed to load purchase orders.';
+  }
 
   return (
     <PurchaseOrderListIndex
-      initialData={initialData}
+      initialPurchaseOrders={initialPurchaseOrders}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
     />
   );
 };

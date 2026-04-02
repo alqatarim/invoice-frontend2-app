@@ -4,8 +4,8 @@ import { useState } from 'react'
 // Action Imports
 import * as accountSettingsActions from '@/app/(dashboard)/settings/actions'
 
-const useAccountSettingsHandlers = () => {
-     const [accountSettings, setAccountSettings] = useState(null)
+const useAccountSettingsHandlers = (initialAccountSettings = null) => {
+     const [accountSettings, setAccountSettings] = useState(initialAccountSettings)
      const [loading, setLoading] = useState(false)
      const [updating, setUpdating] = useState(false)
      const [error, setError] = useState(null)

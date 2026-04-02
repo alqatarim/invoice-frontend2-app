@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 // MUI Imports
@@ -38,9 +38,51 @@ import PreferenceSettingsTab from './preferenceSettings/PreferenceSettingsTab'
 // Auth
 import { usePermission } from '@/Auth/usePermission'
 
-const UnifiedSettingsIndex = ({ initialData = {} }) => {
+const UnifiedSettingsIndex = ({
+     initialCompanySettings = {},
+     initialAccountSettings = {},
+     initialInvoiceSettings = {},
+     initialPaymentSettings = {},
+     initialPreferenceSettings = {},
+     initialCurrencies = [],
+     initialEmailSettings = {},
+     initialNotificationSettings = {},
+     initialBankSettings = { banks: [], pagination: { page: 0, totalCount: 0, limit: 10 } },
+     initialTaxSettings = { taxes: [], pagination: { page: 0, totalCount: 0, limit: 10 } },
+     initialSignatures = [],
+     initialInvoiceTemplates = {},
+}) => {
      const router = useRouter()
      const searchParams = useSearchParams()
+
+     const accountTabInitialData = useMemo(() => ({
+          accountSettings: initialAccountSettings
+     }), [initialAccountSettings])
+     const companyTabInitialData = useMemo(() => ({
+          companySettings: initialCompanySettings
+     }), [initialCompanySettings])
+     const notificationTabInitialData = useMemo(() => ({
+          notificationSettings: initialNotificationSettings
+     }), [initialNotificationSettings])
+     const invoiceTemplatesInitialData = useMemo(() => ({
+          invoiceTemplates: initialInvoiceTemplates
+     }), [initialInvoiceTemplates])
+     const signaturesTabInitialData = useMemo(() => ({
+          signatures: initialSignatures
+     }), [initialSignatures])
+     const invoiceTabInitialData = useMemo(() => ({
+          invoiceSettings: initialInvoiceSettings
+     }), [initialInvoiceSettings])
+     const paymentTabInitialData = useMemo(() => ({
+          paymentSettings: initialPaymentSettings
+     }), [initialPaymentSettings])
+     const emailTabInitialData = useMemo(() => ({
+          emailSettings: initialEmailSettings
+     }), [initialEmailSettings])
+     const preferenceTabInitialData = useMemo(() => ({
+          preferenceSettings: initialPreferenceSettings,
+          currencies: initialCurrencies
+     }), [initialPreferenceSettings, initialCurrencies])
 
      // Snackbar state
      const [snackbar, setSnackbar] = useState({
@@ -175,14 +217,14 @@ const UnifiedSettingsIndex = ({ initialData = {} }) => {
                     {/* Tab Panels */}
                     <TabPanel value="account" className="!p-0">
                          <AccountSettingsTab
-                              initialData={initialData}
+                              initialData={accountTabInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
 
                     <TabPanel value="company" className="!p-0">
                          <CompanySettingsTab
-                              initialData={initialData}
+                              initialData={companyTabInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
@@ -195,63 +237,63 @@ const UnifiedSettingsIndex = ({ initialData = {} }) => {
 
                     <TabPanel value="notification" className="!p-0">
                          <NotificationSettingsTab
-                              initialData={initialData}
+                              initialData={notificationTabInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
 
                     <TabPanel value="invoiceTemplates" className="!p-0">
                          <InvoiceTemplatesTab
-                              initialData={initialData}
+                              initialData={invoiceTemplatesInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
 
                     <TabPanel value="signatureLists" className="!p-0">
                          <SignatureListsTab
-                              initialData={initialData}
+                              initialData={signaturesTabInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
 
                     <TabPanel value="invoice" className="!p-0">
                          <InvoiceSettingsTab
-                              initialData={initialData}
+                              initialData={invoiceTabInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
 
                     <TabPanel value="payment" className="!p-0">
                          <PaymentSettingsTab
-                              initialData={initialData}
+                              initialData={paymentTabInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
 
                     <TabPanel value="bank" className="!p-0">
                          <BankSettingsTab
-                              initialData={initialData}
+                              initialData={initialBankSettings}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
 
                     <TabPanel value="tax" className="!p-0">
                          <TaxSettingsTab
-                              initialData={initialData}
+                              initialData={initialTaxSettings}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
 
                     <TabPanel value="email" className="!p-0">
                          <EmailSettingsTab
-                              initialData={initialData}
+                              initialData={emailTabInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>
 
                     <TabPanel value="preference" className="!p-0">
                          <PreferenceSettingsTab
-                              initialData={initialData}
+                              initialData={preferenceTabInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>

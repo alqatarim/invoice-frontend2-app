@@ -5,7 +5,15 @@ import { notFound } from 'next/navigation'
 import AddQuotationIndex from 'src/views/quotations/addQuotation'
 
 // ** Actions Imports
-import { getDropdownData, getQuotationNumber } from '../actions'
+import {
+  getBanks,
+  getCustomers,
+  getProducts,
+  getQuotationNumber,
+  getSignatures,
+  getTaxes,
+  getUnits
+} from '../actions'
 
 export function generateMetadata() {
   return {
@@ -14,39 +22,47 @@ export function generateMetadata() {
 }
 
 const QuotationAddPage = async () => {
+  let initialCustomers = []
+  let initialProducts = []
+  let initialTaxRates = []
+  let initialBanks = []
+  let initialSignatures = []
+  let initialQuotationNumber = ''
+  let initialErrorMessage = ''
+
   try {
-    // Fetch all dropdown data and quotation number in parallel
-    const [dropdownData, quotationNumberResponse] = await Promise.all([
-      getDropdownData(),
+    const [customers, products, taxes, banks, signatures, units, quotationNumberResponse] = await Promise.all([
+      getCustomers(),
+      getProducts(),
+      getTaxes(),
+      getBanks(),
+      getSignatures(),
+      getUnits(),
       getQuotationNumber()
     ])
 
-    // Return the client component with the fetched data
-    return (
-      <AddQuotationIndex
-        customersData={dropdownData.customers || []}
-        productData={dropdownData.products || []}
-        taxRates={dropdownData.taxRates || []}
-        initialBanks={dropdownData.banks || []}
-        signatures={dropdownData.signatures || []}
-        quotationNumber={quotationNumberResponse?.quotationNumber || ''}
-      />
-    )
+    initialCustomers = customers || []
+    initialProducts = products || []
+    initialTaxRates = taxes || []
+    initialBanks = banks || []
+    initialSignatures = signatures || []
+    initialQuotationNumber = quotationNumberResponse?.quotationNumber || ''
   } catch (error) {
     console.error('Error fetching quotation data:', error)
-
-    // Return the component with empty data arrays
-    return (
-      <AddQuotationIndex
-        customersData={[]}
-        productData={[]}
-        taxRates={[]}
-        initialBanks={[]}
-        signatures={[]}
-        quotationNumber=""
-      />
-    )
+    initialErrorMessage = error?.message || 'Error fetching quotation data.'
   }
+
+  return (
+    <AddQuotationIndex
+      initialCustomers={initialCustomers}
+      initialProducts={initialProducts}
+      initialTaxRates={initialTaxRates}
+      initialBanks={initialBanks}
+      initialSignatures={initialSignatures}
+      initialQuotationNumber={initialQuotationNumber}
+      initialErrorMessage={initialErrorMessage}
+    />
+  )
 }
 
 export default QuotationAddPage

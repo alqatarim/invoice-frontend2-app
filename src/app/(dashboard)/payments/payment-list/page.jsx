@@ -1,5 +1,5 @@
 import React from 'react';
-import { getPaymentsList, getCustomers } from '../actions';
+import { getCustomers, getInitialPaymentData } from '../actions';
 import PaymentListIndex from '@/views/payments/listPayment/index';
 
 export const metadata = {
@@ -8,15 +8,18 @@ export const metadata = {
 
 async function PaymentListPage() {
   try {
-    const [initialData, customers] = await Promise.all([
-      getPaymentsList(),
+    const [initialPaymentData, initialCustomerOptions] = await Promise.all([
+      getInitialPaymentData(),
       getCustomers()
     ]);
 
     return (
       <PaymentListIndex
-        initialData={initialData}
-        initialCustomerOptions={customers || []}
+        initialPayments={initialPaymentData?.payments || []}
+        initialPagination={
+          initialPaymentData?.pagination || { current: 1, pageSize: 10, total: 0 }
+        }
+        initialCustomerOptions={initialCustomerOptions || []}
       />
     );
   } catch (error) {

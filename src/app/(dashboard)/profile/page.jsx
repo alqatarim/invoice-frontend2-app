@@ -2,17 +2,27 @@ import { getProfile } from './actions'
 import ProfileIndex from '@/views/profile/index'
 
 export default async function ProfilePage() {
-  const { success, data, message } = await getProfile()
+  let initialProfile = {}
+  let initialErrorMessage = ''
 
-  if (!success) {
-    console.error('Failed to load profile:', message)
+  try {
+    const { success, data, message } = await getProfile()
+
+    if (!success) {
+      console.error('Failed to load profile:', message)
+      initialErrorMessage = message || 'Failed to load profile.'
+    }
+
+    initialProfile = data || {}
+  } catch (error) {
+    console.error('Failed to load profile:', error)
+    initialErrorMessage = error?.message || 'Failed to load profile.'
   }
 
-  const initialData = {
-    profile: data || {},
-    loading: false,
-    error: success ? null : message
-  }
-
-  return <ProfileIndex initialData={initialData} />
+  return (
+    <ProfileIndex
+      initialProfile={initialProfile}
+      initialErrorMessage={initialErrorMessage}
+    />
+  )
 }

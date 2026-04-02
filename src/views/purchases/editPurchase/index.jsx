@@ -8,11 +8,20 @@ import { updatePurchase } from '@/app/(dashboard)/purchases/actions';
 
 
 
-const EditPurchaseIndex = ({ purchaseData, vendors = [], products = [], taxRates = [], banks = [], signatures = [], units = [] }) => {
+const EditPurchaseIndex = ({
+  initialPurchaseData = null,
+  initialVendors = [],
+  initialProducts = [],
+  initialTaxRates = [],
+  initialBanks = [],
+  initialSignatures = [],
+  initialUnits = [],
+  initialErrorMessage = ''
+}) => {
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'info'
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'info'
   });
 
   const handleSnackbarClose = (event, reason) => {
@@ -73,12 +82,12 @@ const EditPurchaseIndex = ({ purchaseData, vendors = [], products = [], taxRates
   return (
     <>
       <EditPurchase
-        vendorsData={vendors}
-        productData={products}
-        taxRates={taxRates}
-        initialBanks={banks}
-        signatures={signatures}
-        purchaseData={purchaseData}
+        vendorsData={initialVendors}
+        productData={initialProducts}
+        taxRates={initialTaxRates}
+        initialBanks={initialBanks}
+        signatures={initialSignatures}
+        purchaseData={initialPurchaseData}
         onSave={handleSave}
       />
 

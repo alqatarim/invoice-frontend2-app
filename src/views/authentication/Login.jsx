@@ -1,11 +1,7 @@
 'use client'
 
-// React Imports
-import { useEffect, useState, useRef } from 'react'
-
 // Next Imports
 import Link from 'next/link'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
 
 // MUI Imports
 import Typography from '@mui/material/Typography'
@@ -23,34 +19,14 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import CloseIcon from '@mui/icons-material/Close'
 // Third-party Imports
-import { signIn } from 'next-auth/react'
-import { Controller, useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
-
-import { passwordRegex, passwordValidMessage, emailRgx } from "../../constants"
+import { Controller } from 'react-hook-form'
 
 // Component Imports
 import Logo from '@core/svg/Logo'
 import Illustrations from '@components/Illustrations'
 
-// Config Imports
-import themeConfig from '@configs/themeConfig'
-
 // Hook Imports
 import { useImageVariant } from '@core/hooks/useImageVariant'
-import { useSettings } from '@core/hooks/useSettings'
-
-
-// Util Imports
-import { getLocalizedUrl } from '@/utils/i18n'
-
-
-// Validation Schema
-const schema = yup.object({
-  email: yup.string().matches(emailRgx, "Please Enter valid Email").required("Email is required").trim(),
-  password: yup.string().matches(passwordRegex, passwordValidMessage).required("Password is Required").trim(),
-}).required()
 
 const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
   '& .MuiSnackbarContent-root': {
@@ -66,58 +42,20 @@ const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
   },
 }))
 
-const authErrorMessages = {
-  AccessDenied: 'Google sign-in was cancelled or denied.',
-  Callback: 'Unable to complete sign-in. Please try again.',
-  Configuration: 'Google sign-in is not configured correctly.',
-  CredentialsSignin: 'Invalid email or password.',
-  OAuthAccountNotLinked: 'This email is already linked to a different sign-in method.',
-  OAuthCallback: 'Google sign-in failed during the callback.',
-  OAuthSignin: 'Unable to start Google sign-in.',
-  SessionRequired: 'Please sign in to continue.'
-}
-
-const getAuthErrorMessage = errorCode => {
-  if (!errorCode) {
-    return ''
-  }
-
-  const decodedError = decodeURIComponent(errorCode)
-
-  return authErrorMessages[decodedError] || decodedError
-}
-
-const Login = ({ mode }) => {
-
-
-
-  // States
-  const [isPasswordShown, setIsPasswordShown] = useState(false)
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', status: 'loading' })
-  const [errorState, setErrorState] = useState(null)
-
-  // Hooks
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { lang: locale } = useParams()
-  const [isloading, setIsloading] = useState(false)
-  const [eye, seteye] = useState(true)
-  const emailRem = useRef(null)
-  const passwordRem = useRef(null)
-  const { settings } = useSettings()
-
-
+const Login = ({ controller }) => {
   const {
+    mode,
     control,
+    errors,
     handleSubmit,
-    formState: { errors }
-  } = useForm({
-    resolver: yupResolver(schema),
-    defaultValues: {
-      email: '',
-      password: ''
-    }
-  })
+    isPasswordShown,
+    snackbar,
+    errorState,
+    handlePasswordToggle,
+    handleCredentialsSubmit,
+    handleGoogleSignIn,
+    handleCloseSnackbar,
+  } = controller
 
   const authBackground = useImageVariant(mode, '/images/pages/auth-v2-mask-light.png', '/images/pages/auth-v2-mask-dark.png')
   const characterIllustration = useImageVariant(
@@ -127,83 +65,6 @@ const Login = ({ mode }) => {
     '/images/illustrations/auth/v2-login-light-border.png',
     '/images/illustrations/auth/v2-login-dark-border.png'
   )
-
-  const handleClickShowPassword = () => setIsPasswordShown(show => !show)
-
-  useEffect(() => {
-    const expired = searchParams.get('expired')
-    const authError = searchParams.get('error')
-
-    if (expired === 'true') {
-      const message = 'Your session expired. Please sign in again.'
-
-      setErrorState(message)
-      setSnackbar({ open: true, message, status: 'error' })
-
-      return
-    }
-
-    if (authError) {
-      const message = getAuthErrorMessage(authError)
-
-      setErrorState(message)
-      setSnackbar({ open: true, message, status: 'error' })
-    }
-  }, [searchParams])
-
-  const onSubmit = async data => {
-
-
-    setSnackbar({ open: true, message: 'Logging In...', status: 'loading' })
-    setErrorState(null)
-
-    const res = await signIn('credentials', {
-      email: data.email,
-      password: data.password,
-      redirect: false
-    })
-    console.log('loggin in now')
-
-    if (res && res.ok && res.error === null) {
-
-      setSnackbar({ open: true, message: 'Login Successful', status: 'success' })
-
-      // Vars
-      const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
-
-      // Small delay to ensure session is established before redirect
-      setTimeout(() => {
-        router.replace(getLocalizedUrl(redirectURL, locale))
-      }, 1000)
-
-    } else {
-      if (res?.error) {
-        const error = getAuthErrorMessage(res.error)
-
-        setSnackbar({ open: true, message: `An error occurred: ${error}`, status: 'error' })
-        setErrorState(error)
-      }
-    }
-  }
-
-  const handleGoogleSignIn = () => {
-    const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
-
-    setErrorState(null)
-    setSnackbar({ open: true, message: 'Redirecting to Google...', status: 'loading' })
-
-    signIn('google', {
-      callbackUrl: getLocalizedUrl(redirectURL, locale)
-    })
-  }
-
-
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === 'clickaway') {
-      return
-    }
-    setSnackbar({ ...snackbar, open: false })
-  }
 
   return (
     <div className='flex bs-full justify-center'>
@@ -246,7 +107,7 @@ const Login = ({ mode }) => {
           </Alert>
           {errorState ? <Alert severity='error'>{errorState}</Alert> : null}
 
-          <form noValidate autoComplete='off' onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-5'>
+          <form noValidate autoComplete='off' onSubmit={handleSubmit(handleCredentialsSubmit)} className='flex flex-col gap-5'>
             <Controller
               name='email'
               control={control}
@@ -277,7 +138,7 @@ const Login = ({ mode }) => {
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position='end'>
-                        <IconButton onClick={handleClickShowPassword} edge='end'>
+                        <IconButton onClick={handlePasswordToggle} edge='end'>
                           <i className={isPasswordShown ? 'ri-eye-off-line' : 'ri-eye-line'} />
                         </IconButton>
                       </InputAdornment>

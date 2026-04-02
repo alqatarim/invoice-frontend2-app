@@ -9,32 +9,50 @@ export const metadata = {
 };
 
 const EditPurchaseOrderPage = async ({ params }) => {
-  // Fetch initial data
-  const [purchaseOrderData, vendorsData, productData, taxRates, initialBanks, signatures] = await Promise.all([
-    getPurchaseOrderDetails(params.id),
-    getVendors(),
-    getProducts(),
-    getTaxRates(),
-    getBanks(),
-    getSignatures()
-  ]);
+  let initialPurchaseOrderData = null
+  let initialVendors = []
+  let initialProducts = []
+  let initialTaxRates = []
+  let initialBanks = []
+  let initialSignatures = []
+  let initialErrorMessage = ''
 
-  // Handle errors
-  if (!purchaseOrderData.success) {
-    return (
-      <div>Error loading data: {purchaseOrderData.message}</div>
-    );
+  try {
+    const [purchaseOrderData, vendorsData, productData, taxRates, banksData, signatures] = await Promise.all([
+      getPurchaseOrderDetails(params.id),
+      getVendors(),
+      getProducts(),
+      getTaxRates(),
+      getBanks(),
+      getSignatures()
+    ]);
+
+    if (!purchaseOrderData.success) {
+      initialErrorMessage = purchaseOrderData.message || 'Error loading purchase order data'
+    } else {
+      initialPurchaseOrderData = purchaseOrderData.data
+    }
+
+    initialVendors = vendorsData
+    initialProducts = productData
+    initialTaxRates = taxRates
+    initialBanks = banksData
+    initialSignatures = signatures
+  } catch (error) {
+    console.error('Error loading purchase order data:', error)
+    initialErrorMessage = error?.message || 'Error loading purchase order data'
   }
-
 
   return (
     <EditPurchaseOrderIndex
-      purchaseOrderData={purchaseOrderData.data}
-      vendorsData={vendorsData}
-      productData={productData}
-      taxRates={taxRates}
+      orderId={params.id}
+      initialPurchaseOrderData={initialPurchaseOrderData}
+      initialVendors={initialVendors}
+      initialProducts={initialProducts}
+      initialTaxRates={initialTaxRates}
       initialBanks={initialBanks}
-      signatures={signatures}
+      initialSignatures={initialSignatures}
+      initialErrorMessage={initialErrorMessage}
     />
   );
 };

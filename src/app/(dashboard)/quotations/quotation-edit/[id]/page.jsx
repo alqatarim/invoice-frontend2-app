@@ -5,7 +5,15 @@ import { notFound } from 'next/navigation'
 import EditQuotationIndex from 'src/views/quotations/editQuotation/index'
 
 // ** Actions Imports
-import { getQuotationDetails, getDropdownData } from '@/app/(dashboard)/quotations/actions'
+import {
+  getBanks,
+  getCustomers,
+  getProducts,
+  getQuotationDetails,
+  getSignatures,
+  getTaxes,
+  getUnits
+} from '@/app/(dashboard)/quotations/actions'
 
 export async function generateMetadata({ params }) {
   try {
@@ -38,6 +46,15 @@ export async function generateMetadata({ params }) {
 }
 
 const QuotationEditPage = async ({ params }) => {
+  let initialQuotationData = null
+  let initialCustomers = []
+  let initialProducts = []
+  let initialTaxRates = []
+  let initialBanks = []
+  let initialSignatures = []
+  let initialUnits = []
+  let initialErrorMessage = ''
+
   try {
     // Validate params
     if (!params?.id) {
@@ -45,34 +62,50 @@ const QuotationEditPage = async ({ params }) => {
     }
 
     // Fetch quotation details and all dropdown data in parallel
-    const [quotationResponse, dropdownData] = await Promise.all([
+    const [quotationResponse, customers, products, taxes, banks, signatures, units] = await Promise.all([
       getQuotationDetails(params.id),
-      getDropdownData()
+      getCustomers(),
+      getProducts(),
+      getTaxes(),
+      getBanks(),
+      getSignatures(),
+      getUnits()
     ])
 
     // If quotation is not found, show 404
     if (!quotationResponse?.success || !quotationResponse?.data) {
-      return notFound()
+      initialErrorMessage = quotationResponse?.message || 'Quotation not found'
+    } else {
+      initialQuotationData = quotationResponse.data
     }
 
-    // Return the client component with the fetched data
-    return (
-      <EditQuotationIndex
-        quotationData={quotationResponse.data}
-        customers={dropdownData.customers || []}
-        products={dropdownData.products || []}
-        taxRates={dropdownData.taxRates || []}
-        banks={dropdownData.banks || []}
-        signatures={dropdownData.signatures || []}
-        units={dropdownData.units || []}
-      />
-    )
+    initialCustomers = customers || []
+    initialProducts = products || []
+    initialTaxRates = taxes || []
+    initialBanks = banks || []
+    initialSignatures = signatures || []
+    initialUnits = units || []
   } catch (error) {
     console.error('Error fetching quotation data:', error)
+    initialErrorMessage = error?.message || 'Error fetching quotation data.'
+  }
 
-    // Show 404 on error
+  if (!initialQuotationData && !initialErrorMessage) {
     return notFound()
   }
+
+  return (
+    <EditQuotationIndex
+      initialQuotationData={initialQuotationData}
+      initialCustomers={initialCustomers}
+      initialProducts={initialProducts}
+      initialTaxRates={initialTaxRates}
+      initialBanks={initialBanks}
+      initialSignatures={initialSignatures}
+      initialUnits={initialUnits}
+      initialErrorMessage={initialErrorMessage}
+    />
+  )
 }
 
 export default QuotationEditPage

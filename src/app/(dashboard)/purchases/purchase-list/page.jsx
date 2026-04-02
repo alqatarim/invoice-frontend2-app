@@ -7,22 +7,37 @@ export const metadata = {
 };
 
 async function PurchaseListPage() {
+  let initialPurchases = []
+  let initialPagination = { current: 1, pageSize: 10, total: 0 }
+  let initialVendors = []
+  let initialErrorMessage = ''
+
   try {
     const [initialData, vendors] = await Promise.all([
       getPurchaseList(),
       getVendors()
     ]);
 
-    return (
-      <PurchaseListIndex
-        initialData={initialData}
-        vendors={vendors}
-      />
-    );
+    initialPurchases = initialData?.data || []
+    initialPagination = {
+      current: 1,
+      pageSize: 10,
+      total: initialData?.totalRecords || 0
+    }
+    initialVendors = vendors || []
   } catch (error) {
     console.error('Error loading purchase list data:', error);
-    return <div className="text-red-600 p-8">Failed to load purchase list.</div>;
+    initialErrorMessage = error?.message || 'Failed to load purchase list.'
   }
+
+  return (
+    <PurchaseListIndex
+      initialPurchases={initialPurchases}
+      initialPagination={initialPagination}
+      initialVendors={initialVendors}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 }
 
 export default PurchaseListPage;

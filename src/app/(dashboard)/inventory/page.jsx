@@ -11,15 +11,14 @@ import { getBranchInventory, getBranchesForDropdown, getProvincesCities } from '
  */
 const InventoryPage = async () => {
   // Fetch initial data on the server
-  let initialData = {
-    inventory: [],
-    pagination: { current: 1, pageSize: 10, total: 0 },
-    cardCounts: {},
-    branchInventory: [],
-    branchPagination: { current: 1, pageSize: 10, total: 0 },
-    branches: [],
-    provincesCities: [],
-  };
+  let initialInventory = [];
+  let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialCardCounts = {};
+  let initialBranchInventory = [];
+  let initialBranchPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialBranches = [];
+  let initialProvincesCities = [];
+  let initialErrorMessage = '';
 
   try {
     const [inventoryData, branchData, branches, provincesCities] = await Promise.all([
@@ -29,20 +28,29 @@ const InventoryPage = async () => {
       getProvincesCities(),
     ]);
 
-    initialData = {
-      ...initialData,
-      ...(inventoryData || {}),
-      branchInventory: branchData?.branches || [],
-      branchPagination: branchData?.pagination || initialData.branchPagination,
-      branches: Array.isArray(branches) ? branches : [],
-      provincesCities: Array.isArray(provincesCities) ? provincesCities : [],
-    };
+    initialInventory = inventoryData?.inventory || [];
+    initialPagination = inventoryData?.pagination || initialPagination;
+    initialCardCounts = inventoryData?.cardCounts || {};
+    initialBranchInventory = branchData?.branches || [];
+    initialBranchPagination = branchData?.pagination || initialBranchPagination;
+    initialBranches = Array.isArray(branches) ? branches : [];
+    initialProvincesCities = Array.isArray(provincesCities) ? provincesCities : [];
   } catch (error) {
     console.error('Failed to fetch initial inventory data:', error);
+    initialErrorMessage = error?.message || 'Failed to fetch initial inventory data.';
   }
 
   return (
-    <InventoryList initialData={initialData} />
+    <InventoryList
+      initialInventory={initialInventory}
+      initialPagination={initialPagination}
+      initialCardCounts={initialCardCounts}
+      initialBranchInventory={initialBranchInventory}
+      initialBranchPagination={initialBranchPagination}
+      initialBranches={initialBranches}
+      initialProvincesCities={initialProvincesCities}
+      initialErrorMessage={initialErrorMessage}
+    />
   );
 };
 

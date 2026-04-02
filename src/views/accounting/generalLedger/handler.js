@@ -7,7 +7,7 @@ import { findBranchByIdentifier } from '@/utils/branchAccess';
 import {
   getGeneralLedger,
   getJournalEntryById,
-} from '@/app/(dashboard)/general-ledger/actions';
+} from '@/app/(dashboard)/accounting/actions';
 
 export function useGeneralLedgerHandler({
   initialReport = null,

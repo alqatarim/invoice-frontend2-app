@@ -1,154 +1,61 @@
-import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import {
-     Card,
-     Button,
-     Dialog,
-     DialogTitle,
-     DialogContent,
-     DialogActions,
-     FormControlLabel,
-     Checkbox,
-     FormGroup,
-     Grid,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  Checkbox,
+  FormGroup,
+  Grid,
 } from '@mui/material';
-
-import { useTheme } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
-import { usePermission } from '@/Auth/usePermission';
-import { useSearchParams } from 'next/navigation';
-
 import DebitNoteHead from '@/views/debitNotes/listPurchaseReturn/debitNoteHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import { useDebitNoteListHandlers } from '@/handlers/debitNotes/useDebitNoteListHandlers';
-import { formatCurrency } from '@/utils/currencyUtils';
-import { getDebitNoteColumns } from './debitNoteColumns';
-import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * SimpleDebitNoteList Component - matches purchase order list structure
  */
-const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination }) => {
-     const theme = useTheme();
-     const { data: session } = useSession();
-     const searchParams = useSearchParams();
-
-     // Permissions
-     const permissions = {
-          canCreate: usePermission('debitNote', 'create'),
-          canUpdate: usePermission('debitNote', 'update'),
-          canView: usePermission('debitNote', 'view'),
-          canDelete: usePermission('debitNote', 'delete'),
-     };
-
-     // Snackbar state
-     const [snackbar, setSnackbar] = useState({
-          open: false,
-          message: '',
-          severity: 'success',
-     });
-
-     // Notification handlers
-     const onError = React.useCallback(msg => {
-          setSnackbar({ open: true, message: msg, severity: 'error' });
-     }, []);
-
-     const onSuccess = React.useCallback(msg => {
-          setSnackbar({ open: true, message: msg, severity: 'success' });
-     }, []);
-
-     // Initialize simplified handlers
-     const handlers = useDebitNoteListHandlers({
-          initialDebitNotes,
-          initialPagination,
-          onError,
-          onSuccess,
-     });
-
-     // Column management
-     const columns = useMemo(() => {
-          if (!theme || !permissions) return [];
-          return getDebitNoteColumns({ theme, permissions });
-     }, [theme, permissions]);
-
-     const [columnsState, setColumns] = useState(() => {
-          if (typeof window !== 'undefined' && columns.length > 0) {
-               const saved = localStorage.getItem('debitNoteVisibleColumns');
-               if (saved) {
-                    try {
-                         const parsed = JSON.parse(saved);
-                         return Array.isArray(parsed) ? parsed : columns;
-                    } catch (e) {
-                         console.warn('Failed to parse saved column preferences:', e);
-                    }
-               }
-          }
-          return columns;
-     });
-
-     const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
-
-     React.useEffect(() => {
-          if (columns.length > 0 && columnsState.length === 0) {
-               setColumns(columns);
-          }
-     }, [columns, columnsState.length]);
-
-     const handleColumnCheckboxChange = React.useCallback((columnKey, checked) => {
-          setColumns(prev => prev.map(col =>
-               col.key === columnKey ? { ...col, visible: checked } : col
-          ));
-     }, []);
-
-     const handleSaveColumns = React.useCallback(() => {
-          setManageColumnsOpen(false);
-          if (typeof window !== 'undefined') {
-               localStorage.setItem('debitNoteVisibleColumns', JSON.stringify(columnsState));
-          }
-     }, [columnsState]);
-
-     // Table columns
-     const tableColumns = useMemo(() => {
-          const cellHandlers = {
-               handleDelete: handlers.handleDelete,
-               handleView: handlers.handleView,
-               handleEdit: handlers.handleEdit,
-               handleClone: handlers.handleClone,
-               handleSend: handlers.handleSend,
-               handlePrintDownload: handlers.handlePrintDownload,
-               openConvertDialog: handlers.openConvertDialog,
-               permissions,
-               pagination: handlers.pagination,
-          };
-
-          return columnsState
-               .filter(col => col.visible)
-               .map(col => ({
-                    ...col,
-                    renderCell: col.renderCell ? (row, index) => col.renderCell(row, cellHandlers, index) : undefined
-               }));
-     }, [columnsState, handlers, permissions]);
-
+const SimpleDebitNoteList = ({
+  debitNotes = [],
+  loading = false,
+  pagination = { current: 1, pageSize: 10, total: 0 },
+  sortBy = '',
+  sortDirection = 'asc',
+  searchTerm = '',
+  permissions,
+  tableColumns = [],
+  manageColumnsOpen = false,
+  columnsState = [],
+  onPageChange,
+  onPageSizeChange,
+  onSortRequest,
+  onSearchChange,
+  onView,
+  onCloseManageColumns,
+  onColumnCheckboxChange,
+  onSaveColumns,
+}) => {
      const tablePagination = useMemo(() => ({
-          page: handlers.pagination.current - 1,
-          pageSize: handlers.pagination.pageSize,
-          total: handlers.pagination.total
-     }), [handlers.pagination]);
+          page: pagination.current - 1,
+          pageSize: pagination.pageSize,
+          total: pagination.total
+     }), [pagination]);
 
      return (
           <div className='flex flex-col gap-5'>
                <DebitNoteHead
-                    debitNoteListData={handlers.debitNotes}
-                    isLoading={handlers.loading}
+                    debitNoteListData={debitNotes}
+                    isLoading={loading}
                />
 
                <Grid container spacing={3}>
                     <Grid size={{ xs: 12 }}>
                          <CustomListTable
                               addRowButton={
-                                   permissions.canCreate && (
+                                   permissions?.canCreate && (
                                         <Button
                                              component={Link}
                                              href="/debitNotes/purchaseReturn-add"
@@ -160,23 +67,23 @@ const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination }) => {
                                    )
                               }
                               columns={tableColumns}
-                              rows={handlers.debitNotes}
-                              loading={handlers.loading}
+                              rows={debitNotes}
+                              loading={loading}
                               pagination={tablePagination}
-                              onPageChange={(page) => handlers.handlePageChange(page)}
-                              onRowsPerPageChange={(size) => handlers.handlePageSizeChange(size)}
-                              onSort={(key, direction) => handlers.handleSortRequest(key, direction)}
-                              sortBy={handlers.sortBy}
-                              sortDirection={handlers.sortDirection}
+                              onPageChange={onPageChange}
+                              onRowsPerPageChange={onPageSizeChange}
+                              onSort={onSortRequest}
+                              sortBy={sortBy}
+                              sortDirection={sortDirection}
                               noDataText="No debit notes found"
                               rowKey={(row) => row._id || row.id}
-                              showSearch={true}
-                              searchValue={handlers.searchTerm || ''}
-                              onSearchChange={handlers.handleSearchInputChange}
+                              showSearch
+                              searchValue={searchTerm}
+                              onSearchChange={onSearchChange}
                               searchPlaceholder="Search debit notes..."
                               onRowClick={
-                                   permissions.canView
-                                        ? (row) => handlers.handleView(row._id)
+                                   permissions?.canView
+                                        ? (row) => onView(row._id)
                                         : undefined
                               }
                               enableHover
@@ -186,7 +93,7 @@ const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination }) => {
 
                <Dialog
                     open={manageColumnsOpen}
-                    onClose={() => setManageColumnsOpen(false)}
+                    onClose={onCloseManageColumns}
                     maxWidth="sm"
                     fullWidth
                >
@@ -199,7 +106,9 @@ const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination }) => {
                                         control={
                                              <Checkbox
                                                   checked={column.visible}
-                                                  onChange={(e) => handleColumnCheckboxChange(column.key, e.target.checked)}
+                                                  onChange={(event) =>
+                                                       onColumnCheckboxChange(column.key, event.target.checked)
+                                                  }
                                              />
                                         }
                                         label={column.label}
@@ -208,23 +117,14 @@ const SimpleDebitNoteList = ({ initialDebitNotes, initialPagination }) => {
                          </FormGroup>
                     </DialogContent>
                     <DialogActions>
-                         <Button onClick={() => setManageColumnsOpen(false)} color="secondary">
+                         <Button onClick={onCloseManageColumns} color="secondary">
                               Cancel
                          </Button>
-                         <Button onClick={handleSaveColumns} color="primary" variant="contained">
+                         <Button onClick={onSaveColumns} color="primary" variant="contained">
                               Save
                          </Button>
                     </DialogActions>
                </Dialog>
-
-               <AppSnackbar
-                    open={snackbar.open}
-                    message={snackbar.message}
-                    severity={snackbar.severity}
-                    onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-                    autoHideDuration={6000}
-               />
-
           </div>
      );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ManualEntriesView from '@/views/accounting/ManualEntriesView';
+import ManualEntriesIndex from '@/views/accounting/manualEntries';
 import { getAccountDropdown, getManualVouchers } from '@/app/(dashboard)/accounting/actions';
 
 const VouchersPage = async () => {
@@ -10,11 +10,11 @@ const VouchersPage = async () => {
   ]);
 
   return (
-    <ManualEntriesView
+    <ManualEntriesIndex
       type='voucher'
       initialEntries={voucherData?.entries || []}
       initialPagination={voucherData?.pagination || { current: 1, pageSize: 10, total: 0 }}
-      accountOptions={accountOptions || []}
+      initialAccountOptions={accountOptions || []}
     />
   );
 };

@@ -1,6 +1,4 @@
-
-
-import Login from '@/views/authentication/Login'
+import LoginIndex from '@/views/authentication/login'
 import GuestOnlyRoute from '@/Auth/GuestOnlyRoute'
 
 import { getServerMode } from '@core/utils/serverHelpers'
@@ -12,7 +10,7 @@ const LoginPage = () => {
 
   return (
     <GuestOnlyRoute>
-      <Login mode={mode} />
+      <LoginIndex initialMode={mode} />
     </GuestOnlyRoute>
   )
 }

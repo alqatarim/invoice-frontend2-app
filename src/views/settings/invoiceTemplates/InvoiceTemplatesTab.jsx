@@ -9,7 +9,7 @@ const buildInitialState = (initialData = {}) => {
   const initialTemplateData = initialData?.invoiceTemplates || null
 
   return {
-    loading: !initialTemplateData?.defaultTemplateId,
+    loading: false,
     updating: false,
     error: null,
     data: initialTemplateData
@@ -50,13 +50,8 @@ const InvoiceTemplatesTab = ({ initialData = {} }) => {
   }, [])
 
   useEffect(() => {
-    if (initialData?.invoiceTemplates?.defaultTemplateId) {
-      setState(buildInitialState(initialData))
-      return
-    }
-
-    loadData()
-  }, [initialData, loadData])
+    setState(buildInitialState(initialData))
+  }, [initialData])
 
   const handleUpdate = async (templateId) => {
     if (!canUpdate) {

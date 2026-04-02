@@ -41,10 +41,16 @@ import { getNameFromPath } from '@/utils/fileUtils';
 import { buildProductDescription } from '@/utils/productMeta';
 import { normalizeScaleBarcodeConfig } from '@/utils/productScaleBarcode';
 
-const AddProductDialog = ({ open, onClose, onSave, variant = 'dialog' }) => {
+const AddProductDialog = ({
+  open,
+  onClose,
+  onSave,
+  variant = 'dialog',
+  initialDropdownData = { units: [], categories: [], taxes: [] }
+}) => {
   const theme = useTheme();
   const isDialog = variant === 'dialog';
-  const [dropdownData, setDropdownData] = useState({ units: [], categories: [], taxes: [] });
+  const [dropdownData, setDropdownData] = useState(initialDropdownData || { units: [], categories: [], taxes: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -398,6 +404,14 @@ const AddProductDialog = ({ open, onClose, onSave, variant = 'dialog' }) => {
   useEffect(() => {
     const fetchDropdownData = async () => {
       if (open) {
+        if (
+          (initialDropdownData?.units || []).length > 0 ||
+          (initialDropdownData?.categories || []).length > 0 ||
+          (initialDropdownData?.taxes || []).length > 0
+        ) {
+          setDropdownData(initialDropdownData);
+          return;
+        }
         setLoading(true);
         try {
           const response = await getDropdownData();
@@ -415,7 +429,7 @@ const AddProductDialog = ({ open, onClose, onSave, variant = 'dialog' }) => {
     };
 
     fetchDropdownData();
-  }, [open]);
+  }, [open, initialDropdownData]);
 
   const handleClose = () => {
     reset();

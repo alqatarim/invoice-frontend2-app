@@ -1,19 +1,10 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Button, Chip, IconButton } from '@mui/material';
 import { Icon } from '@iconify/react';
 
-import { usePermission } from '@/Auth/usePermission';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import AppSnackbar from '@/components/shared/AppSnackbar';
-import {
-  createManualJournal,
-  createManualVoucher,
-  getManualJournals,
-  getManualVouchers,
-  reverseJournalEntry,
-} from '@/app/(dashboard)/accounting/actions';
 import AccountingPageHeader from './components/AccountingPageHeader';
 import AccountingEntryDetailsDialog from './components/AccountingEntryDetailsDialog';
 import JournalEntryFormDialog from './components/JournalEntryFormDialog';
@@ -21,82 +12,23 @@ import { formatCurrency, formatDate } from './utils';
 
 const ManualEntriesView = ({
   type = 'journal',
-  initialEntries = [],
-  initialPagination = { current: 1, pageSize: 10, total: 0 },
   accountOptions = [],
+  entries = [],
+  pagination = { current: 1, pageSize: 10, total: 0 },
+  loading = false,
+  canView = false,
+  canCreate = false,
+  canUpdate = false,
+  dialogOpen = false,
+  detailsEntry = null,
+  onSearch,
+  onCreate,
+  onReverse,
+  onOpenDialog,
+  onCloseDialog,
+  onOpenEntry,
+  onCloseEntry,
 }) => {
-  const permissionModule = type === 'voucher' ? 'voucher' : 'journalEntry';
-  const canView = usePermission(permissionModule, 'view');
-  const canCreate = usePermission(permissionModule, 'create');
-  const canUpdate = usePermission(permissionModule, 'update');
-
-  const [entries, setEntries] = useState(initialEntries);
-  const [pagination, setPagination] = useState(initialPagination);
-  const [loading, setLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [detailsEntry, setDetailsEntry] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
-  const fetchEntries = async ({ page = pagination.current, pageSize = pagination.pageSize, search = '' } = {}) => {
-    setLoading(true);
-    try {
-      const response = type === 'voucher'
-        ? await getManualVouchers({ page, pageSize, search })
-        : await getManualJournals({ page, pageSize, search });
-
-      setEntries(response?.entries || []);
-      setPagination(response?.pagination || {
-        current: page,
-        pageSize,
-        total: response?.entries?.length || 0,
-      });
-    } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Failed to load entries.', severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreate = async payload => {
-    setLoading(true);
-    try {
-      if (type === 'voucher') {
-        await createManualVoucher(payload);
-      } else {
-        await createManualJournal(payload);
-      }
-
-      setSnackbar({
-        open: true,
-        message: type === 'voucher' ? 'Voucher created successfully.' : 'Journal entry created successfully.',
-        severity: 'success',
-      });
-      setDialogOpen(false);
-      await fetchEntries({ page: 1 });
-    } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Failed to save entry.', severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReverse = async entry => {
-    setLoading(true);
-    try {
-      await reverseJournalEntry(entry._id);
-      setSnackbar({ open: true, message: 'Entry reversed successfully.', severity: 'success' });
-      await fetchEntries();
-    } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Failed to reverse entry.', severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const columns = useMemo(() => [
     {
       key: 'entryNumber',
@@ -143,7 +75,7 @@ const ManualEntriesView = ({
           <IconButton
             onClick={event => {
               event.stopPropagation();
-              handleReverse(row);
+              onReverse(row);
             }}
           >
             <Icon icon='tabler:rotate-clockwise-2' />
@@ -179,7 +111,7 @@ const ManualEntriesView = ({
           <Button
             variant='contained'
             startIcon={<Icon icon='tabler:plus' />}
-            onClick={() => setDialogOpen(true)}
+            onClick={onOpenDialog}
           >
             {type === 'voucher' ? 'New Voucher' : 'New Journal'}
           </Button>
@@ -191,15 +123,15 @@ const ManualEntriesView = ({
           pageSize: pagination.pageSize || 10,
           total: pagination.total || 0,
         }}
-        onPageChange={nextPage => fetchEntries({ page: nextPage + 1, pageSize: pagination.pageSize || 10 })}
-        onRowsPerPageChange={nextPageSize => fetchEntries({ page: 1, pageSize: nextPageSize })}
-        onRowClick={row => setDetailsEntry(row)}
+        onPageChange={nextPage => onSearch({ page: nextPage + 1, pageSize: pagination.pageSize || 10 })}
+        onRowsPerPageChange={nextPageSize => onSearch({ page: 1, pageSize: nextPageSize })}
+        onRowClick={row => onOpenEntry(row)}
       />
 
       <JournalEntryFormDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onSubmit={handleCreate}
+        onClose={onCloseDialog}
+        onSubmit={onCreate}
         accounts={accountOptions}
         type={type}
         loading={loading}
@@ -207,15 +139,8 @@ const ManualEntriesView = ({
 
       <AccountingEntryDetailsDialog
         open={Boolean(detailsEntry)}
-        onClose={() => setDetailsEntry(null)}
+        onClose={onCloseEntry}
         entry={detailsEntry}
-      />
-
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
       />
     </div>
   );

@@ -2,34 +2,53 @@
 
 import React from "react";
 import InventoryList from "@/views/inventory/inventoryList/InventoryList";
+import { useInventoryListViewHandler } from './handler';
 
-const InventoryListIndex = ({ initialData }) => {
-  // Only extract and pass initial data as props
-  const initialInventory = initialData?.inventory || [];
-  const pagination = initialData?.pagination || {
+const InventoryListIndex = ({
+  initialInventory = [],
+  initialPagination = {
     current: 1,
     pageSize: 10,
     total: 0
-  };
-  const cardCounts = initialData?.cardCounts || {};
-  const initialBranchInventory = initialData?.branchInventory || [];
-  const branchPagination = initialData?.branchPagination || {
+  },
+  initialCardCounts = {},
+  initialBranchInventory = [],
+  initialBranchPagination = {
     current: 1,
     pageSize: 10,
     total: 0
-  };
-  const branches = initialData?.branches || [];
-  const provincesCities = initialData?.provincesCities || [];
+  },
+  initialBranches = [],
+  initialProvincesCities = [],
+  initialErrorMessage = '',
+}) => {
+  const handler = useInventoryListViewHandler({
+    initialInventory,
+    initialPagination,
+    initialBranchInventory,
+    initialBranchPagination,
+    initialBranches,
+    initialProvincesCities,
+    initialErrorMessage,
+  });
 
   return (
     <InventoryList
       initialInventory={initialInventory}
-      pagination={pagination}
-      cardCounts={cardCounts}
+      pagination={initialPagination}
+      cardCounts={initialCardCounts}
       initialBranchInventory={initialBranchInventory}
-      initialBranchPagination={branchPagination}
-      initialBranches={branches}
-      initialProvincesCities={provincesCities}
+      initialBranchPagination={initialBranchPagination}
+      permissions={handler.permissions}
+      handlers={handler.handlers}
+      branchHandlers={handler.branchHandlers}
+      branchScope={handler.branchScope}
+      branchOptions={handler.branchOptions}
+      scopedProvincesCities={handler.scopedProvincesCities}
+      scopeHelperText={handler.scopeHelperText}
+      onError={handler.onError}
+      snackbar={handler.snackbar}
+      onSnackbarClose={handler.handleSnackbarClose}
     />
   );
 };

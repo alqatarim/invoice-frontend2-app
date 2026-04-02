@@ -55,7 +55,13 @@ const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) =>
   },
 }));
 
-const PaymentListContent = ({ initialData, initialCustomerOptions }) => {
+const DEFAULT_PAGINATION = { current: 1, pageSize: 10, total: 0 };
+
+const PaymentListContent = ({
+  initialPayments = [],
+  initialPagination = DEFAULT_PAGINATION,
+  initialCustomerOptions = [],
+}) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { enqueueSnackbar } = useSnackbar();
@@ -81,16 +87,20 @@ const PaymentListContent = ({ initialData, initialCustomerOptions }) => {
 
   return (
     <PaymentList
-      initialPayments={initialData?.payments || []}
-      initialPagination={initialData?.pagination || { current: 1, pageSize: 10, total: 0 }}
-      initialCustomerOptions={initialCustomerOptions || []}
+      initialPayments={initialPayments}
+      initialPagination={initialPagination}
+      initialCustomerOptions={initialCustomerOptions}
       onSuccess={(message) => enqueueSnackbar(message, { variant: 'success' })}
       onError={(message) => enqueueSnackbar(message, { variant: 'error' })}
     />
   );
 };
 
-const ListPaymentIndex = ({ initialData, initialCustomerOptions }) => {
+const ListPaymentIndex = ({
+  initialPayments = [],
+  initialPagination = DEFAULT_PAGINATION,
+  initialCustomerOptions = [],
+}) => {
   const snackbarAction = (snackbarId) => (
     <IconButton
       padding='14px'
@@ -122,7 +132,8 @@ const ListPaymentIndex = ({ initialData, initialCustomerOptions }) => {
       }}
     >
       <PaymentListContent 
-        initialData={initialData} 
+        initialPayments={initialPayments}
+        initialPagination={initialPagination}
         initialCustomerOptions={initialCustomerOptions}
       />
     </SnackbarProvider>

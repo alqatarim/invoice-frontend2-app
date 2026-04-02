@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import EditUnitIndex from '@/views/units/editUnit/index';
-import { getUnitById } from '@/app/(dashboard)/units/actions';
+import { getUnitById, getUnitDropdownData } from '@/app/(dashboard)/units/actions';
 
 export const metadata = {
   title: 'Edit Unit | Kanakku',
@@ -8,24 +8,35 @@ export const metadata = {
 
 const EditUnitPage = async ({ params }) => {
   const { id } = params;
+  let initialUnitData = null;
+  let initialDropdownOptions = { units: [] };
+  let initialErrorMessage = '';
 
   try {
-    const unitData = await getUnitById(id);
+    const [unitData, dropdownResponse] = await Promise.all([
+      getUnitById(id),
+      getUnitDropdownData(),
+    ]);
 
     if (!unitData) {
       notFound();
     }
 
-    return (
-      <EditUnitIndex
-        id={id}
-        unitData={unitData}
-      />
-    );
+    initialUnitData = unitData;
+    initialDropdownOptions = dropdownResponse?.data || initialDropdownOptions;
   } catch (error) {
     console.error('Error loading unit data:', error);
-    notFound();
+    initialErrorMessage = error?.message || 'Failed to load unit data.';
   }
+
+  return (
+    <EditUnitIndex
+      id={id}
+      initialUnitData={initialUnitData}
+      initialDropdownOptions={initialDropdownOptions}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 };
 
 export default EditUnitPage;

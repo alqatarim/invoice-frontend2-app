@@ -414,22 +414,6 @@ const verticalMenuData = (dictionary, params) => [
     isSection: true,
     children: [
       {
-        label: dictionary['navigation'].charts,
-        icon: 'ri-bar-chart-2-line',
-        children: [
-          {
-            label: dictionary['navigation'].recharts,
-            icon: 'ri-circle-line',
-            href: '/charts/recharts'
-          },
-          {
-            label: dictionary['navigation'].apex,
-            icon: 'ri-circle-line',
-            href: '/charts/apex-charts'
-          }
-        ]
-      },
-      {
         label: dictionary['navigation'].userInterface,
         icon: 'ri-pantone-line',
         href: `${process.env.NEXT_PUBLIC_DOCS_URL}/docs/user-interface/typography`,

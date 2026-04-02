@@ -1,19 +1,29 @@
 import React from 'react';
 import AddUnitIndex from '@/views/units/addUnit/index';
+import { getUnitDropdownData } from '@/app/(dashboard)/units/actions';
 
 export const metadata = {
   title: 'Add Unit | Kanakku',
 };
 
 const AddUnitPage = async () => {
+  let initialDropdownOptions = { units: [] };
+  let initialErrorMessage = '';
+
   try {
-    return (
-      <AddUnitIndex />
-    );
+    const response = await getUnitDropdownData();
+    initialDropdownOptions = response?.data || initialDropdownOptions;
   } catch (error) {
     console.error('Error loading add unit data:', error);
-    return <div className="text-red-600 p-8">Failed to load data for Add Unit.</div>;
+    initialErrorMessage = error?.message || 'Failed to load data for Add Unit.';
   }
+
+  return (
+    <AddUnitIndex
+      initialDropdownOptions={initialDropdownOptions}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 };
 
 export default AddUnitPage;

@@ -10,21 +10,26 @@ export const metadata = {
  * UnitsPage Component - Optimized to prevent race conditions
  */
 const UnitsPage = async () => {
-  try {
-    // Single server-side data fetch
-    const initialData = await getInitialUnitData();
+  let initialUnits = [];
+  let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialErrorMessage = '';
 
-    return (
-      <UnitListIndex initialData={initialData} />
-    );
+  try {
+    const initialData = await getInitialUnitData();
+    initialUnits = initialData?.units || [];
+    initialPagination = initialData?.pagination || initialPagination;
   } catch (error) {
     console.error('UnitsPage: Error fetching data:', error);
-    return (
-      <div className="text-red-600 p-8">
-        Failed to load unit data: {error.message}
-      </div>
-    );
+    initialErrorMessage = error?.message || 'Failed to load unit data.';
   }
+
+  return (
+    <UnitListIndex
+      initialUnits={initialUnits}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 };
 
 export default UnitsPage;

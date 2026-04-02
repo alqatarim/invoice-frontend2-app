@@ -6,8 +6,20 @@ import { Icon } from '@iconify/react';
 import { SnackbarProvider, closeSnackbar, useSnackbar } from 'notistack';
 import PosPage from './PosPage';
 import { checkoutPosSale } from '@/app/(dashboard)/pos/actions';
+import { usePosViewHandler } from './handler';
 
-const PosContent = (props) => {
+const PosContent = ({
+  initialCustomersData = [],
+  initialProductData = [],
+  initialTaxRates = [],
+  initialBanks = [],
+  initialSignatures = [],
+  initialBranchesData = [],
+  initialPosSettings = {},
+  initialInvoiceNumber = '',
+  initialPaymentMethods = [],
+  initialErrorMessage = '',
+}) => {
   const { enqueueSnackbar, closeSnackbar: dismissSnackbar } = useSnackbar();
 
   const handleCheckout = async (payload) => {
@@ -45,12 +57,30 @@ const PosContent = (props) => {
     }
   };
 
+  const handler = usePosViewHandler({
+    initialCustomersData,
+    initialProductData,
+    initialTaxRates,
+    initialBanks,
+    initialSignatures,
+    initialBranchesData,
+    initialPosSettings,
+    initialInvoiceNumber,
+    initialPaymentMethods,
+    initialErrorMessage,
+    onSave: handleCheckout,
+    enqueueSnackbar,
+    closeSnackbar: dismissSnackbar,
+  });
+
   return (
     <PosPage
-      {...props}
-      onSave={handleCheckout}
-      enqueueSnackbar={enqueueSnackbar}
-      closeSnackbar={dismissSnackbar}
+      initialTaxRates={initialTaxRates}
+      initialInvoiceNumber={initialInvoiceNumber}
+      controller={handler.controller}
+      canAccessPos={handler.canAccessPos}
+      canCreateInvoice={handler.canCreateInvoice}
+      primaryStore={handler.primaryStore}
     />
   );
 };

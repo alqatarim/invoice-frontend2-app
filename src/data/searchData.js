@@ -322,20 +322,6 @@ const data = [
     section: 'Forms & Tables'
   },
   {
-    id: '47',
-    name: 'Recharts',
-    url: '/charts/recharts',
-    icon: 'ri-bar-chart-line',
-    section: 'Charts'
-  },
-  {
-    id: '48',
-    name: 'Apex Charts',
-    url: '/charts/apex-charts',
-    icon: 'ri-line-chart-line',
-    section: 'Charts'
-  },
-  {
     id: '49',
     name: 'Menu Examples',
     url: `${process.env.NEXT_PUBLIC_DOCS_URL}/docs/menu-examples/intro`,

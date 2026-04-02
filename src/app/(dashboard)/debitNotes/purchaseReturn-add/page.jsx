@@ -9,6 +9,10 @@ import {
   getVendors,
 } from '@/app/(dashboard)/debitNotes/actions';
 
+export const metadata = {
+  title: 'Add Debit Note | Kanakku',
+};
+
 const AddDebitNotePage = async () => {
   const [
     initialVendors,

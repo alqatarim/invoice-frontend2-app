@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import EditProductIndex from '@/views/products/editProduct/index';
-import { getProductById } from '@/app/(dashboard)/products/actions';
+import { getDropdownData, getProductById } from '@/app/(dashboard)/products/actions';
 
 export const metadata = {
   title: 'Edit Product | Kanakku',
@@ -8,21 +8,35 @@ export const metadata = {
 
 const EditProductPage = async ({ params }) => {
   const { id } = params;
+  let initialProductData = null;
+  let initialDropdownData = { units: [], categories: [], taxes: [] };
+  let initialErrorMessage = '';
 
   try {
-    const productData = await getProductById(id);
+    const [productData, dropdownResponse] = await Promise.all([
+      getProductById(id),
+      getDropdownData(),
+    ]);
 
     if (!productData) {
       notFound();
     }
 
-    return (
-      <EditProductIndex id={id} initialProductData={productData} />
-    );
+    initialProductData = productData;
+    initialDropdownData = dropdownResponse?.data || initialDropdownData;
   } catch (error) {
     console.error('Error loading product data:', error);
-    notFound();
+    initialErrorMessage = error?.message || 'Failed to load product data.';
   }
+
+  return (
+    <EditProductIndex
+      id={id}
+      initialProductData={initialProductData}
+      initialDropdownData={initialDropdownData}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 };
 
 export default EditProductPage;

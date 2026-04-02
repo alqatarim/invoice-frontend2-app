@@ -259,14 +259,6 @@ const HorizontalMenu = ({ dictionary }) => {
             {dictionary['navigation'].muiTables}
           </MenuItem>
         </SubMenu>
-        <SubMenu label={dictionary['navigation'].charts} icon={<i className='ri-bar-chart-2-line' />}>
-          <MenuItem href={`/${locale}/charts/recharts`} icon={<i className='ri-bar-chart-line' />}>
-            {dictionary['navigation'].recharts}
-          </MenuItem>
-          <MenuItem href={`/${locale}/charts/apex-charts`} icon={<i className='ri-line-chart-line' />}>
-            {dictionary['navigation'].apex}
-          </MenuItem>
-        </SubMenu>
         <SubMenu label={dictionary['navigation'].others} icon={<i className='ri-more-line' />}>
           <MenuItem
             href={`${process.env.NEXT_PUBLIC_DOCS_URL}/docs/user-interface/typography`}

@@ -5,11 +5,19 @@ import AppSnackbar from '@/components/shared/AppSnackbar';
 import AddPurchaseOrder from '@/views/purchase-orders/addOrder/AddPurchaseOrder';
 import { addPurchaseOrder } from '@/app/(dashboard)/purchase-orders/actions';
 
-const AddPurchaseOrderIndex = ({ vendors, products, taxRates, banks, signatures, purchaseOrderNumber }) => {
+const AddPurchaseOrderIndex = ({
+  initialVendors = [],
+  initialProducts = [],
+  initialTaxRates = [],
+  initialBanks = [],
+  initialSignatures = [],
+  initialPurchaseOrderNumber = '',
+  initialErrorMessage = ''
+}) => {
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'info'
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'info'
   });
 
   const handleSnackbarClose = (event, reason) => {
@@ -70,12 +78,12 @@ const AddPurchaseOrderIndex = ({ vendors, products, taxRates, banks, signatures,
     <>
       <AddPurchaseOrder
         onSave={handleSave}
-        vendorsData={vendors}
-        productData={products}
-        taxRates={taxRates}
-        initialBanks={banks}
-        signatures={signatures}
-        purchaseOrderNumber={purchaseOrderNumber}
+        vendorsData={initialVendors}
+        productData={initialProducts}
+        taxRates={initialTaxRates}
+        initialBanks={initialBanks}
+        signatures={initialSignatures}
+        purchaseOrderNumber={initialPurchaseOrderNumber}
       />
 
       <AppSnackbar

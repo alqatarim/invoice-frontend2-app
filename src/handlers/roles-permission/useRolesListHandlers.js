@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import { useSnackbar } from 'notistack'
 import { getFilteredRoles, addRole, updateRole } from '@/app/(dashboard)/roles-permission/actions'
 
-export const useRolesListHandlers = (initialData = { roles: [], cardCounts: {} }) => {
+export const useRolesListHandlers = ({
+  initialRoles = [],
+  initialCardCounts = {}
+} = {}) => {
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   
-  // Extract initial data
-  const { roles: initialRoles = [], cardCounts = {} } = initialData
+  const cardCounts = initialCardCounts
   
   // State for data management
   const filteredInitialRoles = initialRoles.filter(role => !role.isDeleted)

@@ -30,7 +30,11 @@ import AppSnackbar from '@/components/shared/AppSnackbar';
 /**
  * Simplified ProductList Component - eliminates redundant state and complexity
  */
-const ProductList = ({ initialProducts, initialPagination }) => {
+const ProductList = ({
+  initialProducts,
+  initialPagination,
+  initialErrorMessage = ''
+}) => {
   const theme = useTheme();
   const router = useRouter();
 
@@ -44,9 +48,9 @@ const ProductList = ({ initialProducts, initialPagination }) => {
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'success',
   });
 
   // Notification handlers

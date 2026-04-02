@@ -16,6 +16,7 @@ import AppSnackbar from '@/components/shared/AppSnackbar'
 const SalesReturnList = ({
   initialSalesReturns = [],
   pagination = { current: 1, pageSize: 10, total: 0 },
+  initialErrorMessage = '',
 }) => {
   // Permissions
   const permissions = {
@@ -27,9 +28,9 @@ const SalesReturnList = ({
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'success',
   })
 
   const handleSnackbarClose = (event, reason) => {

@@ -1,32 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Skeleton, Alert, AlertTitle } from '@mui/material'
+import { Alert, AlertTitle } from '@mui/material'
 import { useBankSettingsHandlers } from '@/handlers/settings/useBankSettingsHandlers'
 
 const BankSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
-  const [initialLoading, setInitialLoading] = useState(!initialData.bankSettings)
-  const handlers = useBankSettingsHandlers(initialData.bankSettings || {})
-
-  useEffect(() => {
-    if (!initialData.bankSettings) {
-      const loadData = async () => {
-        await handlers.dataHandlers.loadBanks()
-        setInitialLoading(false)
-      }
-
-      loadData()
-    }
-  }, [initialData.bankSettings])
-
-  if (initialLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton variant="rectangular" width="100%" height={200} />
-        <Skeleton variant="rectangular" width="100%" height={300} />
-      </div>
-    )
-  }
+  const handlers = useBankSettingsHandlers(initialData || {})
 
   if (handlers.state.error) {
     return (

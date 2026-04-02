@@ -1,32 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Skeleton, Alert, AlertTitle } from '@mui/material'
+import { Alert, AlertTitle } from '@mui/material'
 import { useTaxSettingsHandlers } from '@/handlers/settings/useTaxSettingsHandlers'
 
 const TaxSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
-  const [initialLoading, setInitialLoading] = useState(!initialData.taxSettings)
-  const handlers = useTaxSettingsHandlers(initialData.taxSettings || {})
-
-  useEffect(() => {
-    if (!initialData.taxSettings) {
-      const loadData = async () => {
-        await handlers.dataHandlers.loadTaxes()
-        setInitialLoading(false)
-      }
-
-      loadData()
-    }
-  }, [initialData.taxSettings])
-
-  if (initialLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton variant="rectangular" width="100%" height={200} />
-        <Skeleton variant="rectangular" width="100%" height={300} />
-      </div>
-    )
-  }
+  const handlers = useTaxSettingsHandlers(initialData || {})
 
   if (handlers.state.error) {
     return (

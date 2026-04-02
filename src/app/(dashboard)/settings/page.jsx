@@ -52,36 +52,34 @@ export default async function SettingsPage() {
     return null
   }
 
-  const initialData = {
-    companySettings: extractData(companyResult) || {},
-    accountSettings: extractData(accountResult) || {},
-    invoiceSettings: extractData(invoiceResult) || {},
-    paymentSettings: extractData(paymentResult) || {},
-    preferenceSettings: extractData(preferenceResult) || {},
-    currencies: extractData(currenciesResult) || [],
-    emailSettings: extractData(emailResult) || {},
-    notificationSettings: extractData(notificationResult) || {},
-    bankSettings: {
-      banks: extractData(bankResult)?.data || [],
-      pagination: {
-        page: 0,
-        totalCount: extractData(bankResult)?.totalCount || 0,
-        limit: 10
-      }
-    },
-    taxSettings: {
-      taxes: extractData(taxResult)?.data || [],
-      pagination: {
-        page: 0,
-        totalCount: extractData(taxResult)?.totalCount || 0,
-        limit: 10
-      }
-    },
-    signatures: extractData(signaturesResult) || [],
-    invoiceTemplates: extractData(templateResult) || {},
-    loading: false,
-    error: null
-  }
-
-  return <UnifiedSettingsIndex initialData={initialData} />
+  return (
+    <UnifiedSettingsIndex
+      initialCompanySettings={extractData(companyResult) || {}}
+      initialAccountSettings={extractData(accountResult) || {}}
+      initialInvoiceSettings={extractData(invoiceResult) || {}}
+      initialPaymentSettings={extractData(paymentResult) || {}}
+      initialPreferenceSettings={extractData(preferenceResult) || {}}
+      initialCurrencies={extractData(currenciesResult) || []}
+      initialEmailSettings={extractData(emailResult) || {}}
+      initialNotificationSettings={extractData(notificationResult) || {}}
+      initialBankSettings={{
+        banks: extractData(bankResult)?.data || [],
+        pagination: {
+          page: 0,
+          totalCount: extractData(bankResult)?.totalCount || 0,
+          limit: 10
+        }
+      }}
+      initialTaxSettings={{
+        taxes: extractData(taxResult)?.data || [],
+        pagination: {
+          page: 0,
+          totalCount: extractData(taxResult)?.totalCount || 0,
+          limit: 10
+        }
+      }}
+      initialSignatures={extractData(signaturesResult) || []}
+      initialInvoiceTemplates={extractData(templateResult) || {}}
+    />
+  )
 }

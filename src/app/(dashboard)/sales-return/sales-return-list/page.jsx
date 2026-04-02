@@ -9,36 +9,31 @@ import { getSalesReturnList } from '@/app/(dashboard)/sales-return/actions';
  * @returns JSX.Element
  */
 const SalesReturnListPage = async () => {
-  // Fetch initial sales return data on the server
-  let initialData = {
-    salesReturns: [],
-    pagination: { current: 1, pageSize: 10, total: 0 }
-  };
+  let initialSalesReturns = [];
+  let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialErrorMessage = '';
 
   try {
     const response = await getSalesReturnList(1, 10);
 
     if (response?.success) {
-
-      console.log('Response:', response);
-      initialData = {
-        salesReturns: response.data || [],
-        pagination: {
-          current: 1,
-          pageSize: 10,
-          total: response.totalRecords || 0
-        }
+      initialSalesReturns = response.data || [];
+      initialPagination = {
+        current: 1,
+        pageSize: 10,
+        total: response.totalRecords || 0
       };
     }
   } catch (error) {
     console.error('Error fetching initial sales return data:', error);
-    // Keep default empty data on error
+    initialErrorMessage = error?.message || 'Failed to load sales returns.';
   }
 
   return (
     <SalesReturnListIndex
-      initialData={initialData}
-      initialSalesReturns={initialData.salesReturns}
+      initialSalesReturns={initialSalesReturns}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
     />
   );
 };

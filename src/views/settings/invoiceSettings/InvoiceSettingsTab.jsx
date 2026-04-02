@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 // Component Imports
 import InvoiceSettingsForm from './InvoiceSettingsForm'
@@ -9,32 +9,9 @@ import { getInvoiceSettings, updateInvoiceSettings } from '@/app/(dashboard)/set
 
 const InvoiceSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
   const [invoiceSettings, setInvoiceSettings] = useState(initialData.invoiceSettings || {})
-  const [loading, setLoading] = useState(!initialData.invoiceSettings)
+  const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState(null)
-
-  // Load invoice settings data only if not provided
-  useEffect(() => {
-    if (!initialData.invoiceSettings) {
-      const loadData = async () => {
-        try {
-          setLoading(true)
-          const result = await getInvoiceSettings()
-          if (result.success) {
-            setInvoiceSettings(result.data || {})
-          } else {
-            setError(result.message)
-          }
-        } catch (err) {
-          setError(err.message)
-        } finally {
-          setLoading(false)
-        }
-      }
-
-      loadData()
-    }
-  }, [initialData.invoiceSettings])
 
   const handleUpdate = async (formData) => {
     setUpdating(true)

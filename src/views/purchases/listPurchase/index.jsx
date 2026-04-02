@@ -3,12 +3,18 @@
 import React from 'react';
 import PurchaseList from './PurchaseList';
 
-const PurchaseListIndex = ({ initialData, vendors = [] }) => {
+const PurchaseListIndex = ({
+     initialPurchases = [],
+     initialPagination = { current: 1, pageSize: 10, total: 0 },
+     initialVendors = [],
+     initialErrorMessage = '',
+}) => {
      return (
           <PurchaseList
-               initialPurchases={initialData.data || []}
-               initialPagination={{ current: 1, pageSize: 10, total: initialData.totalRecords || 0 }}
-               vendors={vendors}
+               initialPurchases={initialPurchases}
+               initialPagination={initialPagination}
+               vendors={initialVendors}
+               initialErrorMessage={initialErrorMessage}
           />
      );
 };

@@ -5,11 +5,20 @@ import AppSnackbar from '@/components/shared/AppSnackbar';
 import AddPurchase from '@/views/purchases/addPurchase/AddPurchase';
 import { addPurchase } from '@/app/(dashboard)/purchases/actions';
 
-const AddPurchaseIndex = ({ vendors, products, taxRates, banks, signatures, purchaseNumber }) => {
+const AddPurchaseIndex = ({
+  initialVendors = [],
+  initialProducts = [],
+  initialTaxRates = [],
+  initialBanks = [],
+  initialSignatures = [],
+  initialUnits = [],
+  initialPurchaseNumber = '',
+  initialErrorMessage = ''
+}) => {
   const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'info'
+    open: Boolean(initialErrorMessage),
+    message: initialErrorMessage || '',
+    severity: initialErrorMessage ? 'error' : 'info'
   });
 
   const handleSnackbarClose = (event, reason) => {
@@ -70,12 +79,12 @@ const AddPurchaseIndex = ({ vendors, products, taxRates, banks, signatures, purc
     <>
       <AddPurchase
         onSave={handleSave}
-        vendorsData={vendors}
-        productData={products}
-        taxRates={taxRates}
-        initialBanks={banks}
-        signatures={signatures}
-        purchaseNumber={purchaseNumber}
+        vendorsData={initialVendors}
+        productData={initialProducts}
+        taxRates={initialTaxRates}
+        initialBanks={initialBanks}
+        signatures={initialSignatures}
+        purchaseNumber={initialPurchaseNumber}
       />
 
       <AppSnackbar

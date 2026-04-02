@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 // Component Imports
 import EmailSettingsForm from './EmailSettingsForm'
@@ -17,13 +17,6 @@ const EmailSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
     updateEmailSettings,
     clearError
   } = useEmailSettingsHandlers(initialData)
-
-  // Load email settings data only if not provided
-  useEffect(() => {
-    if (!initialData.emailSettings) {
-      getEmailSettings()
-    }
-  }, [])
 
   const handleUpdate = async (formData) => {
     try {
