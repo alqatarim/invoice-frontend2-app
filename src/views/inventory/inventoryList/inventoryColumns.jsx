@@ -1,12 +1,11 @@
 import { Typography, Box, IconButton, Tooltip, Chip } from '@mui/material';
-import { amountFormat } from '@/utils/numberUtils';
 import { Icon } from '@iconify/react';
 
 /**
  * Inventory table column definitions - Main table only
  * Branch-specific columns are rendered in the expanded sub-table
  */
-export const getInventoryColumns = ({ permissions, theme }) => {
+export const getInventoryColumns = ({ theme }) => {
   return [
     {
       key: 'expand',
@@ -168,75 +167,3 @@ export const getInventoryColumns = ({ permissions, theme }) => {
     },
   ];
 };
-
-/**
- * Branch sub-table column definitions - Used in the expanded section
- */
-export const getBranchColumns = ({ permissions, handlers, theme }) => [
-  {
-    key: 'branchName',
-    label: 'Branch',
-    width: '18%',
-    align: 'left',
-    renderCell: (branch, index) => (
-      <Typography variant="body2" color="text.primary">
-        {branch.branchName || 'N/A'}
-      </Typography>
-    ),
-  },
-  {
-    key: 'branchType',
-    label: 'Type',
-    width: '10%',
-    align: 'center',
-    renderCell: (branch) => (
-      <Typography variant="body2" color="text.secondary">
-        {branch.branchType || '-'}
-      </Typography>
-    ),
-  },
-  {
-    key: 'province',
-    label: 'Province',
-    width: '15%',
-    align: 'left',
-    renderCell: (branch) => (
-      <Typography variant="body2" color="text.secondary">
-        {branch.province || '-'}
-      </Typography>
-    ),
-  },
-  {
-    key: 'city',
-    label: 'City',
-    width: '15%',
-    align: 'left',
-    renderCell: (branch) => (
-      <Typography variant="body2" color="text.secondary">
-        {branch.city || '-'}
-      </Typography>
-    ),
-  },
-  {
-    key: 'district',
-    label: 'District',
-    width: '12%',
-    align: 'left',
-    renderCell: (branch) => (
-      <Typography variant="body2" color="text.secondary">
-        {branch.district || '-'}
-      </Typography>
-    ),
-  },
-  {
-    key: 'quantity',
-    label: 'Quantity',
-    width: '10%',
-    align: 'center',
-    renderCell: (branch) => (
-      <Typography variant="body1" color="text.primary" className="font-medium">
-        {branch.quantity || 0}
-      </Typography>
-    ),
-  },
-];

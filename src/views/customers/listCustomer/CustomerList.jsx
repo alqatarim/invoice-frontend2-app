@@ -16,20 +16,23 @@ import {
   Typography,
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
+import { Icon } from '@iconify/react'
+import { useSnackbar } from 'notistack'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import { AddCustomerDrawer } from '../addCustomer'
 import { getCustomerColumns } from './customerColumns'
 import { usePermission } from '@/Auth/usePermission'
 import CustomerHead from '@/views/customers/listCustomer/customerHead'
-import AppSnackbar from '@/components/shared/AppSnackbar'
 import { useCustomerListHandler } from './handler'
+import { getDefaultCustomerSummary } from './customerSummary'
 
 const CustomerList = ({
   initialCustomers = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
-  initialCardCounts = { totalCustomers: 0, activeCustomers: 0, inactiveCustomers: 0 },
+  initialSummary = getDefaultCustomerSummary(),
 }) => {
   const theme = useTheme()
+  const { enqueueSnackbar } = useSnackbar()
 
   const permissions = {
     canCreate: usePermission('customer', 'create'),
@@ -38,39 +41,22 @@ const CustomerList = ({
     canDelete: usePermission('customer', 'delete'),
   }
 
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  })
   const [customerDrawerOpen, setCustomerDrawerOpen] = useState(false)
 
   const onError = useCallback(message => {
-    setSnackbar({
-      open: true,
-      message,
-      severity: 'error',
+    enqueueSnackbar(message, {
+      variant: 'error',
+      autoHideDuration: 5000,
+      preventDuplicate: true,
     })
-  }, [])
+  }, [enqueueSnackbar])
 
   const onSuccess = useCallback(message => {
-    setSnackbar({
-      open: true,
-      message,
-      severity: 'success',
+    enqueueSnackbar(message, {
+      variant: 'success',
+      autoHideDuration: 3000,
     })
-  }, [])
-
-  const handleSnackbarClose = useCallback((_, reason) => {
-    if (reason === 'clickaway') {
-      return
-    }
-
-    setSnackbar(current => ({
-      ...current,
-      open: false,
-    }))
-  }, [])
+  }, [enqueueSnackbar])
 
   const stablePermissions = useMemo(
     () => ({
@@ -85,6 +71,7 @@ const CustomerList = ({
   const handler = useCustomerListHandler({
     initialCustomers,
     initialPagination,
+    initialSummary,
     initialSortBy: 'createdAt',
     initialSortDirection: 'desc',
     onError,
@@ -127,25 +114,22 @@ const CustomerList = ({
 
   return (
     <Box className='flex flex-col gap-5'>
-      <CustomerHead customerListData={initialCardCounts} currencyData='SAR' isLoading={false} />
+      <CustomerHead
+        summary={handler.summary}
+      />
 
       <CustomListTable
         addRowButton={
           permissions.canCreate && (
             <Button
-              variant='contained'
-              color='primary'
-              startIcon={<i className='ri-add-line' />}
               onClick={() => setCustomerDrawerOpen(true)}
+              variant="contained"
+              startIcon={<Icon icon="tabler:plus" />}
             >
-              Add Customer
+              New Customer
             </Button>
           )
         }
-        showSearch
-        searchValue={handler.searchTerm || ''}
-        onSearchChange={handler.handleSearchInputChange}
-        searchPlaceholder='Search customers...'
         columns={tableColumns}
         rows={handler.customers}
         loading={handler.loading}
@@ -157,6 +141,10 @@ const CustomerList = ({
         sortDirection={handler.sortDirection}
         noDataText='No customers found.'
         rowKey={row => row._id || row.id}
+        showSearch={true}
+        searchValue={handler.searchTerm || ''}
+        onSearchChange={handler.handleSearchInputChange}
+        searchPlaceholder="Search customers..."
         onRowClick={permissions.canView ? row => handler.handleView(row) : undefined}
         enableHover
       />
@@ -254,14 +242,6 @@ const CustomerList = ({
           </Fade>
         )}
       </Popper>
-
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={handleSnackbarClose}
-        autoHideDuration={6000}
-      />
     </Box>
   )
 }

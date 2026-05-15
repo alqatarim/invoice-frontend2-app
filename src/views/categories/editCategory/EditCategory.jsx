@@ -8,8 +8,7 @@ const EditCategory = ({ controller }) => {
     <Category
       controller={controller}
       title='Edit Category'
-      submitLabel='Update Category'
-      submittingLabel='Updating...'
+      submitLabel='Update'
     />
   )
 }

@@ -96,7 +96,6 @@ export function usePosViewHandler({
     onSave,
     enqueueSnackbar,
     closeSnackbar,
-    preferredBranchId: primaryStore?.branchId || primaryStore?._id || '',
     initialErrorMessage,
   });
 

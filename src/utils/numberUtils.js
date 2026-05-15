@@ -34,6 +34,41 @@ export function formatWholeNumber(value, locale = 'en-US') {
   });
 }
 
+export function formatCompactNumber(value, locale = 'en-US') {
+  if (value === undefined || value === null || value === '') {
+    return '0';
+  }
+
+  const numericValue =
+    typeof value === 'number'
+      ? value
+      : Number(String(value).replace(/,/g, '').trim());
+
+  if (!Number.isFinite(numericValue)) {
+    return String(value);
+  }
+
+  const absoluteValue = Math.abs(numericValue);
+
+  if (absoluteValue >= 1000000) {
+    return `${parseFloat((numericValue / 1000000).toFixed(1))}M`;
+  }
+
+  if (absoluteValue >= 1000) {
+    const valueInThousands = numericValue / 1000;
+
+    if (Math.abs(valueInThousands) < 100) {
+      return `${parseFloat(valueInThousands.toFixed(1))}K`;
+    }
+
+    return `${Math.round(valueInThousands)}K`;
+  }
+
+  return numericValue.toLocaleString(locale, {
+    maximumFractionDigits: 2,
+  });
+}
+
 export const amountFormat = (amount) => {
   if (isNaN(amount)) return '0.00';
   return Number(amount).toLocaleString('en-US', {

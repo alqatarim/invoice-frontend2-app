@@ -1,6 +1,8 @@
 node_modules
 .next
 .next*
+.env*.local
+!.env.production.local
 npm-debug.log
 Dockerfile
 .git

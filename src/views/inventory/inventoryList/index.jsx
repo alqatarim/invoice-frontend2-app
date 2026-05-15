@@ -2,7 +2,6 @@
 
 import React from "react";
 import InventoryList from "@/views/inventory/inventoryList/InventoryList";
-import { useInventoryListViewHandler } from './handler';
 
 const InventoryListIndex = ({
   initialInventory = [],
@@ -22,33 +21,16 @@ const InventoryListIndex = ({
   initialProvincesCities = [],
   initialErrorMessage = '',
 }) => {
-  const handler = useInventoryListViewHandler({
-    initialInventory,
-    initialPagination,
-    initialBranchInventory,
-    initialBranchPagination,
-    initialBranches,
-    initialProvincesCities,
-    initialErrorMessage,
-  });
-
   return (
     <InventoryList
       initialInventory={initialInventory}
-      pagination={initialPagination}
-      cardCounts={initialCardCounts}
+      initialPagination={initialPagination}
+      initialCardCounts={initialCardCounts}
       initialBranchInventory={initialBranchInventory}
       initialBranchPagination={initialBranchPagination}
-      permissions={handler.permissions}
-      handlers={handler.handlers}
-      branchHandlers={handler.branchHandlers}
-      branchScope={handler.branchScope}
-      branchOptions={handler.branchOptions}
-      scopedProvincesCities={handler.scopedProvincesCities}
-      scopeHelperText={handler.scopeHelperText}
-      onError={handler.onError}
-      snackbar={handler.snackbar}
-      onSnackbarClose={handler.handleSnackbarClose}
+      initialBranches={initialBranches}
+      initialProvincesCities={initialProvincesCities}
+      initialErrorMessage={initialErrorMessage}
     />
   );
 };

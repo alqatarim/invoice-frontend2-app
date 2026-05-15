@@ -3,6 +3,7 @@ import useAddInvoiceHandlers from '@/views/invoices/addInvoice/handler';
 import { calculateInvoiceTotals } from '@/utils/salesTotals';
 import { formatDateForInput } from '@/utils/dateUtils';
 import { resolveProductBarcodeMatch } from '@/utils/productScaleBarcode';
+import { useGlobalLocationScope } from '@/contexts/GlobalLocationContext';
 import { PosSchema } from '@/views/pos/PosSchema';
 
 const HELD_SALES_KEY = 'standalonePos.heldSales';
@@ -44,7 +45,21 @@ const findBranchByIdentifier = (branches = [], value = '') => {
 
 const resolveBranchId = (branch) => getBranchIdentifiers(branch)[0] || '';
 
-const getBranchValidationMessage = (branches = [], selectedBranchId = '') => {
+const getBranchValidationMessage = (
+  branches = [],
+  selectedBranchId = '',
+  selectedLocation = null,
+  storeOnlyValidationMessage = ''
+) => {
+  if (!selectedLocation) {
+    return 'Choose a location from the top bar before continuing.';
+  }
+
+  if (!isStoreBranch(selectedLocation)) {
+    return storeOnlyValidationMessage
+      || `${selectedLocation?.name || 'The selected location'} is not a store. Choose a store from the top bar before continuing.`;
+  }
+
   if (!Array.isArray(branches) || branches.length === 0) {
     return 'No assigned store is available for this cashier. Ask an admin to assign a store.';
   }
@@ -72,7 +87,6 @@ export default function usePosPageHandlers({
   onSave,
   enqueueSnackbar,
   closeSnackbar,
-  preferredBranchId = '',
   initialErrorMessage = '',
 }) {
   const [barcodeDraft, setBarcodeDraft] = useState('');
@@ -145,6 +159,13 @@ export default function usePosPageHandlers({
     () => (Array.isArray(allowedBranchesData) ? allowedBranchesData : []).filter(isStoreBranch),
     [allowedBranchesData]
   );
+  const {
+    selectedLocation,
+    selectedLocationId: globalLocationId,
+    selectedLocationType,
+    isStoreSelected,
+    storeOnlyValidationMessage,
+  } = useGlobalLocationScope();
   const productLookup = useMemo(
     () =>
       new Map(
@@ -168,18 +189,9 @@ export default function usePosPageHandlers({
   const walkInCustomerId = walkInRecord?._id || 'walk-in';
 
   const defaultBranchId = useMemo(() => {
-    const preferredBranch = findBranchByIdentifier(branches, preferredBranchId);
-    if (preferredBranch) {
-      return resolveBranchId(preferredBranch);
-    }
-
-    const configuredBranch = findBranchByIdentifier(branches, posSettings?.posDefaultBranchId);
-    if (configuredBranch) {
-      return resolveBranchId(configuredBranch);
-    }
-
-    return resolveBranchId(branches[0]);
-  }, [branches, posSettings?.posDefaultBranchId, preferredBranchId]);
+    const globalStore = findBranchByIdentifier(branches, globalLocationId);
+    return resolveBranchId(globalStore);
+  }, [branches, globalLocationId]);
 
   const paymentMethodOptions = useMemo(() => {
     const source =
@@ -236,7 +248,7 @@ export default function usePosPageHandlers({
     [branches, selectedBranchId]
   );
   const activeBranchId = useMemo(() => resolveBranchId(activeBranch), [activeBranch]);
-  const hasValidSelectedBranch = Boolean(activeBranchId);
+  const hasValidSelectedBranch = Boolean(activeBranchId) && isStoreSelected;
 
   const selectedCashierId = watch('signatureId');
   const selectedPaymentMethod = watch('payment_method');
@@ -291,44 +303,28 @@ export default function usePosPageHandlers({
   }, [setValue]);
 
   useEffect(() => {
-    if (branches.length === 0) {
-      if (selectedBranchId) {
-        setSelectedBranchId('');
-      }
-      return;
-    }
-
-    if (!selectedBranchId) {
-      if (defaultBranchId) {
-        setSelectedBranchId(defaultBranchId);
-      }
-      return;
-    }
-
-    const matchedBranch = findBranchByIdentifier(branches, selectedBranchId);
-    if (!matchedBranch) {
-      if (defaultBranchId !== selectedBranchId) {
-        setSelectedBranchId(defaultBranchId || '');
-      }
-      return;
-    }
-
-    const canonicalBranchId = resolveBranchId(matchedBranch);
-    if (canonicalBranchId && canonicalBranchId !== selectedBranchId) {
-      setSelectedBranchId(canonicalBranchId);
-    }
-  }, [branches, defaultBranchId, selectedBranchId]);
+    const nextBranchId = String(globalLocationId || '').trim();
+    setSelectedBranchId((currentValue) =>
+      currentValue === nextBranchId ? currentValue : nextBranchId
+    );
+  }, [globalLocationId]);
 
   useEffect(() => {
-    const nextBranchError = getBranchValidationMessage(branches, selectedBranchId);
+    const nextBranchError = getBranchValidationMessage(
+      branches,
+      selectedBranchId,
+      selectedLocation,
+      storeOnlyValidationMessage
+    );
     setBranchError((currentValue) =>
       currentValue === nextBranchError ? currentValue : nextBranchError
     );
-  }, [branches, selectedBranchId]);
+  }, [branches, selectedBranchId, selectedLocation, storeOnlyValidationMessage]);
 
   useEffect(() => {
-    setValue('branchId', activeBranchId);
-  }, [activeBranchId, setValue]);
+    setValue('branchId', globalLocationId || '', { shouldValidate: true });
+    setValue('branchType', selectedLocationType || '', { shouldValidate: true });
+  }, [globalLocationId, selectedLocationType, setValue]);
 
   useEffect(() => {
     const current = getValues('payment_method');
@@ -597,7 +593,7 @@ export default function usePosPageHandlers({
 
   const handleLoadHeldSale = useCallback(
     (saleId) => {
-      if (!branches.length) {
+      if (!hasValidSelectedBranch) {
         pushSnackbar(branchError || 'No assigned store is available to restore held sales', 'error');
         return;
       }
@@ -614,7 +610,7 @@ export default function usePosPageHandlers({
         restoreResult?.usedFallbackBranch ? 'warning' : 'success'
       );
     },
-    [branchError, branches.length, heldSales, persistHeldSales, pushSnackbar, restoreHeldSale]
+    [branchError, hasValidSelectedBranch, heldSales, persistHeldSales, pushSnackbar, restoreHeldSale]
   );
 
   const handleDeleteHeldSale = useCallback(
@@ -625,7 +621,7 @@ export default function usePosPageHandlers({
   );
 
   const handleResumeLatest = useCallback(() => {
-    if (!branches.length) {
+    if (!hasValidSelectedBranch) {
       pushSnackbar(branchError || 'No assigned store is available to resume held sales', 'error');
       return;
     }
@@ -644,7 +640,7 @@ export default function usePosPageHandlers({
         : 'Resumed latest held sale',
       restoreResult?.usedFallbackBranch ? 'warning' : 'success'
     );
-  }, [branchError, branches.length, heldSales, persistHeldSales, pushSnackbar, restoreHeldSale]);
+  }, [branchError, hasValidSelectedBranch, heldSales, persistHeldSales, pushSnackbar, restoreHeldSale]);
 
   const handleQuickTenderAmount = useCallback(
     (value) => {
@@ -813,6 +809,8 @@ export default function usePosPageHandlers({
     productsCloneData,
     branches,
     activeBranch,
+    selectedLocation,
+    selectedLocationType,
     branchError,
     hasValidSelectedBranch,
     selectedBranchId,

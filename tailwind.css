@@ -1126,6 +1126,10 @@
   border-radius: 9999px
 }
 
+#__next .rounded-lg {
+  border-radius:  var(--mui-shape-customBorderRadius-lg)
+}
+
 #__next .rounded-md {
   border-radius: var(--mui-shape-customBorderRadius-md)
 }
@@ -1142,8 +1146,16 @@
   border-width: 0px
 }
 
+#__next .border-1 {
+  border-width: 1px
+}
+
 #__next .border-2 {
   border-width: 2px
+}
+
+#__next .border-3 {
+  border-width: 3px
 }
 
 #__next .border-4 {
@@ -1170,24 +1182,180 @@
   border-color: var(--mui-palette-info-main)
 }
 
+#__next .border-infoMain {
+  border-color: var(--mui-palette-info-main)
+}
+
+#__next .border-infoLight {
+  border-color: var(--mui-palette-info-lightOpacity)
+}
+
+#__next .border-infoLighter {
+  border-color: var(--mui-palette-info-lighterOpacity)
+}
+
+#__next .border-infoLightest {
+  border-color: var(--mui-palette-info-lightestOpacity)
+}
+
+#__next .border-infoDark {
+  border-color: var(--mui-palette-info-darkOpacity)
+}
+
+#__next .border-infoDarker {
+  border-color: var(--mui-palette-info-darkerOpacity)
+}
+
+#__next .border-infoDarkest {
+  border-color: var(--mui-palette-info-darkestOpacity)
+}
+
 #__next .border-primary {
   border-color: var(--primary-color)
+}
+
+#__next .border-primaryMain {
+  border-color: var(--mui-palette-primary-main)
+}
+
+#__next .border-primaryLight {
+  border-color: var(--mui-palette-primary-lightOpacity)
+}
+
+#__next .border-primaryLighter {
+  border-color: var(--mui-palette-primary-lighterOpacity)
+}
+
+#__next .border-primaryLightest {
+  border-color: var(--mui-palette-primary-lightestOpacity)
+}
+
+#__next .border-primaryDark {
+  border-color: var(--mui-palette-primary-darkOpacity)
+}
+
+#__next .border-primaryDarker {
+  border-color: var(--mui-palette-primary-darkerOpacity)
+}
+
+#__next .border-primaryDarkest {
+  border-color: var(--mui-palette-primary-darkestOpacity)
 }
 
 #__next .border-secondary {
   border-color: var(--mui-palette-secondary-main)
 }
 
+#__next .border-secondaryMain {
+  border-color: var(--mui-palette-secondary-main)
+}
+
+#__next .border-secondaryLight {
+  border-color: var(--mui-palette-secondary-lightOpacity)
+}
+
 #__next .border-secondaryLighter {
   border-color: var(--mui-palette-secondary-lighterOpacity)
+}
+
+#__next .border-secondaryLightest {
+  border-color: var(--mui-palette-secondary-lightestOpacity)
+}
+
+#__next .border-secondaryDark {
+  border-color: var(--mui-palette-secondary-darkOpacity)
+}
+
+#__next .border-secondaryDarker {
+  border-color: var(--mui-palette-secondary-darkerOpacity)
+}
+
+#__next .border-secondaryDarkest {
+  border-color: var(--mui-palette-secondary-darkestOpacity)
+}
+
+#__next .border-error {
+  border-color: var(--mui-palette-error-main)
+}
+
+#__next .border-errorLight {
+  border-color: var(--mui-palette-error-lightOpacity)
+}
+
+#__next .border-errorLighter {
+  border-color: var(--mui-palette-error-lighterOpacity)
+}
+
+#__next .border-errorLightest {
+  border-color: var(--mui-palette-error-lightestOpacity)
+}
+
+#__next .border-errorDark {
+  border-color: var(--mui-palette-error-darkOpacity)
+}
+
+#__next .border-errorDarker {
+  border-color: var(--mui-palette-error-darkerOpacity)
+}
+
+#__next .border-errorDarkest {
+  border-color: var(--mui-palette-error-darkestOpacity)
 }
 
 #__next .border-success {
   border-color: var(--mui-palette-success-main)
 }
 
+#__next .border-successLight {
+  border-color: var(--mui-palette-success-lightOpacity)
+}
+
+#__next .border-successLighter {
+  border-color: var(--mui-palette-success-lighterOpacity)
+}
+
+#__next .border-successLightest {
+  border-color: var(--mui-palette-success-lightestOpacity)
+}
+
+#__next .border-successDark {
+  border-color: var(--mui-palette-success-darkOpacity)
+}
+
+#__next .border-successDarker {
+  border-color: var(--mui-palette-success-darkerOpacity)
+}
+
+#__next .border-successDarkest {
+  border-color: var(--mui-palette-success-darkestOpacity)
+}
+
 #__next .border-warning {
   border-color: var(--mui-palette-warning-main)
+}
+
+#__next .border-warningLight {
+  border-color: var(--mui-palette-warning-lightOpacity)
+}
+
+#__next .border-warningLighter {
+  border-color: var(--mui-palette-warning-lighterOpacity)
+}
+
+#__next .border-warningLightest {
+  border-color: var(--mui-palette-warning-lightestOpacity)
+}
+
+#__next .border-warningDark {
+  border-color: var(--mui-palette-warning-darkOpacity)
+}
+
+#__next .border-warningDarker {
+  border-color: var(--mui-palette-warning-darkerOpacity)
+}
+
+#__next .border-warningDarkest {
+  border-color: var(--mui-palette-warning-darkestOpacity)
 }
 
 #__next .border-white {
@@ -1263,6 +1431,30 @@
   background-color: var(--mui-palette-info-main)
 }
 
+#__next .bg-infoLight {
+  background-color: var(--mui-palette-info-lightOpacity)
+}
+
+#__next .bg-infoLighter {
+  background-color: var(--mui-palette-info-lighterOpacity)
+}
+
+#__next .bg-infoLightest {
+  background-color: var(--mui-palette-info-lightestOpacity)
+}
+
+#__next .bg-infoDark {
+  background-color: var(--mui-palette-info-darkOpacity)
+}
+
+#__next .bg-infoDarker {
+  background-color: var(--mui-palette-info-darkerOpacity)
+}
+
+#__next .bg-infoDarkest {
+  background-color: var(--mui-palette-info-darkestOpacity)
+}
+
 #__next .bg-primary {
   background-color: var(--primary-color)
 }
@@ -1271,16 +1463,108 @@
   background-color: var(--mui-palette-primary-lightOpacity)
 }
 
+#__next .bg-primaryLighter {
+  background-color: var(--mui-palette-primary-lighterOpacity)
+}
+
+#__next .bg-primaryLightest {
+  background-color: var(--mui-palette-primary-lightestOpacity)
+}
+
+#__next .bg-primaryDark {
+  background-color: var(--mui-palette-primary-darkOpacity)
+}
+
+#__next .bg-primaryDarker {
+  background-color: var(--mui-palette-primary-darkerOpacity)
+}
+
+#__next .bg-primaryDarkest {
+  background-color: var(--mui-palette-primary-darkestOpacity)
+}
+
 #__next .bg-secondary {
   background-color: var(--mui-palette-secondary-main)
+}
+
+#__next .bg-secondaryLight {
+  background-color: var(--mui-palette-secondary-lightOpacity)
 }
 
 #__next .bg-secondaryLighter {
   background-color: var(--mui-palette-secondary-lighterOpacity)
 }
 
+#__next .bg-secondaryLightest {
+  background-color: var(--mui-palette-secondary-lightestOpacity)
+}
+
+#__next .bg-secondaryDark {
+  background-color: var(--mui-palette-secondary-darkOpacity)
+}
+
+#__next .bg-secondaryDarker {
+  background-color: var(--mui-palette-secondary-darkerOpacity)
+}
+
+#__next .bg-secondaryDarkest {
+  background-color: var(--mui-palette-secondary-darkestOpacity)
+}
+
+#__next .bg-error {
+  background-color: var(--mui-palette-error-main)
+}
+
+#__next .bg-errorLight {
+  background-color: var(--mui-palette-error-lightOpacity)
+}
+
+#__next .bg-errorLighter {
+  background-color: var(--mui-palette-error-lighterOpacity)
+}
+
+#__next .bg-errorLightest {
+  background-color: var(--mui-palette-error-lightestOpacity)
+}
+
+#__next .bg-errorDark {
+  background-color: var(--mui-palette-error-darkOpacity)
+}
+
+#__next .bg-errorDarker {
+  background-color: var(--mui-palette-error-darkerOpacity)
+}
+
+#__next .bg-errorDarkest {
+  background-color: var(--mui-palette-error-darkestOpacity)
+}
+
 #__next .bg-success {
   background-color: var(--mui-palette-success-main)
+}
+
+#__next .bg-successLight {
+  background-color: var(--mui-palette-success-lightOpacity)
+}
+
+#__next .bg-successLighter {
+  background-color: var(--mui-palette-success-lighterOpacity)
+}
+
+#__next .bg-successLightest {
+  background-color: var(--mui-palette-success-lightestOpacity)
+}
+
+#__next .bg-successDark {
+  background-color: var(--mui-palette-success-darkOpacity)
+}
+
+#__next .bg-successDarker {
+  background-color: var(--mui-palette-success-darkerOpacity)
+}
+
+#__next .bg-successDarkest {
+  background-color: var(--mui-palette-success-darkestOpacity)
 }
 
 #__next .bg-tableHeader {
@@ -1293,6 +1577,30 @@
 
 #__next .bg-warning {
   background-color: var(--mui-palette-warning-main)
+}
+
+#__next .bg-warningLight {
+  background-color: var(--mui-palette-warning-lightOpacity)
+}
+
+#__next .bg-warningLighter {
+  background-color: var(--mui-palette-warning-lighterOpacity)
+}
+
+#__next .bg-warningLightest {
+  background-color: var(--mui-palette-warning-lightestOpacity)
+}
+
+#__next .bg-warningDark {
+  background-color: var(--mui-palette-warning-darkOpacity)
+}
+
+#__next .bg-warningDarker {
+  background-color: var(--mui-palette-warning-darkerOpacity)
+}
+
+#__next .bg-warningDarkest {
+  background-color: var(--mui-palette-warning-darkestOpacity)
 }
 
 #__next .bg-white {

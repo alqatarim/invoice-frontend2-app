@@ -72,24 +72,19 @@ const InvoicePosEditorSection = ({
             </Grid>
 
             <Grid size={{ xs: 12, md: 2.5 }}>
-              <Controller
-                name='branchId'
-                control={controller.control}
-                render={({ field }) => (
-                  <FormControl fullWidth variant='outlined' error={!!controller.errors.branchId}>
-                    <InputLabel size='medium'>Store</InputLabel>
-                    <Select {...field} label='Store' size='medium'>
-                      {controller.storeBranches.map((branch) => (
-                        <MenuItem key={branch._id || branch.branchId} value={branch.branchId}>
-                          {branch.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {controller.errors.branchId && (
-                      <FormHelperText error>{controller.errors.branchId.message}</FormHelperText>
-                    )}
-                  </FormControl>
-                )}
+              <TextField
+                fullWidth
+                label='Store'
+                size='medium'
+                value={controller.selectedLocation?.name || ''}
+                placeholder='Choose a location from the top bar'
+                error={Boolean(controller.errors.branchId || controller.branchSelectionError)}
+                helperText={
+                  controller.errors.branchId?.message ||
+                  controller.branchSelectionError ||
+                  'Controlled by the top-bar location selector.'
+                }
+                InputProps={{ readOnly: true }}
               />
             </Grid>
 

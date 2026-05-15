@@ -10,7 +10,6 @@ import { useParams, useRouter } from "next/navigation";
 import Badge from "@mui/material/Badge";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
 import Popper from "@mui/material/Popper";
 import Fade from "@mui/material/Fade";
 import Paper from "@mui/material/Paper";
@@ -46,16 +45,6 @@ const UserDropdown = () => {
 	const { data: session } = useSession();
 	const { settings } = useSettings();
 	const { lang: locale } = useParams();
-	const companyMembership = session?.user?.companyMembership || {};
-	const accessibleBranches = Array.isArray(companyMembership?.accessibleBranches)
-		? companyMembership.accessibleBranches
-		: [];
-	const primaryBranch = accessibleBranches.find((branch) =>
-		[String(branch?.branchId || ''), String(branch?._id || '')].includes(
-			String(companyMembership?.primaryBranchId || '')
-		)
-	);
-	const companyName = session?.user?.companyDetails?.companyName || '';
 
 	const handleDropdownOpen = () => {
 		!open ? setOpen(true) : setOpen(false);
@@ -145,35 +134,8 @@ const UserDropdown = () => {
 											<Typography variant="caption">
 												{session?.user?.email || ""}
 											</Typography>
-											{companyName ? (
-												<Typography variant="caption" color="text.secondary">
-													{companyName}
-												</Typography>
-											) : null}
 										</div>
 									</div>
-									<Box className="flex flex-wrap gap-2 px-4 pb-2">
-										{companyMembership?.orgRole ? (
-											<Chip
-												size="small"
-												variant="outlined"
-												label={companyMembership.orgRole.replaceAll("_", " ")}
-											/>
-										) : null}
-										<Chip
-											size="small"
-											variant="outlined"
-											label={`${accessibleBranches.length} accessible locations`}
-										/>
-										{primaryBranch?.name ? (
-											<Chip
-												size="small"
-												color="primary"
-												variant="tonal"
-												label={`Primary: ${primaryBranch.name}`}
-											/>
-										) : null}
-									</Box>
 
 									{/* Session Expiry Countdown Timer for Testing */}
 									<SessionCountdown token={session?.user?.token} />

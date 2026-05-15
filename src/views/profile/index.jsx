@@ -15,7 +15,7 @@ import { Icon } from '@iconify/react'
 // Component Imports
 import UserProfileHeader from './UserProfileHeader'
 import ProfileTab from './ProfileTab'
-import TeamsTab from './TeamsTab'
+import AccessTab from './AccessTab'
 import ProjectsTab from './ProjectsTab'
 import ConnectionsTab from './ConnectionsTab'
 import CustomTabList from '@core/components/mui/TabList'
@@ -51,7 +51,7 @@ const ProfileContent = ({ initialProfile = {}, initialErrorMessage = '' }) => {
         enqueueSnackbar={enqueueSnackbar}
       />
     ),
-    teams: <TeamsTab />,
+    access: <AccessTab data={profile} />,
     projects: <ProjectsTab />,
     connections: <ConnectionsTab />
   }
@@ -59,13 +59,13 @@ const ProfileContent = ({ initialProfile = {}, initialErrorMessage = '' }) => {
   return (
     <Grid container spacing={6}>
       {/* Profile Header */}
-      <Grid size={{xs:12}}>
+      <Grid size={{ xs: 12 }}>
         <UserProfileHeader data={profile} />
       </Grid>
 
       {/* Tab Content */}
       {activeTab === undefined ? null : (
-        <Grid item xs={12} className='flex flex-col gap-6'>
+        <Grid size={{ xs: 12 }} className='flex flex-col gap-6'>
           <TabContext value={activeTab}>
             <CustomTabList onChange={handleTabChange} variant='scrollable' pill='true'>
               {profileTabs.map(tab => (

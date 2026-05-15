@@ -10,23 +10,26 @@ export const metadata = {
  * CategoriesPage Component - Optimized to prevent race conditions
  */
 const CategoriesPage = async () => {
+  let initialCategories = [];
+  let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialErrorMessage = '';
+
   try {
     const initialCategoryData = await getInitialCategoryData();
-
-    return (
-      <CategoryListIndex
-        initialCategories={initialCategoryData?.categories || []}
-        initialPagination={initialCategoryData?.pagination || { current: 1, pageSize: 10, total: 0 }}
-      />
-    );
+    initialCategories = initialCategoryData?.categories || [];
+    initialPagination = initialCategoryData?.pagination || initialPagination;
   } catch (error) {
     console.error('CategoriesPage: Error fetching data:', error);
-    return (
-      <div className="text-red-600 p-8">
-        Failed to load category data: {error.message}
-      </div>
-    );
+    initialErrorMessage = error?.message || 'Failed to load category data.';
   }
+
+  return (
+    <CategoryListIndex
+      initialCategories={initialCategories}
+      initialPagination={initialPagination}
+      initialErrorMessage={initialErrorMessage}
+    />
+  );
 };
 
 export default CategoriesPage;

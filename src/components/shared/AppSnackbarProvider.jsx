@@ -1,81 +1,104 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { SnackbarProvider, closeSnackbar, MaterialDesignContent } from 'notistack';
-import { IconButton } from '@mui/material';
-import { Icon } from '@iconify/react';
-import { styled, alpha } from '@mui/material/styles';
+import React from 'react'
+import Alert from '@mui/material/Alert'
+import IconButton from '@mui/material/IconButton'
+import { styled } from '@mui/material/styles'
+import { SnackbarProvider, closeSnackbar } from 'notistack'
 
-const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) => ({
-  '&.notistack-MuiContent, &.notistack-MuiContent-success, &.notistack-MuiContent-error, &.notistack-MuiContent-warning, &.notistack-MuiContent-info': {
-    display: 'flex',
-    flexDirection: 'row-reverse',
-    justifyContent: 'start',
+// Materio-styled Alert used as the snackbar surface.
+// Inherits the global MuiAlert overrides from `@core/theme/overrides/alerts.jsx`
+// (spacing(4) padding/gap, body1 typography, 30x30 white icon container, etc.).
+// Only snackbar-specific tweaks (width, radius, shadow, action alignment) live here.
+export const StyledAlert = styled(Alert)(({ theme }) => ({
+  minWidth: 320,
+  maxWidth: 480,
+  alignItems: 'center',
+  borderRadius: 'var(--mui-shape-borderRadius)',
+  boxShadow: 'var(--mui-customShadows-md)',
+  color: 'var(--mui-palette-common-white)',
+  '& .MuiAlert-message': {
+    flex: 1,
+    fontWeight: 500,
+    lineHeight: 1.5,
+    paddingBlock: 0
+  },
+  '& .MuiAlert-action': {
     alignItems: 'center',
-    padding: '4px 4px 4px 0px',
-    minWidth: '350px',
-    maxWidth: '500px',
-    fontWeight: 600,
-    gap: '8px',
-    '& .go703367398': {
-      margin: '0px',
-      padding: '0px'
-    },
-    '& .notistack-MuiContent-message': {
-      padding: 0,
-      margin: 0,
-    },
-  },
-  '&.notistack-MuiContent-success': {
-    backgroundColor: alpha(theme.palette.success.main, 0.05),
-    backdropFilter: 'blur(10px)',
-    color: theme.palette.success.main,
-    boxShadow: `0 4px 12px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-  },
-  '&.notistack-MuiContent-error': {
-    backgroundColor: alpha(theme.palette.error.main, 0.05),
-    backdropFilter: 'blur(10px)',
-    color: theme.palette.error.main,
-    boxShadow: `0 4px 12px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-  },
-  '&.notistack-MuiContent-warning': {
-    backgroundColor: alpha(theme.palette.warning.main, 0.05),
-    backdropFilter: 'blur(10px)',
-    color: theme.palette.warning.main,
-    boxShadow: `0 4px 12px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-  },
-  '&.notistack-MuiContent-info': {
-    backgroundColor: alpha(theme.palette.info.main, 0.05),
-    backdropFilter: 'blur(10px)',
-    color: theme.palette.info.main,
-    boxShadow: `0 4px 12px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-  },
-}));
+    alignSelf: 'center',
+    marginInlineEnd: 0,
+    paddingTop: 0,
+    paddingLeft: theme.spacing(2)
+  }
+}))
+
+export const snackbarIconMapping = {
+  success: <i className='ri-checkbox-circle-line' />,
+  error: <i className='ri-error-warning-line' />,
+  warning: <i className='ri-alert-line' />,
+  info: <i className='ri-information-line' />
+}
+
+const getAlertSeverity = variant => {
+  if (['success', 'error', 'warning', 'info'].includes(variant)) {
+    return variant
+  }
+
+  return 'info'
+}
+
+const AppSnackbarContent = React.forwardRef(function AppSnackbarContent(props, ref) {
+  const { id, message, variant, style } = props
+
+  const handleClose = () => closeSnackbar(id)
+
+  return (
+    <StyledAlert
+      ref={ref}
+      variant='filled'
+      severity={getAlertSeverity(variant)}
+      onClose={handleClose}
+      style={style}
+      iconMapping={snackbarIconMapping}
+      action={
+        <IconButton
+          size='small'
+          onClick={handleClose}
+          aria-label='close'
+          sx={{
+            color: 'inherit',
+            opacity: 0.85,
+            '&:hover': {
+              opacity: 1,
+              backgroundColor: 'rgba(255, 255, 255, 0.16)'
+            }
+          }}
+        >
+          <i className='ri-close-line' style={{ fontSize: '1.25rem' }} />
+        </IconButton>
+      }
+    >
+      {message}
+    </StyledAlert>
+  )
+})
 
 const AppSnackbarProvider = ({ children, maxSnack = 3 }) => (
   <SnackbarProvider
     maxSnack={maxSnack}
     anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-    iconVariant={{
-      success: <Icon icon="mdi:check-circle" fontSize={24} />,
-      error: <Icon icon="mdi:alert-circle" fontSize={24} />,
-      warning: <Icon icon="mdi:alert" fontSize={24} />,
-      info: <Icon icon="mdi:information" fontSize={24} />,
-    }}
+    autoHideDuration={5000}
+    preventDuplicate
     Components={{
-      success: StyledMaterialDesignContent,
-      error: StyledMaterialDesignContent,
-      warning: StyledMaterialDesignContent,
-      info: StyledMaterialDesignContent,
+      default: AppSnackbarContent,
+      success: AppSnackbarContent,
+      error: AppSnackbarContent,
+      warning: AppSnackbarContent,
+      info: AppSnackbarContent
     }}
-    action={(key) => (
-      <IconButton size="small" onClick={() => closeSnackbar(key)} sx={{ ml: 1, color: 'inherit' }}>
-        <Icon icon="mdi:close" fontSize={18} />
-      </IconButton>
-    )}
   >
     {children}
   </SnackbarProvider>
-);
+)
 
-export default AppSnackbarProvider;
+export default AppSnackbarProvider

@@ -12,6 +12,7 @@ import ModeDropdown from '@components/layout/shared/ModeDropdown'
 import ShortcutsDropdown from '@components/layout/shared/ShortcutsDropdown'
 import NotificationsDropdown from '@components/layout/shared/NotificationsDropdown'
 import UserDropdown from '@components/layout/shared/UserDropdown'
+import LocationChip from '@components/layout/shared/LocationChip'
 
 // Hook Imports
 import useHorizontalNav from '@menu/hooks/useHorizontalNav'
@@ -89,6 +90,7 @@ const NavbarContent = () => {
       <div className='flex items-center'>
         <NavSearch />
         <LanguageDropdown />
+        <LocationChip />
         <ModeDropdown />
         <ShortcutsDropdown shortcuts={shortcuts} />
         <NotificationsDropdown />

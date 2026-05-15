@@ -28,7 +28,20 @@ export const InvoiceSchema = yup.object().shape({
 
   branchId: yup
     .string()
-    .required("Choose a store"),
+    .required("Choose a location from the top bar")
+    .test(
+      'store-only-location',
+      'The selected location is not a store. Choose a store from the top bar.',
+      function (value) {
+        if (!value) return false;
+
+        return String(this.parent.branchType || '').trim().toLowerCase() === 'store';
+      }
+    ),
+
+  branchType: yup
+    .string()
+    .nullable(),
 
   invoiceDate: yup
     .date()

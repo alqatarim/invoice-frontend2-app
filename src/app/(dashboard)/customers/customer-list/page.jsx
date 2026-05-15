@@ -15,13 +15,7 @@ const CustomersPage = async () => {
     <CustomerListIndex
       initialCustomers={initialCustomerData?.customers || []}
       initialPagination={initialCustomerData?.pagination || { current: 1, pageSize: 10, total: 0 }}
-      initialCardCounts={
-        initialCustomerData?.cardCounts || {
-          totalCustomers: 0,
-          activeCustomers: 0,
-          inactiveCustomers: 0
-        }
-      }
+      initialSummary={initialCustomerData?.summary}
     />
   );
 };

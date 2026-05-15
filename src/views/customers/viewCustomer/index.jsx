@@ -8,40 +8,53 @@ import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-
-// Third-party Imports
-import { SnackbarProvider } from 'notistack'
+import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
 
 // Component Imports
-import { usePermission } from '@/Auth/usePermission'
-import { formatCurrency } from '@/utils/currencyUtils'
+import { usePermissions } from '@/Auth/PermissionsContext'
+import AppSnackbarProvider from '@/components/shared/AppSnackbarProvider'
 
-// Dynamic imports for better performance
-import dynamic from 'next/dynamic'
+import LeftSection from './LeftSection'
+import RightSection from './RightSection'
 
-const TopSection = dynamic(() => import('./TopSection'), {
-  loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-lg" />,
-})
-
-const LeftSection = dynamic(() => import('./LeftSection'), {
-  loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />,
-})
-
-const RightSection = dynamic(() => import('./RightSection'), {
-  loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded-lg" />,
-})
-
-
-
-const ViewCustomer = ({ customerData, customerId }) => {
+const ViewCustomer = ({ customerData, customerInvoiceData, customerId }) => {
   const router = useRouter()
+  const permissionState = usePermissions()
 
 
   // Permissions
-  const permissions = {
-    canEdit: usePermission('customer', 'edit'),
-    canView: usePermission('customer', 'view'),
-    canCreateInvoice: usePermission('invoice', 'create'),
+  const permissions = useMemo(
+    () => ({
+      canEdit: permissionState.hasPermission('customer', 'edit'),
+      canView: permissionState.hasPermission('customer', 'view'),
+      canCreateInvoice: permissionState.hasPermission('invoice', 'create'),
+    }),
+    [permissionState]
+  )
+
+  const invoiceCustomerData = customerInvoiceData?.customerDetails?.[0]
+  const invoices = useMemo(() => invoiceCustomerData?.invoiceRecs || [], [invoiceCustomerData?.invoiceRecs])
+  const cardDetails = useMemo(() => customerInvoiceData?.cardDetails?.[0] || {}, [customerInvoiceData?.cardDetails])
+  const paymentTransactions = useMemo(
+    () => customerInvoiceData?.paymentTransactions || [],
+    [customerInvoiceData?.paymentTransactions]
+  )
+
+  // Handle customer update - refresh the page to get updated data
+  const handleCustomerUpdate = useCallback((updatedCustomer) => {
+    // Since this is a server component pattern, we refresh the page to get updated data
+    router.refresh()
+  }, [router])
+
+  if (permissionState?.isLoading) {
+    return (
+
+      <Box className='flex flex-col items-center gap-4 py-12'>
+        <CircularProgress size={32} />
+      </Box>
+
+    )
   }
 
   if (!permissions.canView) {
@@ -62,22 +75,8 @@ const ViewCustomer = ({ customerData, customerId }) => {
     )
   }
 
-  // Extract data from the provided structure - customerDetails array contains the customer info
-  const customer = customerData?.customerDetails?.[0] || customerData?.customer || customerData
-  const invoices = customer?.invoiceRecs || customerData?.invoices || []
-  const cardDetails = useMemo(() =>
-    customerData?.cardDetails?.[0] || {},
-    [customerData?.cardDetails]
-  )
-
-  // Handle customer update - refresh the page to get updated data
-  const handleCustomerUpdate = useCallback((updatedCustomer) => {
-    // Since this is a server component pattern, we refresh the page to get updated data
-    router.refresh()
-  }, [router])
-
   // Validate customer data exists
-  if (!customer || !customer._id) {
+  if (!customerData || !customerData._id) {
     return (
       <Card>
         <CardContent className='flex flex-col items-center gap-4 py-12'>
@@ -96,40 +95,34 @@ const ViewCustomer = ({ customerData, customerId }) => {
   }
 
   return (
-    <SnackbarProvider
-      maxSnack={3}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-      autoHideDuration={2000}
-    >
+    <AppSnackbarProvider maxSnack={7}>
       <Grid container spacing={6}>
         <Grid size={{ xs: 12 }}>
-          <TopSection
-            customerId={customer._id}
-            customer={customer}
+          {/* <TopSection
+            customerId={customerData._id}
+            customer={customerData}
             permissions={permissions}
-          />
+          /> */}
         </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 3.5 }}>
           <LeftSection
-            customerData={customer}
+            customerData={customerData}
             cardDetails={cardDetails}
             permissions={permissions}
             onCustomerUpdate={handleCustomerUpdate}
           />
         </Grid>
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid size={{ xs: 12, md: 8.5 }}>
           <RightSection
-            customerData={customer}
+            customerData={customerData}
             invoices={invoices}
             cardDetails={cardDetails}
+            paymentTransactions={paymentTransactions}
             onCustomerUpdate={handleCustomerUpdate}
           />
         </Grid>
       </Grid>
-    </SnackbarProvider>
+    </AppSnackbarProvider>
   )
 }
 

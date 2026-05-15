@@ -492,5 +492,152 @@ export const getBalanceColor = (value) => {
   return value > 0 ? 'success.dark' : value < 0 ? 'error.dark' : 'text.primary'
 }
 
+// Marketing/product names the CSS spec does NOT know about.
+// Anything CSS already understands (skyblue, hotpink, midnightblue, ...) is
+// resolved by the browser, so we don't list it here.
+const COLOR_ALIASES = {
+  babyblue: '#89cff0',
+  rosegold: '#b76e79',
+  champagne: '#f7e7ce',
+  burgundy: '#800020',
+  mustard: '#ffdb58',
+  emerald: '#50c878',
+  jade: '#00a86b',
+  ruby: '#e0115f',
+  sapphire: '#0f52ba',
+  charcoal: '#36454f',
+  offwhite: '#faf9f6',
+  nude: '#e3bc9a',
+  blush: '#de5d83',
+  copper: '#b87333',
+  bronze: '#cd7f32',
+  rust: '#b7410e'
+}
+
+// Modifiers that adjust an underlying base color rather than naming a new one.
+const MODIFIER_ADJUSTMENTS = {
+  light: 60,
+  pale: 80,
+  pastel: 70,
+  soft: 40,
+  bright: 20,
+  vivid: 20,
+  deep: -50,
+  dark: -60,
+  muted: -30
+}
+
+const COLOR_CACHE = new Map()
+let canvasCtx = null
+
+const getCanvasCtx = () => {
+  if (canvasCtx !== null) return canvasCtx
+  if (typeof document === 'undefined') return (canvasCtx = false)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = 1
+  canvasCtx = canvas.getContext('2d') || false
+  return canvasCtx
+}
+
+const expandShortHex = (hex) => (
+  /^#[0-9a-f]{3}$/i.test(hex)
+    ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
+    : hex
+)
+
+const parseRgbString = (input) => {
+  const match = input.match(/rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i)
+
+  if (!match) return null
+
+  const [r, g, b] = match.slice(1).map(v => Math.max(0, Math.min(255, Number(v))))
+  return rgbToHex(r, g, b)
+}
+
+// Delegate to the browser's CSS parser. It accepts every CSS named color,
+// hex, rgb(a), hsl(a), hwb(), color() etc. Returns hex or null.
+const parseWithBrowser = (input) => {
+  const ctx = getCanvasCtx()
+  if (!ctx) return null
+
+  const sentinel = '#000001'
+  ctx.fillStyle = sentinel
+  ctx.fillStyle = input
+
+  const resolved = ctx.fillStyle
+
+  if (typeof resolved !== 'string' || resolved === sentinel) return null
+  if (resolved.startsWith('#')) return expandShortHex(resolved)
+  return parseRgbString(resolved)
+}
+
+const sanitizeLabel = (label) => (
+  String(label || '')
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+)
+
+const tryParse = (input) => {
+  if (!input) return null
+
+  const browserHex = parseWithBrowser(input)
+  if (browserHex) return browserHex
+
+  if (input.startsWith('#')) return expandShortHex(input)
+  return parseRgbString(input)
+}
+
+export const getColorHexFromLabel = (label, fallback = null) => {
+  const normalized = sanitizeLabel(label)
+  if (!normalized) return fallback
+
+  if (COLOR_CACHE.has(normalized)) return COLOR_CACHE.get(normalized) || fallback
+
+  const collapsed = normalized.replace(/\s+/g, '')
+
+  let resolved = tryParse(normalized) || tryParse(collapsed) || COLOR_ALIASES[collapsed] || null
+
+  if (!resolved) {
+    const words = normalized.split(' ')
+    const modifierWord = words.find(w => MODIFIER_ADJUSTMENTS[w])
+
+    if (modifierWord) {
+      const baseLabel = words.filter(w => w !== modifierWord).join('')
+      const baseHex = tryParse(baseLabel) || COLOR_ALIASES[baseLabel] || null
+      if (baseHex) resolved = adjustColorBrightness(baseHex, MODIFIER_ADJUSTMENTS[modifierWord])
+    }
+  }
+
+  COLOR_CACHE.set(normalized, resolved)
+  return resolved || fallback
+}
+
+const hexToRgba = (hex, alpha = 1) => {
+  const rgb = hexToRgb(expandShortHex(hex))
+  return rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})` : hex
+}
+
+export const getColorChipSx = (label, baseSx = {}) => {
+  const colorHex = getColorHexFromLabel(label)
+
+  if (!colorHex) return baseSx
+
+  const isNearWhite = isLightColor(colorHex) && hexToRgb(colorHex)?.r > 240
+
+  return {
+    ...baseSx,
+    fontWeight: 600,
+    color: isNearWhite ? '#374151' : getContrastingTextColor(colorHex),
+    borderColor: isNearWhite ? '#d1d5db' : colorHex,
+    backgroundColor: colorHex,
+    '&:hover': {
+      backgroundColor: hexToRgba(colorHex, 0.88)
+    }
+  }
+}
+
 
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
 import { Typography, Chip, IconButton, Box, Avatar, Tooltip } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { parseProductDescription } from '@/utils/productMeta';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import OptionMenu from '@core/components/option-menu';
@@ -13,6 +12,11 @@ const ActionCell = ({ row, handlers, permissions }) => {
   const editAction = actionButtons.find(action => action.id === 'edit');
   const deleteAction = actionButtons.find(action => action.id === 'delete');
 
+  const handleMenuAction = (callback) => (event) => {
+    event?.stopPropagation?.();
+    callback?.();
+  };
+
   const menuOptions = [];
 
   if (permissions?.canView) {
@@ -21,7 +25,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers?.handleView?.(row._id)
+        onClick: handleMenuAction(() => handlers?.handleView?.(row._id))
       }
     });
   }
@@ -32,7 +36,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={editAction?.icon || 'mdi:edit-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers?.handleEdit?.(row._id)
+        onClick: handleMenuAction(() => handlers?.handleEdit?.(row._id))
       }
     });
   }
@@ -43,7 +47,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers?.handleDelete?.(row._id)
+        onClick: handleMenuAction(() => handlers?.handleDelete?.(row._id))
       }
     });
   }
@@ -51,7 +55,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
   if (menuOptions.length === 0) return null;
 
   return (
-    <Box className='flex items-center justify-end'>
+    <Box className='flex items-center justify-end' onClick={event => event.stopPropagation()}>
       <OptionMenu
         icon={<MoreVertIcon />}
         iconButtonProps={{ size: 'small', 'aria-label': 'product actions' }}
@@ -67,44 +71,45 @@ const ActionCell = ({ row, handlers, permissions }) => {
 export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
   {
     key: 'expand',
-    label: '',
     visible: true,
+    label: '',
     align: 'center',
     sortable: false,
-    width: '50px',
+    minWidth: 30,
     renderCell: (row, handlers) => {
       const { meta } = parseProductDescription(row.productDescription);
       const variantsCount = Array.isArray(meta?.variants) ? meta.variants.length : 0;
       if (!variantsCount) return null;
       const isExpanded = handlers?.expandedRows?.[row._id];
       return (
-        <Tooltip title={isExpanded ? 'Collapse variants' : 'Expand variants'}>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              handlers?.toggleRow?.(row._id);
+        // <Tooltip title={isExpanded ? 'Collapse variants' : 'Expand variants'}>
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            handlers?.toggleRow?.(row._id);
+          }}
+        >
+          <Icon
+            icon="mdi:chevron-down"
+            width={22}
+            style={{
+              transition: 'transform 200ms ease',
+              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
             }}
-          >
-            <Icon
-              icon="mdi:chevron-down"
-              width={22}
-              style={{
-                transition: 'transform 200ms ease',
-                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              }}
-            />
-          </IconButton>
-        </Tooltip>
+          />
+        </IconButton>
+        // </Tooltip>
       );
     }
   },
 
   {
     key: 'image',
-    label: 'Image',
     visible: true,
+    label: 'Image',
     align: 'center',
+    minWidth: 70,
     renderCell: (row) => (
       <Box>
         <Avatar
@@ -122,20 +127,36 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     visible: true,
     label: 'Product Name',
     sortable: true,
+    minWidth: 200,
+    align: 'center',
     renderCell: (row, handlers) => (
       <Box className='flex flex-col gap-1'>
         <Typography
-          className="cursor-pointer text-primary text-[1rem] hover:underline font-medium"
+          className="cursor-pointer text-primary text-[0.9rem] hover:underline font-medium text-start"
           onClick={() => handlers?.handleView?.(row._id)}
         >
           {row.name || 'N/A'}
         </Typography>
-        {row.sku && (
+        {/* {row.sku && (
           <Typography variant="caption" color="text.secondary">
             SKU: {row.sku}
           </Typography>
-        )}
+        )} */}
       </Box>
+    ),
+  },
+
+  {
+    key: 'sku',
+    visible: true,
+    label: 'SKU',
+    sortable: true,
+    minWidth: 100,
+    align: 'center',
+    renderCell: (row) => (
+      <Typography color='text.primary' className='text-[0.9rem] text-start'>
+        {row.sku || 'N/A'}
+      </Typography>
     ),
   },
   {
@@ -143,6 +164,8 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     visible: true,
     label: 'Category',
     sortable: true,
+    minWidth: 130,
+    align: 'center',
     renderCell: (row) => (
       <Chip
         size="small"
@@ -155,18 +178,19 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
   },
   {
     key: 'sellingPrice',
-    label: 'Selling Price',
     visible: true,
+    label: 'Selling Price',
     align: 'left',
     sortable: true,
+    minWidth: 100,
     renderCell: (row) => {
       const price = parseFloat(row.sellingPrice) || 0;
       return (
-        <div className="flex items-center justify-start gap-1">
+        <div className="flex items-center justify-start gap-0">
           <Icon
             icon="lucide:saudi-riyal"
-            width="1rem"
-            color={theme.palette.secondary.light}
+            width="0.8rem"
+            color={theme.palette.text.secondary}
           />
           <Typography color='text.primary' className='text-[0.9rem] font-medium'>
             {price.toLocaleString('en-IN', {
@@ -180,18 +204,19 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
   },
   {
     key: 'purchasePrice',
-    label: 'Purchase Price',
     visible: true,
+    label: 'Purchase Price',
     align: 'left',
     sortable: true,
+    minWidth: 100,
     renderCell: (row) => {
       const price = parseFloat(row.purchasePrice) || 0;
       return (
-        <div className="flex items-center justify-start gap-1">
+        <div className="flex items-center justify-start gap-0">
           <Icon
             icon="lucide:saudi-riyal"
-            width="1rem"
-            color={theme.palette.secondary.light}
+            width="0.8rem"
+            color={theme.palette.text.secondary}
           />
           <Typography color='text.primary' className='text-[0.9rem] font-medium'>
             {price.toLocaleString('en-IN', {
@@ -203,24 +228,26 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
       );
     },
   },
-  {
-    key: 'alertQuantity',
-    label: 'Alert Qty',
-    visible: true,
-    align: 'left',
-    sortable: true,
-    renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
-        {row.alertQuantity || '0'}
-      </Typography>
-    ),
-  },
+  // {
+  //   key: 'alertQuantity',
+  //   visible: true,
+  //   label: 'Alert Qty',
+  //   align: 'left',
+  //   sortable: true,
+  //   minWidth: 110,
+  //   renderCell: (row) => (
+  //     <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
+  //       {row.alertQuantity || '0'}
+  //     </Typography>
+  //   ),
+  // },
   {
     key: 'status',
-    label: 'Status',
     visible: true,
+    label: 'Status',
     align: 'center',
     // sortable: true,
+    minWidth: 50,
     renderCell: (row) => (
       <Chip
         className='mx-0'
@@ -233,9 +260,10 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
   },
   {
     key: 'action',
-    label: '',
     visible: true,
+    label: '',
     align: 'right',
+    minWidth: 40,
     renderCell: (row, handlers) => (
       <ActionCell
         row={row}

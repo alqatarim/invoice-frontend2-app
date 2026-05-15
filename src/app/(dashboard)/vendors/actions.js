@@ -343,3 +343,113 @@ export async function addLedgerEntry(ledgerData) {
     };
   }
 }
+
+/**
+ * Get a single ledger entry by ID.
+ *
+ * @param {string} id - Ledger entry ID.
+ * @returns {Promise<Object>} - Response object.
+ */
+export async function getLedgerEntryById(id) {
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid ledger entry ID');
+  }
+
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.LEDGER.VIEW}/${id}`, {
+      cache: 'no-store'
+    });
+
+    if (response.code === 200) {
+      return {
+        success: true,
+        data: response.data?.ledger_details || {}
+      };
+    }
+
+    return {
+      success: false,
+      error: response.message || 'Failed to fetch ledger entry'
+    };
+  } catch (error) {
+    console.error('Error fetching ledger entry:', error);
+
+    return {
+      success: false,
+      error: error.message || 'Failed to fetch ledger entry'
+    };
+  }
+}
+
+/**
+ * Update a ledger entry.
+ *
+ * @param {string} id - Ledger entry ID.
+ * @param {Object} ledgerData - Ledger entry data.
+ * @returns {Promise<Object>} - Response object.
+ */
+export async function updateLedgerEntry(id, ledgerData) {
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid ledger entry ID');
+  }
+
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.LEDGER.UPDATE}/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(ledgerData),
+    });
+
+    if (response.code === 200) {
+      return { success: true, data: response.data };
+    }
+
+    return {
+      success: false,
+      error: response.message || 'Failed to update ledger entry'
+    };
+  } catch (error) {
+    console.error('Error updating ledger entry:', error);
+
+    return {
+      success: false,
+      error: error.message || 'Failed to update ledger entry'
+    };
+  }
+}
+
+/**
+ * Soft delete a ledger entry.
+ *
+ * @param {string} id - Ledger entry ID.
+ * @returns {Promise<Object>} - Response object.
+ */
+export async function deleteLedgerEntry(id) {
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid ledger entry ID');
+  }
+
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.LEDGER.DELETE}/${id}/softDelete`, {
+      method: 'PATCH',
+    });
+
+    if (response.code === 200) {
+      return { success: true, data: response.data };
+    }
+
+    return {
+      success: false,
+      error: response.message || 'Failed to delete ledger entry'
+    };
+  } catch (error) {
+    console.error('Error deleting ledger entry:', error);
+
+    return {
+      success: false,
+      error: error.message || 'Failed to delete ledger entry'
+    };
+  }
+}

@@ -36,13 +36,6 @@ import PosAdvancedDrawer from './components/PosAdvancedDrawer';
 
 const formatCurrency = (v) => Number(v || 0).toFixed(2);
 
-const getBranchIdentifiers = (branch) =>
-  [branch?.branchId, branch?._id]
-    .map((entry) => String(entry || '').trim())
-    .filter(Boolean);
-
-const resolveBranchId = (branch) => getBranchIdentifiers(branch)[0] || '';
-
 const PosPage = ({
   initialCustomersData = [],
   initialProductData = [],
@@ -78,10 +71,10 @@ const PosPage = ({
     productsCloneData,
     branches,
     activeBranch,
+    selectedLocation,
+    selectedLocationType,
     branchError,
     hasValidSelectedBranch,
-    selectedBranchId,
-    setSelectedBranchId,
     isWalkIn,
     setIsWalkIn,
     tenderedAmount,
@@ -156,7 +149,7 @@ const PosPage = ({
   const checkoutSummarySpacer = showHeldSales && heldSales.length > 0 ? '520px' : '360px';
   const hasAllowedStores = branches.length > 0;
   const storeAlertSeverity = !hasAllowedStores ? 'error' : hasValidSelectedBranch ? 'info' : 'warning';
-  const activeStoreLabel = activeBranch?.name || (hasAllowedStores ? 'Selection required' : 'Unavailable');
+  const selectedLocationLabel = selectedLocation?.name || (hasAllowedStores ? 'Selection required' : 'Unavailable');
   const tenderHelperState = useMemo(() => {
     if (!isCashPayment) {
       return {
@@ -468,7 +461,8 @@ const PosPage = ({
               'No assigned store is available for this cashier. POS checkout is blocked until an admin assigns a store.'
             ) : (
               <>
-                Active store: <strong>{activeStoreLabel}</strong>. Allowed stores: <strong>{branches.length}</strong>.
+                Selected location: <strong>{selectedLocationLabel}</strong>
+                {selectedLocationType ? ` (${selectedLocationType})` : ''}. Allowed stores: <strong>{branches.length}</strong>.
                 {primaryStore?.name ? ` Primary store: ${primaryStore.name}.` : ''}
                 {branchError ? ` ${branchError}` : ''}
               </>
@@ -491,28 +485,20 @@ const PosPage = ({
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 3 }}>
-                  <FormControl fullWidth variant="outlined" error={Boolean(branchError)}>
-                    <InputLabel size="medium">Store</InputLabel>
-                    <Select
-                      value={selectedBranchId || ''}
-                      label="Store"
-                      size="medium"
-                      onChange={(event) => setSelectedBranchId(event.target.value)}
-                      disabled={!hasAllowedStores}
-                    >
-                      {branches.map((branch) => {
-                        const branchValue = resolveBranchId(branch);
-                        if (!branchValue) return null;
-
-                        return (
-                          <MenuItem key={branchValue} value={branchValue}>
-                            {[branch.storeCode, branch.name].filter(Boolean).join(' · ') || branch.name || branchValue}
-                          </MenuItem>
-                        );
-                      })}
-                    </Select>
-                    {branchError ? <FormHelperText>{branchError}</FormHelperText> : null}
-                  </FormControl>
+                  <TextField
+                    fullWidth
+                    label="Store"
+                    size="medium"
+                    value={selectedLocation?.name || ''}
+                    placeholder="Choose a location from the top bar"
+                    error={Boolean(errors.branchId || branchError)}
+                    helperText={
+                      errors.branchId?.message ||
+                      branchError ||
+                      'Controlled by the top-bar location selector.'
+                    }
+                    InputProps={{ readOnly: true }}
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, md: 2 }}>
                   <FormControl fullWidth variant="outlined" error={!!errors.payment_method}>

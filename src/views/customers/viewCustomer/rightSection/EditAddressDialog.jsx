@@ -17,7 +17,6 @@ import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
-import CircularProgress from '@mui/material/CircularProgress'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
 import InputAdornment from '@mui/material/InputAdornment'
@@ -61,7 +60,7 @@ const getCountryNameFromCode = (countryCode) => {
 }
 
 const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) => {
-  const { enqueueSnackbar } = useSnackbar()
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar()
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [copyToBilling, setCopyToBilling] = useState(false)
@@ -167,7 +166,11 @@ const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) 
     }
 
     setLoading(true)
-    enqueueSnackbar(`Updating ${addressType} address...`, { variant: 'info' })
+    const loadingKey = enqueueSnackbar(`Updating ${addressType} address...`, {
+      variant: 'info',
+      persist: true,
+      preventDuplicate: true,
+    })
 
     try {
       // Prepare complete customer data - include ALL existing fields plus the edited address
@@ -188,12 +191,17 @@ const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) 
       // Call the update API
       const result = await updateCustomer(customer._id, updateData)
 
+      closeSnackbar(loadingKey)
+
       if (result.success) {
         const message = copyToBilling && addressType === 'shipping'
           ? 'Shipping address updated and copied to billing address!'
           : `${addressType.charAt(0).toUpperCase() + addressType.slice(1)} address updated successfully!`
 
-        enqueueSnackbar(message, { variant: 'success' })
+        enqueueSnackbar(message, {
+          variant: 'success',
+          autoHideDuration: 3000,
+        })
 
         // Call success callback if provided
         if (onSuccess) {
@@ -201,15 +209,22 @@ const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) 
         }
 
       } else {
-        enqueueSnackbar(result.message || 'Failed to update address', { variant: 'error' })
+        enqueueSnackbar(result.message || 'Failed to update address', {
+          variant: 'error',
+          autoHideDuration: 5000,
+        })
       }
     } catch (error) {
       console.error('Error updating address:', error)
-      enqueueSnackbar(error.message || 'An error occurred while updating the address', { variant: 'error' })
+      closeSnackbar(loadingKey)
+      enqueueSnackbar(error.message || 'An error occurred while updating the address', {
+        variant: 'error',
+        autoHideDuration: 5000,
+      })
     } finally {
       setLoading(false)
     }
-  }, [formData, validateForm, customer, addressType, copyToBilling, enqueueSnackbar, onSuccess])
+  }, [closeSnackbar, formData, validateForm, customer, addressType, copyToBilling, enqueueSnackbar, onSuccess])
 
   // Handle dialog close
   const handleClose = useCallback(() => {
@@ -479,9 +494,8 @@ const EditAddressDialog = ({ open, setOpen, customer, addressType, onSuccess }) 
             variant='contained'
             type='submit'
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : null}
           >
-            {loading ? 'Updating...' : 'Update Address'}
+            Update Address
           </Button>
           <Button
             variant='outlined'

@@ -1,7 +1,7 @@
 "use client";
 
 // React Imports
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // Next Imports
 import dynamic from "next/dynamic";
@@ -14,7 +14,7 @@ const AppReactApexCharts = dynamic(() =>
 	import("@/libs/styles/AppReactApexCharts"), {
 	ssr: false,
 	loading: () => (
-		<div 
+		<div
 			className="flex items-center justify-center bg-gray-100 animate-pulse rounded-lg"
 			style={{ height: '100px', width: '100%' }}
 		>
@@ -35,6 +35,38 @@ const MultiBarProgress = ({
 }) => {
 	// Hooks
 	const theme = useTheme();
+	const chartContainerRef = useRef(null);
+	const [chartWidth, setChartWidth] = useState(
+		typeof width === "number" ? width : 0
+	);
+
+	useEffect(() => {
+		if (typeof ResizeObserver === "undefined" || !chartContainerRef.current) {
+			return;
+		}
+
+		const chartElement = chartContainerRef.current;
+		const updateChartWidth = (nextWidth) => {
+			if (!nextWidth) return;
+
+			setChartWidth((prevWidth) =>
+				Math.abs(prevWidth - nextWidth) < 1 ? prevWidth : nextWidth
+			);
+		};
+
+		updateChartWidth(chartElement.clientWidth);
+
+		const resizeObserver = new ResizeObserver((entries) => {
+			const nextWidth =
+				entries[0]?.contentRect?.width || chartElement.clientWidth || 0;
+
+			updateChartWidth(nextWidth);
+		});
+
+		resizeObserver.observe(chartElement);
+
+		return () => resizeObserver.disconnect();
+	}, [width]);
 
 	// Use provided total amount or calculate from stats as fallback
 	//   const totalAmount = propTotalAmount || stats.reduce((sum, stat) => sum + Number(stat.stats || 0), 0)
@@ -77,181 +109,263 @@ const MultiBarProgress = ({
 	const total =
 		totalAmount ||
 		validStats.reduce((sum, stat) => sum + Number(stat.stats || 0), 0);
+	const resolvedChartWidth =
+		typeof width === "number" ? width : chartWidth || 600;
 
 	// Memoized ApexCharts series data and options
 	const { series, options } = useMemo(() => {
-		const chartSeries = validStats.map((stat) => ({
+		const labelPaddingPx = 24;
+		const estimatedCharacterWidthPx = 8;
+		const effectiveChartWidth = Math.max(resolvedChartWidth - 24, 240);
+		const actualFractions = validStats.map((stat) =>
+			total > 0 ? Number(stat.stats || 0) / total : 0
+		);
+		const minFractions = validStats.map((stat) => {
+			const valueLabel = stat.isCurrency
+				? `SAR ${Number(stat.stats || 0).toFixed(0)}`
+				: Number(stat.stats || 0).toFixed(0);
+			const minWidthPx =
+				valueLabel.length * estimatedCharacterWidthPx + labelPaddingPx;
+
+			return Math.min(minWidthPx / effectiveChartWidth, 0.45);
+		});
+		const totalMinFraction = minFractions.reduce(
+			(sum, fraction) => sum + fraction,
+			0
+		);
+
+		let displayFractions = [...actualFractions];
+
+		if (totalMinFraction >= 1) {
+			displayFractions = minFractions.map(
+				(fraction) => fraction / totalMinFraction
+			);
+		} else {
+			const expandedFractions = actualFractions.map((fraction, index) =>
+				Math.max(fraction, minFractions[index])
+			);
+			const excessFraction =
+				expandedFractions.reduce((sum, fraction) => sum + fraction, 0) - 1;
+
+			if (excessFraction > 0) {
+				const adjustableSegments = expandedFractions
+					.map((fraction, index) => ({
+						index,
+						surplus: fraction - minFractions[index],
+					}))
+					.filter((segment) => segment.surplus > 0);
+				const totalSurplus = adjustableSegments.reduce(
+					(sum, segment) => sum + segment.surplus,
+					0
+				);
+
+				displayFractions = [...expandedFractions];
+
+				if (totalSurplus > 0) {
+					adjustableSegments.forEach(({ index, surplus }) => {
+						displayFractions[index] -=
+							excessFraction * (surplus / totalSurplus);
+					});
+				}
+			} else {
+				displayFractions = expandedFractions;
+			}
+		}
+
+		const normalizedFractions = (() => {
+			const fractionsTotal = displayFractions.reduce(
+				(sum, fraction) => sum + fraction,
+				0
+			);
+
+			return fractionsTotal > 0
+				? displayFractions.map((fraction) => fraction / fractionsTotal)
+				: actualFractions;
+		})();
+		const chartSeries = validStats.map((stat, index) => ({
 			name: stat.title,
-			data: [Number(stat.stats || 0), 0],
+			data: [Number((normalizedFractions[index] * 100).toFixed(4))],
 		}));
 
 		const chartOptions = {
-		chart: {
-			type: "bar",
-			stacked: true,
-			toolbar: { show: false },
-			width: width,
-			height: height,
-			parentHeightOffset: 0,
-			sparkline: {
-				enabled: true,
-			},
-			margin: {
-				top: 0,
-				right: 0,
-				bottom: 0,
-				left: 0,
-			},
-			offsetX: 0,
-			offsetY: 0,
-		},
-		plotOptions: {
-			bar: {
-				horizontal: true,
-				barHeight: barHeight,
-				borderRadius: 19,
-			},
-		},
-		dataLabels: {
-			enabled: true,
-			formatter: function (val, opts) {
-				const stat = validStats[opts.seriesIndex];
-				if (!val || val === 0) return "";
-				return stat.isCurrency
-					? `﷼ ${Number(val).toLocaleString()}`
-					: Number(val).toLocaleString();
-			},
-			style: {
-				fontWeight: 500,
-				fontSize: "14px",
-			},
-			offsetX: 0,
-			offsetY: 0,
-			dropShadow: { enabled: false },
-		},
-		colors: colors,
-		xaxis: {
-			categories: ["Progress", ""],
-			labels: { show: false },
-			axisBorder: { show: false },
-			axisTicks: { show: false },
-		},
-		yaxis: {
-			show: false,
-			labels: { show: false },
-		},
-		grid: {
-			show: false,
-			padding: {
-				top: 0,
-				right: 0,
-				bottom: 0,
-				left: 0,
-			},
-		},
-		legend: {
-			show: true,
-			position: "bottom",
-			horizontalAlign: "center",
-			floating: true,
-			fontSize: "13px",
-			fontWeight: 500,
-			itemMargin: {
-				horizontal: 12,
-				vertical: 0,
-			},
-			markers: {
-				width: 10,
-				height: 10,
-				radius: 3,
+			chart: {
+				type: "bar",
+				stacked: true,
+				toolbar: { show: false },
+				width: width,
+				height: height,
+				parentHeightOffset: 0,
+				sparkline: {
+					enabled: true,
+				},
+				dropShadow: {
+					enabled: true,
+					top: 2,
+					left: 0,
+					blur: 7,
+					color: theme.palette.common.black,
+					opacity: theme.palette.mode === "dark" ? 0.25 : 0.14,
+				},
+				margin: {
+					top: 0,
+					right: 0,
+					bottom: 0,
+					left: 0,
+				},
 				offsetX: 0,
 				offsetY: 0,
 			},
-			offsetY: -10,
-			height: 25,
-		},
-		tooltip: {
-			enabled: true,
-			shared: false,
-			followCursor: false,
-			intersect: true,
-			custom: function ({ series, seriesIndex, dataPointIndex, w }) {
-				const stat = validStats[seriesIndex];
-				const value = Number(stat.stats || 0);
-				const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+			plotOptions: {
+				bar: {
+					horizontal: true,
+					barHeight: barHeight,
+					borderRadius: 12,
+				},
+			},
+			dataLabels: {
+				enabled: true,
+				formatter: function (val, opts) {
+					const stat = validStats[opts.seriesIndex];
+					if (!val || val === 0) return "";
+					const numericValue = Number(stat.stats || 0).toFixed(0);
 
-				// <div style="display: flex; justify-content: space-between; flex-direction: column; align-items: start; gap: 0px; padding: 12px 15px;  border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); min-width: 180px; padding: 12px 15px;"></div>
-				return `
+					return stat.isCurrency ? `SAR ${numericValue}` : numericValue;
+				},
+				style: {
+					fontWeight: 500,
+					fontSize: "14px",
+				},
+				offsetX: 0,
+				offsetY: 0,
+				dropShadow: { enabled: false },
+			},
+			colors: colors,
+			xaxis: {
+				categories: ["Progress"],
+				max: 100,
+				labels: { show: false },
+				axisBorder: { show: false },
+				axisTicks: { show: false },
+			},
+			yaxis: {
+				show: false,
+				labels: { show: false },
+			},
+			grid: {
+				show: false,
+				padding: {
+					top: -10,
+					right: 12,
+					bottom: 0,
+					left: 12,
+				},
+			},
+			legend: {
+				show: true,
+				position: "bottom",
+				horizontalAlign: "center",
+				floating: true,
+				fontSize: "13px",
+				fontWeight: 500,
+				itemMargin: {
+					horizontal: 12,
+					vertical: 0,
+				},
+				markers: {
+					width: 10,
+					height: 10,
+					radius: 3,
+					offsetX: 0,
+					offsetY: 0,
+				},
+				offsetY: 100,
+				height: 40,
+			},
+			tooltip: {
+				enabled: true,
+				shared: false,
+				followCursor: false,
+				intersect: true,
+				custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+					const stat = validStats[seriesIndex];
+					const value = Number(stat.stats || 0);
+					const percentage = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+
+					// <div style="display: flex; justify-content: space-between; flex-direction: column; align-items: start; gap: 0px; padding: 12px 15px;  border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); min-width: 180px; padding: 12px 15px;"></div>
+					return `
           <div style="display: flex; justify-content: space-between; flex-direction: column; align-items: start; gap: 0px; padding: 8px 15px; border: 0px solid  min-width: 180px; ">
 
             <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-width: 120px;">
               <div style="display: flex; align-items: center; gap: 5px; flex: 1;">
-                <span style="width: 10px; height: 10px; background-color: ${
-									colors[seriesIndex]
-								}; border-radius: 3px; display: inline-block;  ${
-					theme.palette.divider
-				};"></span>
-                <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 450; font-size: 0.9rem; color: ${
-									colors[seriesIndex]
-								}; letter-spacing: 0.01em;">${stat.title}</div>
+                <span style="width: 10px; height: 10px; background-color: ${colors[seriesIndex]
+						}; border-radius: 3px; display: inline-block;  ${theme.palette.divider
+						};"></span>
+                <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 450; font-size: 0.9rem; color: ${colors[seriesIndex]
+						}; letter-spacing: 0.01em;">${stat.title}</div>
               </div>
 
                 <div style="display: flex; align-items: center; gap: 3px;">
-            ${
-							stat.isCurrency
-								? `<span style="color: ${theme.palette.secondary.light}; font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; font-size: 1.1em; font-weight: 600; vertical-align: middle;">﷼</span> `
-								: ""
+            ${stat.isCurrency
+							? `<span style="color: ${theme.palette.text.primary}; font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; font-size: 1.1em; font-weight: 600; vertical-align: middle;">SAR</span> `
+							: ""
 						}
-              <span style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;font-weight: 500; font-size: 0.9rem; color: ${
-								theme.palette.text.primary
-							};">
-                ${value.toLocaleString()}
+              <span style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;font-weight: 500; font-size: 0.9rem; color: ${theme.palette.text.primary
+						};">
+                ${value.toFixed(0)}
               </span>
 
                           </div>
 
             </div>
 
-            <div style="width: 100%; height: 1px; background: linear-gradient(90deg, transparent 0%, ${
-							theme.palette.divider
-						} 20%, ${
-					theme.palette.divider
-				} 80%, transparent 100%); margin: 5px 0; opacity: 0.6;"></div>
+            <div style="width: 100%; height: 1px; background: linear-gradient(90deg, transparent 0%, ${theme.palette.divider
+						} 20%, ${theme.palette.divider
+						} 80%, transparent 100%); margin: 5px 0; opacity: 0.6;"></div>
 
 
 
 
              <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 0px; width: 100%;">
-                <span style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.9rem; color: ${
-									theme.palette.text.primary
-								}; font-weight: 500; flex-shrink: 0;">${percentage}%</span>
-            ${
-							stat.trendNumber
-								? `<div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.9rem; color: ${theme.palette.text.primary}; font-weight: 500; letter-spacing: 0.01em;">
+                <span style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.9rem; color: ${theme.palette.text.primary
+						}; font-weight: 500; flex-shrink: 0;">${percentage}%</span>
+            ${stat.trendNumber
+							? `<div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.9rem; color: ${theme.palette.text.primary}; font-weight: 500; letter-spacing: 0.01em;">
                 <span style=\'font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight:600; font-size: 0.9rem; color:${theme.palette.text.primary}\'>${stat.trendNumber}</span>
                 </div>`
-								: ""
+							: ""
 						}
             </div>
           </div>
         `;
+				},
 			},
-		},
-	};
+		};
 
 		return { series: chartSeries, options: chartOptions };
-	}, [validStats, colors, width, height, barHeight, total]);
+	}, [
+		validStats,
+		colors,
+		width,
+		height,
+		barHeight,
+		total,
+		theme,
+		resolvedChartWidth,
+	]);
 
 	return (
 		<div
+			ref={chartContainerRef}
 			style={{
-				margin: 0,
-				padding: 0,
-				display: "flex",
-				flexDirection: "column",
-				height: height,
-				position: "relative",
-				overflow: "visible",
+				// margin: 0,
+				// padding: 0,
+				// display: "flex",
+				// flexDirection: "column",
+				// gap: "80px",
+				// justifyContent: "space-between",
+				// height: height,
+				// position: "relative",
+				// overflow: "visible",
 			}}
 		>
 			<AppReactApexCharts

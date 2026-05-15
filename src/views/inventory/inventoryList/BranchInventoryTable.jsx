@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -20,7 +20,7 @@ import { useTheme, alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import Chip from '@/components/custom-components/CustomChip';
 import IconButton from '@core/components/mui/CustomIconButton';
-import { getFilteredProducts } from '@/app/(dashboard)/products/actions';
+import { useBranchInventoryTableHandler } from './handler';
 
 /**
  * BranchInventoryTable - Sub-table for inventory items per branch
@@ -36,130 +36,36 @@ const BranchInventoryTable = ({
   onSaveBranchEntry,
   stockLoading,
   isRestrictedToAssignedBranches = false,
-  scopeHelperText = '',
 }) => {
   const theme = useTheme();
-  const isAnyLoading =
-    stockLoading?.addStock ||
-    stockLoading?.removeStock ||
-    stockLoading?.transferStock ||
-    stockLoading?.cycleCount;
-  const inventoryItems = Array.isArray(branch?.inventoryItems) ? branch.inventoryItems : [];
-
-  const [newRow, setNewRow] = useState(null);
-  const [productOptions, setProductOptions] = useState([]);
-  const [productInput, setProductInput] = useState('');
-  const [productLoading, setProductLoading] = useState(false);
-
-  useEffect(() => {
-    if (!newRow || productOptions.length) return;
-    const fetchProducts = async () => {
-      setProductLoading(true);
-      try {
-        const response = await getFilteredProducts(1, 1000);
-        setProductOptions(Array.isArray(response?.products) ? response.products : []);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      } finally {
-        setProductLoading(false);
-      }
-    };
-    fetchProducts();
-  }, [newRow, productOptions.length]);
-
-  const handleAddClick = (e, item) => {
-    e.stopPropagation();
-    if (onAddStock) {
-      onAddStock('add', buildBranchRow(item), e.currentTarget);
-    }
-  };
-
-  const handleRemoveClick = (e, item) => {
-    e.stopPropagation();
-    if (onRemoveStock) {
-      onRemoveStock('remove', buildBranchRow(item), e.currentTarget);
-    }
-  };
-
-  const handleTransferClick = (e, item) => {
-    e.stopPropagation();
-    if (onTransfer) {
-      onTransfer(buildBranchRow(item));
-    }
-  };
-
-  const handleCycleCountClick = (e, item) => {
-    e.stopPropagation();
-    if (onCycleCount) {
-      onCycleCount(buildBranchRow(item));
-    }
-  };
-
-  const handleHistoryClick = (e, item) => {
-    e.stopPropagation();
-    if (onViewHistory) {
-      onViewHistory(buildBranchRow(item));
-    }
-  };
-
-  const buildBranchRow = (item) => ({
-    rowType: 'branch',
-    branchId: branch?.branchId,
-    branchName: branch?.name,
-    branchType: branch?.branchType,
-    province: branch?.province,
-    city: branch?.city,
-    district: branch?.district,
-    quantity: Number(item?.quantity || 0),
-    parentItem: {
-      _id: item?.productId,
-      name: item?.name,
-      sku: item?.sku,
-      sellingPrice: item?.sellingPrice,
-      purchasePrice: item?.purchasePrice,
-      inventory_Info: [
-        {
-          branches: Array.isArray(item?.branches) ? item.branches : [],
-          quantity: Number(item?.totalQuantity || 0),
-          batches: Array.isArray(item?.batches) ? item.batches : [],
-          serialNumbers: Array.isArray(item?.serialNumbers) ? item.serialNumbers : [],
-          valuationMethod: item?.valuationMethod || 'FIFO',
-          lastCycleCount: item?.lastCycleCount || null,
-          transferHistory: Array.isArray(item?.transferHistory) ? item.transferHistory : [],
-        },
-      ],
-    },
+  const {
+    newRow,
+    productOptions,
+    productInput,
+    productLoading,
+    isAnyLoading,
+    inventoryItems,
+    handleAddClick,
+    handleRemoveClick,
+    handleTransferClick,
+    handleCycleCountClick,
+    handleHistoryClick,
+    handleAddNewRow,
+    handleCancelNewRow,
+    handleProductChange,
+    handleProductInputChange,
+    handleQuantityChange,
+    handleSaveNewRow,
+  } = useBranchInventoryTableHandler({
+    branch,
+    stockLoading,
+    onAddStock,
+    onRemoveStock,
+    onTransfer,
+    onCycleCount,
+    onViewHistory,
+    onSaveBranchEntry,
   });
-
-  const handleAddNewRow = () => {
-    setNewRow({
-      product: null,
-      quantity: '',
-    });
-  };
-
-  const handleCancelNewRow = () => {
-    setNewRow(null);
-    setProductInput('');
-    // Keep product options cached for subsequent add entries
-  };
-
-  const handleSaveNewRow = async () => {
-    if (!newRow?.product?._id || !newRow?.quantity) return;
-    if (onSaveBranchEntry) {
-      await onSaveBranchEntry({
-        productId: newRow.product._id,
-        quantity: Number(newRow.quantity),
-        branchId: branch?.branchId,
-        branchName: branch?.name,
-        branchType: branch?.branchType,
-        province: branch?.province,
-        city: branch?.city,
-        district: branch?.district,
-      });
-    }
-    handleCancelNewRow();
-  };
 
   return (
     <Box sx={{ ml: 4, mr: 2, mt: 3, mb: 6 }}>
@@ -185,12 +91,6 @@ const BranchInventoryTable = ({
           />
         </Box>
       </Box>
-
-      {scopeHelperText ? (
-        <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 2 }}>
-          {scopeHelperText}
-        </Typography>
-      ) : null}
 
       <TableContainer
         component={Paper}
@@ -377,9 +277,9 @@ const BranchInventoryTable = ({
                     options={productOptions}
                     loading={productLoading}
                     value={newRow.product}
-                    onChange={(_, value) => setNewRow((prev) => ({ ...prev, product: value }))}
+                    onChange={(_, value) => handleProductChange(value)}
                     inputValue={productInput}
-                    onInputChange={(_, value) => setProductInput(value)}
+                    onInputChange={(_, value) => handleProductInputChange(value)}
                     getOptionLabel={(option) => `${option.name || 'N/A'} (${option.sku || 'N/A'})`}
                     isOptionEqualToValue={(option, value) => option._id === value?._id}
                     renderInput={(params) => (
@@ -401,7 +301,7 @@ const BranchInventoryTable = ({
                     size="small"
                     type="number"
                     value={newRow.quantity}
-                    onChange={(e) => setNewRow((prev) => ({ ...prev, quantity: e.target.value }))}
+                    onChange={(e) => handleQuantityChange(e.target.value)}
                     placeholder="Qty"
                     inputProps={{
                       min: 1,

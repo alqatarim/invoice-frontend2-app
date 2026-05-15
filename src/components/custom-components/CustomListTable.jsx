@@ -96,6 +96,7 @@ function CustomListTable({
   getRowClassName,
   expandedRows = {},
   expandableRowRender,
+  tableMinWidth = '900px',
 }) {
   const theme = useTheme();
   // Use a distinct light info tint for expanded rows (different from header background)
@@ -104,7 +105,7 @@ function CustomListTable({
   // Simplified selector for interactive elements
   // .MuiFormControl-root covers almost all MUI inputs (Select, TextField, etc.)
   // [role="option"] covers the dropdown menu items bubbling from Portals
-  const interactiveSelector = 'a, button, input, select, textarea, [role="button"], [role="option"], .MuiFormControl-root';
+  const interactiveSelector = 'a, button, input, select, textarea, [role="button"], [role="option"], [role="menuitem"], .MuiFormControl-root, .MuiMenuItem-root';
 
   // Selection helpers
   const allSelected =
@@ -173,7 +174,7 @@ function CustomListTable({
       <TableContainer
         sx={{
           maxHeight: '70vh', // Enables vertical scrolling for large datasets
-          '& .MuiTableHead-root': {
+          '& > .MuiTable-root > .MuiTableHead-root': {
             position: 'sticky',
             top: 0,
             zIndex: 10,
@@ -184,7 +185,7 @@ function CustomListTable({
         <Table
           className={classnames(tableStyles.table, tableClassName)}
           sx={{
-            minWidth: '900px', // TableContainer handles width: 100% automatically
+            minWidth: tableMinWidth,
             tableLayout: 'auto' // Explicit for better browser optimization
           }}
           stickyHeader // Works with TableContainer for sticky headers
@@ -214,8 +215,6 @@ function CustomListTable({
                 // className={tableCellClassName}
 
                 >
-
-
                   {col.label}
                 </TableCell>
               ))}

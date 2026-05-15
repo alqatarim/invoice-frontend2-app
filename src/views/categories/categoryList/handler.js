@@ -1,8 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { deleteCategory, getFilteredCategories } from '@/app/(dashboard)/categories/actions';
+import {
+  addCategory,
+  deleteCategory,
+  getFilteredCategories,
+  updateCategory,
+} from '@/app/(dashboard)/categories/actions';
 
 const DEFAULT_PAGINATION = {
   current: 1,
@@ -10,16 +14,21 @@ const DEFAULT_PAGINATION = {
   total: 0,
 };
 
+const DEFAULT_DIALOG_STATE = {
+  add: false,
+  edit: false,
+  view: false,
+  editCategoryId: null,
+  viewCategoryId: null,
+};
+
 export function useCategoryListHandler({
   initialCategories = [],
   initialPagination = DEFAULT_PAGINATION,
   onError,
+  onInfo,
   onSuccess,
-  onEdit,
-  onView,
 }) {
-  const router = useRouter();
-
   const [categories, setCategories] = useState(initialCategories);
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
@@ -27,6 +36,7 @@ export function useCategoryListHandler({
   const [sortDirection, setSortDirection] = useState('asc');
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [dialogStates, setDialogStates] = useState(DEFAULT_DIALOG_STATE);
 
   const loadingRef = useRef(false);
   const stateRef = useRef({
@@ -210,25 +220,109 @@ export function useCategoryListHandler({
     [onError, onSuccess, refreshData]
   );
 
+  const handleOpenAddDialog = useCallback(() => {
+    setDialogStates({
+      ...DEFAULT_DIALOG_STATE,
+      add: true,
+    });
+  }, []);
+
+  const handleCloseAddDialog = useCallback(() => {
+    setDialogStates(DEFAULT_DIALOG_STATE);
+  }, []);
+
+  const handleOpenEditDialog = useCallback(categoryId => {
+    setDialogStates({
+      ...DEFAULT_DIALOG_STATE,
+      edit: true,
+      editCategoryId: categoryId,
+    });
+  }, []);
+
+  const handleCloseEditDialog = useCallback(() => {
+    setDialogStates(DEFAULT_DIALOG_STATE);
+  }, []);
+
+  const handleOpenViewDialog = useCallback(categoryId => {
+    setDialogStates({
+      ...DEFAULT_DIALOG_STATE,
+      view: true,
+      viewCategoryId: categoryId,
+    });
+  }, []);
+
+  const handleCloseViewDialog = useCallback(() => {
+    setDialogStates(DEFAULT_DIALOG_STATE);
+  }, []);
+
+  const handleAddCategory = useCallback(
+    async (formData, preparedImage) => {
+      try {
+        onInfo?.('Submitting category...');
+
+        const response = await addCategory(formData, preparedImage);
+
+        if (!response?.success) {
+          const errorMessage =
+            response?.error?.message || response?.message || 'Failed to add category';
+          onError?.(errorMessage);
+          return { success: false, message: errorMessage };
+        }
+
+        onSuccess?.('Category added successfully!');
+        await refreshData();
+
+        return response;
+      } catch (error) {
+        const errorMessage = error.message || 'An unexpected error occurred';
+        onError?.(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+    },
+    [onError, onInfo, onSuccess, refreshData]
+  );
+
+  const handleUpdateCategory = useCallback(
+    async (categoryId, formData, preparedImage) => {
+      try {
+        onInfo?.('Updating category...');
+
+        const response = await updateCategory(categoryId, formData, preparedImage);
+
+        if (!response?.success) {
+          const errorMessage =
+            response?.error?.message || response?.message || 'Failed to update category';
+          onError?.(errorMessage);
+          return { success: false, message: errorMessage };
+        }
+
+        onSuccess?.('Category updated successfully!');
+        await refreshData();
+
+        return response;
+      } catch (error) {
+        const errorMessage = error.message || 'An unexpected error occurred';
+        onError?.(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+    },
+    [onError, onInfo, onSuccess, refreshData]
+  );
+
   const handleEdit = useCallback(
     id => {
-      if (onEdit) {
-        onEdit(id);
-        return;
-      }
-
-      router.push(`/categories/category-edit/${id}`);
+      if (!id) return;
+      handleOpenEditDialog(id);
     },
-    [onEdit, router]
+    [handleOpenEditDialog]
   );
 
   const handleView = useCallback(
     id => {
-      if (onView) {
-        onView(id);
-      }
+      if (!id) return;
+      handleOpenViewDialog(id);
     },
-    [onView]
+    [handleOpenViewDialog]
   );
 
   return {
@@ -238,13 +332,22 @@ export function useCategoryListHandler({
     sortBy,
     sortDirection,
     searchTerm,
+    dialogStates,
     refreshData,
     handleDelete,
     handleEdit,
     handleView,
+    handleAddCategory,
+    handleUpdateCategory,
     handlePageChange,
     handlePageSizeChange,
     handleSortRequest,
     handleSearchInputChange,
+    handleOpenAddDialog,
+    handleCloseAddDialog,
+    handleOpenEditDialog,
+    handleCloseEditDialog,
+    handleOpenViewDialog,
+    handleCloseViewDialog,
   };
 }

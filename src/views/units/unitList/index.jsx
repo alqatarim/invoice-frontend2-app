@@ -1,6 +1,7 @@
 'use client'
 
 import React from "react";
+import AppSnackbarProvider from '@/components/shared/AppSnackbarProvider';
 import UnitList from "@/views/units/unitList/UnitList";
 
 const UnitListIndex = ({
@@ -9,11 +10,13 @@ const UnitListIndex = ({
   initialErrorMessage = '',
 }) => {
   return (
-    <UnitList
-      initialUnits={initialUnits}
-      initialPagination={initialPagination}
-      initialErrorMessage={initialErrorMessage}
-    />
+    <AppSnackbarProvider maxSnack={7}>
+      <UnitList
+        initialUnits={initialUnits}
+        initialPagination={initialPagination}
+        initialErrorMessage={initialErrorMessage}
+      />
+    </AppSnackbarProvider>
   );
 };
 

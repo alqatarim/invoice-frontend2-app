@@ -18,13 +18,21 @@ const ActionCell = ({ row, handlers, permissions }) => {
 
   const menuOptions = []
 
+  const stopRowClick = event => {
+    event?.preventDefault?.()
+    event?.stopPropagation?.()
+  }
+
   if (permissions.canView) {
     menuOptions.push({
       text: viewAction?.label || 'View',
       icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers.handleView(row)
+        onClick: event => {
+          stopRowClick(event)
+          handlers.handleView(row)
+        }
       }
     })
   }
@@ -35,7 +43,10 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={activateAction?.icon || 'mdi:check-circle-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: (event) => handlers.handleActivateClick(row, event.currentTarget)
+        onClick: event => {
+          stopRowClick(event)
+          handlers.handleActivateClick(row, event.currentTarget)
+        }
       }
     })
   }
@@ -46,7 +57,10 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={deactivateAction?.icon || 'mdi:minus-circle-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: (event) => handlers.handleDeactivateClick(row, event.currentTarget)
+        onClick: event => {
+          stopRowClick(event)
+          handlers.handleDeactivateClick(row, event.currentTarget)
+        }
       }
     })
   }
@@ -57,7 +71,10 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers.handleDeleteClick(row)
+        onClick: event => {
+          stopRowClick(event)
+          handlers.handleDeleteClick(row)
+        }
       }
     })
   }
@@ -65,7 +82,7 @@ const ActionCell = ({ row, handlers, permissions }) => {
   if (menuOptions.length === 0) return null
 
   return (
-    <Box className='flex items-center justify-end'>
+    <Box className='flex items-center justify-end' onClick={event => event.stopPropagation()}>
       <OptionMenu
         icon={<MoreVertIcon />}
         iconButtonProps={{ size: 'small', 'aria-label': 'customer actions' }}
@@ -99,42 +116,54 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     sortable: true,
     minWidth: 100, // Stable width for primary identifier column
     renderCell: (row) => (
-      <Link href={`/customers/customer-view/${row._id}`} passHref>
-        <Box className="flex justify-start items-center flex-wrap gap-3 cursor-pointer">
-          <Avatar
-            src={row.image ? `${process.env.NEXT_PUBLIC_API_URL}/${row.image}` : ''}
-            sx={{ width: 40, height: 40 }}
-          >
-            {row.name?.charAt(0)?.toUpperCase() || 'C'}
-          </Avatar>
-          <div className="min-w-0">
-            <Typography
-              variant="body1"
-              className='text-[0.9rem] text-start text-primary hover:underline font-medium truncate'
-            >
-              {row.name || 'N/A'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" className='text-[0.8rem] truncate'>
-              {row.email || 'No email'}
-            </Typography>
-          </div>
-        </Box>
-      </Link>
+
+      row.name
+
+
+      // <Typography
+      // variant="body1"
+      // className='text-[0.9rem] text-start text-primary hover:underline font-medium truncate'
+      // >
+      // {row.name || 'N/A'}
+      // </Typography>
+
+
+      //       <Link href={`/customers/customer-view/${row._id}`} passHref>
+      //   <Box className="flex justify-start items-center flex-wrap gap-3 cursor-pointer">
+      //     <Avatar
+      //       src={row.image ? `${process.env.NEXT_PUBLIC_API_URL}/${row.image}` : ''}
+      //       sx={{ width: 40, height: 40 }}
+      //     >
+      //       {row.name?.charAt(0)?.toUpperCase() || 'C'}
+      //     </Avatar>
+      //     <div className="min-w-0">
+      //       <Typography
+      //         variant="body1"
+      //         className='text-[0.9rem] text-start text-primary hover:underline font-medium truncate'
+      //       >
+      //         {row.name || 'N/A'}
+      //       </Typography>
+      //       <Typography variant="caption" color="text.secondary" className='text-[0.8rem] truncate'>
+      //         {row.email || 'No email'}
+      //       </Typography>
+      //     </div>
+      //   </Box>
+      // </Link>
 
 
 
 
-        // <div className="min-w-0">
-        //   <Typography
-        //     variant="body1"
-        //     className='text-[0.9rem] text-start text-primary hover:underline font-medium truncate'
-        //   >
-        //     {row.name || 'N/A'}
-        //   </Typography>
-        //   <Typography variant="caption" color="text.secondary" className='text-[0.8rem] truncate'>
-        //     {row.email || 'No email'}
-        //   </Typography>
-        // </div>
+      //    <div className="min-w-0">
+      //      <Typography
+      //        variant="body1"
+      //        className='text-[0.9rem] text-start text-primary hover:underline font-medium truncate'
+      //      >
+      //        {row.name || 'N/A'}
+      //      </Typography>
+      //      <Typography variant="caption" color="text.secondary" className='text-[0.8rem] truncate'>
+      //        {row.email || 'No email'}
+      //      </Typography>
+      //    </div>
 
     )
   },
@@ -144,7 +173,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     visible: true,
     sortable: true,
     align: 'left',
-    minWidth: 140, // Stable width for contact info
+    minWidth: 120, // Stable width for contact info
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
         {row.phone || 'N/A'}
@@ -159,24 +188,24 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     align: 'center',
     minWidth: 120, // Stable width for financial data
     renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
+      <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap text-start'>
         {formatCurrency(row.balance)}
       </Typography>
     )
   },
-  {
-    key: 'totalInvoices',
-    label: 'Total Invoices',
-    visible: true,
-    sortable: true,
-    align: 'center',
-    minWidth: 110, // Stable width for numerical data
-    renderCell: (row) => (
-      <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
-        {row.noOfInvoices || row.invoiceRecs?.length || row.totalInvoices || 0}
-      </Typography>
-    )
-  },
+  // {
+  //   key: 'totalInvoices',
+  //   label: 'Total Invoices',
+  //   visible: true,
+  //   sortable: true,
+  //   align: 'center',
+  //   minWidth: 110, // Stable width for numerical data
+  //   renderCell: (row) => (
+  //     <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
+  //       {row.noOfInvoices || row.invoiceRecs?.length || row.totalInvoices || 0}
+  //     </Typography>
+  //   )
+  // },
   {
     key: 'createdAt',
     label: 'Created On',
@@ -199,7 +228,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
 
     renderCell: (row) => (
       <Chip
-        
+
         size='small'
         variant='tonal'
         label={row.status === 'Deactive' ? 'Inactive' : (row.status || 'Active')}
@@ -212,7 +241,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     label: '',
     visible: true,
     align: 'right',
-   
+
     renderCell: (row, handlers) => (
       <ActionCell row={row} handlers={handlers} permissions={permissions} />
     )

@@ -23,6 +23,12 @@ const UserProfileHeader = ({ data }) => {
     ? `${data.firstName} ${data.lastName}`
     : data?.fullname || 'User Profile'
   const theme = useTheme()
+  const roleMeta = roleOptions.find(role =>
+    String(role?.value || '').toLowerCase() === String(data?.role || '').toLowerCase()
+  )
+  const roleLabel = data?.role
+    ? String(data.role).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+    : ''
 
   // Use dynamic background hook for company logo-based cover generation
   const {
@@ -110,14 +116,14 @@ const UserProfileHeader = ({ data }) => {
                   <Typography className='font-medium'>{data.mobileNumber}</Typography>
                 </Box>
               )}
-              {data?.role && (
+              {roleLabel && (
                 <Box className='flex items-center gap-2'>
                   <Icon
-                    icon={roleOptions.find(role => role.value === data.role)?.icon || 'mdi:user-outline'}
+                    icon={roleMeta?.icon || 'mdi:user-outline'}
                     fontSize={23}
                     color={theme.palette.secondary.main}
                   />
-                  <Typography className='font-medium'>{data.role}</Typography>
+                  <Typography className='font-medium'>{roleLabel}</Typography>
                 </Box>
               )}
             </Box>

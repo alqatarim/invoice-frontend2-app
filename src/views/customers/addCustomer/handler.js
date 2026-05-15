@@ -113,7 +113,7 @@ const buildCustomerFormData = formData => {
   return submitFormData
 }
 
-export const useAddCustomerHandler = ({ onError, onSuccess }) => {
+export const useAddCustomerHandler = ({ onError, onSuccess, enqueueSnackbar, closeSnackbar }) => {
   const router = useRouter()
   const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [errors, setErrors] = useState({})
@@ -253,9 +253,18 @@ export const useAddCustomerHandler = ({ onError, onSuccess }) => {
     }
 
     setLoading(true)
+    const loadingKey = enqueueSnackbar?.('Adding customer...', {
+      variant: 'info',
+      persist: true,
+      preventDuplicate: true,
+    })
 
     try {
       const response = await addCustomer(buildCustomerFormData(formData))
+
+      if (loadingKey) {
+        closeSnackbar?.(loadingKey)
+      }
 
       if (response.code === 200) {
         onSuccess('Customer Added Successfully')
@@ -273,11 +282,14 @@ export const useAddCustomerHandler = ({ onError, onSuccess }) => {
       onError(response?.data?.message || response?.message || 'Failed to add customer')
     } catch (error) {
       console.error('Error submitting customer form:', error)
+      if (loadingKey) {
+        closeSnackbar?.(loadingKey)
+      }
       onError(error.message || 'An error occurred while adding the customer')
     } finally {
       setLoading(false)
     }
-  }, [formData, onError, onSuccess, resetForm, router, validateForm])
+  }, [closeSnackbar, enqueueSnackbar, formData, onError, onSuccess, resetForm, router, validateForm])
 
   const handleSubmit = useCallback(async event => {
     if (event?.preventDefault) {

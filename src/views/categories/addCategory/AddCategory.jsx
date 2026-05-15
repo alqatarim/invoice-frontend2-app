@@ -6,8 +6,7 @@ const AddCategory = ({ controller }) => {
     <Category
       controller={controller}
       title='Add New Category'
-      submitLabel='Add Category'
-      submittingLabel='Adding...'
+      submitLabel='Submit'
     />
   )
 }

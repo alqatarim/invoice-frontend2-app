@@ -17,7 +17,7 @@ import AddressBilling from './rightSection/AddressBilling'
 import PaymentTransactions from './rightSection/PaymentTransactions'
 import Notifications from './rightSection/Notifications'
 
-const CustomerRight = ({ customerData, invoices, cardDetails, onCustomerUpdate }) => {
+const CustomerRight = ({ customerData, invoices, cardDetails, paymentTransactions, onCustomerUpdate }) => {
 
   // States
   const [activeTab, setActiveTab] = useState('overview')
@@ -74,6 +74,7 @@ const CustomerRight = ({ customerData, invoices, cardDetails, onCustomerUpdate }
             <TabPanel value='payments' className='p-0'>
               <PaymentTransactions
                 customerData={customerData}
+                transactions={paymentTransactions}
                 onCustomerUpdate={onCustomerUpdate}
               />
             </TabPanel>

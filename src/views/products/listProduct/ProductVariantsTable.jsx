@@ -20,6 +20,9 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 
+import ColorSwatchPicker from '@/components/custom-components/ColorSwatchPicker';
+import { getColorChipSx, getColorHexFromLabel } from '@/utils/colorUtils';
+
 const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveVariants }) => {
   const theme = useTheme();
   const [editingKey, setEditingKey] = useState(null);
@@ -42,12 +45,16 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
 
   const handleEditStart = (variant, index) => {
     const attributes = variant?.attributes || {};
+    const colorLabel = attributes.color || variant.color || '';
+    const storedHex = attributes.colorHex || variant.colorHex || '';
     setEditingKey(getVariantKey(variant, index));
     setDraft({
       name: variant.name || '',
       sku: variant.sku || '',
       size: attributes.size || variant.size || '',
-      color: attributes.color || variant.color || '',
+      color: colorLabel,
+      colorHex: storedHex,
+      colorHexManual: Boolean(storedHex),
       sellingPrice: String(variant.sellingPrice ?? ''),
       purchasePrice: String(variant.purchasePrice ?? ''),
     });
@@ -58,6 +65,33 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
     setDraft({});
   };
 
+  const handleColorLabelChange = (value) => {
+    setDraft((prev) => {
+      const next = { ...prev, color: value };
+      if (!prev.colorHexManual) {
+        const derivedHex = getColorHexFromLabel(value);
+        next.colorHex = derivedHex || '';
+      }
+      return next;
+    });
+  };
+
+  const handleColorHexPick = (value) => {
+    setDraft((prev) => ({
+      ...prev,
+      colorHex: value,
+      colorHexManual: true,
+    }));
+  };
+
+  const handleColorHexClear = () => {
+    setDraft((prev) => ({
+      ...prev,
+      colorHex: getColorHexFromLabel(prev.color) || '',
+      colorHexManual: false,
+    }));
+  };
+
   const handleSave = async (variant, index) => {
     if (!onSaveVariants) {
       handleEditCancel();
@@ -65,6 +99,10 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
     }
     const key = getVariantKey(variant, index);
     setSavingKey(key);
+    const trimmedColor = draft.color?.trim() || undefined;
+    const finalHex = draft.colorHexManual
+      ? (draft.colorHex || undefined)
+      : (getColorHexFromLabel(trimmedColor) || undefined);
     const updatedVariant = {
       ...variant,
       name: draft.name?.trim() || 'Variant',
@@ -73,7 +111,8 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
       purchasePrice: Number(draft.purchasePrice || 0),
       attributes: {
         size: draft.size?.trim() || undefined,
-        color: draft.color?.trim() || undefined,
+        color: trimmedColor,
+        colorHex: finalHex,
       },
     };
 
@@ -96,13 +135,13 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
           <Typography variant="subtitle2" fontWeight={600}>
             Variants
           </Typography>
-          <Chip
+          {/* <Chip
             size="small"
             label={`${variants.length} variant${variants.length !== 1 ? 's' : ''}`}
             variant="outlined"
             color="secondary"
             sx={{ height: 20, fontSize: '0.7rem' }}
-          />
+          /> */}
         </Box>
       </Box>
 
@@ -118,8 +157,12 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
             width: '100%',
             '& thead': {
               textTransform: 'none !important',
+              position: 'static',
+              zIndex: 'auto',
             },
             '& thead th': {
+              position: 'static',
+              zIndex: 'auto',
               fontSize: '0.75rem !important',
               fontWeight: '600 !important',
               height: 'auto !important',
@@ -143,7 +186,8 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
             <TableRow>
               <TableCell sx={{ width: 220 }}>Variant</TableCell>
               <TableCell sx={{ width: 140 }}>SKU</TableCell>
-              <TableCell sx={{ width: 180 }}>Attributes</TableCell>
+              <TableCell sx={{ width: 180 }}>Size</TableCell>
+              <TableCell sx={{ width: 140 }}>Color</TableCell>
               <TableCell sx={{ width: 140 }}>Selling Price</TableCell>
               <TableCell sx={{ width: 150 }}>Purchase Price</TableCell>
               {canEdit && <TableCell align="center" sx={{ width: 110 }}>Actions</TableCell>}
@@ -158,6 +202,9 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
                 const attributes = variant?.attributes || {};
                 const size = attributes.size || variant.size;
                 const color = attributes.color || variant.color;
+                const storedHex = attributes.colorHex || variant.colorHex;
+                const resolvedHex = storedHex || getColorHexFromLabel(color);
+                const editPreviewHex = draft.colorHex || getColorHexFromLabel(draft.color) || '#ffffff';
                 return (
                   <TableRow key={key}>
                     <TableCell>
@@ -190,54 +237,61 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
                         variant.sku || '-'
                       )}
                     </TableCell>
+
                     <TableCell>
                       {isEditing ? (
-                        <Box className="flex flex-col gap-1">
-                          <TextField
-                            size="small"
-                            fullWidth
-                            value={draft.size}
-                            onChange={(e) => setDraft((prev) => ({ ...prev, size: e.target.value }))}
-                            placeholder="Size"
-                            sx={inputSx}
-                          />
-                          <TextField
-                            size="small"
-                            fullWidth
-                            value={draft.color}
-                            onChange={(e) => setDraft((prev) => ({ ...prev, color: e.target.value }))}
-                            placeholder="Color"
-                            sx={inputSx}
-                          />
-                        </Box>
+
+                        <TextField
+                          size="small"
+                          fullWidth
+                          value={draft.size}
+                          onChange={(e) => setDraft((prev) => ({ ...prev, size: e.target.value }))}
+                          placeholder="Size"
+                          sx={inputSx}
+                        />
                       ) : (
-                        <Box className="flex flex-wrap gap-1">
-                          {size && (
-                            <Chip
-                              size="small"
-                              label={`Size: ${size}`}
-                              variant="outlined"
-                              color="secondary"
-                              sx={{ fontSize: '0.7rem' }}
-                            />
-                          )}
-                          {color && (
-                            <Chip
-                              size="small"
-                              label={`Color: ${color}`}
-                              variant="outlined"
-                              color="secondary"
-                              sx={{ fontSize: '0.7rem' }}
-                            />
-                          )}
-                          {!size && !color && (
-                            <Typography variant="caption" color="text.secondary">
-                              -
-                            </Typography>
-                          )}
-                        </Box>
+                        <Chip
+                          size="small"
+                          label={size}
+                          variant="outlined"
+                          color="secondary"
+                          sx={{ fontSize: '0.7rem' }}
+                        />
                       )}
                     </TableCell>
+                    <TableCell>
+                      {isEditing ? (
+                        <TextField
+                          size="small"
+                          fullWidth
+                          value={draft.color}
+                          onChange={(e) => handleColorLabelChange(e.target.value)}
+                          placeholder="Color"
+                          sx={inputSx}
+                          InputProps={{
+                            startAdornment: (
+                              <ColorSwatchPicker
+                                value={draft.colorHex}
+                                fallbackValue={editPreviewHex}
+                                manual={draft.colorHexManual}
+                                size={18}
+                                onApply={handleColorHexPick}
+                                onClear={handleColorHexClear}
+                              />
+                            ),
+                          }}
+                        />
+                      ) : (
+                        <Chip
+                          size="small"
+                          label={color}
+                          variant="outlined"
+                          color="secondary"
+                          sx={getColorChipSx(resolvedHex || color, { fontSize: '0.7rem' })}
+                        />
+                      )}
+                    </TableCell>
+
                     <TableCell>
                       {isEditing ? (
                         <TextField

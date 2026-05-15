@@ -2,6 +2,7 @@
 
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 import { processSignatureImage } from '@/utils/fileUtils';
+import { buildFallbackCustomerSummary } from '@/views/customers/listCustomer/customerSummary';
 
 const ENDPOINTS = {
   CUSTOMER: {
@@ -62,23 +63,17 @@ export async function getInitialCustomerData() {
     );
 
     if (response.code === 200) {
-      // Calculate card counts from the data
       const customers = response.data || [];
-      const activeCustomers = customers.filter(c => c.status === 'Active').length;
-      const inactiveCustomers = customers.filter(c => c.status === 'Deactive').length;
+      const summary = response.summary || buildFallbackCustomerSummary(customers);
 
       return {
-        customers: customers,
+        customers,
         pagination: {
           current: 1,
           pageSize: 10,
           total: response.totalRecords || customers.length,
         },
-        cardCounts: {
-          totalCustomers: response.totalRecords || customers.length,
-          activeCustomers,
-          inactiveCustomers
-        }
+        summary
       };
     } else {
       console.error('Failed to fetch initial customer data');
@@ -131,9 +126,14 @@ export async function getFilteredCustomers(apiParams) {
     const response = await fetchWithAuth(url);
 
     if (response.code === 200) {
+      const customers = response.data || [];
+
       return {
-        customers: response.data || [],
-        total: response.totalRecords || 0,
+        customers,
+        total: response.totalRecords || customers.length,
+        summary:
+          response.summary ||
+          buildFallbackCustomerSummary(customers, apiParams.search_customer || ''),
       };
     } else {
       console.error('Failed to fetch filtered customers:', response.message);
@@ -375,7 +375,7 @@ export async function getCustomerWithInvoices(id) {
     });
 
 
-    // Check response structure based on backend pattern
+    // Return the backend response data as-is. The page keeps this as a separate data object.
     return response.data || {};
   } catch (error) {
     console.error('Error in getCustomerWithInvoices:', error);

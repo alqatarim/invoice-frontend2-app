@@ -1,439 +1,207 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { getDashboardData } from '@/app/(dashboard)/dashboard/actions';
 import {
-  dashboardDefaultHeroSummary,
-  dashboardFilters,
-} from '@/data/dataSets';
-import useAccessibleStoreScope from '@/hooks/useAccessibleStoreScope';
-import { findBranchByIdentifier } from '@/utils/branchAccess';
-import { formatWholeNumber } from '@/utils/numberUtils';
-import {
-  getAIForecastInsights,
-  getDashboardData,
-  getFilteredDashboardData,
-} from '@/app/(dashboard)/dashboard/actions';
+	formatDateRangeLabel,
+	normalizeDateValue,
+} from '@/utils/dashboardDateUtils';
 
-const DASHBOARD_CURRENCY = 'SAR';
-
-const getFilterApiValue = (value = 'all') =>
-  dashboardFilters.find((item) => item.value === value)?.apiValue || '';
-
-const getTrendDirection = (value = '') => {
-  if (value === 'Increased') return 'positive';
-  if (value === 'Decreased') return 'negative';
-  return 'neutral';
+const DEFAULT_SNACKBAR = {
+	open: false,
+	message: '',
+	severity: 'success',
 };
 
-const buildForecastPayload = (sourceData = {}) => ({
-  currency: DASHBOARD_CURRENCY,
-  locale: 'en-SA',
-  region: 'Saudi Arabia',
-  financeTrend: sourceData?.financeTrend || {},
-  topProducts:
-    sourceData?.topProductsTrending?.length > 0
-      ? sourceData.topProductsTrending
-      : sourceData?.topProductsAll || sourceData?.topProducts || [],
-  topCustomers:
-    sourceData?.topCustomersTrending?.length > 0
-      ? sourceData.topCustomersTrending
-      : sourceData?.topCustomersAll || sourceData?.topCustomers || [],
-  inventoryAlerts: sourceData?.inventoryAlerts || [],
-  operations: sourceData?.operations || {},
-});
-
 export function useDashboardHandler({
-  initialDashboardData = null,
-  initialBranchId = '',
+	initialBranchId = '',
+	initialFromDate = '',
+	initialToDate = '',
 }) {
-  const {
-    storeBranches,
-    primaryStore,
-    hasStoreScope,
-    isRestrictedToAssignedStores,
-  } = useAccessibleStoreScope();
-  const accessibleBranches = Array.isArray(storeBranches) ? storeBranches : [];
+	const initialRange = useMemo(
+		() => ({
+			fromDate: normalizeDateValue(initialFromDate),
+			toDate: normalizeDateValue(initialToDate),
+		}),
+		[initialFromDate, initialToDate]
+	);
 
-  const [dashboardData, setDashboardData] = useState(initialDashboardData || {});
-  const [filterValue, setFilterValue] = useState('all');
-  const [selectedBranchId, setSelectedBranchId] = useState(initialBranchId || '');
-  const [productsTab, setProductsTab] = useState('all');
-  const [customersTab, setCustomersTab] = useState('all');
-  const [financeTab, setFinanceTab] = useState('sales');
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-  const [isGeneratingAIForecast, setIsGeneratingAIForecast] = useState(false);
-  const [aiForecastData, setAiForecastData] = useState(null);
-  const [aiInsightCards, setAiInsightCards] = useState([]);
-  const aiForecastRequestRef = useRef(0);
+	const [filteredDashboardData, setFilteredDashboardData] = useState(null);
+	const [selectedBranchId, setSelectedBranchId] = useState(initialBranchId || '');
+	const [appliedDateRange, setAppliedDateRange] = useState(initialRange);
+	const [draftDateRange, setDraftDateRange] = useState(initialRange);
+	const [productsTab, setProductsTab] = useState('all');
+	const [customersTab, setCustomersTab] = useState('all');
+	const [financeTab, setFinanceTab] = useState('sales');
+	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [snackbar, setSnackbar] = useState(DEFAULT_SNACKBAR);
 
-  useEffect(() => {
-    setDashboardData(initialDashboardData || {});
-    setSelectedBranchId(initialBranchId || '');
-    setFilterValue('all');
-    setProductsTab('all');
-    setCustomersTab('all');
-    setFinanceTab('sales');
-    setAiForecastData(null);
-    setAiInsightCards([]);
-  }, [initialBranchId, initialDashboardData]);
+	const showSnackbar = useCallback((message, severity = 'error') => {
+		setSnackbar({
+			open: true,
+			message,
+			severity,
+		});
+	}, []);
 
-  const selectedStore = useMemo(
-    () => findBranchByIdentifier(accessibleBranches, selectedBranchId),
-    [accessibleBranches, selectedBranchId]
-  );
+	useEffect(() => {
+		setFilteredDashboardData(null);
+		setSelectedBranchId(initialBranchId || '');
+		setAppliedDateRange(initialRange);
+		setDraftDateRange(initialRange);
+		setProductsTab('all');
+		setCustomersTab('all');
+		setFinanceTab('sales');
+	}, [initialBranchId, initialRange]);
 
-  useEffect(() => {
-    const labels = Array.isArray(dashboardData?.financeTrend?.labels)
-      ? dashboardData.financeTrend.labels
-      : [];
+	const hasActiveDateRange = Boolean(appliedDateRange.fromDate && appliedDateRange.toDate);
+	const dateRangeLabel = hasActiveDateRange
+		? formatDateRangeLabel(appliedDateRange.fromDate, appliedDateRange.toDate)
+		: 'All Time';
+	const comparisonLabel = hasActiveDateRange ? 'vs prev range' : 'vs prev. week';
 
-    if (!labels.length) {
-      setAiForecastData(null);
-      setAiInsightCards([]);
-      setIsGeneratingAIForecast(false);
-      return;
-    }
+	const loadDashboardData = useCallback(
+		async ({
+			nextBranchId = selectedBranchId,
+			nextFromDate = appliedDateRange.fromDate,
+			nextToDate = appliedDateRange.toDate,
+		} = {}) => {
+			setIsRefreshing(true);
 
-    const requestId = aiForecastRequestRef.current + 1;
-    aiForecastRequestRef.current = requestId;
+			try {
+				const response = await getDashboardData({
+					branchId: nextBranchId,
+					fromDate: nextFromDate,
+					toDate: nextToDate,
+				});
 
-    const generateForecast = async () => {
-      setIsGeneratingAIForecast(true);
+				if (response?.code === 200) {
+					setFilteredDashboardData(response?.data || {});
+					return true;
+				}
 
-      try {
-        const response = await getAIForecastInsights(buildForecastPayload(dashboardData));
+				showSnackbar(response?.message || 'Failed to fetch dashboard data.', 'error');
+				return false;
+			} catch (error) {
+				if (process.env.NODE_ENV === 'development') {
+					console.error('Error fetching dashboard data:', error);
+				}
 
-        if (requestId !== aiForecastRequestRef.current) return;
+				showSnackbar(error?.message || 'Failed to fetch dashboard data.', 'error');
+				return false;
+			} finally {
+				setIsRefreshing(false);
+			}
+		},
+		[
+			appliedDateRange.fromDate,
+			appliedDateRange.toDate,
+			selectedBranchId,
+			showSnackbar,
+		]
+	);
 
-        if (response?.code === 200 && response?.data?.series) {
-          setAiForecastData(response.data);
-          setAiInsightCards(
-            Array.isArray(response?.data?.insightCards) ? response.data.insightCards : []
-          );
-          return;
-        }
+	const handleProductsTabChange = (_event, nextValue) => {
+		if (!nextValue || nextValue === productsTab) return;
+		setProductsTab(nextValue);
+	};
 
-        setAiForecastData(null);
-        setAiInsightCards([]);
-        setSnackbar({
-          open: true,
-          message:
-            response?.message || 'Failed to generate AI forecast. Showing baseline trend.',
-          severity: 'error',
-        });
-      } catch (error) {
-        if (requestId !== aiForecastRequestRef.current) return;
+	const handleCustomersTabChange = (_event, nextValue) => {
+		if (!nextValue || nextValue === customersTab) return;
+		setCustomersTab(nextValue);
+	};
 
-        setAiForecastData(null);
-        setAiInsightCards([]);
-        setSnackbar({
-          open: true,
-          message: error?.message || 'Failed to generate AI forecast. Showing baseline trend.',
-          severity: 'error',
-        });
-      } finally {
-        if (requestId === aiForecastRequestRef.current) {
-          setIsGeneratingAIForecast(false);
-        }
-      }
-    };
+	const handleFinanceTabChange = (_event, nextValue) => {
+		if (!nextValue || nextValue === financeTab) return;
+		setFinanceTab(nextValue);
+	};
 
-    generateForecast();
-  }, [dashboardData]);
+	const handleDateRangeSelection = async ({ fromDate = '', toDate = '' } = {}) => {
+		const nextRange = {
+			fromDate: normalizeDateValue(fromDate),
+			toDate: normalizeDateValue(toDate),
+		};
 
-  const activeFilterLabel =
-    dashboardFilters.find((item) => item.value === filterValue)?.label || 'All Time';
+		setDraftDateRange(nextRange);
 
-  const storeScopeLabel = useMemo(() => {
-    if (selectedStore?.name) {
-      return `Store: ${selectedStore.name}`;
-    }
+		if (!nextRange.fromDate || !nextRange.toDate) return false;
 
-    if (isRestrictedToAssignedStores) {
-      return hasStoreScope
-        ? `Assigned stores: ${accessibleBranches.length}`
-        : 'Assigned store access required';
-    }
+		if (
+			nextRange.fromDate === appliedDateRange.fromDate &&
+			nextRange.toDate === appliedDateRange.toDate
+		) {
+			return true;
+		}
 
-    if (hasStoreScope) {
-      return 'All stores';
-    }
+		const isSuccessful = await loadDashboardData({
+			nextBranchId: selectedBranchId,
+			nextFromDate: nextRange.fromDate,
+			nextToDate: nextRange.toDate,
+		});
 
-    return 'Company-wide scope';
-  }, [
-    accessibleBranches.length,
-    hasStoreScope,
-    isRestrictedToAssignedStores,
-    selectedStore?.name,
-  ]);
+		if (isSuccessful) {
+			setAppliedDateRange(nextRange);
+			return true;
+		}
 
-  const storeScopeHelperText = useMemo(() => {
-    if (selectedStore?.name) {
-      return `Dashboard totals are filtered to ${selectedStore.name}.`;
-    }
+		setDraftDateRange(appliedDateRange);
+		return false;
+	};
 
-    if (isRestrictedToAssignedStores) {
-      if (!hasStoreScope) {
-        return 'This account does not have an assigned store, so store-scoped widgets will stay empty.';
-      }
+	const handleResetDateRange = async () => {
+		const clearedRange = {
+			fromDate: '',
+			toDate: '',
+		};
 
-      if (primaryStore?.name) {
-        return `Only your assigned stores are included here. Primary store: ${primaryStore.name}.`;
-      }
+		setDraftDateRange(clearedRange);
 
-      return 'Only your assigned stores are included in dashboard totals.';
-    }
+		const isSuccessful = await loadDashboardData({
+			nextBranchId: selectedBranchId,
+			nextFromDate: '',
+			nextToDate: '',
+		});
 
-    return 'Switch store scope to review a single location without leaving the dashboard.';
-  }, [
-    hasStoreScope,
-    isRestrictedToAssignedStores,
-    primaryStore?.name,
-    selectedStore?.name,
-  ]);
+		if (isSuccessful) {
+			setAppliedDateRange(clearedRange);
+			return;
+		}
 
-  const heroSummary = useMemo(() => {
-    const invoiced = Number(dashboardData?.invoiced || 0);
-    const received = Number(dashboardData?.received || 0);
-    const pending = Number(dashboardData?.pending || 0);
-    const collectionRate = invoiced > 0 ? (received / invoiced) * 100 : 0;
-    const pendingExposure = invoiced > 0 ? (pending / invoiced) * 100 : 0;
-    const netBusinessFlow = Number(dashboardData?.operations?.netBusinessFlow || 0);
+		setDraftDateRange(appliedDateRange);
+	};
 
-    return {
-      invoiced,
-      received,
-      pending,
-      netBusinessFlow,
-      collectionRate,
-      pendingExposure,
-    };
-  }, [
-    dashboardData?.invoiced,
-    dashboardData?.operations?.netBusinessFlow,
-    dashboardData?.pending,
-    dashboardData?.received,
-  ]);
+	const handleRefresh = async () => {
+		await loadDashboardData({
+			nextBranchId: selectedBranchId,
+			nextFromDate: appliedDateRange.fromDate,
+			nextToDate: appliedDateRange.toDate,
+		});
+	};
 
-  const metricCards = useMemo(() => {
-    const purchasesAmount = Number(dashboardData?.operations?.purchasesAmount || 0);
-    const expensesAmount = Number(dashboardData?.operations?.expensesAmount || 0);
-    const salesAmount = Number(dashboardData?.received || 0);
+	const closeSnackbar = () => {
+		setSnackbar(DEFAULT_SNACKBAR);
+	};
 
-    return [
-      {
-        key: 'purchases',
-        title: 'Purchases',
-        value: formatWholeNumber(purchasesAmount),
-        suffix: DASHBOARD_CURRENCY,
-        icon: 'ri-shopping-cart-line',
-        color: 'warning',
-        direction: 'neutral',
-        changeNumber: '0 %',
-        subTitle: 'current period',
-      },
-      {
-        key: 'customers',
-        title: 'Customers',
-        value: formatWholeNumber(dashboardData?.customers || 0),
-        icon: 'ri-user-add-line',
-        color: 'primary',
-        direction: getTrendDirection(dashboardData?.customerPercentage?.percentage),
-        changeNumber: dashboardData?.customerPercentage?.value || '0 %',
-        subTitle: 'vs previous week',
-      },
-      {
-        key: 'sales',
-        title: 'Sales',
-        value: formatWholeNumber(salesAmount),
-        suffix: DASHBOARD_CURRENCY,
-        icon: 'ri-funds-line',
-        color: 'success',
-        direction: getTrendDirection(dashboardData?.invoicedPercentage?.percentage),
-        changeNumber: dashboardData?.invoicedPercentage?.value || '0 %',
-        subTitle: 'vs previous week',
-      },
-      {
-        key: 'expenses',
-        title: 'Expenses',
-        value: formatWholeNumber(expensesAmount),
-        suffix: DASHBOARD_CURRENCY,
-        icon: 'ri-money-dollar-circle-line',
-        color: 'secondary',
-        direction: 'neutral',
-        changeNumber: '0 %',
-        subTitle: 'current period',
-      },
-    ];
-  }, [
-    dashboardData?.customerPercentage?.percentage,
-    dashboardData?.customerPercentage?.value,
-    dashboardData?.customers,
-    dashboardData?.invoicedPercentage?.percentage,
-    dashboardData?.invoicedPercentage?.value,
-    dashboardData?.operations?.expensesAmount,
-    dashboardData?.operations?.purchasesAmount,
-    dashboardData?.received,
-  ]);
-
-  const topProductsAll = Array.isArray(dashboardData?.topProductsAll)
-    ? dashboardData.topProductsAll
-    : Array.isArray(dashboardData?.topProducts)
-      ? dashboardData.topProducts
-      : [];
-  const topProductsTrending = Array.isArray(dashboardData?.topProductsTrending)
-    ? dashboardData.topProductsTrending
-    : [];
-  const topProducts = productsTab === 'trending' ? topProductsTrending : topProductsAll;
-
-  const topCustomersAll = Array.isArray(dashboardData?.topCustomersAll)
-    ? dashboardData.topCustomersAll
-    : Array.isArray(dashboardData?.topCustomers)
-      ? dashboardData.topCustomers
-      : [];
-  const topCustomersTrending = Array.isArray(dashboardData?.topCustomersTrending)
-    ? dashboardData.topCustomersTrending
-    : [];
-  const topCustomers = customersTab === 'trending' ? topCustomersTrending : topCustomersAll;
-
-  const inventoryAlerts = Array.isArray(dashboardData?.inventoryAlerts)
-    ? dashboardData.inventoryAlerts
-    : [];
-  const financeTrendData = aiForecastData || dashboardData?.financeTrend || {};
-  const hasDashboardData = Boolean(dashboardData && Object.keys(dashboardData).length > 0);
-
-  const loadDashboardData = async ({
-    nextFilterValue = filterValue,
-    nextBranchId = selectedBranchId,
-  } = {}) => {
-    setIsRefreshing(true);
-
-    try {
-      const apiValue = getFilterApiValue(nextFilterValue);
-      const response = apiValue
-        ? await getFilteredDashboardData(apiValue, nextBranchId)
-        : await getDashboardData(nextBranchId);
-
-      if (response?.code === 200) {
-        setDashboardData(response?.data || {});
-        setAiForecastData(null);
-        setAiInsightCards([]);
-        return true;
-      }
-
-      setSnackbar({
-        open: true,
-        message: response?.message || 'Failed to fetch dashboard data.',
-        severity: 'error',
-      });
-      return false;
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error fetching dashboard data:', error);
-      }
-
-      setSnackbar({
-        open: true,
-        message: error?.message || 'Failed to fetch dashboard data.',
-        severity: 'error',
-      });
-      return false;
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const handleFilterChange = async (_event, nextValue) => {
-    if (!nextValue || nextValue === filterValue) return;
-
-    setFilterValue(nextValue);
-    await loadDashboardData({
-      nextFilterValue: nextValue,
-      nextBranchId: selectedBranchId,
-    });
-  };
-
-  const handleStoreScopeChange = async (nextBranchId) => {
-    if (nextBranchId === selectedBranchId) return;
-
-    setSelectedBranchId(nextBranchId);
-    await loadDashboardData({
-      nextFilterValue: filterValue,
-      nextBranchId,
-    });
-  };
-
-  const handleProductsTabChange = (_event, nextValue) => {
-    if (!nextValue || nextValue === productsTab) return;
-    setProductsTab(nextValue);
-  };
-
-  const handleCustomersTabChange = (_event, nextValue) => {
-    if (!nextValue || nextValue === customersTab) return;
-    setCustomersTab(nextValue);
-  };
-
-  const handleFinanceTabChange = (_event, nextValue) => {
-    if (!nextValue || nextValue === financeTab) return;
-    setFinanceTab(nextValue);
-  };
-
-  const handleRefresh = async () => {
-    await loadDashboardData({
-      nextFilterValue: filterValue,
-      nextBranchId: selectedBranchId,
-    });
-  };
-
-  const closeSnackbar = () => {
-    setSnackbar({
-      open: false,
-      message: '',
-      severity: 'success',
-    });
-  };
-
-  return {
-    dashboardData,
-    dashboardFilters,
-    filterValue,
-    selectedBranchId,
-    productsTab,
-    customersTab,
-    financeTab,
-    isRefreshing,
-    isGeneratingAIForecast,
-    snackbar,
-    currencyData: DASHBOARD_CURRENCY,
-    storeBranches: accessibleBranches,
-    hasStoreScope,
-    isRestrictedToAssignedStores,
-    selectedStore,
-    activeFilterLabel,
-    storeScopeLabel,
-    storeScopeHelperText,
-    heroSummary: {
-      ...dashboardDefaultHeroSummary,
-      ...heroSummary,
-    },
-    metricCards,
-    topProducts,
-    topCustomers,
-    inventoryAlerts,
-    financeTrendData,
-    aiInsightCards,
-    hasDashboardData,
-    handleFilterChange,
-    handleStoreScopeChange,
-    handleProductsTabChange,
-    handleCustomersTabChange,
-    handleFinanceTabChange,
-    handleRefresh,
-    closeSnackbar,
-  };
+	return {
+		filteredDashboardData,
+		productsTab,
+		customersTab,
+		financeTab,
+		isRefreshing,
+		draftFromDate: draftDateRange.fromDate,
+		draftToDate: draftDateRange.toDate,
+		dateRangeLabel,
+		hasActiveDateRange,
+		comparisonLabel,
+		snackbar,
+		showSnackbar,
+		handleProductsTabChange,
+		handleCustomersTabChange,
+		handleFinanceTabChange,
+		handleDateRangeSelection,
+		handleResetDateRange,
+		handleRefresh,
+		closeSnackbar,
+	};
 }

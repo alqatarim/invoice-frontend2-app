@@ -6,14 +6,12 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { InvoiceSchema } from '@/views/invoices/InvoiceSchema';
 import { formatDateForInput } from '@/utils/dateUtils';
 import { paymentMethods } from '@/data/dataSets';
+import { useGlobalLocationScope } from '@/contexts/GlobalLocationContext';
 import { notifyNotistackFormValidationErrors } from '@/handlers/shared/notifyNotistackFormValidationErrors';
 import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 import { calculateInvoiceTotals } from '@/utils/salesTotals';
 const CASHIER_SIGNATURE_STORAGE_KEY = 'addInvoice.cashierSignatureId';
-
-const isStoreBranch = (branch) =>
-  String(branch?.branchType || branch?.kind || '').trim().toLowerCase() === 'store';
 
 const createEmptyInvoiceItem = () => ({
   productId: '',
@@ -101,17 +99,12 @@ export default function useAddInvoiceFeatureHandler({
   taxRates = [],
   initialBanks = [],
   signatures = [],
-  branchesData = [],
   onSave,
   addBank,
   enqueueSnackbar,
   closeSnackbar,
   schema = InvoiceSchema,
 }) {
-  const storeBranches = useMemo(
-    () => (Array.isArray(branchesData) ? branchesData : []).filter(isStoreBranch),
-    [branchesData]
-  );
   const signOptions = useMemo(
     () =>
       Array.isArray(signatures)
@@ -130,14 +123,19 @@ export default function useAddInvoiceFeatureHandler({
       )?._id || 'walk-in',
     [customersData]
   );
-  const defaultBranchId =
-    storeBranches.length === 1 ? storeBranches[0]?.branchId || '' : '';
+  const {
+    selectedLocation,
+    selectedLocationId,
+    selectedLocationType,
+    storeOnlyValidationMessage,
+  } = useGlobalLocationScope();
 
   const {
     control,
     handleSubmit,
     setValue,
     getValues,
+    watch,
     trigger,
     formState: { errors },
   } = useForm({
@@ -147,7 +145,8 @@ export default function useAddInvoiceFeatureHandler({
       referenceNo: '',
       customerId: '',
       payment_method: '',
-      branchId: defaultBranchId,
+      branchId: '',
+      branchType: '',
       isWalkIn: false,
       invoiceDate: formatDateForInput(new Date()),
       dueDate: formatDateForInput(new Date()),
@@ -168,7 +167,7 @@ export default function useAddInvoiceFeatureHandler({
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control,
     name: 'items',
   });
@@ -217,6 +216,11 @@ export default function useAddInvoiceFeatureHandler({
 
     window.localStorage.setItem(CASHIER_SIGNATURE_STORAGE_KEY, selectedCashierSignatureId);
   }, [selectedCashierSignatureId]);
+
+  useEffect(() => {
+    setValue('branchId', selectedLocationId || '', { shouldValidate: true });
+    setValue('branchType', selectedLocationType || '', { shouldValidate: true });
+  }, [selectedLocationId, selectedLocationType, setValue]);
 
   useEffect(() => {
     const totals = calculateInvoiceTotals(watchItems, watchRoundOff);
@@ -330,9 +334,116 @@ export default function useAddInvoiceFeatureHandler({
     }
   }, [getValues, productData, remove]);
 
+  const clearItems = useCallback(() => {
+    replace([]);
+    setProductsCloneData(Array.isArray(productData) ? productData : []);
+  }, [productData, replace]);
+
+  const appendItem = useCallback((item = {}) => {
+    const nextItem = {
+      ...createEmptyInvoiceItem(),
+      ...item,
+      key: item?.key || Date.now(),
+    };
+
+    append(nextItem);
+
+    if (nextItem.productId) {
+      setProductsCloneData((prev) =>
+        prev.filter((entry) => entry?._id !== nextItem.productId)
+      );
+    }
+  }, [append]);
+
   const handleAddEmptyRow = useCallback(() => {
     append(createEmptyInvoiceItem());
   }, [append]);
+
+  const handleQuickAddProduct = useCallback((product, options = {}) => {
+    if (!product?._id) return;
+
+    const {
+      forceNewLine = false,
+      quantityOverride,
+      rateOverride,
+      barcodeOverride,
+      scaleBarcodeMeta = null,
+    } = options;
+
+    const currentItems = Array.isArray(getValues('items')) ? getValues('items') : [];
+    const parsedQuantity = Number(quantityOverride);
+    const quantityToAdd = Number.isFinite(parsedQuantity) && parsedQuantity > 0
+      ? parsedQuantity
+      : 1;
+
+    const existingIndex = forceNewLine
+      ? -1
+      : currentItems.findIndex(
+          (item) => String(item?.productId || '') === String(product._id)
+        );
+
+    if (existingIndex >= 0) {
+      const currentItem = currentItems[existingIndex] || {};
+      const nextQuantity = Number(
+        (Number(currentItem.quantity || 0) + quantityToAdd).toFixed(3)
+      );
+      const updatedItem = {
+        ...currentItem,
+        quantity: nextQuantity,
+        barcode: barcodeOverride || currentItem.barcode || product.barcode || '',
+        scaleBarcodeMeta: scaleBarcodeMeta || currentItem.scaleBarcodeMeta || null,
+        scaleBarcodeSummary:
+          scaleBarcodeMeta?.summary ||
+          currentItem.scaleBarcodeSummary ||
+          '',
+        isRateFormUpadted: true,
+      };
+
+      setValue(`items.${existingIndex}.quantity`, nextQuantity, { shouldDirty: true });
+      setValue(`items.${existingIndex}.barcode`, updatedItem.barcode, { shouldDirty: true });
+      setValue(
+        `items.${existingIndex}.scaleBarcodeMeta`,
+        updatedItem.scaleBarcodeMeta,
+        { shouldDirty: true }
+      );
+      setValue(
+        `items.${existingIndex}.scaleBarcodeSummary`,
+        updatedItem.scaleBarcodeSummary,
+        { shouldDirty: true }
+      );
+      updateCalculatedFields(existingIndex, updatedItem);
+      return;
+    }
+
+    const formattedItem = {
+      ...createEmptyInvoiceItem(),
+      ...formatInvoiceItem(product, {
+        applyPromotions: true,
+        quantityOverride,
+        rateOverride,
+        barcodeOverride,
+        scaleBarcodeMeta,
+      }),
+      key: Date.now(),
+    };
+
+    const emptyRowIndex = forceNewLine
+      ? -1
+      : currentItems.findIndex((item) => !item?.productId);
+
+    if (emptyRowIndex >= 0) {
+      Object.entries(formattedItem).forEach(([key, value]) => {
+        setValue(`items.${emptyRowIndex}.${key}`, value, { shouldDirty: true });
+      });
+
+      setProductsCloneData((prev) =>
+        prev.filter((entry) => entry?._id !== formattedItem.productId)
+      );
+      return;
+    }
+
+    appendItem(formattedItem);
+  }, [appendItem, getValues, setValue, updateCalculatedFields]);
 
   const handleSignatureSelection = (selected, field) => {
     if (selected) {
@@ -490,11 +601,14 @@ export default function useAddInvoiceFeatureHandler({
     autoFocusFirstProductCell: true,
     control,
     handleSubmit,
+    watch,
+    trigger,
     setValue,
     getValues,
     errors,
     fields,
     watchItems,
+    watchRoundOff,
     productsCloneData,
     banks,
     newBank,
@@ -508,18 +622,23 @@ export default function useAddInvoiceFeatureHandler({
     discountMenu,
     setDiscountMenu,
     taxMenu,
+    setTaxMenu,
     openBankModal,
     setOpenBankModal,
     snackbar,
     setSnackbar,
-    storeBranches,
+    selectedLocation,
+    branchSelectionError: storeOnlyValidationMessage,
     taxRates,
     updateCalculatedFields,
     handleUpdateItemProduct,
     handleClearAppliedPromotion,
     handleClearScaleBarcode,
     handleDeleteItem,
+    clearItems,
+    appendItem,
     handleAddEmptyRow,
+    handleQuickAddProduct,
     handleAddBank,
     handleSignatureSelection,
     handleFormSubmit,

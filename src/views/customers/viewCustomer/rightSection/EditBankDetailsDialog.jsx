@@ -11,14 +11,13 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
-import CircularProgress from '@mui/material/CircularProgress'
 
 // Third-party Imports
 import { useSnackbar } from 'notistack'
 import { updateCustomer } from '@/app/(dashboard)/customers/actions'
 
 const EditBankDetailsDialog = ({ open, setOpen, customer, onSuccess }) => {
-  const { enqueueSnackbar } = useSnackbar()
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar()
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [formData, setFormData] = useState({
@@ -96,6 +95,11 @@ const EditBankDetailsDialog = ({ open, setOpen, customer, onSuccess }) => {
     }
 
     setLoading(true)
+    const loadingKey = enqueueSnackbar('Updating bank details...', {
+      variant: 'info',
+      persist: true,
+      preventDuplicate: true,
+    })
 
     try {
       const updateData = {
@@ -105,20 +109,32 @@ const EditBankDetailsDialog = ({ open, setOpen, customer, onSuccess }) => {
 
       const result = await updateCustomer(customer._id, updateData)
 
+      closeSnackbar(loadingKey)
+
       if (result.success) {
-        enqueueSnackbar('Bank details updated successfully!', { variant: 'success' })
+        enqueueSnackbar('Bank details updated successfully!', {
+          variant: 'success',
+          autoHideDuration: 3000,
+        })
         onSuccess?.(result.data)
         setOpen(false)
       } else {
-        enqueueSnackbar(result.message || 'Failed to update bank details', { variant: 'error' })
+        enqueueSnackbar(result.message || 'Failed to update bank details', {
+          variant: 'error',
+          autoHideDuration: 5000,
+        })
       }
     } catch (error) {
       console.error('Error updating bank details:', error)
-      enqueueSnackbar(error.message || 'An error occurred while updating bank details', { variant: 'error' })
+      closeSnackbar(loadingKey)
+      enqueueSnackbar(error.message || 'An error occurred while updating bank details', {
+        variant: 'error',
+        autoHideDuration: 5000,
+      })
     } finally {
       setLoading(false)
     }
-  }, [customer, enqueueSnackbar, formData, onSuccess, setOpen, validateForm])
+  }, [closeSnackbar, customer, enqueueSnackbar, formData, onSuccess, setOpen, validateForm])
 
   return (
     <Dialog fullWidth open={open} onClose={handleClose} maxWidth='sm' scroll='body'>
@@ -213,9 +229,8 @@ const EditBankDetailsDialog = ({ open, setOpen, customer, onSuccess }) => {
             variant='contained'
             type='submit'
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : null}
           >
-            {loading ? 'Updating...' : 'Update Bank Details'}
+            Update Bank Details
           </Button>
           <Button
             variant='outlined'

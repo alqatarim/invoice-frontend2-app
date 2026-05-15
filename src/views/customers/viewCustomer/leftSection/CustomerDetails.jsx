@@ -1,6 +1,3 @@
-// Next Imports
-import Link from 'next/link'
-
 // MUI Imports
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -8,22 +5,30 @@ import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
-import { useMemo, useState } from 'react'
+import Box from '@mui/material/Box'
+import { useState } from 'react'
 
 // Component Imports
 import CustomAvatar from '@core/components/mui/Avatar'
 import EditCustomerDialog from './EditCustomerDialog'
-import { formatCurrency } from '@/utils/currencyUtils'
+import { RiyalIcon } from '@/utils/currencyUtils'
 import { Icon } from '@iconify/react'
 
 // Utils Imports
 import { getInitials } from '@/utils/getInitials'
+
+const toFiniteNumber = value => {
+  const numericValue = Number(value)
+
+  return Number.isFinite(numericValue) ? numericValue : 0
+}
 
 const CustomerDetails = ({ customerData, cardDetails, permissions, onCustomerUpdate }) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
 
   // Extract and transform customer data
   const customer = customerData
+  const totalAmount = toFiniteNumber(cardDetails?.totalRecs?.[0]?.amount)
 
   // Vars
   const buttonProps = {
@@ -69,34 +74,41 @@ const CustomerDetails = ({ customerData, cardDetails, permissions, onCustomerUpd
                 </Typography>
               </div>
             </div>
-            <div className='flex items-center justify-around gap-4 flex-wrap is-full'>
-              <div className='flex items-center gap-4'>
-                <CustomAvatar variant='rounded' skin='light' color='primary' size={48}>
-                  <Icon icon='iconamoon:invoice' width={28} />
+            <Box className='flex items-center justify-around gap-2 flex-wrap is-full'
+              sx={{ paddingHorizontal: -20 }}>
+              <div className='flex items-center justify-between gap-1.5'>
+                <CustomAvatar variant='rounded' skin='light' color='primary' size={36}>
+                  <Icon icon='iconamoon:invoice' width={23} />
                 </CustomAvatar>
-                <div className='text-left'>
-                  <Typography variant='h5' className='font-semibold'>
-                    {cardDetails?.totalRecs?.[0]?.count || 0}
-                  </Typography>
-                  <Typography variant='body2' color='text.secondary'>
+                <div className='flex flex-col items-start justify-center'>
+                  <Typography variant='body2' color='text.secondary' fontWeight={500}>
                     Invoices
                   </Typography>
+                  <Typography variant='h5' className='font-semibold text-[1.1rem]'>
+                    {cardDetails?.totalRecs?.[0]?.count || 0}
+                  </Typography>
+
                 </div>
               </div>
-              <div className='flex items-center gap-4'>
-                <CustomAvatar variant='rounded' skin='light' color='primary' size={48}>
-                  <Icon icon='lucide:saudi-riyal' width={23} />
+              <div className='flex items-center justify-between gap-1.5'>
+                <CustomAvatar variant='rounded' skin='light' color='primary' size={36}>
+                  <Icon icon='lucide:saudi-riyal' width={21} />
                 </CustomAvatar>
-                <div className='text-center'>
-                  <Typography variant='h5' className='font-semibold'>
-                    {formatCurrency(cardDetails?.totalRecs?.[0]?.amount || 0)}
+                <div className='text-start'>
+                  <Typography variant='body2' color='text.secondary' fontWeight={500}>
+                    Total
                   </Typography>
-                  <Typography variant='body2' color='text.secondary'>
-                    Total Amount
-                  </Typography>
+
+                  <div className='flex flex-row items-center justify-start gap-0'>
+                    <RiyalIcon width={14} />
+                    <Typography variant='h5' className='font-semibold text-[1.1rem]'>
+                      {totalAmount.toFixed(0)}
+                    </Typography>
+
+                  </div>
                 </div>
               </div>
-            </div>
+            </Box>
           </div>
 
           <div className='flex flex-col gap-4'>

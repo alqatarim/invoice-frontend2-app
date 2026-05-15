@@ -12,7 +12,6 @@ import {
   Grid,
   Box,
   IconButton,
-  CircularProgress,
   Typography,
   Skeleton,
   Chip,
@@ -29,9 +28,7 @@ const Category = ({
   controller,
   title,
   submitLabel,
-  submittingLabel,
-  closeLabel = 'Cancel',
-  onEdit
+  closeLabel = 'Cancel'
 }) => {
   const theme = useTheme()
   const {
@@ -120,9 +117,24 @@ const Category = ({
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Skeleton variant='rounded' height={56} />
               </Grid>
-              <Grid size={{ xs: 12 }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Skeleton variant='rounded' height={56} />
               </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Skeleton variant='rounded' height={56} />
+              </Grid>
+              {isViewMode ? (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Skeleton variant='rounded' height={56} />
+                </Grid>
+              ) : (
+                <Grid size={{ xs: 12 }}>
+                  <Box className='flex items-center gap-3'>
+                    <Skeleton variant='rounded' width={42} height={26} />
+                    <Skeleton variant='text' width={72} height={24} />
+                  </Box>
+                </Grid>
+              )}
             </Grid>
           </Box>
         ) : error ? (
@@ -281,7 +293,6 @@ const Category = ({
                                 variant='contained'
                                 size='small'
                                 color='primary'
-                                disabled={isSubmitting}
                                 onClick={() => {
                                   const fileInput = document.querySelector(`#${replaceInputId}`)
 
@@ -310,7 +321,6 @@ const Category = ({
                               <CustomIconButton
                                 size='small'
                                 onClick={handleImageDelete}
-                                disabled={isSubmitting}
                                 color='error'
                                 variant='contained'
                               >
@@ -456,11 +466,6 @@ const Category = ({
                   />
                 </Grid>
 
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant='body2' color='text.secondary'>
-                    Category ID: {categoryData?._id || 'N/A'}
-                  </Typography>
-                </Grid>
               </Grid>
             ) : (
               <form onSubmit={handleSubmit(handleFormSubmit)} id={`${mode}-category-form`}>
@@ -477,7 +482,6 @@ const Category = ({
                           placeholder='Enter category name'
                           error={!!errors.name}
                           helperText={errors.name?.message}
-                          disabled={isSubmitting}
                           required
                           InputProps={{
                             startAdornment: (
@@ -507,7 +511,6 @@ const Category = ({
                           placeholder='Enter category slug'
                           error={!!errors.slug}
                           helperText={errors.slug?.message}
-                          disabled={isSubmitting}
                           required
                           variant='outlined'
                         />
@@ -525,7 +528,7 @@ const Category = ({
                           select
                           fullWidth
                           label='Parent Category'
-                          disabled={isSubmitting || optionsLoading}
+                          disabled={optionsLoading}
                           variant='outlined'
                         >
                           <MenuItem value=''>None</MenuItem>
@@ -549,7 +552,7 @@ const Category = ({
                           select
                           fullWidth
                           label='Tax Classification'
-                          disabled={isSubmitting || optionsLoading}
+                          disabled={optionsLoading}
                           variant='outlined'
                         >
                           <MenuItem value=''>No Tax</MenuItem>
@@ -601,26 +604,14 @@ const Category = ({
         >
           {closeLabel}
         </Button>
-        {isViewMode ? (
-          onEdit && (
-            <Button
-              variant='contained'
-              onClick={() => onEdit(categoryData?._id)}
-              disabled={!categoryData?._id}
-              startIcon={<Icon icon='mdi:pencil-outline' />}
-            >
-              Edit Category
-            </Button>
-          )
-        ) : (
+        {!isViewMode && (
           <Button
             type='submit'
             form={`${mode}-category-form`}
             variant='contained'
             disabled={isSubmitting || loading || (mode === 'edit' && !categoryData)}
-            startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
           >
-            {isSubmitting ? submittingLabel : submitLabel}
+            {submitLabel}
           </Button>
         )}
       </DialogActions>

@@ -1,62 +1,89 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import AppSnackbar from '@/components/shared/AppSnackbar';
-import AddProductDialog from './AddProductDialog';
+import { useSnackbar } from 'notistack';
+import AppSnackbarProvider from '@/components/shared/AppSnackbarProvider';
+import AddProduct from './AddProduct';
+import useAddProductViewHandler from './handler';
 import { addProduct } from '@/app/(dashboard)/products/actions';
 
-const AddProductPage = ({
+const AddProductContent = ({
   initialDropdownData = { units: [], categories: [], taxes: [] },
   initialErrorMessage = '',
 }) => {
   const router = useRouter();
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'success',
-  });
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+  const onError = useCallback(message => {
+    enqueueSnackbar(message, {
+      variant: 'error',
+      autoHideDuration: 5000,
+      preventDuplicate: true,
+    });
+  }, [enqueueSnackbar]);
+
+  const onSuccess = useCallback(message => {
+    enqueueSnackbar(message, {
+      variant: 'success',
+      autoHideDuration: 3000,
+    });
+  }, [enqueueSnackbar]);
+
+  useEffect(() => {
+    if (initialErrorMessage) {
+      onError(initialErrorMessage);
+    }
+  }, [initialErrorMessage, onError]);
 
   const handleClose = useCallback(() => {
     router.push('/products/product-list');
   }, [router]);
 
   const handleSave = useCallback(async (data, preparedImage) => {
+    const loadingKey = enqueueSnackbar('Submitting product...', {
+      variant: 'info',
+      persist: true,
+      preventDuplicate: true,
+    });
+
     try {
       const response = await addProduct(data, preparedImage);
+      closeSnackbar(loadingKey);
+
       if (!response.success) {
         const message = response.error?.message || response.message || 'Failed to add product';
-        setSnackbar({ open: true, message, severity: 'error' });
+        onError(message);
         return { success: false, message };
       }
-      setSnackbar({ open: true, message: 'Product added successfully!', severity: 'success' });
+      onSuccess('Product added successfully!');
       handleClose();
       return response;
     } catch (error) {
       const message = error.message || 'Failed to add product';
-      setSnackbar({ open: true, message, severity: 'error' });
+      closeSnackbar(loadingKey);
+      onError(message);
       return { success: false, message };
     }
-  }, [handleClose]);
+  }, [closeSnackbar, enqueueSnackbar, handleClose, onError, onSuccess]);
+
+  const controller = useAddProductViewHandler({
+    onClose: handleClose,
+    onSave: handleSave,
+    initialDropdownData,
+  });
 
   return (
     <>
-      <AddProductDialog
-        open
-        variant="page"
-        onClose={handleClose}
-        onSave={handleSave}
-        initialDropdownData={initialDropdownData}
-      />
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        autoHideDuration={6000}
-      />
+      <AddProduct controller={controller} />
     </>
   );
 };
+
+const AddProductPage = props => (
+  <AppSnackbarProvider maxSnack={7}>
+    <AddProductContent {...props} />
+  </AppSnackbarProvider>
+);
 
 export default AddProductPage;

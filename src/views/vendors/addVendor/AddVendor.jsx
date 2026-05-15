@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import {
@@ -17,16 +19,11 @@ import {
   Switch,
   Box,
   IconButton,
-  CircularProgress,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import { Icon } from '@iconify/react';
 
-import { useAddVendorHandlers } from '@/handlers/vendors/addVendor';
+import useAddVendorHandler from './handler';
 
-const AddVendorDialog = ({ open, onClose, onSave }) => {
-  const theme = useTheme();
-
+const AddVendorDialog = ({ open, onClose, onSave, onError }) => {
   const {
     control,
     handleSubmit,
@@ -35,26 +32,15 @@ const AddVendorDialog = ({ open, onClose, onSave }) => {
     vendorBalanceTypes,
     isSubmitting,
     handleFormSubmit,
-    reset,
-  } = useAddVendorHandlers({
-    onSave: async (data) => {
-      const result = await onSave(data);
-      if (result.success) {
-        reset();
-        onClose();
-      }
-      return result;
-    },
-    enqueueSnackbar: () => {}, // Will be handled by parent
-    closeSnackbar: () => {}, // Will be handled by parent
+    handleClose,
+    handleValidationError,
+  } = useAddVendorHandler({
+    onClose,
+    onError,
+    onSave,
   });
 
   const watchBalance = watch('balance');
-
-  const handleClose = () => {
-    reset();
-    onClose();
-  };
 
   return (
     <Dialog fullWidth open={open} onClose={handleClose} maxWidth='md' scroll='body'>
@@ -65,7 +51,7 @@ const AddVendorDialog = ({ open, onClose, onSave }) => {
         Add New Vendor
       </DialogTitle>
 
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
+      <form onSubmit={handleSubmit(handleFormSubmit, handleValidationError)}>
         <DialogContent className='overflow-visible pbs-0 pbe-6 pli-12 sm:pli-12'>
           <IconButton onClick={handleClose} className='absolute block-start-4 inline-end-4' disabled={isSubmitting}>
             <i className='ri-close-line text-textSecondary' />
@@ -84,7 +70,6 @@ const AddVendorDialog = ({ open, onClose, onSave }) => {
                     placeholder="Enter vendor name"
                     error={!!errors.vendor_name}
                     helperText={errors.vendor_name?.message}
-                    disabled={isSubmitting}
                     required
                   />
                 )}
@@ -105,7 +90,6 @@ const AddVendorDialog = ({ open, onClose, onSave }) => {
                     placeholder="Enter email address"
                     error={!!errors.vendor_email}
                     helperText={errors.vendor_email?.message}
-                    disabled={isSubmitting}
                     required
                   />
                 )}
@@ -125,7 +109,6 @@ const AddVendorDialog = ({ open, onClose, onSave }) => {
                     placeholder="Enter phone number"
                     error={!!errors.vendor_phone}
                     helperText={errors.vendor_phone?.message}
-                    disabled={isSubmitting}
                     required
                   />
                 )}
@@ -147,7 +130,6 @@ const AddVendorDialog = ({ open, onClose, onSave }) => {
                     inputProps={{ min: 0, step: 0.01 }}
                     error={!!errors.balance}
                     helperText={errors.balance?.message}
-                    disabled={isSubmitting}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -180,7 +162,7 @@ const AddVendorDialog = ({ open, onClose, onSave }) => {
                           <FormControlLabel
                             key={type.value}
                             value={type.value}
-                            control={<Radio size="small" disabled={isSubmitting} />}
+                            control={<Radio size="small" />}
                             label={type.label}
                           />
                         ))}
@@ -212,7 +194,6 @@ const AddVendorDialog = ({ open, onClose, onSave }) => {
                           checked={field.value}
                           onChange={(e) => field.onChange(e.target.checked)}
                           color="primary"
-                          disabled={isSubmitting}
                         />
                       }
                       label={field.value ? 'Active' : 'Inactive'}
@@ -237,9 +218,8 @@ const AddVendorDialog = ({ open, onClose, onSave }) => {
             variant='contained'
             type='submit'
             disabled={isSubmitting}
-            startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
           >
-            {isSubmitting ? 'Adding...' : 'Add Vendor'}
+            Submit
           </Button>
         </DialogActions>
       </form>

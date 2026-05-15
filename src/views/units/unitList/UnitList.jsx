@@ -1,8 +1,6 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
-import Link from 'next/link';
+import React, { useEffect, useState, useMemo, useCallback, memo } from 'react';
 import { Icon } from '@iconify/react';
 import {
-  Card,
   Button,
   Dialog,
   DialogTitle,
@@ -12,20 +10,19 @@ import {
   Checkbox,
   FormGroup,
   Grid,
-  ButtonGroup,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
+import { useSnackbar } from 'notistack';
 import { usePermission } from '@/Auth/usePermission';
 
 import UnitHead from '@/views/units/unitList/UnitHead';
+import ProductNavigationButtons from '@/views/products/listProduct/ProductNavigationButtons';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import { useUnitListHandlers } from '@/handlers/units/useUnitListHandlers';
+import { useUnitListHandler } from './handler';
 import { getUnitColumns } from './unitColumns';
 import AddUnitDialog from '@/views/units/addUnit/AddUnit';
 import EditUnitDialog from '@/views/units/editUnit/EditUnit';
-import { addUnit, updateUnit } from '@/app/(dashboard)/units/actions';
-import AppSnackbar from '@/components/shared/AppSnackbar';
+import ViewUnitDialog from '@/views/units/viewUnit';
 
 /**
  * Simplified UnitList Component - eliminates redundant state and complexity
@@ -36,7 +33,7 @@ const UnitList = ({
   initialErrorMessage = ''
 }) => {
   const theme = useTheme();
-  const { data: session } = useSession();
+  const { enqueueSnackbar } = useSnackbar();
 
   // Permissions
   const permissions = {
@@ -46,111 +43,43 @@ const UnitList = ({
     canDelete: usePermission('unit', 'delete'),
   };
 
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'success',
-  });
-
-  // Dialog states
-  const [dialogStates, setDialogStates] = useState({
-    add: false,
-    edit: false,
-    editUnitId: null,
-  });
-
   // Notification handlers
   const onError = useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'error' });
-  }, []);
+    enqueueSnackbar(msg, {
+      variant: 'error',
+      autoHideDuration: 5000,
+      preventDuplicate: true,
+    });
+  }, [enqueueSnackbar]);
 
   const onSuccess = useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'success' });
-  }, []);
+    enqueueSnackbar(msg, {
+      variant: 'success',
+      autoHideDuration: 3000,
+    });
+  }, [enqueueSnackbar]);
 
-  // Dialog handlers
-  const handleOpenAddDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, add: true }));
-  }, []);
+  const onInfo = useCallback(msg => {
+    enqueueSnackbar(msg, {
+      variant: 'info',
+      autoHideDuration: 3000,
+      preventDuplicate: true,
+    });
+  }, [enqueueSnackbar]);
 
-  const handleCloseAddDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, add: false }));
-  }, []);
-
-  const handleOpenEditDialog = useCallback((unitId) => {
-    setDialogStates(prev => ({ ...prev, edit: true, editUnitId: unitId }));
-  }, []);
-
-  const handleCloseEditDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, edit: false, editUnitId: null }));
-  }, []);
-
-  // CRUD operation handlers
-  const handleAddUnit = useCallback(async (formData) => {
-    try {
-      onSuccess('Adding unit...');
-      
-      const response = await addUnit(formData);
-      
-      if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to add unit';
-        onError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      onSuccess('Unit added successfully!');
-      // Refresh the list to show the new unit
-      try {
-        await handlers.refreshData();
-      } catch (refreshError) {
-        console.warn('Failed to refresh unit list after add:', refreshError);
-        // Continue anyway - the operation was successful
-      }
-      return response;
-    } catch (error) {
-      const errorMessage = error.message || 'An unexpected error occurred';
-      onError(errorMessage);
-      return { success: false, message: errorMessage };
+  useEffect(() => {
+    if (initialErrorMessage) {
+      onError(initialErrorMessage);
     }
-  }, [onSuccess, onError, handlers]);
-
-  const handleUpdateUnit = useCallback(async (unitId, formData) => {
-    try {
-      onSuccess('Updating unit...');
-      
-      const response = await updateUnit(unitId, formData);
-      
-      if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to update unit';
-        onError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      onSuccess('Unit updated successfully!');
-      // Refresh the list to show the updated unit
-      try {
-        await handlers.refreshData();
-      } catch (refreshError) {
-        console.warn('Failed to refresh unit list after update:', refreshError);
-        // Continue anyway - the operation was successful
-      }
-      return response;
-    } catch (error) {
-      const errorMessage = error.message || 'An unexpected error occurred';
-      onError(errorMessage);
-      return { success: false, message: errorMessage };
-    }
-  }, [onSuccess, onError, handlers]);
+  }, [initialErrorMessage, onError]);
 
   // Initialize simplified handlers
-  const handlers = useUnitListHandlers({
+  const handlers = useUnitListHandler({
     initialUnits,
     initialPagination,
     onError,
+    onInfo,
     onSuccess,
-    // Override handlers to use dialogs instead of navigation
-    onEdit: handleOpenEditDialog,
   });
 
   // Column management
@@ -176,6 +105,13 @@ const UnitList = ({
 
   const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
 
+  const handleRowClick = useCallback(
+    row => {
+      handlers.handleView(row?._id || row?.id);
+    },
+    [handlers]
+  );
+
   React.useEffect(() => {
     if (columns.length > 0 && columnsState.length === 0) {
       setColumns(columns);
@@ -200,6 +136,7 @@ const UnitList = ({
     const cellHandlers = {
       handleDelete: handlers.handleDelete,
       handleEdit: handlers.handleEdit,
+      handleView: handlers.handleView,
       permissions,
       pagination: handlers.pagination,
     };
@@ -219,37 +156,13 @@ const UnitList = ({
   }), [handlers.pagination]);
 
   return (
-    <div className='flex flex-col gap-5'>
+    <div className='flex flex-col gap-0'>
       <UnitHead
         unitListData={handlers.units}
         isLoading={handlers.loading}
       />
 
-      {/* Navigation Buttons */}
-      <div className="flex justify-center mb-4">
-        <ButtonGroup variant="outlined" color="primary">
-          <Button
-            component={Link}
-            href="/products/product-list"
-            startIcon={<Icon icon="mdi:package-variant" />}
-          >
-            Products
-          </Button>
-          <Button
-            component={Link}
-            href="/categories/category-list"
-            startIcon={<Icon icon="mdi:shape" />}
-          >
-            Categories
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Icon icon="mdi:ruler" />}
-          >
-            Units
-          </Button>
-        </ButtonGroup>
-      </div>
+      <ProductNavigationButtons activeTab='units' />
 
       <Grid container spacing={3}>
         <Grid size={{xs:12}}>
@@ -257,7 +170,7 @@ const UnitList = ({
             addRowButton={
               permissions.canCreate && (
                 <Button
-                  onClick={handleOpenAddDialog}
+                  onClick={handlers.handleOpenAddDialog}
                   variant="contained"
                   startIcon={<Icon icon="tabler:plus" />}
                 >
@@ -276,6 +189,7 @@ const UnitList = ({
             sortDirection={handlers.sortDirection}
             noDataText="No units found"
             rowKey={(row) => row._id || row.id}
+            onRowClick={handleRowClick}
             showSearch={true}
             searchValue={handlers.searchTerm || ''}
             onSearchChange={handlers.handleSearchInputChange}
@@ -318,26 +232,24 @@ const UnitList = ({
         </DialogActions>
       </Dialog>
 
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        autoHideDuration={6000}
-      />
-
       {/* Unit Dialogs */}
       <AddUnitDialog
-        open={dialogStates.add}
-        onClose={handleCloseAddDialog}
-        onSave={handleAddUnit}
+        open={handlers.dialogStates.add}
+        onClose={handlers.handleCloseAddDialog}
+        onSave={handlers.handleAddUnit}
       />
 
       <EditUnitDialog
-        open={dialogStates.edit}
-        unitId={dialogStates.editUnitId}
-        onClose={handleCloseEditDialog}
-        onSave={handleUpdateUnit}
+        open={handlers.dialogStates.edit}
+        unitId={handlers.dialogStates.editUnitId}
+        onClose={handlers.handleCloseEditDialog}
+        onSave={handlers.handleUpdateUnit}
+      />
+
+      <ViewUnitDialog
+        open={handlers.dialogStates.view}
+        unitId={handlers.dialogStates.viewUnitId}
+        onClose={handlers.handleCloseViewDialog}
       />
     </div>
   );

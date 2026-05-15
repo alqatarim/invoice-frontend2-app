@@ -93,6 +93,23 @@ export const PosSchema = yup.object().shape({
     .string()
     .required('Choose payment method'),
 
+  branchId: yup
+    .string()
+    .required('Choose a location from the top bar')
+    .test(
+      'store-only-location',
+      'The selected location is not a store. Choose a store from the top bar.',
+      function validateStoreOnlyLocation(value) {
+        if (!value) return false;
+
+        return String(this.parent.branchType || '').trim().toLowerCase() === 'store';
+      }
+    ),
+
+  branchType: yup
+    .string()
+    .nullable(),
+
   invoiceDate: yup
     .date()
     .required('Invoice date is required')

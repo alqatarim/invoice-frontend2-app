@@ -14,8 +14,8 @@ export const dashboardFilters = [
 ];
 
 export const dashboardInsightTabs = [
-	{ value: "all", label: "All" },
-	{ value: "trending", label: "Trending" },
+	{ value: "all", label: "All", color: "primary" },
+	{ value: "trending", label: "Trending", color: "info" },
 ];
 
 export const dashboardFinanceTabs = [
@@ -208,10 +208,16 @@ export const genderOptions = [
 // Profile tabs for the profile page
 export const profileTabs = [
 	{ value: "profile", label: "Profile", icon: "ri-user-3-line" },
-	{ value: "teams", label: "Teams", icon: "ri-team-line" },
+	{ value: "access", label: "Access", icon: "ri-shield-keyhole-line" },
 	{ value: "projects", label: "Projects", icon: "ri-computer-line" },
 	{ value: "connections", label: "Connections", icon: "ri-link-m" },
 ];
+
+// Icon mapping for branch/location types
+export const locationTypeIcons = {
+	Store: { icon: 'ri-store-2-line', filledIcon: 'ri-store-2-fill' },
+	Warehouse: { icon: 'mdi:warehouse', filledIcon: 'mdi:warehouse' },
+}
 
 // Role options with icon for user roles
 export const roleOptions = [

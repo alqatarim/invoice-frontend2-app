@@ -21,7 +21,10 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers?.handleView?.(row._id)
+        onClick: event => {
+          event?.stopPropagation?.();
+          handlers?.handleView?.(row._id);
+        }
       }
     });
   }
@@ -32,7 +35,10 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={editAction?.icon || 'mdi:edit-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers?.handleEdit?.(row._id)
+        onClick: event => {
+          event?.stopPropagation?.();
+          handlers?.handleEdit?.(row._id);
+        }
       }
     });
   }
@@ -43,7 +49,10 @@ const ActionCell = ({ row, handlers, permissions }) => {
       icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
       menuItemProps: {
         className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers.handleDelete(row._id)
+        onClick: event => {
+          event?.stopPropagation?.();
+          handlers.handleDelete(row._id);
+        }
       }
     });
   }

@@ -23,57 +23,7 @@ const CustomerLeftOverview = ({ customerData, cardDetails, permissions, onCustom
 
   const { totalStats, paidStats, outstandingStats, draftedStats, cancelledStats, overdueStats } = stats
 
-  // Invoice statistics configuration
-  const invoiceStats = [
-    {
-      label: 'Total',
-      amount: totalStats.amount,
-      count: totalStats.count,
-      color: 'primary',
-      icon: 'ri-file-text-line',
-      description: 'All invoices'
-    },
-    {
-      label: 'Paid',
-      amount: paidStats.amount,
-      count: paidStats.count,
-      color: 'success',
-      icon: 'ri-check-double-line',
-      description: 'Completed payments'
-    },
-    {
-      label: 'Outstanding',
-      amount: outstandingStats.amount,
-      count: outstandingStats.count,
-      color: 'warning',
-      icon: 'ri-time-line',
-      description: 'Pending payments'
-    },
-    {
-      label: 'Drafted',
-      amount: draftedStats.amount,
-      count: draftedStats.count,
-      color: 'info',
-      icon: 'ri-draft-line',
-      description: 'Draft invoices'
-    },
-    {
-      label: 'Cancelled',
-      amount: cancelledStats.amount,
-      count: cancelledStats.count,
-      color: 'secondary',
-      icon: 'ri-close-circle-line',
-      description: 'Cancelled invoices'
-    },
-    {
-      label: 'Overdue',
-      amount: overdueStats.amount,
-      count: overdueStats.count,
-      color: 'error',
-      icon: 'ri-alarm-warning-line',
-      description: 'Overdue payments'
-    }
-  ]
+
 
   return (
     <Grid container spacing={6}>

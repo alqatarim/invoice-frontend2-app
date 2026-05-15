@@ -1,96 +1,81 @@
-'use client';
+'use client'
 
-import React, { useMemo } from 'react';
-import { Grid, Avatar, Typography } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import { Icon } from '@iconify/react';
-import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
+import React, { useMemo } from 'react'
+import { Grid } from '@mui/material'
+import PageIconHeader from '@components/headers/PageIconHeader'
+import HorizontalWithoutBorder from '@/components/card-statistics/HorizontalWithoutBorder'
+import { getDefaultCustomerSummary } from './customerSummary'
 
-/**
- * CustomerHead Component - Displays customer statistics header
- * Styled to match InvoiceHead component exactly
- */
-const CustomerHead = ({ customerListData }) => {
-  const theme = useTheme();
-  const cardCounts = useMemo(
+
+
+const percentOfTotal = (value, total) => Math.round((value / Math.max(total, 1)) * 100)
+
+const CustomerHead = ({ summary = getDefaultCustomerSummary() }) => {
+  // const theme = useTheme()
+
+  const customerStats = useMemo(
     () => ({
-      totalCustomers: customerListData?.totalCustomers || 0,
-      activeCustomers: customerListData?.activeCustomers || 0,
-      inactiveCustomers: customerListData?.inactiveCustomers || 0
+      ...getDefaultCustomerSummary(),
+      ...(summary || {}),
     }),
-    [customerListData]
-  );
+    [summary]
+  )
 
-  const currencySymbol = '$';
+  const statCards = useMemo(() => {
+    const {
+      totalCustomers,
+      paidCustomers,
+      outstandingCustomers,
+      dueCustomers,
+    } = customerStats
+
+    return [
+      {
+        title: 'Total Customers',
+        value: totalCustomers,
+        icon: 'mdi:user-multiple-outline',
+        color: 'primary',
+        indicator: `${totalCustomers} total`,
+      },
+      {
+        title: 'Paid Customers',
+        value: paidCustomers,
+        icon: 'mdi:account-check-outline',
+        color: 'success',
+        indicator: `${percentOfTotal(paidCustomers, totalCustomers)}%`,
+      },
+      {
+        title: 'Outstanding',
+        value: outstandingCustomers,
+        icon: 'mdi:account-clock-outline',
+        color: 'warning',
+        indicator: `${percentOfTotal(outstandingCustomers, totalCustomers)}%`,
+      },
+      {
+        title: 'Due Customers',
+        value: dueCustomers,
+        icon: 'mdi:account-alert-outline',
+        color: 'error',
+        indicator: `${percentOfTotal(dueCustomers, totalCustomers)}%`,
+      },
+    ]
+  }, [customerStats])
 
   return (
     <>
-      {/* Header Section */}
-      <div className="flex justify-start items-center mb-5">
-        <div className="flex items-center gap-2">
-          <Avatar className='bg-primary/12 text-primary bg-primaryLight w-12 h-12'>
-            <Icon icon="tabler:users" fontSize={26} />
-          </Avatar>
-          <Typography variant="h5" className="font-semibold text-primary">
-            Customers
-          </Typography>
-        </div>
-      </div>
+      <PageIconHeader title='Customers' iconSize={30} icon='mdi:account-group-outline' />
 
-      {/* Statistics Cards */}
-      <div className="mb-2">
-        <Grid container spacing={4}>
-          <Grid item size={{ xs: 12, sm: 6, md: 4 }}>
-            <HorizontalWithBorder
-              title="Total Customers"
-              subtitle="No of Customers"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={cardCounts.totalCustomers.toLocaleString()}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalCustomers || 0}
-              trendNumberVariant='body1'
-              avatarIcon='tabler:users'
-              color="primary"
-              iconSize='30px'
-            />
-          </Grid>
-
-          <Grid item size={{ xs: 12, sm: 6, md: 4 }}>
-            <HorizontalWithBorder
-              title="Active Customers"
-              subtitle="No of Active"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={cardCounts.activeCustomers.toLocaleString()}
-              statsVariant='h4'
-              trendNumber={cardCounts.activeCustomers || 0}
-              trendNumberVariant='body1'
-              avatarIcon='tabler:user-check'
-              color="success"
-              iconSize='30px'
-            />
-          </Grid>
-
-          <Grid item size={{ xs: 12, sm: 6, md: 4 }}>
-            <HorizontalWithBorder
-              title="Inactive Customers"
-              subtitle="No of Inactive"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={cardCounts.inactiveCustomers.toLocaleString()}
-              statsVariant='h4'
-              trendNumber={cardCounts.inactiveCustomers || 0}
-              trendNumberVariant='body1'
-              avatarIcon='tabler:user-off'
-              color="warning"
-              iconSize='30px'
-            />
-          </Grid>
+      <div className='mb-2'>
+        <Grid container className='flex flex-wrap justify-between gap-0'>
+          {statCards.map((card, index) => (
+            <Grid key={card.title} >
+              <HorizontalWithoutBorder {...card} />
+            </Grid>
+          ))}
         </Grid>
       </div>
     </>
-  );
-};
+  )
+}
 
-export default CustomerHead;
+export default CustomerHead

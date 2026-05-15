@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+'use client';
+
+import React from 'react';
 import { Controller } from 'react-hook-form';
 import {
   Dialog,
@@ -20,22 +22,17 @@ import {
   CircularProgress,
   Typography,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import { getVendorById } from '@/app/(dashboard)/vendors/actions';
 
-import { useEditVendorHandlers } from '@/handlers/vendors/editVendor';
+import useEditVendorHandler from './handler';
 
 const EditVendorDialog = ({
   open,
   vendorId,
   onClose,
   onSave,
+  onError,
   initialVendorData = null
 }) => {
-  const theme = useTheme();
-  const [vendorData, setVendorData] = React.useState(initialVendorData);
-  const [loading, setLoading] = React.useState(false);
-
   const {
     control,
     handleSubmit,
@@ -44,49 +41,20 @@ const EditVendorDialog = ({
     vendorBalanceTypes,
     isSubmitting,
     handleFormSubmit,
-    reset,
-  } = useEditVendorHandlers({
+    handleClose,
+    handleValidationError,
+    loading,
     vendorData,
-    onSave: async (data) => {
-      const result = await onSave(vendorId, data);
-      if (result.success) {
-        onClose();
-      }
-      return result;
-    },
-    enqueueSnackbar: () => {}, // Will be handled by parent
-    closeSnackbar: () => {}, // Will be handled by parent
+  } = useEditVendorHandler({
+    open,
+    vendorId,
+    initialVendorData,
+    onClose,
+    onError,
+    onSave,
   });
 
   const watchBalance = watch('balance');
-
-  // Fetch vendor data when dialog opens
-  useEffect(() => {
-    const fetchVendorData = async () => {
-      if (open && vendorId) {
-        if (initialVendorData && initialVendorData._id === vendorId) {
-          setVendorData(initialVendorData);
-          return;
-        }
-        setLoading(true);
-        try {
-          const data = await getVendorById(vendorId);
-          setVendorData(data);
-        } catch (error) {
-          console.error('Failed to fetch vendor data:', error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchVendorData();
-  }, [open, vendorId, initialVendorData]);
-
-  const handleClose = () => {
-    setVendorData(null);
-    onClose();
-  };
 
   if (!open) return null;
 
@@ -110,7 +78,10 @@ const EditVendorDialog = ({
             <Typography className="ml-3">Loading vendor data...</Typography>
           </Box>
         ) : vendorData ? (
-          <form onSubmit={handleSubmit(handleFormSubmit)} id="edit-vendor-form">
+          <form
+            onSubmit={handleSubmit(handleFormSubmit, handleValidationError)}
+            id="edit-vendor-form"
+          >
             <Grid container spacing={4}>
               {/* Vendor Name */}
               <Grid size={{xs:12, md:6}}>
@@ -125,7 +96,6 @@ const EditVendorDialog = ({
                       placeholder="Enter vendor name"
                       error={!!errors.vendor_name}
                       helperText={errors.vendor_name?.message}
-                      disabled={isSubmitting}
                       required
                     />
                   )}
@@ -146,7 +116,6 @@ const EditVendorDialog = ({
                       placeholder="Enter email address"
                       error={!!errors.vendor_email}
                       helperText={errors.vendor_email?.message}
-                      disabled={isSubmitting}
                       required
                     />
                   )}
@@ -166,7 +135,6 @@ const EditVendorDialog = ({
                       placeholder="Enter phone number"
                       error={!!errors.vendor_phone}
                       helperText={errors.vendor_phone?.message}
-                      disabled={isSubmitting}
                       required
                     />
                   )}
@@ -188,7 +156,6 @@ const EditVendorDialog = ({
                       inputProps={{ min: 0, step: 0.01 }}
                       error={!!errors.balance}
                       helperText={errors.balance?.message}
-                      disabled={isSubmitting}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -221,7 +188,7 @@ const EditVendorDialog = ({
                             <FormControlLabel
                               key={type.value}
                               value={type.value}
-                              control={<Radio size="small" disabled={isSubmitting} />}
+                              control={<Radio size="small" />}
                               label={type.label}
                             />
                           ))}
@@ -253,7 +220,6 @@ const EditVendorDialog = ({
                             checked={field.value}
                             onChange={(e) => field.onChange(e.target.checked)}
                             color="primary"
-                            disabled={isSubmitting}
                           />
                         }
                         label={field.value ? 'Active' : 'Inactive'}
@@ -285,9 +251,8 @@ const EditVendorDialog = ({
           form="edit-vendor-form"
           variant='contained'
           disabled={isSubmitting || loading || !vendorData}
-          startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
         >
-          {isSubmitting ? 'Updating...' : 'Update Vendor'}
+          Update
         </Button>
       </DialogActions>
     </Dialog>

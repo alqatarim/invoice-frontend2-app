@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import {
   Card,
   CardContent,
@@ -22,27 +22,40 @@ import {
   MenuItem,
 } from '@mui/material'
 import { Icon } from '@iconify/react'
+import { useSnackbar } from 'notistack'
 import { usePermission } from '@/Auth/usePermission'
-import AppSnackbar from '@/components/shared/AppSnackbar'
 import { useAddCustomerHandler } from './handler'
 
 const AddCustomer = () => {
   const [imagePreview, setImagePreview] = useState(null)
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  })
+  const { enqueueSnackbar, closeSnackbar: dismissSnackbar } = useSnackbar()
 
   // Permissions
   const canCreate = usePermission('customer', 'create')
 
   // Notification handlers
-  const onError = (msg) => setSnackbar({ open: true, message: msg, severity: 'error' })
-  const onSuccess = (msg) => setSnackbar({ open: true, message: msg, severity: 'success' })
+  const onError = useCallback(msg => {
+    enqueueSnackbar(msg, {
+      variant: 'error',
+      autoHideDuration: 5000,
+      preventDuplicate: true,
+    })
+  }, [enqueueSnackbar])
+
+  const onSuccess = useCallback(msg => {
+    enqueueSnackbar(msg, {
+      variant: 'success',
+      autoHideDuration: 3000,
+    })
+  }, [enqueueSnackbar])
 
   // Initialize handlers
-  const handlers = useAddCustomerHandler({ onError, onSuccess })
+  const handlers = useAddCustomerHandler({
+    onError,
+    onSuccess,
+    enqueueSnackbar,
+    closeSnackbar: dismissSnackbar,
+  })
 
   if (!canCreate) {
     return (
@@ -71,10 +84,6 @@ const AddCustomer = () => {
   const handleRemoveImage = () => {
     handlers.handleFileChange(null)
     setImagePreview(null)
-  }
-
-  const handleSnackbarClose = () => {
-    setSnackbar(prev => ({ ...prev, open: false }))
   }
 
   return (
@@ -526,14 +535,6 @@ const AddCustomer = () => {
           </Grid>
         </Grid>
       </form>
-
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={handleSnackbarClose}
-        autoHideDuration={6000}
-      />
     </div>
   )
 }

@@ -5,7 +5,7 @@ import ViewCategory from './ViewCategory'
 import { useCategoryHandler } from '@/views/categories/handler'
 import { getCategoryById } from '@/app/(dashboard)/categories/actions'
 
-const ViewCategoryIndex = ({ open, categoryId, onClose, onEdit }) => {
+const ViewCategoryIndex = ({ open, categoryId, onClose }) => {
   const [categoryData, setCategoryData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -55,7 +55,7 @@ const ViewCategoryIndex = ({ open, categoryId, onClose, onEdit }) => {
     return null
   }
 
-  return <ViewCategory controller={controller} onEdit={onEdit} />
+  return <ViewCategory controller={controller} />
 }
 
 export default ViewCategoryIndex

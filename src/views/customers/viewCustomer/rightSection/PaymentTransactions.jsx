@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -55,18 +55,6 @@ const hasBankDetails = (customerData) => {
           customerData.bankDetails.accountHolderName || 
           customerData.bankDetails.branch || 
           customerData.bankDetails.IFSC)
-}
-
-// Placeholder function for future payment transactions feature
-const fetchCustomerPayments = async (customerId) => {
-  // TODO: Implement actual API call when backend payment transactions are ready
-  // This is a placeholder for the future payments feature
-  
-  // Simulate loading delay for realistic UX
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  // Return empty array as placeholder - will be replaced with real data later
-  return []
 }
 
 const PaymentMethodIcon = ({ method }) => {
@@ -135,10 +123,8 @@ const StatusChip = ({ status }) => {
   )
 }
 
-const PaymentTransactions = ({ customerData, onCustomerUpdate }) => {
+const PaymentTransactions = ({ customerData, transactions = [], onCustomerUpdate }) => {
   // States
-  const [transactions, setTransactions] = useState([])
-  const [loading, setLoading] = useState(true)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [dialogState, setDialogState] = useState({ bankDetails: false })
@@ -202,20 +188,6 @@ const PaymentTransactions = ({ customerData, onCustomerUpdate }) => {
       setIsDeleting(false)
     }
   }
-
-  // Fetch transactions on component mount
-  useEffect(() => {
-    const loadTransactions = async () => {
-      if (customerData?._id) {
-        setLoading(true)
-        const payments = await fetchCustomerPayments(customerData._id)
-        setTransactions(payments)
-        setLoading(false)
-      }
-    }
-
-    loadTransactions()
-  }, [customerData?._id])
 
   return (
     <>
@@ -376,11 +348,7 @@ const PaymentTransactions = ({ customerData, onCustomerUpdate }) => {
             />
             <Divider />
             <CardContent>
-              {loading ? (
-                <div className='flex justify-center items-center py-12'>
-                  <CircularProgress />
-                </div>
-              ) : transactions && transactions.length > 0 ? (
+              {transactions && transactions.length > 0 ? (
                 <div className='overflow-x-auto'>
                   <Table>
                     <TableHead>

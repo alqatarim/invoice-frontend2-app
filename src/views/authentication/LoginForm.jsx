@@ -13,20 +13,21 @@ import Button from '@mui/material/Button'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Divider from '@mui/material/Divider'
 import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Card from '@mui/material/Card'
 import { Snackbar, CircularProgress } from '@mui/material'
-import { styled } from '@mui/material/styles'
+import { alpha, styled, useColorScheme, useTheme } from '@mui/material/styles'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import CloseIcon from '@mui/icons-material/Close'
+
 // Third-party Imports
 import { Controller } from 'react-hook-form'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 
 // Component Imports
 import Logo from '@core/svg/Logo'
-import Illustrations from '@components/Illustrations'
-
-// Hook Imports
-import { useImageVariant } from '@core/hooks/useImageVariant'
+import { VibrantHeader } from '@/components/shared/VibrantHeader'
 
 const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
   '& .MuiSnackbarContent-root': {
@@ -42,51 +43,228 @@ const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
   },
 }))
 
+// Motion variants for the form column
+const containerVariants = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+  },
+}
+
+// Full-screen success animation shown right after login
+const SuccessOverlay = () => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.3 }}
+    style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 1500,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background:
+        'radial-gradient(circle at center, rgba(115,103,240,0.22) 0%, rgba(15,15,35,0.65) 70%)',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+    }}
+  >
+    {[0, 1, 2].map(i => (
+      <motion.div
+        key={i}
+        initial={{ scale: 0.4, opacity: 0.7 }}
+        animate={{ scale: 2.6, opacity: 0 }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          delay: i * 0.45,
+          ease: 'easeOut',
+        }}
+        style={{
+          position: 'absolute',
+          width: 180,
+          height: 180,
+          borderRadius: '50%',
+          border: '2px solid rgba(115,103,240,0.7)',
+        }}
+      />
+    ))}
+
+    <motion.div
+      initial={{ scale: 0, rotate: -90 }}
+      animate={{ scale: 1, rotate: 0 }}
+      transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.05 }}
+      style={{
+        width: 120,
+        height: 120,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #7367F0 0%, #9E95F5 100%)',
+        boxShadow:
+          '0 24px 60px rgba(115,103,240,0.55), 0 0 0 8px rgba(255,255,255,0.08)',
+      }}
+    >
+      <svg width="58" height="58" viewBox="0 0 56 56" fill="none">
+        <motion.path
+          d="M14 29 L24 39 L42 19"
+          stroke="white"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ delay: 0.3, duration: 0.5, ease: 'easeOut' }}
+        />
+      </svg>
+    </motion.div>
+
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.55, duration: 0.4 }}
+      style={{ marginTop: 28, textAlign: 'center', padding: '0 24px' }}
+    >
+      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600 }}>
+        Welcome back!
+      </Typography>
+      <Typography sx={{ color: 'rgba(255,255,255,0.78)', mt: 0.5 }}>
+        Redirecting to your dashboard...
+      </Typography>
+    </motion.div>
+  </motion.div>
+)
+
+const LoginHeroPanel = ({ isDark, animate }) => {
+  const theme = useTheme()
+
+  return (
+    <Box
+      className='flex bs-full items-center justify-center flex-1 min-bs-[100dvh] relative p-6 max-md:hidden'
+      sx={{
+        overflow: 'hidden',
+        isolation: 'isolate',
+        backgroundColor: 'background.paper',
+        backgroundImage: isDark
+          ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.18)} 0%, ${alpha(
+            theme.palette.primary.main,
+            0.05
+          )} 48%, ${alpha(theme.palette.info.main, 0.08)} 100%)`
+          : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.11)} 0%, ${alpha(
+            theme.palette.background.paper,
+            0
+          )} 58%)`,
+      }}
+    >
+      <VibrantHeader isDark={isDark} animate={animate} shapes={['circle']} />
+
+      {/* <Box
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          width: 'min(540px, 100%)',
+          p: { md: 6, lg: 7 },
+          borderRadius: 4,
+          backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.7 : 0.78),
+          border: `1px solid ${alpha(theme.palette.text.primary, isDark ? 0.16 : 0.08)}`,
+          boxShadow: `0 30px 80px ${alpha(theme.palette.common.black, isDark ? 0.32 : 0.12)}`,
+          backdropFilter: 'blur(18px)',
+          WebkitBackdropFilter: 'blur(18px)',
+        }}
+      >
+        <div className='flex items-center gap-3 mbe-8'>
+          <Logo className='text-primary' width={56} height={56} />
+          <Typography variant='h3' className='font-semibold tracking-[0.15px]'>
+            Invoices
+          </Typography>
+        </div>
+
+        <Typography variant='h2' sx={{ fontWeight: 800, letterSpacing: '-0.04em', mb: 2 }}>
+          Manage every invoice with clarity.
+        </Typography>
+        <Typography variant='body1' color='text.secondary' sx={{ lineHeight: 1.8, maxWidth: 440 }}>
+          Track sales, purchases, payments, and business performance from one calm workspace.
+        </Typography>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 1.5,
+            mt: 5,
+          }}
+        >
+          {['Invoices', 'Customers', 'Reports'].map(label => (
+            <Box
+              key={label}
+              sx={{
+                py: 1.4,
+                px: 1.5,
+                borderRadius: 2.4,
+                textAlign: 'center',
+                backgroundColor: alpha(theme.palette.primary.main, isDark ? 0.14 : 0.08),
+                color: 'text.primary',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+              }}
+            >
+              {label}
+            </Box>
+          ))}
+        </Box>
+      </Box> */}
+    </Box>
+  )
+}
+
 const Login = ({ controller }) => {
   const {
-    mode,
     control,
-    errors,
+    errors = {},
     handleSubmit,
-    isPasswordShown,
-    snackbar,
+    isPasswordShown = false,
+    snackbar = { open: false, message: '', status: 'loading' },
     errorState,
     handlePasswordToggle,
     handleCredentialsSubmit,
     handleGoogleSignIn,
     handleCloseSnackbar,
-  } = controller
+  } = controller || {}
 
-  const authBackground = useImageVariant(mode, '/images/pages/auth-v2-mask-light.png', '/images/pages/auth-v2-mask-dark.png')
-  const characterIllustration = useImageVariant(
-    mode,
-    '/images/illustrations/auth/v2-login-light.png',
-    '/images/illustrations/auth/v2-login-dark.png',
-    '/images/illustrations/auth/v2-login-light-border.png',
-    '/images/illustrations/auth/v2-login-dark-border.png'
-  )
+  if (!controller || !control || typeof handleSubmit !== 'function') {
+    return null
+  }
+
+  const { mode: colorMode, systemMode } = useColorScheme()
+  const currentMode = (colorMode === 'system' ? systemMode : colorMode) || 'light'
+  const isDark = currentMode === 'dark'
+  const prefersReducedMotion = useReducedMotion()
+
+  const isLoading = snackbar.open && snackbar.status === 'loading'
+  const isSuccess = snackbar.open && snackbar.status === 'success'
 
   return (
     <div className='flex bs-full justify-center'>
-      {/* Left side with illustration */}
-      <div className='flex bs-full items-center justify-center flex-1 min-bs-[100dvh] relative p-6 max-md:hidden'>
-        <div className='plb-12 pis-12'>
-          <img
-            src={characterIllustration}
-            alt='character-illustration'
-            className='max-bs-[500px] max-is-full bs-auto'
-          />
-        </div>
-        <Illustrations
-          image1={{ src: '/images/illustrations/objects/tree-2.png' }}
-          image2={null}
-          maskImg={{ src: authBackground }}
-        />
-      </div>
+      <LoginHeroPanel isDark={isDark} animate={!prefersReducedMotion} />
 
       {/* Right side with login form */}
-      <div className='flex justify-center items-center bs-full bg-backgroundPaper !min-is-full p-6 md:!min-is-[unset] md:p-12 md:is-[480px]'>
-        <div className='absolute block-start-5 sm:block-start-[33px] inline-start-6 sm:inline-start-[38px]'>
+      <Card className='flex rounded-none justify-center items-center bs-full !min-is-full p-6 md:!min-is-[unset] md:p-12 md:is-[400px]'>
+        <div
+          className='absolute block-start-5 sm:block-start-[33px] inline-start-6 sm:inline-start-[38px]'
+        >
           <div className='flex justify-center items-center gap-3 mbe-6'>
             <Logo className='text-primary' width={50} height={50} />
             <Typography variant='h4' className='font-semibold tracking-[0.15px]'>
@@ -94,20 +272,44 @@ const Login = ({ controller }) => {
             </Typography>
           </div>
         </div>
-        <div className='flex flex-col gap-5 is-full sm:is-auto md:is-full sm:max-is-[400px] md:max-is-[unset]'>
-          <div>
+
+        <motion.div
+          className='flex flex-col gap-5 is-full sm:is-auto md:is-full sm:max-is-[380px] md:max-is-[unset]'
+          variants={containerVariants}
+          initial='hidden'
+          animate='show'
+        >
+          <motion.div variants={itemVariants}>
             <Typography variant='h4'>{`Welcome to Invoices!👋🏻`}</Typography>
             <Typography>Please sign-in to your account and start the adventure</Typography>
-          </div>
-          <Alert icon={false} className='bg-[var(--mui-palette-primary-lightOpacity)]'>
-            <Typography variant='body2' color='primary'>
-              Email: <span className='font-medium'>superadmin@dreamstechnologies.com</span> / Pass:{' '}
-              <span className='font-medium'>Dgt@2023</span>
-            </Typography>
-          </Alert>
-          {errorState ? <Alert severity='error'>{errorState}</Alert> : null}
+          </motion.div>
 
-          <form noValidate autoComplete='off' onSubmit={handleSubmit(handleCredentialsSubmit)} className='flex flex-col gap-5'>
+          <motion.div variants={itemVariants}>
+            <Alert icon={false} className='bg-[var(--mui-palette-primary-lightOpacity)]'>
+              <Typography variant='body2' color='primary'>
+                Email: <span className='font-medium'>superadmin@dreamstechnologies.com</span> / Pass:{' '}
+                <span className='font-medium'>Dgt@2023</span>
+              </Typography>
+            </Alert>
+          </motion.div>
+
+          {errorState ? (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Alert severity='error'>{errorState}</Alert>
+            </motion.div>
+          ) : null}
+
+          <motion.form
+            variants={itemVariants}
+            noValidate
+            autoComplete='off'
+            onSubmit={handleSubmit(handleCredentialsSubmit)}
+            className='flex flex-col gap-5'
+          >
             <Controller
               name='email'
               control={control}
@@ -155,38 +357,67 @@ const Login = ({ controller }) => {
                 Forgot password?
               </Typography>
             </div>
-            <Button fullWidth variant='contained' type='submit'>
-              Log In
-            </Button>
-            {/* <div className='flex justify-center items-center flex-wrap gap-2'>
-              <Typography>New on our platform?</Typography>
-              <Typography component={Link} href='/register' color='primary'>
-                Create an account
-              </Typography>
-            </div> */}
-          </form>
+            <motion.div
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            >
+              <Button
+                fullWidth
+                variant='contained'
+                type='submit'
+                disabled={isLoading || isSuccess}
+                sx={{
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 24px rgba(115,103,240,0.35)',
+                  transition: 'box-shadow 0.3s ease',
+                  '&:hover': { boxShadow: '0 12px 28px rgba(115,103,240,0.45)' },
+                }}
+                startIcon={
+                  isLoading ? <CircularProgress size={18} color='inherit' /> : null
+                }
+              >
+                {isLoading ? 'Signing in...' : 'Log In'}
+              </Button>
+            </motion.div>
+          </motion.form>
 
-          <Divider className='gap-3'>or</Divider>
-          <Button
-            fullWidth
-            variant='outlined'
-            color='secondary'
-            className='self-center text-textPrimary'
-            startIcon={<img src='/images/logos/google.png' alt='Google' width={22} />}
-            sx={{ '& .MuiButton-startIcon': { marginInlineEnd: 3 } }}
-            onClick={handleGoogleSignIn}
+          <motion.div variants={itemVariants}>
+            <Divider className='gap-3'>or</Divider>
+          </motion.div>
+
+          <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
           >
-            Sign in with Google
-          </Button>
-        </div>
-      </div>
+            <Button
+              fullWidth
+              variant='outlined'
+              color='secondary'
+              className='self-center text-textPrimary'
+              startIcon={<img src='/images/logos/google.png' alt='Google' width={22} />}
+              sx={{ '& .MuiButton-startIcon': { marginInlineEnd: 3 } }}
+              onClick={handleGoogleSignIn}
+              disabled={isLoading || isSuccess}
+            >
+              Sign in with Google
+            </Button>
+          </motion.div>
+        </motion.div>
+      </Card>
+
+      {/* Success overlay replaces the snackbar on success for a richer celebration */}
+      <AnimatePresence>{isSuccess && <SuccessOverlay />}</AnimatePresence>
 
       <StyledSnackbar
         anchorOrigin={{
           vertical: 'bottom',
           horizontal: 'center',
         }}
-        open={snackbar.open}
+        open={snackbar.open && snackbar.status !== 'success'}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         message={

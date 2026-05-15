@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -12,18 +12,17 @@ import {
   Box,
   Typography,
   Button,
-  // IconButton,
   Tooltip,
   FormControl,
   Select,
   MenuItem,
   TextField,
-  // Chip,
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
 import Chip from '@/components/custom-components/CustomChip';
 import { Icon } from '@iconify/react';
 import IconButton from '@core/components/mui/CustomIconButton';
+import { useBranchStockTableHandler } from './handler';
 /**
  * BranchStockTable - Sub-table for branch stock allocations
  * Displayed in the expanded section of inventory rows
@@ -41,176 +40,43 @@ const BranchStockTable = ({
   onSaveBranchEntry,
   stockLoading,
   isRestrictedToAssignedBranches = false,
-  scopeHelperText = '',
 }) => {
   const theme = useTheme();
-  const isAnyLoading =
-    stockLoading?.addStock ||
-    stockLoading?.removeStock ||
-    stockLoading?.transferStock ||
-    stockLoading?.cycleCount;
-  const inventoryInfo = inventoryItem?.inventory_Info?.[0] || {};
-  const batches = Array.isArray(inventoryInfo?.batches) ? inventoryInfo.batches : [];
-  const serialNumbers = Array.isArray(inventoryInfo?.serialNumbers) ? inventoryInfo.serialNumbers : [];
-  const recentTransfers = Array.isArray(inventoryInfo?.transferHistory)
-    ? inventoryInfo.transferHistory.slice(0, 3)
-    : [];
-  const lastCycleCount = inventoryInfo?.lastCycleCount || null;
-
-  // State for new row being added
-  const [newRow, setNewRow] = useState(null);
-
-  // Filter branches with stock > 0
-  const branchesWithStock = (inventoryItem?.inventory_Info?.[0]?.branches || [])
-    .filter((branch) => Number(branch?.quantity || 0) > 0);
-
-  // Get cascading options for new row
-  const provinceDoc = useMemo(() =>
-    provincesCities.find((p) => p.province === newRow?.province),
-    [provincesCities, newRow?.province]
-  );
-  const cityOptions = provinceDoc?.cities || [];
-  const cityDoc = useMemo(() =>
-    cityOptions.find((c) => c.name === newRow?.city),
-    [cityOptions, newRow?.city]
-  );
-  const districtOptions = cityDoc?.districts || [];
-  const filteredBranches = useMemo(() =>
-    branches.filter((branch) => {
-      if (newRow?.province && branch.province !== newRow.province) return false;
-      if (newRow?.city && branch.city !== newRow.city) return false;
-      if (newRow?.district && branch.district !== newRow.district) return false;
-      return true;
-    }),
-    [branches, newRow?.province, newRow?.city, newRow?.district]
-  );
-
-  const handleAddClick = (e, branch) => {
-    e.stopPropagation();
-    if (onAddStock) {
-      onAddStock('add', {
-        rowType: 'branch',
-        ...branch,
-        parentItem: inventoryItem,
-      }, e.currentTarget);
-    }
-  };
-
-  const handleRemoveClick = (e, branch) => {
-    e.stopPropagation();
-    if (onRemoveStock) {
-      onRemoveStock('remove', {
-        rowType: 'branch',
-        ...branch,
-        parentItem: inventoryItem,
-      }, e.currentTarget);
-    }
-  };
-
-  const handleTransferClick = (e, branch) => {
-    e.stopPropagation();
-    if (onTransfer) {
-      onTransfer({
-        rowType: 'branch',
-        ...branch,
-        parentItem: inventoryItem,
-      });
-    }
-  };
-
-  const handleCycleCountClick = (e, branch) => {
-    e.stopPropagation();
-    if (onCycleCount) {
-      onCycleCount({
-        rowType: 'branch',
-        ...branch,
-        parentItem: inventoryItem,
-      });
-    }
-  };
-
-  const handleHistoryClick = (e, branch) => {
-    e.stopPropagation();
-    if (onViewHistory) {
-      onViewHistory({
-        rowType: 'branch',
-        ...branch,
-        parentItem: inventoryItem,
-      });
-    }
-  };
-
-  const handleAddNewRow = () => {
-    setNewRow({
-      province: '',
-      city: '',
-      district: '',
-      branchId: '',
-      quantity: '',
-    });
-  };
-
-  const handleCancelNewRow = () => {
-    setNewRow(null);
-  };
-
-  const handleSaveNewRow = async () => {
-    if (!newRow?.branchId || !newRow?.quantity) return;
-
-    const selectedBranch = branches.find((b) => b.branchId === newRow.branchId);
-    if (!selectedBranch) return;
-
-    if (onSaveBranchEntry) {
-      await onSaveBranchEntry({
-        productId: inventoryItem._id,
-        branchId: selectedBranch.branchId,
-        branchName: selectedBranch.name,
-        branchType: selectedBranch.branchType,
-        province: selectedBranch.province,
-        city: selectedBranch.city,
-        district: selectedBranch.district,
-        quantity: Number(newRow.quantity),
-      });
-    }
-    setNewRow(null);
-  };
-
-  const updateNewRow = (field, value) => {
-    setNewRow((prev) => {
-      const updated = { ...prev, [field]: value };
-      // Reset dependent fields when parent changes
-      if (field === 'province') {
-        updated.city = '';
-        updated.district = '';
-        updated.branchId = '';
-      } else if (field === 'city') {
-        updated.district = '';
-        updated.branchId = '';
-      } else if (field === 'district') {
-        updated.branchId = '';
-      }
-      return updated;
-    });
-  };
-
-  // Select styles for new row - matches table body font size
-  const selectSx = {
-    fontSize: '0.8rem',
-    '& .MuiSelect-select': {
-      py: 0.75,
-      px: 1.5,
-      fontSize: '0.8rem',
-    },
-    '& .MuiOutlinedInput-notchedOutline': {
-      borderColor: alpha(theme.palette.primary.main, 0.3),
-    },
-    '&:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: theme.palette.primary.main,
-    },
-    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: theme.palette.primary.main,
-    },
-  };
+  const {
+    newRow,
+    isAnyLoading,
+    inventoryInfo,
+    batches,
+    serialNumbers,
+    recentTransfers,
+    lastCycleCount,
+    branchesWithStock,
+    cityOptions,
+    districtOptions,
+    filteredBranches,
+    selectSx,
+    handleAddClick,
+    handleRemoveClick,
+    handleTransferClick,
+    handleCycleCountClick,
+    handleHistoryClick,
+    handleAddNewRow,
+    handleCancelNewRow,
+    handleSaveNewRow,
+    updateNewRow,
+  } = useBranchStockTableHandler({
+    theme,
+    inventoryItem,
+    branches,
+    provincesCities,
+    stockLoading,
+    onAddStock,
+    onRemoveStock,
+    onTransfer,
+    onCycleCount,
+    onViewHistory,
+    onSaveBranchEntry,
+  });
 
   return (
     <Box sx={{ ml: 4, mr: 2, mt: 3, mb: 6 }}>
@@ -237,12 +103,6 @@ const BranchStockTable = ({
           />
         </Box>
       </Box>
-
-      {scopeHelperText ? (
-        <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 2 }}>
-          {scopeHelperText}
-        </Typography>
-      ) : null}
 
       <Box className='flex flex-wrap gap-2 mb-3'>
         <Chip
@@ -425,14 +285,6 @@ const BranchStockTable = ({
                             color="info"
                             skin="light"
                             variant="tonal"
-                          // sx={{
-                          //   backgroundColor: alpha(theme.palette.info.main, 0.1),
-                          //   border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`,
-                          //   borderRadius: 1.5,
-                          //   '&:hover': {
-                          //     backgroundColor: alpha(theme.palette.info.main, 0.2),
-                          //   },
-                          // }}
                           >
                             <Icon icon="mdi:swap-horizontal" width={18} color={theme.palette.info.main} />
                           </IconButton>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { getProductById } from '@/app/(dashboard)/products/actions';
+import { notFound } from 'next/navigation';
+import { getDropdownData, getProductById } from '@/app/(dashboard)/products/actions';
 import ProductView from '@/views/products/viewProduct/index';
 
 /**
@@ -12,10 +13,27 @@ import ProductView from '@/views/products/viewProduct/index';
  */
 const ProductViewPage = async ({ params }) => {
   const { id } = params;
-  const initialProductData = await getProductById(id);
+  let initialProductData = null;
+  let initialDropdownData = { units: [], categories: [], taxes: [] };
+
+  try {
+    const [productData, dropdownResponse] = await Promise.all([
+      getProductById(id),
+      getDropdownData(),
+    ]);
+
+    if (!productData) {
+      notFound();
+    }
+
+    initialProductData = productData;
+    initialDropdownData = dropdownResponse?.data || initialDropdownData;
+  } catch (error) {
+    console.error('Error loading product view data:', error);
+  }
 
   return (
-    <ProductView id={id} initialProductData={initialProductData} />
+    <ProductView id={id} initialProductData={initialProductData} initialDropdownData={initialDropdownData} />
   );
 }
 

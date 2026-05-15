@@ -1,59 +1,82 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import AppSnackbar from '@/components/shared/AppSnackbar';
+import { useSnackbar } from 'notistack';
+import AppSnackbarProvider from '@/components/shared/AppSnackbarProvider';
 import AddVendorDialog from './AddVendor';
 import { addVendor } from '@/app/(dashboard)/vendors/actions';
 
-const AddVendorPage = ({ initialErrorMessage = '' }) => {
+const AddVendorContent = ({ initialErrorMessage = '' }) => {
   const router = useRouter();
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'success',
-  });
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+  const onError = useCallback(message => {
+    enqueueSnackbar(message, {
+      variant: 'error',
+      autoHideDuration: 5000,
+      preventDuplicate: true,
+    });
+  }, [enqueueSnackbar]);
+
+  const onSuccess = useCallback(message => {
+    enqueueSnackbar(message, {
+      variant: 'success',
+      autoHideDuration: 3000,
+    });
+  }, [enqueueSnackbar]);
+
+  useEffect(() => {
+    if (initialErrorMessage) {
+      onError(initialErrorMessage);
+    }
+  }, [initialErrorMessage, onError]);
 
   const handleClose = useCallback(() => {
     router.push('/vendors/vendor-list');
   }, [router]);
 
-  const handleSave = useCallback(async (data) => {
+  const handleSave = useCallback(async data => {
+    const loadingKey = enqueueSnackbar('Submitting vendor...', {
+      variant: 'info',
+      persist: true,
+      preventDuplicate: true,
+    });
+
     try {
       const response = await addVendor(data);
+      closeSnackbar(loadingKey);
 
       if (!response.success) {
         const message = response.error?.message || response.message || 'Failed to add vendor';
-        setSnackbar({ open: true, message, severity: 'error' });
+        onError(message);
         return { success: false, message };
       }
 
-      setSnackbar({ open: true, message: 'Vendor added successfully!', severity: 'success' });
-      handleClose();
+      onSuccess('Vendor added successfully!');
       return response;
     } catch (error) {
       const message = error.message || 'Failed to add vendor';
-      setSnackbar({ open: true, message, severity: 'error' });
+      closeSnackbar(loadingKey);
+      onError(message);
       return { success: false, message };
     }
-  }, [handleClose]);
+  }, [closeSnackbar, enqueueSnackbar, onError, onSuccess]);
 
   return (
-    <>
-      <AddVendorDialog
-        open
-        onClose={handleClose}
-        onSave={handleSave}
-      />
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        autoHideDuration={6000}
-      />
-    </>
+    <AddVendorDialog
+      open
+      onClose={handleClose}
+      onSave={handleSave}
+      onError={onError}
+    />
   );
 };
+
+const AddVendorPage = props => (
+  <AppSnackbarProvider maxSnack={7}>
+    <AddVendorContent {...props} />
+  </AppSnackbarProvider>
+);
 
 export default AddVendorPage;

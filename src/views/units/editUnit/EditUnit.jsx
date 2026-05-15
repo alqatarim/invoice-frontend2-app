@@ -11,10 +11,7 @@ import {
   Grid,
   Box,
   IconButton,
-  CircularProgress,
   Typography,
-  Avatar,
-  Skeleton,
   MenuItem,
   FormControlLabel,
   Switch,
@@ -23,7 +20,7 @@ import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { getUnitById, getUnitDropdownData } from '@/app/(dashboard)/units/actions';
 import { useEditUnitHandlers } from '@/handlers/units/editUnit';
-import { formIcons } from '@/data/dataSets';
+import UnitFormSkeleton from '@/views/units/UnitFormSkeleton';
 
 const EditUnitDialog = ({
   open,
@@ -59,6 +56,7 @@ const EditUnitDialog = ({
   const [dropdownOptions, setDropdownOptions] = useState(initialDropdownOptions || { units: [] });
   const [optionsLoading, setOptionsLoading] = useState(false);
   const baseUnitOptions = (dropdownOptions.units || []).filter(unit => unit._id !== unitId);
+  const isLoading = loading || optionsLoading;
 
   useEffect(() => {
     const loadDropdowns = async () => {
@@ -154,20 +152,8 @@ const EditUnitDialog = ({
           <i className='ri-close-line text-textSecondary' />
         </IconButton>
 
-        {loading ? (
-          <Box className="p-6">
-          
-
-            {/* Form Skeleton */}
-            <Grid container spacing={4}>
-              <Grid size={{xs:12, sm:6, md:6}}>
-                <Skeleton variant="rounded" height={56} />
-              </Grid>
-              <Grid size={{xs:12, sm:6, md:6}}>
-                <Skeleton variant="rounded" height={56} />
-              </Grid>
-            </Grid>
-          </Box>
+        {isLoading ? (
+          <UnitFormSkeleton />
         ) : error ? (
           <Box className="flex flex-col justify-center items-center h-40 gap-4">
             <Typography color="error" variant="h6">Error Loading Unit</Typography>
@@ -224,7 +210,6 @@ const EditUnitDialog = ({
                         placeholder="Enter unit name"
                         error={!!errors.name}
                         helperText={errors.name?.message}
-                        disabled={isSubmitting}
                         required
                         InputProps={{
                           startAdornment: ( 
@@ -253,7 +238,6 @@ const EditUnitDialog = ({
                         fullWidth
                         label="Symbol"
                         placeholder="e.g., kg, m, pcs"
-                        disabled={isSubmitting}
                         InputProps={{
                           startAdornment: ( 
                             <Icon
@@ -281,7 +265,7 @@ const EditUnitDialog = ({
                         select
                         fullWidth
                         label="Base Unit"
-                        disabled={isSubmitting || optionsLoading}
+                        disabled={optionsLoading}
                         variant="outlined"
                       >
                         <MenuItem value="">None</MenuItem>
@@ -309,7 +293,6 @@ const EditUnitDialog = ({
                         placeholder="e.g., 12"
                         error={!!errors.conversionFactor}
                         helperText={errors.conversionFactor?.message}
-                        disabled={isSubmitting}
                         variant="outlined"
                       />
                     )}
@@ -330,7 +313,6 @@ const EditUnitDialog = ({
                         placeholder="0 - 6"
                         error={!!errors.decimalPrecision}
                         helperText={errors.decimalPrecision?.message}
-                        disabled={isSubmitting}
                         variant="outlined"
                       />
                     )}
@@ -348,7 +330,6 @@ const EditUnitDialog = ({
                         select
                         fullWidth
                         label="Rounding Method"
-                        disabled={isSubmitting}
                         variant="outlined"
                       >
                         <MenuItem value="round">Round</MenuItem>
@@ -371,7 +352,6 @@ const EditUnitDialog = ({
                         fullWidth
                         label="Standard Unit Code"
                         placeholder="e.g., KGM"
-                        disabled={isSubmitting}
                         variant="outlined"
                       />
                     )}
@@ -421,10 +401,9 @@ const EditUnitDialog = ({
           type="submit"
           form="edit-unit-form"
           variant='contained'
-          disabled={isSubmitting || loading || !unitData}
-          startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+          disabled={isSubmitting || isLoading || !unitData}
         >
-          {isSubmitting ? 'Updating...' : 'Update Unit'}
+          Update
         </Button>
       </DialogActions>
     </Dialog>

@@ -16,3 +16,4 @@ export * from './i18n';
 export * from './rgbaToHex';
 export * from './string';
 export * from './salesUtils';
+export * from './vendorUtils';

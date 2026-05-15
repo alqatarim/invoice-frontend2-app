@@ -1,15 +1,17 @@
 import React from 'react'
-import { getCustomerWithInvoices } from '../../actions'
+import { getCustomerById, getCustomerWithInvoices } from '../../actions'
 import ViewCustomerIndex from '@/views/customers/viewCustomer/index'
 
 export default async function ViewCustomerPage({ params }) {
   const { id } = params
   
   try {
-    // Fetch customer data with invoices
-    const customerData = await getCustomerWithInvoices(id)
+    const [customerData, customerInvoiceData] = await Promise.all([
+      getCustomerById(id),
+      getCustomerWithInvoices(id),
+    ])
     
-    if (!customerData) {
+    if (!customerData?._id) {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
@@ -25,7 +27,11 @@ export default async function ViewCustomerPage({ params }) {
     }
 
     return (
-      <ViewCustomerIndex customerData={customerData} customerId={id} />
+      <ViewCustomerIndex
+        customerData={customerData}
+        customerInvoiceData={customerInvoiceData}
+        customerId={id}
+      />
     )
   } catch (error) {
     console.error('Error loading customer data:', error)

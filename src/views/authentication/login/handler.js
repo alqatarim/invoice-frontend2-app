@@ -50,8 +50,8 @@ export function useLoginHandler({ initialMode }) {
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      email: '',
-      password: ''
+      email: 'superadmin@dreamstechnologies.com',
+      password: 'Dgt@2023'
     }
   })
 

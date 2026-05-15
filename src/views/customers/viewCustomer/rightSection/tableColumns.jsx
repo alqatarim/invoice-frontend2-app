@@ -31,14 +31,12 @@ export const getCustomerInvoiceColumns = () => [
     label: 'Invoice #',
     sortable: true,
     align: 'center',
+    width: '25%',
     renderCell: (row) => (
       <Typography
-        color='text.primary'
-
-        component={Link}
-        href={`/invoices/invoice-view/${row._id}`}
-        className=' text-primary text-[0.9rem] hover:underline font-semibold
-        '
+        color='primary.main'
+        fontWeight={500}
+        className='text-[0.9rem]'
       >
         {row.invoiceNumber || 'N/A'}
       </Typography>
@@ -49,48 +47,50 @@ export const getCustomerInvoiceColumns = () => [
     label: 'Date',
     sortable: true,
     align: 'center',
+    width: '20%',
     renderCell: (row) => (
-      <Typography
-      // color='text.primary'
-      color={useTheme().palette.primary.lightest}
-      className='text-[0.9rem]'
-      >
-        {formatDate(row.invoiceDate)}
-      </Typography>
+
+      // variant='body1'
+      // className='text-[0.9rem]'
+
+      formatDate(row.invoiceDate)
+
     )
   },
   {
-    key: 'amounts',
+    key: 'amount',
     label: 'Amount',
     sortable: true,
-    align: 'center',
+    align: 'left',
+    width: '20%',
     renderCell: (row) => {
       const total = Number(row.TotalAmount) || 0;
       const paid = Number(row.paidAmount) || 0;
       const percentPaid = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
       return (
-  
 
 
 
-        <Grid container className="flex flex-row gap-1 min-w-[140px] items-center">
-          
-                <Grid size={{md: 'auto'}} className='text-start'> 
-              <Typography color="text.secondary" className='text-[0.9rem]'>{paid}</Typography>
-              </Grid>
-             
-         
-              <Grid size={{md:6}} >
-              <LinearProgress  variant="determinate" color='info' value={percentPaid} />
-              </Grid>
-         
-              <Grid size={{ md:'auto'}} className="flex items-center gap-1 min-w-[48px] justify-start">
-              <Icon icon="lucide:saudi-riyal" width="1.0rem" color={ useTheme().palette.secondary.light} />
-            <Typography color="text.primary" className='text-[0.9rem] font-medium'>{total}</Typography>
-            </Grid>
 
+        // <Grid container className="flex flex-row gap-1 min-w-[140px] items-center">
+
+        // <Grid size={{ md: 'auto' }} className='text-start'>
+        //   <Typography color="text.secondary" className='text-[0.9rem]'>{paid}</Typography>
+        // </Grid>
+
+
+        //* <Grid size={{ md: 6 }} >
+        // <LinearProgress variant="determinate" color='info' value={percentPaid} />
+        //</Grid> 
+
+
+        <Grid size={{ md: 'auto' }} className="flex items-center gap-1 min-w-[48px] justify-start">
+          <Icon icon="lucide:saudi-riyal" width="1.0rem" color={useTheme().palette.secondary.light} />
+          <Typography color="text.primary" className='text-[0.9rem] font-medium'>{total.toFixed(0)}</Typography>
         </Grid>
+
+        // </Grid>
 
 
       );
@@ -100,6 +100,7 @@ export const getCustomerInvoiceColumns = () => [
     key: 'status',
     label: 'Status',
     sortable: true,
+    width: '20%',
     renderCell: (row) => {
       const statusOption = statusOptionsMap.get(row.status) || {};
       return (
@@ -117,29 +118,20 @@ export const getCustomerInvoiceColumns = () => [
     key: 'actions',
     label: 'Actions',
     align: 'center',
+    width: '15%',
     renderCell: (row) => {
-      
+
       return (
         <Box className='flex gap-1 items-center justify-center'>
-        <IconButton
-          size='small'
-          component={Link}
-          href={`/invoices/invoice-view/${row._id}`}
-          title={actionButtonsMap.get('view')?.title}
+          <IconButton
+            size='small'
+            component={Link}
+            href={`/invoices/edit/${row._id}`}
+            title={actionButtonsMap.get('edit')?.title}
           // className='text-primary'
-        >
-          <Icon icon={actionButtonsMap.get('view')?.icon} />
-        </IconButton>
-
-        <IconButton
-          size='small'
-          component={Link}
-          href={`/invoices/edit/${row._id}`}
-          title={actionButtonsMap.get('edit')?.title}
-          // className='text-primary'
-        >
-          <Icon icon={actionButtonsMap.get('edit')?.icon} />
-        </IconButton>
+          >
+            <Icon icon={actionButtonsMap.get('edit')?.icon} />
+          </IconButton>
 
 
         </Box>

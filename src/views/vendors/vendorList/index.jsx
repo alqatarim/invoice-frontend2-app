@@ -1,6 +1,7 @@
 'use client'
 
 import React from "react";
+import AppSnackbarProvider from '@/components/shared/AppSnackbarProvider';
 import VendorList from "@/views/vendors/vendorList/VendorList";
 
 const VendorListIndex = ({
@@ -9,11 +10,13 @@ const VendorListIndex = ({
   initialErrorMessage = '',
 }) => {
   return (
-    <VendorList
-      initialVendors={initialVendors}
-      initialPagination={initialPagination}
-      initialErrorMessage={initialErrorMessage}
-    />
+    <AppSnackbarProvider maxSnack={7}>
+      <VendorList
+        initialVendors={initialVendors}
+        initialPagination={initialPagination}
+        initialErrorMessage={initialErrorMessage}
+      />
+    </AppSnackbarProvider>
   );
 };
 

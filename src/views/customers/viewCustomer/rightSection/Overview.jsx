@@ -4,6 +4,7 @@ import moment from "moment";
 
 // Next Imports
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 
 // MUI Imports
 import Grid from "@mui/material/Grid";
@@ -22,6 +23,7 @@ import { getCustomerInvoiceColumns } from "./tableColumns";
 import { statusOptions } from "@/data/dataSets";
 
 const CustomerOverview = ({ invoices = [], cardDetails }) => {
+	const router = useRouter();
 	const [searchValue, setSearchValue] = useState("");
 	const [pagination, setPagination] = useState({ page: 0, pageSize: 10, total: 0 });
 
@@ -80,6 +82,10 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 
 	const getRowKey = useCallback(row => row._id, []);
 
+	const handleRowClick = useCallback(row => {
+		router.push(`/invoices/invoice-view/${row._id}`);
+	}, [router]);
+
 	// Create stats array for breakdown statistics with optimized lookups
 	const breakdownStats = useMemo(
 		() => {
@@ -100,107 +106,108 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 					statsVariant: "h5",
 					avatarIcon: paidOption?.icon,
 					color: paidOption?.color,
-					colorOpacity: "light",
+					// colorOpacity: "light",
 					iconSize: "30px",
 					isCurrency: true,
 					currencyIconWidth: "1.25rem",
 					trendNumber: cardDetails?.paidRecs?.[0]?.count || 0,
 				},
-			{
-				title: "Partially Paid",
-				subtitle: "Partial Payments",
-				titleVariant: "h6",
-				subtitleVariant: "body2",
-				stats: cardDetails?.partiallyPaidRecs?.[0]?.amount || 0,
-				statsVariant: "h5",
-				avatarIcon: partiallyPaidOption?.icon,
-				color: partiallyPaidOption?.color,
-				colorOpacity: "light",
-				iconSize: "30px",
-				isCurrency: true,
-				currencyIconWidth: "1.25rem",
-				trendNumber: cardDetails?.partiallyPaidRecs?.[0]?.count || 0,
-			},
-			{
-				title: "Sent",
-				subtitle: "Invoices Sent",
-				titleVariant: "h6",
-				subtitleVariant: "body2",
-				stats: cardDetails?.sentRecs?.[0]?.amount || 0,
-				statsVariant: "h5",
-				avatarIcon: sentOption?.icon,
-				color: sentOption?.color,
-				colorOpacity: "light",
-				iconSize: "30px",
-				isCurrency: true,
-				currencyIconWidth: "1.25rem",
-				trendNumber: cardDetails?.sentRecs?.[0]?.count || 0,
-			},
+				{
+					title: "Partially Paid",
+					subtitle: "Partial Payments",
+					titleVariant: "h6",
+					subtitleVariant: "body2",
+					stats: cardDetails?.partiallyPaidRecs?.[0]?.amount || 0,
+					statsVariant: "h5",
+					avatarIcon: partiallyPaidOption?.icon,
+					color: partiallyPaidOption?.color,
+					// colorOpacity: "light",
+					iconSize: "30px",
+					isCurrency: true,
+					currencyIconWidth: "1.25rem",
+					trendNumber: cardDetails?.partiallyPaidRecs?.[0]?.count || 0,
+				},
+				{
+					title: "Sent",
+					subtitle: "Invoices Sent",
+					titleVariant: "h6",
+					subtitleVariant: "body2",
+					stats: cardDetails?.sentRecs?.[0]?.amount || 0,
+					statsVariant: "h5",
+					avatarIcon: sentOption?.icon,
+					color: sentOption?.color,
+					// colorOpacity: "light",
+					iconSize: "30px",
+					isCurrency: true,
+					currencyIconWidth: "1.25rem",
+					trendNumber: cardDetails?.sentRecs?.[0]?.count || 0,
+				},
 
-			{
-				title: "Drafted",
-				subtitle: "Draft Invoices",
-				titleVariant: "h6",
-				subtitleVariant: "body2",
-				stats: cardDetails?.draftedRecs?.[0]?.amount || 0,
-				statsVariant: "h5",
-				avatarIcon: draftedOption?.icon,
-				color: draftedOption?.color,
-				colorOpacity: "light",
-				iconSize: "30px",
-				isCurrency: true,
-				currencyIconWidth: "1.25rem",
-				trendNumber: cardDetails?.draftedRecs?.[0]?.count || 0,
-			},
+				{
+					title: "Drafted",
+					subtitle: "Draft Invoices",
+					titleVariant: "h6",
+					subtitleVariant: "body2",
+					stats: cardDetails?.draftedRecs?.[0]?.amount || 0,
+					statsVariant: "h5",
+					avatarIcon: draftedOption?.icon,
+					color: draftedOption?.color,
+					// colorOpacity: "light",
+					iconSize: "30px",
+					isCurrency: true,
+					currencyIconWidth: "1.25rem",
+					trendNumber: cardDetails?.draftedRecs?.[0]?.count || 0,
+				},
 
-			{
-				title: "Overdue",
-				subtitle: "Past Due",
-				titleVariant: "h6",
-				subtitleVariant: "body2",
-				stats: cardDetails?.overDueRecs?.[0]?.amount || 0,
-				statsVariant: "h5",
-				avatarIcon: overdueOption?.icon,
-				color: overdueOption?.color,
-				colorOpacity: "light",
-				iconSize: "30px",
-				isCurrency: true,
-				currencyIconWidth: "1.25rem",
-				trendNumber: cardDetails?.overDueRecs?.[0]?.count || 0,
-			},
+				{
+					title: "Overdue",
+					subtitle: "Past Due",
+					titleVariant: "h6",
+					subtitleVariant: "body2",
+					stats: cardDetails?.overDueRecs?.[0]?.amount || 0,
+					statsVariant: "h5",
+					avatarIcon: overdueOption?.icon,
+					color: overdueOption?.color,
+					// colorOpacity: "light",
+					iconSize: "30px",
+					isCurrency: true,
+					currencyIconWidth: "1.25rem",
+					trendNumber: cardDetails?.overDueRecs?.[0]?.count || 0,
+				},
 
-			,
-			{
-				title: "Cancelled",
-				subtitle: "Cancelled Invoices",
-				titleVariant: "h6",
-				subtitleVariant: "body2",
-				stats: cardDetails?.cancelledRecs?.[0]?.amount || 0,
-				statsVariant: "h5",
-				avatarIcon: cancelledOption?.icon,
-				color: cancelledOption?.color,
-				colorOpacity: "light",
-				iconSize: "30px",
-				isCurrency: true,
-				currencyIconWidth: "1.25rem",
-				trendNumber: cardDetails?.cancelledRecs?.[0]?.count || 0,
-			},
-		];
+				,
+				{
+					title: "Cancelled",
+					subtitle: "Cancelled Invoices",
+					titleVariant: "h6",
+					subtitleVariant: "body2",
+					stats: cardDetails?.cancelledRecs?.[0]?.amount || 0,
+					statsVariant: "h5",
+					avatarIcon: cancelledOption?.icon,
+					color: cancelledOption?.color,
+					// colorOpacity: "dark",
+					iconSize: "30px",
+					isCurrency: true,
+					currencyIconWidth: "1.25rem",
+					trendNumber: cardDetails?.cancelledRecs?.[0]?.count || 0,
+				},
+			];
 		},
 		[cardDetails, statusOptionsMap]
 	);
 
 	return (
-		<Grid container>
+		<Grid container gap={2}>
 			{/* Statistics Cards */}
-			<Grid size={{ xs: 12 }} className="">
+			<Grid size={{ xs: 12 }} className="px-0" >
 				<MultiBarProgress
 					stats={breakdownStats}
 					totalAmount={cardDetails?.totalRecs?.[0]?.amount}
 					borderColor="primary"
-					height={"130px"}
-					barHeight={"40px"}
+					height={90}
+					barHeight={"25px"}
 					width={"100%"}
+
 				/>
 			</Grid>
 
@@ -219,6 +226,8 @@ const CustomerOverview = ({ invoices = [], cardDetails }) => {
 					onSearchChange={handleSearchChange}
 					noDataText="No invoices found"
 					loading={false}
+					tableMinWidth="0"
+					onRowClick={handleRowClick}
 				/>
 			</Grid>
 		</Grid>

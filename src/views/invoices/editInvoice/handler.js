@@ -4,15 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { InvoiceSchema } from '@/views/invoices/InvoiceSchema';
+import { useGlobalLocationScope } from '@/contexts/GlobalLocationContext';
 import { formatDateForInput } from '@/utils/dateUtils';
 import { paymentMethods } from '@/data/dataSets';
 import { notifyNotistackFormValidationErrors } from '@/handlers/shared/notifyNotistackFormValidationErrors';
 import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 import { calculateInvoiceTotals } from '@/utils/salesTotals';
-
-const isStoreBranch = (branch) =>
-  String(branch?.branchType || branch?.kind || '').trim().toLowerCase() === 'store';
 
 const createEmptyInvoiceItem = () => ({
   productId: '',
@@ -135,7 +133,6 @@ export default function useEditInvoiceFeatureHandler({
   taxRates = [],
   initialBanks = [],
   signatures = [],
-  branchesData = [],
   onSave,
   addBank,
   enqueueSnackbar,
@@ -150,10 +147,6 @@ export default function useEditInvoiceFeatureHandler({
     return mapped.length ? mapped : [createEmptyInvoiceItem()];
   }, [initialInvoiceData?.items]);
 
-  const storeBranches = useMemo(
-    () => (Array.isArray(branchesData) ? branchesData : []).filter(isStoreBranch),
-    [branchesData]
-  );
   const signOptions = useMemo(
     () =>
       Array.isArray(signatures)
@@ -172,6 +165,12 @@ export default function useEditInvoiceFeatureHandler({
       )?._id || 'walk-in',
     [customersData]
   );
+  const {
+    selectedLocation,
+    selectedLocationId,
+    selectedLocationType,
+    storeOnlyValidationMessage,
+  } = useGlobalLocationScope();
 
   const {
     control,
@@ -187,11 +186,8 @@ export default function useEditInvoiceFeatureHandler({
       referenceNo: initialInvoiceData?.referenceNo || '',
       customerId: initialInvoiceData?.customerId?._id || '',
       payment_method: normalizePaymentMethod(initialInvoiceData?.payment_method),
-      branchId:
-        initialInvoiceData?.branchId?.branchId ||
-        initialInvoiceData?.branchId?._id ||
-        initialInvoiceData?.branchId ||
-        '',
+      branchId: selectedLocationId || '',
+      branchType: selectedLocationType || '',
       isWalkIn: Boolean(initialInvoiceData?.isWalkIn),
       invoiceDate: formatDateForInput(initialInvoiceData?.invoiceDate || new Date()),
       dueDate: formatDateForInput(initialInvoiceData?.dueDate || new Date()),
@@ -220,10 +216,7 @@ export default function useEditInvoiceFeatureHandler({
   const watchItems = useWatch({ control, name: 'items' });
   const watchRoundOff = useWatch({ control, name: 'roundOff' });
   const watchInvoiceNumber = useWatch({ control, name: 'invoiceNumber' });
-  const watchBranchId = useWatch({ control, name: 'branchId' });
   const isWalkIn = Boolean(useWatch({ control, name: 'isWalkIn' }));
-
-  const selectedBranchId = String(watchBranchId || '').trim();
 
   const [productsCloneData, setProductsCloneData] = useState(() => {
     const selectedProductIds = new Set((initialInvoiceData?.items || []).map((item) => item?.productId));
@@ -246,19 +239,9 @@ export default function useEditInvoiceFeatureHandler({
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
-    if (storeBranches.some((branch) => branch?.branchId === selectedBranchId)) {
-      return;
-    }
-
-    if (storeBranches.length === 1) {
-      setValue('branchId', storeBranches[0].branchId);
-      return;
-    }
-
-    if (selectedBranchId) {
-      setValue('branchId', '');
-    }
-  }, [selectedBranchId, setValue, storeBranches]);
+    setValue('branchId', selectedLocationId || '', { shouldValidate: true });
+    setValue('branchType', selectedLocationType || '', { shouldValidate: true });
+  }, [selectedLocationId, selectedLocationType, setValue]);
 
   useEffect(() => {
     const totals = calculateInvoiceTotals(watchItems, watchRoundOff);
@@ -567,7 +550,8 @@ export default function useEditInvoiceFeatureHandler({
     setOpenBankModal,
     snackbar,
     setSnackbar,
-    storeBranches,
+    selectedLocation,
+    branchSelectionError: storeOnlyValidationMessage,
     taxRates,
     updateCalculatedFields,
     handleUpdateItemProduct,

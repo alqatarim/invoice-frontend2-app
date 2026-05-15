@@ -6,22 +6,55 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_FORECAST_MODEL = process.env.OPENAI_FORECAST_MODEL || 'gpt-5.2';
 const OPENAI_API_BASE = process.env.OPENAI_API_BASE || 'https://api.openai.com/v1';
 
-const buildDashboardQuery = ({ filter = '', branchId = '' } = {}) => {
+const buildDashboardQuery = ({
+  filter = '',
+  branchId = '',
+  fromDate = '',
+  toDate = '',
+} = {}) => {
   const searchParams = new URLSearchParams();
 
   if (filter) searchParams.set('type', filter);
   if (branchId) searchParams.set('branchId', branchId);
+  if (fromDate) searchParams.set('fromDate', fromDate);
+  if (toDate) searchParams.set('toDate', toDate);
 
   const query = searchParams.toString();
   return query ? `?${query}` : '';
 };
 
-export async function getFilteredDashboardData(filter = '', branchId = '') {
-  return fetchWithAuth(`/dashboard${buildDashboardQuery({ filter, branchId })}`);
+const normalizeDashboardRequest = (requestOrBranchId = '', fromDate = '', toDate = '') => {
+  if (requestOrBranchId && typeof requestOrBranchId === 'object') {
+    return {
+      filter: requestOrBranchId.filter || '',
+      branchId: requestOrBranchId.branchId || '',
+      fromDate: requestOrBranchId.fromDate || '',
+      toDate: requestOrBranchId.toDate || '',
+    };
+  }
+
+  return {
+    filter: '',
+    branchId: requestOrBranchId || '',
+    fromDate,
+    toDate,
+  };
+};
+
+export async function getFilteredDashboardData(
+  filter = '',
+  branchId = '',
+  fromDate = '',
+  toDate = ''
+) {
+  return fetchWithAuth(
+    `/dashboard${buildDashboardQuery({ filter, branchId, fromDate, toDate })}`
+  );
 }
 
-export async function getDashboardData(branchId = '') {
-  return fetchWithAuth(`/dashboard${buildDashboardQuery({ branchId })}`);
+export async function getDashboardData(requestOrBranchId = '', fromDate = '', toDate = '') {
+  const request = normalizeDashboardRequest(requestOrBranchId, fromDate, toDate);
+  return fetchWithAuth(`/dashboard${buildDashboardQuery(request)}`);
 }
 
 const toFiniteNumber = (value) => {
@@ -527,8 +560,8 @@ const buildFallbackInsightCards = ({
   const salesDelta =
     latestSalesActual > 0
       ? ((toFiniteNumber(sales.forecastNext) - latestSalesActual) /
-          Math.abs(latestSalesActual)) *
-        100
+        Math.abs(latestSalesActual)) *
+      100
       : 0;
   const nextLabel = labels?.[sales.firstFutureIndex] || 'Next period';
 
@@ -559,7 +592,7 @@ const buildFallbackInsightCards = ({
       title: 'Purchase plan',
       text:
         toFiniteNumber(expenses.forecastNext) >
-        toFiniteNumber(expenses.actual?.[expenses.firstFutureIndex - 1] || 0)
+          toFiniteNumber(expenses.actual?.[expenses.firstFutureIndex - 1] || 0)
           ? 'Buy only fast sellers first and delay slow items this month.'
           : 'Keep buying pace steady; refill by product speed, not by broad category.',
     },

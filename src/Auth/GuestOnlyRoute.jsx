@@ -9,7 +9,14 @@ import { authOptions } from '@/Auth/auth'
 import { isTokenExpired } from '@/Auth/tokenUtils'
 
 const GuestOnlyRoute = async ({ children }) => {
-  const session = await getServerSession(authOptions)
+  let session = null
+
+  try {
+    session = await getServerSession(authOptions)
+  } catch (error) {
+    console.error('Failed to read guest route session:', error)
+  }
+
   const token = session?.user?.token
 
   if (token && !isTokenExpired(token)) {

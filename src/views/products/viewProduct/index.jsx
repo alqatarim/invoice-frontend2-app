@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import ViewProductDialog from './ViewProductDialog';
+import ViewProduct from './ViewProduct';
 
-const ViewProductPage = ({ id, initialProductData = null }) => {
+const ViewProductPage = ({ id, initialProductData = null, initialDropdownData = { units: [], categories: [], taxes: [] } }) => {
   const router = useRouter();
 
   const handleClose = () => {
@@ -16,11 +16,10 @@ const ViewProductPage = ({ id, initialProductData = null }) => {
   };
 
   return (
-    <ViewProductDialog
-      open
-      variant="page"
+    <ViewProduct
       productId={id}
       initialProductData={initialProductData}
+      initialDropdownData={initialDropdownData}
       onClose={handleClose}
       onEdit={handleEdit}
     />

@@ -1,6 +1,6 @@
 import plugin from 'tailwindcss/plugin'
 
-module.exports = plugin(function () {}, {
+module.exports = plugin(function () { }, {
   theme: {
     borderColor: ({ theme }) => ({
       ...theme('colors'),
@@ -27,6 +27,10 @@ module.exports = plugin(function () {}, {
       '2xl': '1920px'
     },
     extend: {
+      borderWidth: {
+        1: '1px',
+        3: '3px'
+      },
       boxShadow: {
         xs: 'var(--mui-customShadows-xs)',
         sm: 'var(--mui-customShadows-sm)',
@@ -37,41 +41,53 @@ module.exports = plugin(function () {}, {
       },
       colors: {
         primary: 'var(--primary-color)',
+        primaryMain: 'var(--mui-palette-primary-main)',
         primaryLight: 'var(--mui-palette-primary-lightOpacity)',
         primaryLighter: 'var(--mui-palette-primary-lighterOpacity)',
         primaryLightest: 'var(--mui-palette-primary-lightestOpacity)',
         primaryDark: 'var(--mui-palette-primary-darkOpacity)',
         primaryDarker: 'var(--mui-palette-primary-darkerOpacity)',
+        primaryDarkest: 'var(--mui-palette-primary-darkestOpacity)',
         secondary: 'var(--mui-palette-secondary-main)',
+        secondaryMain: 'var(--mui-palette-secondary-main)',
         secondaryLight: 'var(--mui-palette-secondary-lightOpacity)',
         secondaryLighter: 'var(--mui-palette-secondary-lighterOpacity)',
         secondaryLightest: 'var(--mui-palette-secondary-lightestOpacity)',
         secondaryDark: 'var(--mui-palette-secondary-darkOpacity)',
         secondaryDarker: 'var(--mui-palette-secondary-darkerOpacity)',
+        secondaryDarkest: 'var(--mui-palette-secondary-darkestOpacity)',
         error: 'var(--mui-palette-error-main)',
+        errorMain: 'var(--mui-palette-error-main)',
         errorLight: 'var(--mui-palette-error-lightOpacity)',
         errorLighter: 'var(--mui-palette-error-lighterOpacity)',
         errorLightest: 'var(--mui-palette-error-lightestOpacity)',
         errorDark: 'var(--mui-palette-error-darkOpacity)',
         errorDarker: 'var(--mui-palette-error-darkerOpacity)',
+        errorDarkest: 'var(--mui-palette-error-darkestOpacity)',
         warning: 'var(--mui-palette-warning-main)',
+        warningMain: 'var(--mui-palette-warning-main)',
         warningLight: 'var(--mui-palette-warning-lightOpacity)',
         warningLighter: 'var(--mui-palette-warning-lighterOpacity)',
         warningLightest: 'var(--mui-palette-warning-lightestOpacity)',
         warningDark: 'var(--mui-palette-warning-darkOpacity)',
         warningDarker: 'var(--mui-palette-warning-darkerOpacity)',
+        warningDarkest: 'var(--mui-palette-warning-darkestOpacity)',
         info: 'var(--mui-palette-info-main)',
+        infoMain: 'var(--mui-palette-info-main)',
         infoLight: 'var(--mui-palette-info-lightOpacity)',
         infoLighter: 'var(--mui-palette-info-lighterOpacity)',
         infoLightest: 'var(--mui-palette-info-lightestOpacity)',
         infoDark: 'var(--mui-palette-info-darkOpacity)',
         infoDarker: 'var(--mui-palette-info-darkerOpacity)',
+        infoDarkest: 'var(--mui-palette-info-darkestOpacity)',
         success: 'var(--mui-palette-success-main)',
+        successMain: 'var(--mui-palette-success-main)',
         successLight: 'var(--mui-palette-success-lightOpacity)',
         successLighter: 'var(--mui-palette-success-lighterOpacity)',
         successDark: 'var(--mui-palette-success-darkOpacity)',
         successDarker: 'var(--mui-palette-success-darkerOpacity)',
         successLightest: 'var(--mui-palette-success-lightestOpacity)',
+        successDarkest: 'var(--mui-palette-success-darkestOpacity)',
         textPrimary: 'var(--mui-palette-text-primary)',
         textSecondary: 'var(--mui-palette-text-secondary)',
         textDisabled: 'var(--mui-palette-text-disabled)',

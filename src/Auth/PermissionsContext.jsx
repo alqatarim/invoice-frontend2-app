@@ -15,6 +15,17 @@ const FALLBACK_PERMISSIONS = Object.freeze({
   isAdmin: false,
   modules: EMPTY_MODULES,
   hasPermission: () => false,
+  isReady: false,
+  isLoading: true,
+  status: 'loading',
+});
+const NO_ACCESS_PERMISSIONS = Object.freeze({
+  isAdmin: false,
+  modules: EMPTY_MODULES,
+  hasPermission: () => false,
+  isReady: true,
+  isLoading: false,
+  status: 'unauthenticated',
 });
 
 const PermissionsContext = createContext(FALLBACK_PERMISSIONS);
@@ -33,6 +44,9 @@ export const PermissionsProvider = ({ children }) => {
         isAdmin: true,
         modules: EMPTY_MODULES,
         hasPermission: () => true,
+        isReady: true,
+        isLoading: false,
+        status: 'authenticated',
       };
     }
 
@@ -53,6 +67,9 @@ export const PermissionsProvider = ({ children }) => {
 
         return Boolean(modulePermissions.all || modulePermissions[actionKey]);
       },
+      isReady: true,
+      isLoading: false,
+      status: 'authenticated',
     };
   }, [session?.user?.permissionRes]);
 
@@ -64,12 +81,21 @@ export const PermissionsProvider = ({ children }) => {
 
     // Keep previous permissions during loading to avoid app-wide permission flicker.
     if (status === 'unauthenticated') {
-      setStablePermissions(FALLBACK_PERMISSIONS);
+      setStablePermissions(NO_ACCESS_PERMISSIONS);
     }
   }, [nextPermissions, status]);
 
+  const contextValue = useMemo(
+    () => ({
+      ...stablePermissions,
+      status,
+      isLoading: !stablePermissions.isReady && status !== 'unauthenticated',
+    }),
+    [stablePermissions, status]
+  );
+
   return (
-    <PermissionsContext.Provider value={stablePermissions}>
+    <PermissionsContext.Provider value={contextValue}>
       {children}
     </PermissionsContext.Provider>
   );

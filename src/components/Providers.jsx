@@ -4,6 +4,7 @@ import { SettingsProvider } from '@core/contexts/settingsContext';
 import ThemeProvider from '@components/theme';
 import SessionExpiryWatcher from '@/Auth/SessionExpiryWatcher';
 import { PermissionsProvider } from '@/Auth/PermissionsContext';
+import { GlobalLocationProvider } from '@/contexts/GlobalLocationContext';
 import AppReactToastify from '@/libs/styles/AppReactToastify';
 import { getDemoName, getMode, getSettingsFromCookie, getSystemMode } from '@core/utils/serverHelpers'
 
@@ -20,10 +21,12 @@ const Providers = ({ children, direction }) => {
       <PermissionsProvider>
         <VerticalNavProvider>
           <SettingsProvider settingsCookie={settingsCookie} mode={mode} demoName={demoName}>
-            <ThemeProvider direction={direction} systemMode={systemMode}>
-              {children}
-              <AppReactToastify direction={direction} hideProgressBar />
-            </ThemeProvider>
+            <GlobalLocationProvider>
+              <ThemeProvider direction={direction} systemMode={systemMode}>
+                {children}
+                <AppReactToastify direction={direction} hideProgressBar />
+              </ThemeProvider>
+            </GlobalLocationProvider>
           </SettingsProvider>
         </VerticalNavProvider>
       </PermissionsProvider>

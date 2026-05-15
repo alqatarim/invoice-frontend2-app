@@ -1,32 +1,23 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
-import Link from 'next/link';
+'use client';
+
+import React, { useEffect, useMemo, useCallback, memo } from 'react';
 import { Icon } from '@iconify/react';
 import {
-  Card,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControlLabel,
-  Checkbox,
-  FormGroup,
   Grid,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
+import { useSnackbar } from 'notistack';
 import { usePermission } from '@/Auth/usePermission';
 
 import VendorHead from '@/views/vendors/vendorList/vendorHead';
-import VendorFilter from '@/views/vendors/vendorList/vendorFilter';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import { useVendorListHandlers } from '@/handlers/vendors/useVendorListHandlers';
+import { useVendorListHandler } from './handler';
 import { getVendorColumns } from './vendorColumns';
 import AddVendorDialog from '@/views/vendors/addVendor/AddVendor';
 import EditVendorDialog from '@/views/vendors/editVendor/EditVendor';
 import ViewVendorDialog from '@/views/vendors/viewVendor/ViewVendor';
-import { addVendor, updateVendor } from '@/app/(dashboard)/vendors/actions';
-import AppSnackbar from '@/components/shared/AppSnackbar';
+import LedgerList from '@/views/vendors/vendorList/ledger';
 
 /**
  * Simplified VendorList Component - eliminates redundant state and complexity
@@ -37,7 +28,7 @@ const VendorList = ({
   initialErrorMessage = ''
 }) => {
   const theme = useTheme();
-  const { data: session } = useSession();
+  const { enqueueSnackbar } = useSnackbar();
 
   // Permissions
   const permissions = {
@@ -48,163 +39,61 @@ const VendorList = ({
   };
 
   const ledgerPermissions = {
-    canCreate: usePermission('vendor', 'view'), // Use vendor view permission for ledger access
-    canView: usePermission('vendor', 'view'),
+    canCreate: usePermission('ledger', 'create'),
+    canUpdate: usePermission('ledger', 'update'),
+    canDelete: usePermission('ledger', 'delete'),
+    canView: usePermission('ledger', 'view'),
+    canAll: usePermission('ledger', 'all'),
   };
-
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'success',
-  });
-
-  // Dialog states
-  const [dialogStates, setDialogStates] = useState({
-    add: false,
-    edit: false,
-    view: false,
-    editVendorId: null,
-    viewVendorId: null,
-    viewTab: 'details',
-  });
 
   // Notification handlers
   const onError = useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'error' });
-  }, []);
+    enqueueSnackbar(msg, {
+      variant: 'error',
+      autoHideDuration: 5000,
+      preventDuplicate: true,
+    });
+  }, [enqueueSnackbar]);
 
   const onSuccess = useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'success' });
-  }, []);
+    enqueueSnackbar(msg, {
+      variant: 'success',
+      autoHideDuration: 3000,
+    });
+  }, [enqueueSnackbar]);
 
-  // Dialog handlers
-  const handleOpenAddDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, add: true }));
-  }, []);
+  const onInfo = useCallback(msg => {
+    enqueueSnackbar(msg, {
+      variant: 'info',
+      autoHideDuration: 3000,
+      preventDuplicate: true,
+    });
+  }, [enqueueSnackbar]);
 
-  const handleCloseAddDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, add: false }));
-  }, []);
-
-  const handleOpenEditDialog = useCallback((vendorId) => {
-    setDialogStates(prev => ({ ...prev, edit: true, editVendorId: vendorId }));
-  }, []);
-
-  const handleCloseEditDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, edit: false, editVendorId: null }));
-  }, []);
-
-  const handleOpenViewDialog = useCallback((vendorId, tab = 'details') => {
-    setDialogStates(prev => ({ ...prev, view: true, viewVendorId: vendorId, viewTab: tab }));
-  }, []);
-
-  const handleOpenLedgerDialog = useCallback((vendorId) => {
-    setDialogStates(prev => ({ ...prev, view: true, viewVendorId: vendorId, viewTab: 'ledger' }));
-  }, []);
-
-  const handleCloseViewDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, view: false, viewVendorId: null, viewTab: 'details' }));
-  }, []);
-
-  // CRUD operation handlers
-  const handleAddVendor = useCallback(async (formData) => {
-    try {
-      const loadingKey = 'adding-vendor';
-      onSuccess('Adding vendor...');
-      
-      const response = await addVendor(formData);
-      
-      if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to add vendor';
-        onError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      onSuccess('Vendor added successfully!');
-      return response;
-    } catch (error) {
-      const errorMessage = error.message || 'An unexpected error occurred';
-      onError(errorMessage);
-      return { success: false, message: errorMessage };
+  useEffect(() => {
+    if (initialErrorMessage) {
+      onError(initialErrorMessage);
     }
-  }, [onSuccess, onError]);
-
-  const handleUpdateVendor = useCallback(async (vendorId, formData) => {
-    try {
-      const loadingKey = 'updating-vendor';
-      onSuccess('Updating vendor...');
-      
-      const response = await updateVendor(vendorId, formData);
-      
-      if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to update vendor';
-        onError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      onSuccess('Vendor updated successfully!');
-      return response;
-    } catch (error) {
-      const errorMessage = error.message || 'An unexpected error occurred';
-      onError(errorMessage);
-      return { success: false, message: errorMessage };
-    }
-  }, [onSuccess, onError]);
+  }, [initialErrorMessage, onError]);
 
   // Initialize simplified handlers
-  const handlers = useVendorListHandlers({
+  const handlers = useVendorListHandler({
     initialVendors,
     initialPagination,
     onError,
+    onInfo,
     onSuccess,
-    // Override handlers to use dialogs instead of navigation
-    onView: handleOpenViewDialog,
-    onEdit: handleOpenEditDialog,
-    onLedger: handleOpenLedgerDialog,
   });
 
-  // Column management
   const columns = useMemo(() => {
     if (!theme || !permissions) return [];
-    return getVendorColumns({ theme, permissions, ledgerPermissions });
-  }, [theme, permissions, ledgerPermissions]);
-
-  const [columnsState, setColumns] = useState(() => {
-    if (typeof window !== 'undefined' && columns.length > 0) {
-      const saved = localStorage.getItem('vendorVisibleColumns');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          return Array.isArray(parsed) ? parsed : columns;
-        } catch (e) {
-          console.warn('Failed to parse saved column preferences:', e);
-        }
-      }
-    }
-    return columns;
-  });
-
-  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
-
-  React.useEffect(() => {
-    if (columns.length > 0 && columnsState.length === 0) {
-      setColumns(columns);
-    }
-  }, [columns, columnsState.length]);
-
-  const handleColumnCheckboxChange = useCallback((columnKey, checked) => {
-    setColumns(prev => prev.map(col =>
-      col.key === columnKey ? { ...col, visible: checked } : col
-    ));
-  }, []);
-
-  const handleSaveColumns = useCallback(() => {
-    setManageColumnsOpen(false);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('vendorVisibleColumns', JSON.stringify(columnsState));
-    }
-  }, [columnsState]);
+    return getVendorColumns({
+      theme,
+      permissions,
+      ledgerPermissions,
+      formatVendorDate: handlers.formatVendorDate,
+    });
+  }, [theme, permissions, ledgerPermissions, handlers.formatVendorDate]);
 
   // Table columns
   const tableColumns = useMemo(() => {
@@ -218,13 +107,13 @@ const VendorList = ({
       pagination: handlers.pagination,
     };
 
-    return columnsState
+    return columns
       .filter(col => col.visible)
       .map(col => ({
         ...col,
         renderCell: col.renderCell ? (row, index) => col.renderCell(row, cellHandlers, index) : undefined
       }));
-  }, [columnsState, handlers, permissions, ledgerPermissions]);
+  }, [columns, handlers, permissions, ledgerPermissions]);
 
   const tablePagination = useMemo(() => ({
     page: handlers.pagination.current - 1,
@@ -240,20 +129,12 @@ const VendorList = ({
       />
 
       <Grid container spacing={3}>
-        {/* <Grid size={{xs:12}}>
-          <VendorFilter
-            onApplyFilters={handlers.handleFilterApply}
-            onResetFilters={handlers.handleFilterReset}
-            onOpenColumns={() => setManageColumnsOpen(true)}
-          />
-        </Grid> */}
-
-        <Grid size={{xs:12}}>
+        <Grid size={{ xs: 12 }}>
           <CustomListTable
             addRowButton={
               permissions.canCreate && (
                 <Button
-                  onClick={handleOpenAddDialog}
+                  onClick={handlers.handleOpenAddDialog}
                   variant="contained"
                   startIcon={<Icon icon="tabler:plus" />}
                 >
@@ -286,67 +167,37 @@ const VendorList = ({
         </Grid>
       </Grid>
 
-      <Dialog
-        open={manageColumnsOpen}
-        onClose={() => setManageColumnsOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Manage Columns</DialogTitle>
-        <DialogContent>
-          <FormGroup>
-            {columnsState.map((column) => (
-              <FormControlLabel
-                key={column.key}
-                control={
-                  <Checkbox
-                    checked={column.visible}
-                    onChange={(e) => handleColumnCheckboxChange(column.key, e.target.checked)}
-                  />
-                }
-                label={column.label}
-              />
-            ))}
-          </FormGroup>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setManageColumnsOpen(false)} color="secondary">
-            Cancel
-          </Button>
-          <Button onClick={handleSaveColumns} color="primary" variant="contained">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        autoHideDuration={6000}
-      />
-
       {/* Vendor Dialogs */}
       <AddVendorDialog
-        open={dialogStates.add}
-        onClose={handleCloseAddDialog}
-        onSave={handleAddVendor}
+        open={handlers.dialogStates.add}
+        onClose={handlers.handleCloseAddDialog}
+        onSave={handlers.handleAddVendor}
+        onError={onError}
       />
 
       <EditVendorDialog
-        open={dialogStates.edit}
-        vendorId={dialogStates.editVendorId}
-        onClose={handleCloseEditDialog}
-        onSave={handleUpdateVendor}
+        open={handlers.dialogStates.edit}
+        vendorId={handlers.dialogStates.editVendorId}
+        onClose={handlers.handleCloseEditDialog}
+        onSave={handlers.handleUpdateVendor}
+        onError={onError}
       />
 
       <ViewVendorDialog
-        open={dialogStates.view}
-        vendorId={dialogStates.viewVendorId}
-        defaultTab={dialogStates.viewTab}
-        onClose={handleCloseViewDialog}
-        onEdit={handleOpenEditDialog}
+        open={handlers.dialogStates.view}
+        vendorId={handlers.dialogStates.viewVendorId}
+        onClose={handlers.handleCloseViewDialog}
+        onEdit={handlers.handleOpenEditDialog}
+        onError={onError}
+        onSuccess={onSuccess}
+      />
+
+      <LedgerList
+        open={handlers.dialogStates.ledger}
+        vendorId={handlers.dialogStates.ledgerVendorId}
+        permissions={ledgerPermissions}
+        onClose={handlers.handleCloseLedgerDialog}
+        onChanged={handlers.refreshData}
         onError={onError}
         onSuccess={onSuccess}
       />

@@ -122,34 +122,37 @@ export async function fetchWithAuth(endpoint, options = {}) {
       credentials: 'include',
     });
 
+    // Clone response for logging (since response can only be consumed once)
+    const responseClone = response.clone();
+    const responseData = await responseClone.json();
+
+    //  console.log(`=== Request to ${endpoint} [${requestId}] ===`);
+
+    //  ============         ===============
+    //  ============         ===============
+    //  console.log('Request Details:', JSON.stringify(logData.request, null, 2));
+
+
+    console.log(`=== Response Data from ${endpoint} [${requestId}] ===`);
+
+    //  ============         ===============
+    //  ============         ===============
+    console.log(JSON.stringify(responseData, null, 2));
+
+    // Update log object with response
+    logData.response = {
+      status: response.status,
+      data: responseData
+    };
+
     if (!response.ok) {
-      // const error = await response.clone().json();
-
-      let error = {};
-      try {
-        error = await response.json();
-      } catch {
-        try {
-          errorText = await response.text();
-        } catch {
-          errorText = '';
-        }
-      }
-
-      const messageFromPayload =
-        (Array.isArray(error?.message) ? error.message.join(', ') : error?.message) ||
-        (Array.isArray(error?.data?.message) ? error.data.message.join(', ') : error?.data?.message) ||
-        (typeof error?.data === 'string' ? error.data : '') ||
-        (errorText ? errorText.slice(0, 220) : '');
-
-      const fallbackMessage = `Request to ${endpoint} failed with status ${response.status}`;
-      const resolvedMessage = messageFromPayload || fallbackMessage;
+      const error = await response.clone().json();
 
       if (response.status === 401) {
         // Clear session cache on 401 to force fresh session on next request
         cachedSession = null;
         sessionExpiry = null;
-        throw new Error(resolvedMessage || 'Unauthorized access - please log in again');
+        throw new Error(error?.message || 'Unauthorized access - please log in again');
       } else if (response.status === 403) {
         let errRes = error?.data?.message;
         if (Array.isArray(errRes)) {
@@ -158,15 +161,26 @@ export async function fetchWithAuth(endpoint, options = {}) {
           throw new Error(errRes);
         }
       } else if (response.status === 500) {
-        throw new Error(resolvedMessage || 'Internal server error - please try again later');
+        throw new Error('Internal server error - please try again later');
       } else {
-        throw new Error(resolvedMessage);
+        throw new Error(
+          Array.isArray(error.message)
+            ? error.message.join(', ')
+            : error.message || 'An unknown error occurred'
+        );
       }
     }
 
     return await response.json();
   } catch (error) {
     console.error('Error in fetchWithAuth:', error.message);
+    // Update log object with error
+    logData.response = {
+      error: error.message
+    };
+
+    console.log(`=== fetchWithAuth Error [${requestId}] ===`);
+    console.log(JSON.stringify(logData, null, 2));
     throw error;
   }
 

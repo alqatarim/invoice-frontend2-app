@@ -4,9 +4,11 @@ import { getDashboardData } from './actions';
 export default async function DashboardPage({ searchParams }) {
   let initialDashboardData = null;
   const branchId = searchParams?.branchId || '';
+  const fromDate = searchParams?.fromDate || '';
+  const toDate = searchParams?.toDate || '';
 
   try {
-    const response = await getDashboardData(branchId);
+    const response = await getDashboardData({ branchId, fromDate, toDate });
 
     if (response?.code === 200 && response?.data) {
       initialDashboardData = response.data;
@@ -19,6 +21,8 @@ export default async function DashboardPage({ searchParams }) {
     <DashboardIndex
       initialDashboardData={initialDashboardData}
       initialBranchId={branchId}
+      initialFromDate={fromDate}
+      initialToDate={toDate}
     />
   );
 }

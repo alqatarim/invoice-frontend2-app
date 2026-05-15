@@ -1,72 +1,53 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { useMemo } from "react";
-import { Icon } from "@iconify/react";
+import { useMemo, useState } from 'react';
+import { Icon } from '@iconify/react';
 
-import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import Chip from "@mui/material/Chip";
-import { useTheme } from "@mui/material/styles";
-import CardHeader from "@mui/material/CardHeader";
-import LinearProgress from "@mui/material/LinearProgress";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import CardContent from "@mui/material/CardContent";
-import { alpha } from "@mui/material/styles";
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import { alpha, useColorScheme, useTheme } from '@mui/material/styles';
+import { motion } from 'framer-motion';
 
-import CustomAvatar from "@core/components/mui/Avatar";
-import { statusOptions } from "@/data/dataSets";
-import { formatWholeNumber } from "@/utils/numberUtils";
-
-const AppReactApexCharts = dynamic(
-	() => import("@/libs/styles/AppReactApexCharts"),
-	{
-		ssr: false,
-		loading: () => (
-			<div className="flex items-center justify-center h-64 bg-gray-100 animate-pulse rounded-lg">
-				<div className="text-gray-500">Loading chart...</div>
-			</div>
-		),
-	}
-);
+import CustomAvatar from '@core/components/mui/Avatar';
+import { statusOptions } from '@/data/dataSets';
+import { formatCompactNumber, formatWholeNumber } from '@/utils/numberUtils';
+import { RiyalIcon } from '@/utils/currencyUtils';
+import { CountUp } from '@/views/dashboard/CountUp';
 
 const STATUS_COLOR_FALLBACK = {
-	PAID: "success",
-	DRAFTED: "secondary",
-	OVERDUE: "error",
-	PARTIALLY_PAID: "warning",
-	SENT: "info",
-	UNPAID: "warning",
-	REFUND: "secondary",
+	PAID: 'success',
+	DRAFTED: 'secondary',
+	OVERDUE: 'error',
+	PARTIALLY_PAID: 'warning',
+	SENT: 'info',
+	UNPAID: 'warning',
+	REFUND: 'secondary',
 };
 
-const APEX_STATUS_COLORS = {
-	success: "#28C76F",
-	secondary: "#A8AAAE",
-	error: "#EA5455",
-	warning: "#FF9F43",
-	info: "#00CFE8",
-	primary: "#7367F0",
-};
+const normalizeStatus = (value = '') =>
+	String(value).trim().replace(/\s+/g, '_').toUpperCase();
 
-const normalizeStatus = (value = "") =>
-	String(value).trim().replace(/\s+/g, "_").toUpperCase();
+const EASE = [0.22, 1, 0.36, 1];
 
-const CardWidgetsSalesOverview = ({
+const InvoicesInsights = ({
 	labels = [],
 	amounts = [],
 	statusCounts = [],
-	currencyData = "SAR",
-	activeFilterLabel = "All Time",
-	width = 265,
-	height = 265,
+	activeFilterLabel = 'All Time',
 }) => {
 	const theme = useTheme();
+	const { mode, systemMode } = useColorScheme();
+	const isDark = (mode === 'system' ? systemMode : mode) === 'dark';
+
+	const [hoverKey, setHoverKey] = useState(null);
 
 	const statusOptionsMap = useMemo(() => {
 		const map = new Map();
-		statusOptions.forEach((option) => {
+		statusOptions.forEach(option => {
 			map.set(normalizeStatus(option.value), option);
 		});
 		return map;
@@ -74,236 +55,428 @@ const CardWidgetsSalesOverview = ({
 
 	const statusData = useMemo(() => {
 		const defaultLabels =
-			labels.length > 0 ? labels : ["PAID", "DRAFTED", "OVERDUE", "PARTIALLY_PAID"];
+			labels.length > 0
+				? labels
+				: ['PAID', 'DRAFTED', 'OVERDUE', 'PARTIALLY_PAID'];
 
 		return defaultLabels.map((status, index) => {
 			const normalizedStatus = normalizeStatus(status);
 			const foundStatus = statusOptionsMap.get(normalizedStatus);
-			const color =
+			const colorKey =
 				foundStatus?.color ||
 				STATUS_COLOR_FALLBACK[normalizedStatus] ||
-				"primary";
+				'primary';
 			const amount = Number(amounts[index] || 0);
-
+			const muiColor = theme.palette[colorKey] || theme.palette.primary;
 			return {
 				key: normalizedStatus,
-				label: foundStatus?.label || normalizedStatus.replace(/_/g, " "),
-				icon: foundStatus?.icon || "ri-circle-line",
-				color,
+				label: foundStatus?.label || normalizedStatus.replace(/_/g, ' '),
+				icon: foundStatus?.icon || 'ri-circle-line',
+				color: colorKey,
+				accent: muiColor.main,
 				amount,
 				count: Number(statusCounts[index] || 0),
 			};
 		});
-	}, [labels, amounts, statusCounts, statusOptionsMap]);
+	}, [labels, amounts, statusCounts, statusOptionsMap, theme.palette]);
 
 	const totalAmount = useMemo(
 		() => statusData.reduce((sum, item) => sum + item.amount, 0),
 		[statusData]
 	);
+	const totalCount = useMemo(
+		() => statusData.reduce((sum, item) => sum + item.count, 0),
+		[statusData]
+	);
 
-	const hasData = statusData.some((item) => item.amount > 0);
+	const enriched = useMemo(
+		() =>
+			statusData
+				.map(item => ({
+					...item,
+					share: totalAmount > 0 ? (item.amount / totalAmount) * 100 : 0,
+					shareCount: totalCount > 0 ? (item.count / totalCount) * 100 : 0,
+				}))
+				.sort((a, b) => b.amount - a.amount),
+		[statusData, totalAmount, totalCount]
+	);
 
-	const statusDataWithShare = useMemo(() => {
-		return statusData.map((item) => ({
-			...item,
-			share: totalAmount > 0 ? (item.amount / totalAmount) * 100 : 0,
-		}));
-	}, [statusData, totalAmount]);
+	const hasData = enriched.some(item => item.amount > 0);
 
-	const dominantStatus = useMemo(() => {
-		return (
-			statusDataWithShare.reduce((top, current) => {
-				if (current.amount > top.amount) return current;
-				return top;
-			}, statusDataWithShare[0] || { label: "N/A", amount: 0 }) || {
-				label: "N/A",
-				amount: 0,
-			}
-		);
-	}, [statusDataWithShare]);
+	// Pre-compute "leading" segment for the headline insight chip
+	const leading = enriched[0];
+	const leadingShare = leading?.share || 0;
 
-	const chartOptions = useMemo(() => {
-		const chartColors = statusDataWithShare.map((item) => {
-			return APEX_STATUS_COLORS[item.color] || APEX_STATUS_COLORS.primary;
-		});
-
-		return {
-			chart: {
-				type: "donut",
-				sparkline: { enabled: true },
-				width,
-				height,
-			},
-			stroke: { width: 0 },
-			dataLabels: { enabled: false },
-			labels: statusDataWithShare.map((item) => item.label),
-			legend: { show: false },
-			colors: chartColors,
-			plotOptions: {
-				pie: {
-					donut: {
-						size: "74%",
-						labels: {
-							show: true,
-							name: {
-								show: true,
-								offsetY: 14,
-								fontSize: "0.82rem",
-								color: "var(--mui-palette-text-secondary)",
-							},
-							value: {
-								show: true,
-								offsetY: -14,
-								fontWeight: 600,
-								fontSize: "1rem",
-								formatter: (value) => formatWholeNumber(value),
-								color: "var(--mui-palette-text-primary)",
-							},
-							total: {
-								show: true,
-								label: `${currencyData} Total`,
-								fontSize: "0.8rem",
-								color: "var(--mui-palette-text-secondary)",
-								formatter: () => formatWholeNumber(totalAmount),
-							},
-						},
-					},
-				},
-			},
-			tooltip: {
-				y: {
-					formatter: (value) => `${formatWholeNumber(value)} ${currencyData}`,
-				},
-			},
-		};
-	}, [statusDataWithShare, theme.palette, width, height, currencyData, totalAmount]);
+	const overdueItem = enriched.find(s => s.key === 'OVERDUE');
 
 	return (
-		<Card sx={{ height: "100%" }}>
-			<CardHeader
-				title="Invoices Insights"
-				subheader={`Distribution by amount • ${activeFilterLabel}`}
-			// action={
-			// 	<Chip
-			// 		size="small"
-			// 		variant="tonal"
-			// 		color="primary"
-			// 		label={`Top: ${dominantStatus?.label || "N/A"}`}
-			// 	/>
-			// }
-			/>
-			<CardContent sx={{ pt: 0 }}>
+		<Card
+			component={motion.div}
+			initial={{ opacity: 0, y: 18 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ duration: 0.55, ease: EASE, delay: 0.3 }}
+			sx={{ height: '100%' }}
+		>
+			<CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
+				{/* Header */}
+				<Stack
+					direction="row"
+					justifyContent="flex-start"
+					alignItems="center"
+					spacing={3}
+					sx={{ mb: 2 }}
+				>
+					{/* <Box> */}
+
+					<CustomAvatar color="primary" skin="light" variant="rounded" size={36}>
+						<Icon icon="mdi:invoice-text-outline" width="1.4rem" />
+					</CustomAvatar>
+					<Typography variant="h5" sx={{ fontWeight: 600 }}>
+						Invoices Insights
+					</Typography>
+					{/* <Typography
+							variant="caption"
+							sx={{ color: 'text.secondary', display: 'block', mt: 0.3 }}
+						>
+							Distribution by amount · {activeFilterLabel}
+						</Typography> */}
+					{/* </Box> */}
+
+				</Stack>
+
 				{!hasData ? (
 					<Box
 						sx={{
-							minHeight: 360,
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "center",
-							justifyContent: "center",
+							minHeight: 320,
+							display: 'flex',
+							flexDirection: 'column',
+							alignItems: 'center',
+							justifyContent: 'center',
 							gap: 1.5,
-							color: "text.secondary",
+							color: 'text.secondary',
 						}}
 					>
-						<Icon
-							icon="ri-donut-chart-line"
-							width="1.5rem"
-							color={theme.palette.text.secondary}
-						/>
+						<Icon icon="ri-donut-chart-line" width="1.5rem" />
 						<Typography variant="body2" color="text.secondary">
-							No insight data available for this period.
+							No invoice data available for this period.
 						</Typography>
 					</Box>
 				) : (
-					<Stack spacing={4}>
-						<Box
-							sx={{
-								display: "flex",
-								justifyContent: "center",
-								alignItems: "center",
-								py: 1.5,
-								"& .apexcharts-tooltip": {
-									background:
-										"var(--mui-palette-background-paper) !important",
-									color: "var(--mui-palette-text-primary) !important",
-									border: `1px solid ${alpha(theme.palette.divider, 0.8)} !important`,
-								},
-								"& .apexcharts-tooltip-title": {
-									background:
-										"var(--mui-palette-background-default) !important",
-									color:
-										"var(--mui-palette-text-secondary) !important",
-									borderBottom:
-										"1px solid var(--mui-palette-divider) !important",
-								},
-							}}
-						>
-							<AppReactApexCharts
-								type="donut"
-								width={width}
-								height={height}
-								series={statusDataWithShare.map((item) => item.amount)}
-								options={chartOptions}
-							/>
+					<Box className='flex flex-col space-between gap-5'>
+						{/* Headline total */}
+						<Box>
+							<Typography
+								variant="caption"
+								sx={{
+									color: alpha(theme.palette.text.primary, isDark ? 0.85 : 0.65),
+									fontWeight: 700,
+									textTransform: 'uppercase',
+									letterSpacing: 1,
+									fontSize: '0.68rem',
+								}}
+							>
+								Total invoiced
+							</Typography>
+							<Stack direction="row" alignItems="baseline" spacing={0.6} sx={{ mt: 0.4 }}>
+								<RiyalIcon width="1.05rem" color={theme.palette.text.primary} />
+								<Typography
+									sx={{
+										fontSize: { xs: '1.9rem', md: '2.2rem' },
+										fontWeight: 800,
+										lineHeight: 1.1,
+										letterSpacing: '-0.02em',
+										fontVariantNumeric: 'tabular-nums',
+									}}
+								>
+									<CountUp value={totalAmount} formatter={formatCompactNumber} />
+								</Typography>
+							</Stack>
+							{/* <Typography
+								variant="caption"
+								sx={{ color: 'text.secondary', display: 'block', mt: 0.4 }}
+							>
+								across{' '}
+								<Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+									<CountUp value={totalCount} formatter={formatWholeNumber} />
+								</Box>{' '}
+								invoices
+							</Typography> */}
 						</Box>
 
-						<Stack spacing={2.2}>
-							{statusDataWithShare.map((status) => (
-								<Box key={status.key}>
-									<Stack
-										direction="row"
-										alignItems="center"
-										justifyContent="space-between"
-										spacing={1.5}
-										sx={{ mb: 1 }}
-									>
-										<Stack direction="row" spacing={1.5} alignItems="center">
-											<CustomAvatar
-												size={30}
-												skin="light"
-												color={status.color}
-												variant="rounded"
-											>
-												<Icon icon={status.icon} width={16} />
-											</CustomAvatar>
-											<Box>
-												<Typography variant="body2" sx={{ fontWeight: 500 }}>
-													{status.label}
-												</Typography>
-												<Typography variant="caption" color="text.secondary">
-													{status.count.toLocaleString("en-US")} invoices
-												</Typography>
-											</Box>
-										</Stack>
+						{/* Stacked horizontal bar visualization */}
+						<Box>
+							<Box
+								sx={{
+									position: 'relative',
+									height: 12,
+									borderRadius: 999,
+									overflow: 'hidden',
+									display: 'flex',
+									backgroundColor: alpha(theme.palette.text.primary, 0.05),
+									border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
+								}}
+							>
+								{enriched.map((status, index) => {
+									if (status.amount <= 0) return null;
+									const dimmed = hoverKey && hoverKey !== status.key;
+									return (
+										// <Tooltip
+										// 	key={status.key}
+										// 	title={
+										// 		<Box sx={{ p: 0.4 }}>
+										// 			<Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
+										// 				{status.label}
+										// 			</Typography>
+										// 			<Typography variant="caption" sx={{ display: 'block' }}>
+										// 				{formatCompactNumber(status.amount)} SAR · {status.share.toFixed(1)}%
+										// 			</Typography>
+										// 		</Box>
+										// 	}
+										// 	arrow
+										// 	placement="top"
+										// 	disableInteractive
+										// >
+										<Box
+											component={motion.div}
+											onMouseEnter={() => setHoverKey(status.key)}
+											onMouseLeave={() => setHoverKey(null)}
+											initial={{ width: 0 }}
+											animate={{ width: `${status.share}%` }}
+											transition={{
+												duration: 0.9,
+												ease: 'easeOut',
+												delay: 0.4 + index * 0.06,
+											}}
+											sx={{
+												height: '100%',
+												backgroundColor: status.accent,
+												opacity: dimmed ? 0.35 : 1,
+												transition: 'opacity 0.2s ease',
+												cursor: 'pointer',
+											}}
+										/>
+										// </Tooltip>
+									);
+								})}
+							</Box>
 
-										<Box sx={{ textAlign: "right" }}>
-											<Typography variant="body2" sx={{ fontWeight: 600 }}>
-												{formatWholeNumber(status.amount)} {currencyData}
-											</Typography>
-											<Typography variant="caption" color="text.secondary">
-												{status.share.toFixed(1)}%
-											</Typography>
-										</Box>
-									</Stack>
-
-									{/* <LinearProgress
-										variant="determinate"
-										value={status.share}
-										color={status.color}
+							{/* Caption row under the bar */}
+							{/* {leading ? (
+								<Stack
+									direction="row"
+									alignItems="center"
+									spacing={1}
+									sx={{ mt: 1.5 }}
+								>
+									<Box
 										sx={{
-											height: 6,
-											borderRadius: 6,
-											backgroundColor: alpha(theme.palette[status.color].main, 0.14),
+											width: 8,
+											height: 8,
+											borderRadius: '50%',
+											backgroundColor: leading.accent,
 										}}
-									/> */}
-								</Box>
+									/>
+									<Typography variant="caption" sx={{ color: 'text.secondary' }}>
+										<Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+											{leading.label}
+										</Box>{' '}
+										leads with{' '}
+										<Box component="span" sx={{ fontWeight: 700, color: leading.accent }}>
+											{leadingShare.toFixed(1)}%
+										</Box>{' '}
+										of value
+									</Typography>
+								</Stack>
+							) : null} */}
+						</Box>
+
+						{/* Status ledger */}
+						<Box className='flex flex-col space-between gap-2'>
+							{enriched.map((status, index) => (
+								<StatusLedgerRow
+									key={status.key}
+									status={status}
+									index={index}
+									isHovered={hoverKey === status.key}
+									isDimmed={hoverKey && hoverKey !== status.key}
+									onHover={() => setHoverKey(status.key)}
+									onLeave={() => setHoverKey(null)}
+								/>
 							))}
-						</Stack>
-					</Stack>
+						</Box>
+
+						{/* Overdue alert (when relevant) */}
+						{/* {overdueItem && overdueItem.amount > 0 ? (
+							<Box
+								component={motion.div}
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{ duration: 0.5, delay: 0.9 }}
+								sx={{
+									p: 1.4,
+									borderRadius: 1.5,
+									border: `1px dashed ${alpha(theme.palette.error.main, 0.4)}`,
+									backgroundColor: alpha(theme.palette.error.main, 0.06),
+								}}
+							>
+								<Stack direction="row" spacing={1.2} alignItems="center">
+									<Box
+										component={motion.span}
+										animate={{
+											scale: [1, 1.3, 1],
+											opacity: [0.6, 1, 0.6],
+										}}
+										transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+										sx={{
+											width: 8,
+											height: 8,
+											borderRadius: '50%',
+											backgroundColor: theme.palette.error.main,
+											flexShrink: 0,
+										}}
+									/>
+									<Typography
+										variant="caption"
+										sx={{ color: 'text.primary', fontWeight: 600, lineHeight: 1.4 }}
+									>
+										<Box component="span" sx={{ color: theme.palette.error.main, fontWeight: 700 }}>
+											{formatCompactNumber(overdueItem.amount)} SAR
+										</Box>{' '}
+										is overdue across{' '}
+										<Box component="span" sx={{ fontWeight: 700 }}>
+											{overdueItem.count}
+										</Box>{' '}
+										invoice{overdueItem.count === 1 ? '' : 's'}
+									</Typography>
+								</Stack>
+							</Box>
+						) : null} */}
+					</Box>
 				)}
 			</CardContent>
 		</Card>
 	);
 };
 
-export default CardWidgetsSalesOverview;
+const StatusLedgerRow = ({ status, index, isHovered, isDimmed, onHover, onLeave }) => {
+	const theme = useTheme();
+
+	return (
+		<Box
+			component={motion.div}
+			initial={{ opacity: 0, x: -8 }}
+			animate={{ opacity: 1, x: 0 }}
+			transition={{ duration: 0.4, ease: EASE, delay: 0.5 + index * 0.05 }}
+			onMouseEnter={onHover}
+			onMouseLeave={onLeave}
+			sx={{
+				cursor: 'pointer',
+				p: 1.2,
+				borderRadius: 1.5,
+				transition: 'background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease',
+				opacity: isDimmed ? 0.55 : 1,
+				transform: isHovered ? 'translateX(2px)' : 'translateX(0)',
+				backgroundColor: isHovered ? alpha(status.accent, 0.07) : 'transparent',
+			}}
+		>
+			<Stack
+				direction="row"
+				alignItems="center"
+				justifyContent="space-between"
+				spacing={1.5}
+				sx={{ mb: 0.8 }}
+			>
+				<Stack direction="row" alignItems="center" spacing={2.5} sx={{ minWidth: 0, flex: 1 }}>
+					<Box
+						sx={{
+							width: 10,
+							height: 10,
+							borderRadius: '50%',
+							backgroundColor: status.accent,
+							flexShrink: 0,
+							boxShadow: isHovered ? `0 0 0 4px ${alpha(status.accent, 0.18)}` : 'none',
+							transition: 'box-shadow 0.25s ease',
+						}}
+					/>
+					<Box sx={{ minWidth: 0 }}>
+						<Typography
+							sx={{
+								fontSize: '0.85rem',
+								fontWeight: 600,
+								lineHeight: 1.2,
+								overflow: 'hidden',
+								textOverflow: 'ellipsis',
+								whiteSpace: 'nowrap',
+							}}
+						>
+							{status.label}
+						</Typography>
+						<Typography
+							variant="caption"
+							sx={{
+								color: 'text.secondary',
+								fontSize: '0.7rem',
+								lineHeight: 1.2,
+							}}
+						>
+							{formatWholeNumber(status.count)} invoice{status.count === 1 ? '' : 's'}
+						</Typography>
+					</Box>
+				</Stack>
+
+				<Stack spacing={0.1} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
+					<Stack direction="row" alignItems="center" spacing={0.4}>
+						<RiyalIcon width="0.78rem" color={theme.palette.text.secondary} />
+						<Typography
+							sx={{
+								fontSize: '0.85rem',
+								fontWeight: 700,
+								lineHeight: 1.2,
+								fontVariantNumeric: 'tabular-nums',
+							}}
+						>
+							{formatCompactNumber(status.amount)}
+						</Typography>
+					</Stack>
+					<Typography
+						variant="caption"
+						sx={{
+							fontWeight: 700,
+							fontSize: '0.7rem',
+							lineHeight: 1.2,
+							color: status.accent,
+							fontVariantNumeric: 'tabular-nums',
+						}}
+					>
+						{status.share.toFixed(1)}%
+					</Typography>
+				</Stack>
+			</Stack>
+
+			{/* Tiny per-row share bar (only animates in once) */}
+			{/* <Box
+				sx={{
+					height: 4,
+					width: '100%',
+					borderRadius: 2,
+					backgroundColor: alpha(status.accent, 0.12),
+					overflow: 'hidden',
+				}}
+			>
+				<Box
+					component={motion.div}
+					initial={{ width: 0 }}
+					animate={{ width: `${Math.min(Math.max(status.share, 0), 100)}%` }}
+					transition={{ duration: 0.9, ease: 'easeOut', delay: 0.6 + index * 0.05 }}
+					sx={{
+						height: '100%',
+						backgroundColor: status.accent,
+						borderRadius: 2,
+					}}
+				/>
+			</Box> */}
+		</Box>
+	);
+};
+
+export default InvoicesInsights;
