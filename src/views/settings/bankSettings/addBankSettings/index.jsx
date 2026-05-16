@@ -1,6 +1,6 @@
 'use client'
 
-import { useBankSettingsHandlers } from '@/handlers/settings/useBankSettingsHandlers'
+import { useBankSettingsHandlers } from '../handler'
 import BankSettingsForm from '../shared/BankSettingsForm'
 import SettingsLayout from '../../shared/SettingsLayout'
 

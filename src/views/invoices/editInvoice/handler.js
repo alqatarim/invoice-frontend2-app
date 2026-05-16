@@ -7,10 +7,10 @@ import { InvoiceSchema } from '@/views/invoices/InvoiceSchema';
 import { useGlobalLocationScope } from '@/contexts/GlobalLocationContext';
 import { formatDateForInput } from '@/utils/dateUtils';
 import { paymentMethods } from '@/data/dataSets';
-import { notifyNotistackFormValidationErrors } from '@/handlers/shared/notifyNotistackFormValidationErrors';
 import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 import { calculateInvoiceTotals } from '@/utils/salesTotals';
+import { notifyNotistackFormValidationErrors } from '@/utils/notifyNotistackFormValidationErrors';
 
 const createEmptyInvoiceItem = () => ({
   productId: '',

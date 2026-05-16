@@ -4,16 +4,23 @@ export const isStoreBranch = branch =>
   normalizeBranchValue(branch?.branchType || branch?.kind).toLowerCase() === 'store';
 
 export const getBranchIdentifiers = branch =>
-  [branch?.branchId, branch?._id].map(normalizeBranchValue).filter(Boolean);
+  [branch?._id].map(normalizeBranchValue).filter(Boolean);
 
 export const resolveBranchId = branch => getBranchIdentifiers(branch)[0] || '';
+
+export const branchMatchesIdentifier = (branch = {}, value = '') => {
+  const normalizedValue = normalizeBranchValue(value);
+  if (!normalizedValue) return false;
+
+  return getBranchIdentifiers(branch).includes(normalizedValue);
+};
 
 export const findBranchByIdentifier = (branches = [], value = '') => {
   const normalizedValue = normalizeBranchValue(value);
   if (!normalizedValue) return null;
 
   return (Array.isArray(branches) ? branches : []).find(branch =>
-    getBranchIdentifiers(branch).includes(normalizedValue)
+    branchMatchesIdentifier(branch, normalizedValue)
   ) || null;
 };
 

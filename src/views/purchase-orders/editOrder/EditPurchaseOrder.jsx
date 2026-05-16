@@ -26,7 +26,7 @@ import { alpha, useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
 import VendorAutocomplete from '@/components/custom-components/VendorAutocomplete';
-import useEditPurchaseOrderHandlers from '@/handlers/purchaseOrders/editPurchaseOrder/useEditPurchaseOrderHandlers';
+import useEditPurchaseOrderHandlers from './handler';
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';

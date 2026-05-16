@@ -22,7 +22,7 @@ import RolesHead from './rolesHead'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import RoleDialog from '@/components/dialogs/role-dialog'
 import PermissionsDialog from '@/components/dialogs/permissions-dialog'
-import { useRolesListHandlers } from '@/handlers/roles-permission/useRolesListHandlers'
+import { useRolesListHandlers } from './handler'
 import AppSnackbar from '@/components/shared/AppSnackbar'
 import rolesColumns from './rolesColumns'
 

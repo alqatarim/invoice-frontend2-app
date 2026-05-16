@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useTaxSettingsHandlers } from '@/handlers/settings/useTaxSettingsHandlers'
+import { useTaxSettingsHandlers } from '../handler'
 import TaxSettingsForm from '../shared/TaxSettingsForm'
 import SettingsLayout from '../../shared/SettingsLayout'
 

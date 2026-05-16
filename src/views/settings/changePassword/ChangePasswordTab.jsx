@@ -1,11 +1,8 @@
 'use client'
 
-// React Imports
-import { useState } from 'react'
-
 // Component Imports
 import ChangePasswordForm from './ChangePasswordForm'
-import useChangePasswordHandlers from '@/handlers/settings/useChangePasswordHandlers'
+import useChangePasswordHandlers from './handler'
 
 const ChangePasswordTab = ({ enqueueSnackbar }) => {
   const {

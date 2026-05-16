@@ -1,7 +1,7 @@
 'use client'
 
 import { Alert, AlertTitle } from '@mui/material'
-import { useTaxSettingsHandlers } from '@/handlers/settings/useTaxSettingsHandlers'
+import { useTaxSettingsHandlers } from './handler'
 
 const TaxSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
   const handlers = useTaxSettingsHandlers(initialData || {})

@@ -1,1 +1,0 @@
-export { useAddProductHandlers } from './useAddProductHandlers';

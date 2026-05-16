@@ -1,6 +1,6 @@
 'use client'
 
-import { useInvoiceTemplateHandlers } from '@/handlers/settings/useInvoiceTemplateHandlers'
+import { useInvoiceTemplateHandlers } from './handler'
 import InvoiceTemplatesView from './InvoiceTemplatesView'
 import SettingsLayout from '../shared/SettingsLayout'
 

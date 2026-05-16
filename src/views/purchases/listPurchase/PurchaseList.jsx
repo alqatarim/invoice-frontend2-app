@@ -22,7 +22,7 @@ import { useSearchParams } from 'next/navigation';
 
 import PurchaseHead from '@/views/purchases/listPurchase/purchaseHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import { usePurchaseListHandlers } from '@/handlers/purchases/list/usePurchaseListHandlers';
+import { usePurchaseListHandlers } from './handler';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { getPurchaseColumns } from './purchaseColumns';
 import AppSnackbar from '@/components/shared/AppSnackbar';

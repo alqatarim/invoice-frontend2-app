@@ -1,76 +1,49 @@
 'use client'
 
-import { Grid, Avatar, Typography } from '@mui/material'
-import { Icon } from '@iconify/react'
-import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder'
+import { useMemo } from 'react'
+import { Grid } from '@mui/material'
+import PageIconHeader from '@components/headers/PageIconHeader'
+import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder'
 
 const RolesHead = ({ cardCounts }) => {
+  const statCards = useMemo(
+    () => [
+      {
+        title: 'Total Roles',
+        value: cardCounts?.totalRoles || 0,
+        subtitle: 'No of Roles',
+        icon: 'ri-group-line',
+        color: 'primary',
+      },
+      {
+        title: 'Active Roles',
+        value: cardCounts?.activeRoles || 0,
+        subtitle: 'No of Active Roles',
+        icon: 'ri-check-double-line',
+        color: 'success',
+      },
+      {
+        title: 'Super Admin',
+        value: cardCounts?.superAdminRole || 0,
+        subtitle: 'No of Super Admin',
+        icon: 'ri-admin-line',
+        color: 'warning',
+      },
+    ],
+    [cardCounts]
+  )
+
   return (
     <>
-      {/* Header Section */}
-      <div className="flex justify-start items-center mb-5">
-        <div className="flex items-center gap-2">
-          <Avatar className='bg-primary/12 text-primary bg-primaryLight w-12 h-12'>
-            <Icon icon="ri-group-line" fontSize={26} />
-          </Avatar>
-          <Typography variant="h5" className="font-semibold text-primary">
-            Access Control
-          </Typography>
-        </div>
-      </div>
+      <PageIconHeader title='Access Control' icon='ri-group-line' />
 
-      {/* Statistics Cards */}
       <div className="mb-2">
-        <Grid container gap={2} className='flex justify-
-        '>
-          <Grid size={{ xs: 12, sm: 6, md: 4 , lg: 3}}>
-            <HorizontalWithBorder
-
-              title="Total Roles"
-              subtitle="No of Roles"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={cardCounts?.totalRoles || 0}
-              statsVariant='h4'
-              trendNumber={cardCounts?.totalRoles || 0}
-              trendNumberVariant='body1'
-              avatarIcon='ri-group-line'
-              color="primary"
-              iconSize='30px'
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 4 , lg: 3}}>
-            <HorizontalWithBorder
-              title="Active Roles"
-              subtitle="No of Active Roles"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={cardCounts?.activeRoles || 0}
-              statsVariant='h4'
-              trendNumber={cardCounts?.activeRoles || 0}
-              trendNumberVariant='body1'
-              avatarIcon='ri-check-double-line'
-              color="success"
-              iconSize='30px'
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 4 , lg: 3}}>
-            <HorizontalWithBorder
-              title="Super Admin"
-              subtitle="No of Super Admin"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={cardCounts?.superAdminRole || 0}
-              statsVariant='h4'
-              trendNumber={cardCounts?.superAdminRole || 0}
-              trendNumberVariant='body1'
-              avatarIcon='ri-admin-line'
-              color="warning"
-              iconSize='30px'
-            />
-          </Grid>
+        <Grid container className='flex flex-wrap justify-between gap-0'>
+          {statCards.map(card => (
+            <Grid key={card.title}>
+              <HorizontalWithoutBorder {...card} />
+            </Grid>
+          ))}
         </Grid>
       </div>
     </>

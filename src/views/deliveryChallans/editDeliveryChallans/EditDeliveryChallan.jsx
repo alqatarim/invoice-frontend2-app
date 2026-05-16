@@ -32,7 +32,7 @@ import { formatDateForInput } from '@/utils/dateUtils';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
 import CustomerAutocomplete from '@/components/custom-components/CustomerAutocomplete';
-import useDeliveryChallanHandlers from '@/handlers/deliveryChallans/useDeliveryChallanHandlers';
+import useDeliveryChallanHandlers from './handler';
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';

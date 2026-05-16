@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSignatureHandlers } from '@/handlers/settings/useSignatureHandlers'
+import { useSignatureHandlers } from '../handler'
 import SignatureForm from '../shared/SignatureForm'
 import SettingsLayout from '../../shared/SettingsLayout'
 
@@ -17,10 +17,9 @@ const EditSignatureIndex = ({ signatureId, initialData = {} }) => {
 
   useEffect(() => {
     if (id && !currentSignature) {
-      // Load signature by ID - we'll need to add this to the actions if it doesn't exist
-      dataHandlers.loadSignatures()
+      dataHandlers.loadSignatureById(id)
     }
-  }, [id])
+  }, [currentSignature, id])
 
   const handleUpdate = async (formData) => {
     return await actionHandlers.updateSignature(id, formData)

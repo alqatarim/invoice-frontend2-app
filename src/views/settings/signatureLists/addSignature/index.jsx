@@ -1,6 +1,6 @@
 'use client'
 
-import { useSignatureHandlers } from '@/handlers/settings/useSignatureHandlers'
+import { useSignatureHandlers } from '../handler'
 import SignatureForm from '../shared/SignatureForm'
 import SettingsLayout from '../../shared/SettingsLayout'
 

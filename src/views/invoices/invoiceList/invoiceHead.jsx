@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Grid, Avatar, Typography } from '@mui/material';
-import { Icon } from '@iconify/react';
-import { amountFormat } from '@/utils/numberUtils';
-import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
+import { Grid } from '@mui/material';
+import PageIconHeader from '@components/headers/PageIconHeader';
+import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
 
 /**
  * InvoiceHead Component - Displays invoice statistics header
@@ -22,88 +21,55 @@ const InvoiceHead = ({ invoiceListData }) => {
     [invoiceListData]
   );
 
-  const currencySymbol = invoiceListData?.currencySymbol || '$';
+  const statCards = useMemo(
+    () => [
+      {
+        title: 'Total Invoiced',
+        value: cardCounts.totalInvoice?.total_sum || 0,
+        subtitle: `${cardCounts.totalInvoice?.count || 0} invoices`,
+        icon: 'iconamoon:invoice',
+        color: 'primary',
+        isCurrency: true,
+      },
+      {
+        title: 'Outstanding',
+        value: cardCounts.totalOutstanding?.total_sum || 0,
+        subtitle: `${cardCounts.totalOutstanding?.count || 0} outstanding`,
+        icon: 'mdi:access-time',
+        color: 'warning',
+        isCurrency: true,
+      },
+      {
+        title: 'Total Overdue',
+        value: cardCounts.totalOverdue?.total_sum || 0,
+        subtitle: `${cardCounts.totalOverdue?.count || 0} overdue`,
+        icon: 'mdi:clock-alert-outline',
+        color: 'error',
+        isCurrency: true,
+      },
+      {
+        title: 'Drafts',
+        value: cardCounts.totalDrafted?.total_sum || 0,
+        subtitle: `${cardCounts.totalDrafted?.count || 0} drafts`,
+        icon: 'mdi:draw-pen',
+        color: 'info',
+        isCurrency: true,
+      },
+    ],
+    [cardCounts]
+  );
 
   return (
     <>
-      {/* Header Section */}
-      <div className="flex justify-start items-center mb-5">
-        <div className="flex items-center gap-2">
-          <Avatar className='bg-primary/12 text-primary bg-primaryLight  w-12 h-12'>
-            <Icon icon="tabler:file-invoice" fontSize={26} />
-          </Avatar>
-          <Typography variant="h5" className="font-semibold text-primary">
-            Invoices
-          </Typography>
-        </div>
-      </div>
+      <PageIconHeader title='Invoices' icon='tabler:file-invoice' />
 
-      {/* Statistics Cards */}
       <div className="mb-2">
-        <Grid container spacing={4}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <HorizontalWithBorder
-              title="Total Invoiced"
-              subtitle="No of Invoices"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalInvoice?.total_sum)}`}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalInvoice?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='iconamoon:invoice'
-              color="primary"
-              iconSize='30px'
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <HorizontalWithBorder
-              title="Outstanding"
-              subtitle="No of Outstandings"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalOutstanding?.total_sum)}`}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalOutstanding?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='mdi:access-time'
-              color="warning"
-              iconSize='35px'
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <HorizontalWithBorder
-              title="Total Overdue"
-              subtitle="No of Overdue"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalOverdue?.total_sum)}`}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalOverdue?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='mdi:clock-alert-outline'
-              color="error"
-              iconSize='35px'
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <HorizontalWithBorder
-              title="Drafts"
-              subtitle="No of Drafts"
-              titleVariant='h5'
-              subtitleVariant='body2'
-              stats={`${currencySymbol} ${amountFormat(cardCounts.totalDrafted?.total_sum)}`}
-              statsVariant='h4'
-              trendNumber={cardCounts.totalDrafted?.count || 0}
-              trendNumberVariant='body1'
-              avatarIcon='mdi:draw-pen'
-              color="info"
-              iconSize='35px'
-            />
-          </Grid>
+        <Grid container className='flex flex-wrap justify-between gap-0'>
+          {statCards.map((card) => (
+            <Grid key={card.title}>
+              <HorizontalWithoutBorder {...card} />
+            </Grid>
+          ))}
         </Grid>
       </div>
     </>

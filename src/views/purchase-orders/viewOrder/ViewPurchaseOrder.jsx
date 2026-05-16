@@ -19,7 +19,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
-import usePurchaseOrderViewHandlers from '@/handlers/purchaseOrders/usePurchaseOrderViewHandlers';
+import usePurchaseOrderViewHandlers from './handler';
 
 const ViewPurchaseOrder = ({ purchaseOrderData, onEdit, onDelete, onClone, onConvert, enqueueSnackbar, closeSnackbar }) => {
   const theme = useTheme();

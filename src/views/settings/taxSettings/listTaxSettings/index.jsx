@@ -1,6 +1,6 @@
 'use client'
 
-import { useTaxSettingsHandlers } from '@/handlers/settings/useTaxSettingsHandlers'
+import { useTaxSettingsHandlers } from '../handler'
 import TaxSettingsList from './TaxSettingsList'
 import TaxSettingsHead from './TaxSettingsHead'
 import SettingsLayout from '../../shared/SettingsLayout'

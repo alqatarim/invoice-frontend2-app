@@ -12,7 +12,51 @@ import { motion } from 'framer-motion'
 // Component Imports
 import Avatar from '@/components/avatar/Avatar'
 import { CountUp } from '@/views/dashboard/CountUp'
+import { RiyalIcon } from '@/utils/currencyUtils'
 import { formatCompactNumber } from '@/utils/numberUtils'
+
+const parseDisplayValue = value => {
+	if (typeof value === 'number') {
+		return {
+			value,
+			isNumeric: Number.isFinite(value),
+			prefix: '',
+			suffix: '',
+		}
+	}
+
+	const rawValue = String(value ?? '').trim()
+	const numericValue = Number(rawValue.replace(/,/g, ''))
+
+	if (Number.isFinite(numericValue)) {
+		return {
+			value: numericValue,
+			isNumeric: true,
+			prefix: '',
+			suffix: '',
+		}
+	}
+
+	const formattedAmountMatch = rawValue.match(/^([^0-9-]*)(-?[0-9][0-9,]*(?:\.\d+)?)(.*)$/)
+
+	if (formattedAmountMatch) {
+		const amountFromFormattedText = Number(formattedAmountMatch[2].replace(/,/g, ''))
+
+		return {
+			value: amountFromFormattedText,
+			isNumeric: Number.isFinite(amountFromFormattedText),
+			prefix: formattedAmountMatch[1],
+			suffix: formattedAmountMatch[3],
+		}
+	}
+
+	return {
+		value,
+		isNumeric: false,
+		prefix: '',
+		suffix: '',
+	}
+}
 
 const HorizontalWithoutBorder = ({
 	title,
@@ -23,11 +67,20 @@ const HorizontalWithoutBorder = ({
 	avatarIcon,
 	color = 'primary',
 	formatter = formatCompactNumber,
+	isCurrency = false,
+	currencyIconWidth = '1.1rem',
 }) => {
 	const theme = useTheme()
-	const displayValue = value ?? stats ?? 0
+	const rawDisplayValue = value ?? stats ?? 0
+	const displayValue = parseDisplayValue(rawDisplayValue)
 	const displayIcon = icon || avatarIcon
 	const iconColor = theme.palette[color]?.main || theme.palette.primary.main
+	const hasCurrencyPrefix = /(\$|﷼|SAR|Saudi Riyal)/i.test(displayValue.prefix || '')
+	const shouldShowCurrencyIcon = isCurrency || hasCurrencyPrefix
+	const valueFormatter = currentValue =>
+		shouldShowCurrencyIcon
+			? (formatter || formatCompactNumber)(currentValue)
+			: `${displayValue.prefix}${(formatter || formatCompactNumber)(currentValue)}${displayValue.suffix}`
 
 	return (
 		<Card
@@ -41,7 +94,6 @@ const HorizontalWithoutBorder = ({
 						variant='rounded'
 						skin='light'
 						size={55}
-						// src={displayIcon}
 						color={color}
 					>
 						<Icon icon={displayIcon} width='2.1rem' color={iconColor} />
@@ -60,6 +112,8 @@ const HorizontalWithoutBorder = ({
 							<Typography
 								sx={{
 									display: 'flex',
+									alignItems: 'center',
+									gap: 0.5,
 									fontSize: '1.8rem',
 									fontWeight: 700,
 									lineHeight: 1,
@@ -69,18 +123,22 @@ const HorizontalWithoutBorder = ({
 								}}
 								color={iconColor}
 							>
-								<CountUp value={displayValue} formatter={formatter} />
-
+								{displayValue.isNumeric ? (
+									<>
+										{shouldShowCurrencyIcon ? (
+											<RiyalIcon width={currencyIconWidth} color={theme.palette.text.primary} />
+										) : null}
+										<CountUp value={displayValue.value} formatter={valueFormatter} />
+									</>
+								) : (
+									displayValue.value
+								)}
 							</Typography>
 							<Typography
-
-
 								variant='h6'
 								color='text.secondary'
 								className='tracking-[0.2px] text-[0.8rem]'
-
 								sx={{
-
 									fontVariantNumeric: 'tabular-nums',
 								}}
 							>

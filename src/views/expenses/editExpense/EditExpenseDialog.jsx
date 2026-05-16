@@ -24,7 +24,7 @@ import { Icon } from '@iconify/react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { useEditExpenseHandlers } from '@/handlers/expenses/editExpense/useEditExpenseHandlers';
+import { useEditExpenseHandlers } from './handler';
 import {
      expensePaymentModeOptions,
      expenseStatusOptions,

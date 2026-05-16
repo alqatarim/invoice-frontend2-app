@@ -7,7 +7,7 @@ import { Icon } from '@iconify/react'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import { getSalesReturnColumns } from './salesReturnColumns'
 import { usePermission } from '@/Auth/usePermission'
-import { useSalesReturnListHandlers } from '@/handlers/salesReturn/list/useSalesReturnListHandlers'
+import { useSalesReturnListHandlers } from './handler'
 import AppSnackbar from '@/components/shared/AppSnackbar'
 
 /**

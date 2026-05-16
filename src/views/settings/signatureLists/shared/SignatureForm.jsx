@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Grid,
   Card,
@@ -36,6 +36,17 @@ const SignatureForm = ({
   const [selectedFile, setSelectedFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(signature?.signatureImage || null)
   const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    setFormData({
+      signatureName: signature?.signatureName || '',
+      markAsDefault: signature?.markAsDefault || false,
+      status: signature?.status !== undefined ? signature.status : true
+    })
+    setSelectedFile(null)
+    setImagePreview(signature?.signatureImage || null)
+    setErrors({})
+  }, [signature])
 
   const handleChange = (field) => (event) => {
     const value = field === 'status' || field === 'markAsDefault'

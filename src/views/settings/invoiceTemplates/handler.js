@@ -1,0 +1,1 @@
+export { useInvoiceTemplateHandlers } from '../sharedHandlers'

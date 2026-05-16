@@ -25,7 +25,7 @@ import { Icon } from '@iconify/react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { useAddPaymentHandlers } from '@/handlers/payments/addPayment/useAddPaymentHandlers';
+import { useAddPaymentHandlers } from './handler';
 import { formIcons } from '@/data/dataSets';
 import { getInvoices } from '@/app/(dashboard)/payments/actions';
 

@@ -15,7 +15,7 @@ import {
   Paper,
   Divider
 } from '@mui/material'
-import { usePermissionsHandler } from '@/handlers/roles-permission/permissions/permissionsHandler'
+import { usePermissionsHandler } from './handler'
 import { isAlwaysEnabledModule } from '@/common/allModules'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SaveIcon from '@mui/icons-material/Save'

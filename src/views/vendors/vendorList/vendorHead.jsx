@@ -65,6 +65,7 @@ const VendorHead = ({ vendorListData }) => {
         subtitle: vendorStats.totalBalance >= 0 ? 'Credit' : 'Debit',
         icon: 'hugeicons:saudi-riyal',
         color: 'info',
+        isCurrency: true,
       },
     ],
     [vendorStats]

@@ -32,7 +32,7 @@ import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog'
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
 import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
 import { calculateInvoiceTotals } from '@/utils/salesTotals';
-import useDeliveryChallanHandlers from '@/handlers/deliveryChallans/useDeliveryChallanHandlers';
+import useDeliveryChallanHandlers from './handler';
 import AppSnackbar from '@/components/shared/AppSnackbar';
 
 const AddDeliveryChallan = ({ customersData, productData, taxRates, initialBanks, signatures, onSave, enqueueSnackbar, closeSnackbar, deliveryChallanNumber }) => {

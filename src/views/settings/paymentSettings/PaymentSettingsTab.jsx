@@ -1,11 +1,8 @@
 'use client'
 
-// React Imports
-import { useState } from 'react'
-
 // Component Imports
 import PaymentSettingsForm from './PaymentSettingsForm'
-import usePaymentSettingsHandlers from '@/handlers/settings/usePaymentSettingsHandlers'
+import usePaymentSettingsHandlers from './handler'
 
 const PaymentSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
   const {

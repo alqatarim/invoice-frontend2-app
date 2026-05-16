@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Grid, Avatar, Typography } from '@mui/material';
-import { Icon } from '@iconify/react';
-import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
+import { Grid } from '@mui/material';
+import PageIconHeader from '@components/headers/PageIconHeader';
+import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
 
 const BranchHead = ({ branches = [] }) => {
   const stats = useMemo(() => {
@@ -13,48 +13,44 @@ const BranchHead = ({ branches = [] }) => {
     return { total, stores, warehouses };
   }, [branches]);
 
+  const statCards = useMemo(
+    () => [
+      {
+        title: 'Total Locations',
+        value: stats.total,
+        subtitle: 'Stores And Warehouses',
+        icon: 'mdi:map-marker',
+        color: 'primary',
+      },
+      {
+        title: 'Stores',
+        value: stats.stores,
+        subtitle: 'Retail Stores',
+        icon: 'mdi:storefront-outline',
+        color: 'info',
+      },
+      {
+        title: 'Warehouses',
+        value: stats.warehouses,
+        subtitle: 'Storage Sites',
+        icon: 'mdi:warehouse',
+        color: 'success',
+      },
+    ],
+    [stats]
+  );
+
   return (
     <>
-      <div className="flex justify-start items-center mb-5">
-        <div className="flex items-center gap-2">
-          <Avatar className='bg-primary/12 text-primary bg-primaryLight w-12 h-12'>
-            <Icon icon="mdi:map-marker" fontSize={26} />
-          </Avatar>
-          <Typography variant="h5" className="font-semibold text-primary">
-            Stores & Warehouses
-          </Typography>
-        </div>
-      </div>
+      <PageIconHeader title='Stores & Warehouses' icon='mdi:map-marker' />
 
       <div className="mb-2">
-        <Grid container spacing={4}>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <HorizontalWithBorder
-              title="Total Locations"
-              subtitle="Stores And Warehouses"
-              stats={stats.total.toString()}
-              avatarIcon='mdi:map-marker'
-              color="primary"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <HorizontalWithBorder
-              title="Stores"
-              subtitle="Retail Stores"
-              stats={stats.stores.toString()}
-              avatarIcon='mdi:storefront-outline'
-              color="info"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <HorizontalWithBorder
-              title="Warehouses"
-              subtitle="Storage Sites"
-              stats={stats.warehouses.toString()}
-              avatarIcon='mdi:warehouse'
-              color="success"
-            />
-          </Grid>
+        <Grid container className='flex flex-wrap justify-between gap-0'>
+          {statCards.map((card) => (
+            <Grid key={card.title}>
+              <HorizontalWithoutBorder {...card} />
+            </Grid>
+          ))}
         </Grid>
       </div>
     </>

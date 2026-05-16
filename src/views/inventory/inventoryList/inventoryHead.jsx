@@ -2,7 +2,6 @@
 
 import React, { useMemo } from 'react';
 import { Grid } from '@mui/material';
-import { amountFormat } from '@/utils/numberUtils';
 import PageIconHeader from '@components/headers/PageIconHeader';
 import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
 
@@ -27,31 +26,27 @@ const InventoryHead = ({ inventoryListData }) => {
       {
         title: 'Total Items',
         value: inventoryStats.totalItems.count,
-        subtitle: `SAR ${amountFormat(inventoryStats.totalItems.totalValue)}`,
         icon: 'tabler:package',
         color: 'primary',
       },
       {
         title: 'Low Stock',
         value: inventoryStats.lowStock.count,
-        subtitle: `SAR ${amountFormat(inventoryStats.lowStock.totalValue)}`,
         icon: 'mdi:package-down',
         color: 'warning',
       },
       {
         title: 'Out Of Stock',
         value: inventoryStats.outOfStock.count,
-        subtitle: `SAR ${amountFormat(inventoryStats.outOfStock.totalValue)}`,
         icon: 'mdi:package-variant-remove',
         color: 'error',
       },
       {
         title: 'Total Value',
         value: inventoryStats.totalValue.totalValue,
-        subtitle: `${inventoryStats.totalValue.count} items`,
-        icon: 'hugeicons:saudi-riyal',
+        icon: 'lucide:saudi-riyal',
         color: 'success',
-        formatter: amountFormat,
+        isCurrency: true,
       },
     ],
     [inventoryStats]

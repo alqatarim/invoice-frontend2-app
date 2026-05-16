@@ -15,7 +15,7 @@ import {
 import { Edit, ArrowBack } from '@mui/icons-material'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useTaxSettingsHandlers } from '@/handlers/settings/useTaxSettingsHandlers'
+import { useTaxSettingsHandlers } from '../handler'
 import SettingsLayout from '../../shared/SettingsLayout'
 
 const ViewTaxSettingsIndex = ({ taxId, initialData = {} }) => {

@@ -418,6 +418,22 @@ export async function updateSignature(id, formData) {
   }
 }
 
+export async function setDefaultSignature(id) {
+  try {
+    const response = await fetchWithAuth(
+      `${endPoints.signatures_api.setdefault}?signatureId=${encodeURIComponent(id)}`,
+      {
+        method: 'GET'
+      }
+    )
+
+    return { success: true, data: response.data }
+  } catch (error) {
+    console.error('Error setting default signature:', error)
+    return { success: false, message: error.message }
+  }
+}
+
 export async function deleteSignature(id) {
   try {
     const response = await fetchWithAuth(`${endPoints.signatures_api.Delete}/${id}`, {

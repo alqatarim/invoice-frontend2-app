@@ -2,7 +2,7 @@
 import AccountSettingsForm from './AccountSettingsForm'
 
 // Handler Imports
-import useAccountSettingsHandlers from '@/handlers/settings/useAccountSettingsHandlers'
+import useAccountSettingsHandlers from './handler'
 
 const AccountSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
      const {

@@ -3,20 +3,11 @@
 import { useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
-import usePosPageHandlers from '@/handlers/pos/usePosPageHandlers';
-
-const isStoreBranch = (branch) =>
-  String(branch?.branchType || branch?.kind || '').trim().toLowerCase() === 'store';
-
-const getBranchIdentifiers = (branch) =>
-  [branch?.branchId, branch?._id]
-    .map((entry) => String(entry || '').trim())
-    .filter(Boolean);
-
-const findBranchByIdentifier = (branches = [], value = '') =>
-  (Array.isArray(branches) ? branches : []).find((branch) =>
-    getBranchIdentifiers(branch).includes(String(value || '').trim())
-  ) || null;
+import {
+  getPrimaryStoreBranch,
+  mergeAccessibleStoreBranches,
+} from '@/utils/branchAccess';
+import usePosPageController from './posPageController';
 
 export function usePosViewHandler({
   initialCustomersData = [],
@@ -39,52 +30,18 @@ export function usePosViewHandler({
   const canAccessPos = canViewInvoice || canCreateInvoice;
 
   const companyMembership = session?.user?.companyMembership || {};
-  const accessibleStores = Array.isArray(companyMembership?.accessibleBranches)
-    ? companyMembership.accessibleBranches.filter(isStoreBranch)
-    : [];
-  const bootstrapStores = useMemo(
-    () => (Array.isArray(initialBranchesData) ? initialBranchesData : []).filter(isStoreBranch),
-    [initialBranchesData]
-  );
   const allowedPosStores = useMemo(() => {
-    if (accessibleStores.length === 0) {
-      return [];
-    }
-
-    const bootstrapStoreMap = new Map();
-    bootstrapStores.forEach((branch) => {
-      getBranchIdentifiers(branch).forEach((identifier) => {
-        bootstrapStoreMap.set(identifier, branch);
-      });
+    return mergeAccessibleStoreBranches({
+      companyMembership,
+      branchesData: initialBranchesData,
     });
-
-    const seenBranchIds = new Set();
-
-    return accessibleStores.reduce((stores, accessibleBranch) => {
-      const bootstrapMatch = getBranchIdentifiers(accessibleBranch)
-        .map((identifier) => bootstrapStoreMap.get(identifier))
-        .find(Boolean);
-      const mergedBranch = bootstrapMatch
-        ? { ...accessibleBranch, ...bootstrapMatch }
-        : accessibleBranch;
-      const canonicalBranchId = getBranchIdentifiers(mergedBranch)[0] || '';
-
-      if (!canonicalBranchId || seenBranchIds.has(canonicalBranchId)) {
-        return stores;
-      }
-
-      seenBranchIds.add(canonicalBranchId);
-      stores.push(mergedBranch);
-      return stores;
-    }, []);
-  }, [accessibleStores, bootstrapStores]);
-
-  const primaryStore = findBranchByIdentifier(
-    allowedPosStores,
-    companyMembership?.primaryBranchId
+  }, [companyMembership, initialBranchesData]);
+  const primaryStore = useMemo(
+    () => getPrimaryStoreBranch(allowedPosStores, companyMembership?.primaryBranchId),
+    [allowedPosStores, companyMembership?.primaryBranchId]
   );
 
-  const controller = usePosPageHandlers({
+  const controller = usePosPageController({
     customersData: initialCustomersData,
     productData: initialProductData,
     initialBanks,

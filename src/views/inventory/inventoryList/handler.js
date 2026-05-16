@@ -4,11 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePermission } from '@/Auth/usePermission';
 import { getInventoryMovementHistory } from '@/app/(dashboard)/inventory/actions';
 import { getFilteredProducts } from '@/app/(dashboard)/products/actions';
-import { useInventoryListHandlers } from '@/handlers/inventory/useInventoryListHandlers';
-import { useBranchInventoryHandlers } from '@/handlers/inventory/useBranchInventoryHandlers';
 import useAccessibleBranchScope from '@/hooks/useAccessibleBranchScope';
+import {
+  findBranchByIdentifier,
+  getBranchIdentifiers,
+} from '@/utils/branchAccess';
 import { getInventoryColumns } from './inventoryColumns';
 import { getBranchInventoryColumns } from './branchInventoryColumns';
+import {
+  useBranchInventoryHandlers,
+  useInventoryListHandlers,
+} from './inventoryLocalHandlers';
 
 const DEFAULT_PAGINATION = { current: 1, pageSize: 10, total: 0 };
 
@@ -44,32 +50,14 @@ const EMPTY_MOVEMENT_DIALOG = {
   rows: [],
   productName: '',
   branchLabel: '',
+  branchId: '',
 };
-
-const getBranchIdentifiers = (branch = {}) => (
-  [branch?.branchId, branch?._id]
-    .map((value) => String(value || '').trim())
-    .filter(Boolean)
-);
-
-const branchMatchesIdentifier = (branch = {}, value = '') => {
-  const normalizedValue = String(value || '').trim();
-
-  if (!normalizedValue) return false;
-
-  return getBranchIdentifiers(branch).includes(normalizedValue);
-};
-
-const findBranchByIdentifier = (branchList = [], value = '') =>
-  (Array.isArray(branchList) ? branchList : []).find((branch) =>
-    branchMatchesIdentifier(branch, value)
-  ) || null;
 
 const findInventoryBranchRecord = (inventoryBranches = [], branch = {}) => {
-  const identifiers = new Set(getBranchIdentifiers(branch));
+  const branchId = String(branch?._id || '').trim();
 
   return (Array.isArray(inventoryBranches) ? inventoryBranches : []).find((entry) =>
-    identifiers.has(String(entry?.branchId || '').trim())
+    String(entry?.branchId || '').trim() === branchId
   ) || null;
 };
 
@@ -277,13 +265,13 @@ export function useBranchStockTableHandler({
   const handleSaveNewRow = useCallback(async () => {
     if (!newRow?.branchId || !newRow?.quantity) return;
 
-    const selectedBranch = branches.find((branch) => branch.branchId === newRow.branchId);
+    const selectedBranch = branches.find((branch) => String(branch._id || '') === newRow.branchId);
 
     if (!selectedBranch) return;
 
     await onSaveBranchEntry?.({
       productId: inventoryItem._id,
-      branchId: selectedBranch.branchId,
+      branchId: selectedBranch._id,
       branchName: selectedBranch.name,
       branchType: selectedBranch.branchType,
       province: selectedBranch.province,
@@ -384,7 +372,7 @@ export function useBranchInventoryTableHandler({
   const buildBranchRow = useCallback(
     (item) => ({
       rowType: 'branch',
-      branchId: branch?.branchId,
+      branchId: branch?._id,
       branchName: branch?.name,
       branchType: branch?.branchType,
       province: branch?.province,
@@ -483,7 +471,7 @@ export function useBranchInventoryTableHandler({
     await onSaveBranchEntry?.({
       productId: newRow.product._id,
       quantity: Number(newRow.quantity),
-      branchId: branch?.branchId,
+      branchId: branch?._id,
       branchName: branch?.name,
       branchType: branch?.branchType,
       province: branch?.province,
@@ -778,7 +766,7 @@ export function useInventoryListViewHandler({
   const transferFilteredBranches = useMemo(
     () =>
       branchOptions.filter((branch) => {
-        if (branchMatchesIdentifier(branch, transferDialog.branchRow?.branchId)) return false;
+        if (String(branch?._id || '') === String(transferDialog.branchRow?.branchId || '')) return false;
         if (transferDialog.toProvince && branch.province !== transferDialog.toProvince) return false;
         if (transferDialog.toCity && branch.city !== transferDialog.toCity) return false;
         if (transferDialog.toDistrict && branch.district !== transferDialog.toDistrict) return false;
@@ -806,7 +794,7 @@ export function useInventoryListViewHandler({
     const destinationBranch = findBranchByIdentifier(branchOptions, transferDialog.toBranchId);
     const destBranch = destinationBranch
       ? findInventoryBranchRecord(inventoryBranches, destinationBranch)
-      : inventoryBranches.find((branch) => branch.branchId === transferDialog.toBranchId);
+      : null;
 
     return Number(destBranch?.quantity || 0);
   }, [branchOptions, transferDialog.branchRow, transferDialog.toBranchId]);
@@ -822,7 +810,7 @@ export function useInventoryListViewHandler({
         return;
       }
 
-      if (branchMatchesIdentifier(toBranch, fromBranch.branchId)) {
+      if (String(toBranch?._id || '') === String(fromBranch.branchId || '')) {
         showError('Select a different branch for transfer');
         return;
       }
@@ -842,7 +830,7 @@ export function useInventoryListViewHandler({
       await handlers.handleTransferStock({
         productId: fromBranch.parentItem?._id,
         fromBranchId: fromBranch.branchId,
-        toBranchId: toBranch.branchId,
+        toBranchId: toBranch._id,
         quantity,
         notes: transferDialog.notes || `Transfer from ${fromBranch.branchName} to ${toBranch.name}`,
       });
@@ -914,11 +902,12 @@ export function useInventoryListViewHandler({
         rows: [],
         productName: branchRow?.parentItem?.name || branchRow?.name || '',
         branchLabel: resolvedBranch?.name || branchRow?.branchName || '',
+        branchId: resolvedBranch?._id || branchRow?.branchId || '',
       });
 
       const rows = await getInventoryMovementHistory(
         branchRow?.parentItem?._id || branchRow?.productId,
-        resolvedBranch?.branchId || ''
+        resolvedBranch?._id || branchRow?.branchId || ''
       );
 
       setMovementDialog((prev) => ({

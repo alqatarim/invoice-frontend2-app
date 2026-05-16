@@ -1,7 +1,7 @@
 'use client'
 
 import { Alert, AlertTitle } from '@mui/material'
-import { useBankSettingsHandlers } from '@/handlers/settings/useBankSettingsHandlers'
+import { useBankSettingsHandlers } from './handler'
 
 const BankSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
   const handlers = useBankSettingsHandlers(initialData || {})

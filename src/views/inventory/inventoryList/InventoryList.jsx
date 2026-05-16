@@ -540,7 +540,7 @@ const InventoryList = ({
                   </MenuItem>
                 ) : (
                   view.transferFilteredBranches.map((branch) => (
-                    <MenuItem key={branch.branchId || branch._id} value={branch.branchId}>
+                    <MenuItem key={branch._id} value={branch._id}>
                       {branch.name} ({branch.branchType})
                     </MenuItem>
                   ))
@@ -727,6 +727,7 @@ const InventoryList = ({
         onClose={view.closeMovementDialog}
         rows={view.movementDialog.rows}
         loading={view.movementDialog.loading}
+        historyBranchId={view.movementDialog.branchId}
         title={view.movementDialog.productName ? `${view.movementDialog.productName} Movement History` : 'Movement History'}
         subtitle={view.movementDialog.branchLabel ? `Filtered to ${view.movementDialog.branchLabel}` : ''}
       />

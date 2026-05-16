@@ -1,11 +1,8 @@
 'use client'
 
-// React Imports
-import { useState } from 'react'
-
 // Component Imports
 import PreferenceSettingsForm from './PreferenceSettingsForm'
-import usePreferenceSettingsHandlers from '@/handlers/settings/usePreferenceSettingsHandlers'
+import usePreferenceSettingsHandlers from './handler'
 
 const PreferenceSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
   const {

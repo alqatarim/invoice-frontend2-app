@@ -1,15 +1,13 @@
 'use client'
 
 import React, { useState } from 'react'
-import { dataHandler } from '@/handlers/settings/signatureLists/dataHandler'
-import { actionsHandler } from '@/handlers/settings/signatureLists/actionsHandler'
+import { actionsHandler, dataHandler } from '../handler'
 import SignatureListView from './SignatureListView'
 import SettingsLayout from '../../shared/SettingsLayout'
 import AppSnackbar from '@/components/shared/AppSnackbar'
 
 const SignatureListIndex = ({ initialData = [] }) => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [signatures, setSignatures] = useState(initialData.signatures || []);
 
   // Initialize data handler for fetching fresh data
   const dataHandlers = dataHandler({
@@ -18,23 +16,11 @@ const SignatureListIndex = ({ initialData = [] }) => {
     onSuccess: () => {}, // Don't show "Data refreshed successfully" message
   })
 
-  // Create a function to refetch data and update local state
-  const refetchSignatures = async () => {
-    try {
-      const freshData = await dataHandlers.fetchData();
-      if (freshData?.signatures) {
-        setSignatures(freshData.signatures);
-      }
-    } catch (error) {
-      console.error('Error refetching signatures:', error);
-    }
-  };
-
   // Initialize action handlers with refetch callback
   const actionHandlers = actionsHandler({
     onError: (message) => setSnackbar({ open: true, message, severity: 'error' }),
     onSuccess: (message) => setSnackbar({ open: true, message, severity: 'success' }),
-    refetchData: refetchSignatures, // Pass the refetch function
+    refetchData: dataHandlers.fetchData,
   })
 
   const handleSnackbarClose = (event, reason) => {
@@ -52,7 +38,7 @@ const SignatureListIndex = ({ initialData = [] }) => {
         ]}
       >
         <SignatureListView
-          initialSignatures={signatures}
+          initialSignatures={dataHandlers.signatures}
           loading={dataHandlers.loading}
           onAdd={actionHandlers.handleAdd}
           onEdit={actionHandlers.handleUpdate}

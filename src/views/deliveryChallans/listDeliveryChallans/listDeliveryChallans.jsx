@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { useTheme, alpha } from '@mui/material/styles';
 import {
-  Avatar,
   Box,
   Button,
   Chip,
@@ -22,8 +21,9 @@ import { formatDate } from '@/utils/dateUtils';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import OptionMenu from '@core/components/option-menu';
 import { deliveryChallanStatusOptions } from '@/data/dataSets';
-import { amountFormat, formatDecimal } from '@/utils/numberUtils';
-import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
+import { formatDecimal } from '@/utils/numberUtils';
+import PageIconHeader from '@components/headers/PageIconHeader';
+import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
 
 const getStatusColor = (status) => {
   const statusOption = deliveryChallanStatusOptions.find((option) => option.value === status);
@@ -138,9 +138,9 @@ const ListDeliveryChallans = ({
             label={
               row.status
                 ? row.status
-                    .replace(/_/g, ' ')
-                    .toLowerCase()
-                    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+                  .replace(/_/g, ' ')
+                  .toLowerCase()
+                  .replace(/\b\w/g, (letter) => letter.toUpperCase())
                 : 'N/A'
             }
             size="medium"
@@ -231,82 +231,48 @@ const ListDeliveryChallans = ({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex justify-start items-center mb-5">
-        <div className="flex items-center gap-2">
-          <Avatar className="bg-primary/12 text-primary bg-primaryLight w-12 h-12">
-            <Icon icon="tabler:truck-delivery" fontSize={26} />
-          </Avatar>
-          <Typography variant="h5" className="font-semibold text-primary">
-            Delivery Challans
-          </Typography>
-        </div>
-      </div>
+      <PageIconHeader title='Delivery Challans' icon='tabler:truck-delivery' />
 
       <div className="mb-2">
-        <Grid container spacing={4}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <HorizontalWithBorder
-              title="Total Challans"
-              subtitle="No of Challans"
-              titleVariant="h5"
-              subtitleVariant="body2"
-              stats={`$ ${amountFormat(cardCounts.totalDeliveryChallans?.total_sum)}`}
-              statsVariant="h4"
-              trendNumber={cardCounts.totalDeliveryChallans?.count || 0}
-              trendNumberVariant="body1"
-              avatarIcon="tabler:truck-delivery"
-              color="primary"
-              iconSize="30px"
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <HorizontalWithBorder
-              title="Active"
-              subtitle="No of Active"
-              titleVariant="h5"
-              subtitleVariant="body2"
-              stats={`$ ${amountFormat(cardCounts.totalActive?.total_sum)}`}
-              statsVariant="h4"
-              trendNumber={cardCounts.totalActive?.count || 0}
-              trendNumberVariant="body1"
-              avatarIcon="mdi:check-circle-outline"
-              color="success"
-              iconSize="35px"
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <HorizontalWithBorder
-              title="Converted"
-              subtitle="No of Converted"
-              titleVariant="h5"
-              subtitleVariant="body2"
-              stats={`$ ${amountFormat(cardCounts.totalConverted?.total_sum)}`}
-              statsVariant="h4"
-              trendNumber={cardCounts.totalConverted?.count || 0}
-              trendNumberVariant="body1"
-              avatarIcon="mdi:arrow-right-circle-outline"
-              color="info"
-              iconSize="35px"
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <HorizontalWithBorder
-              title="Cancelled"
-              subtitle="No of Cancelled"
-              titleVariant="h5"
-              subtitleVariant="body2"
-              stats={`$ ${amountFormat(cardCounts.totalCancelled?.total_sum)}`}
-              statsVariant="h4"
-              trendNumber={cardCounts.totalCancelled?.count || 0}
-              trendNumberVariant="body1"
-              avatarIcon="mdi:close-circle-outline"
-              color="error"
-              iconSize="35px"
-            />
-          </Grid>
+        <Grid container className='flex flex-wrap justify-between gap-0'>
+          {[
+            {
+              title: 'Total Challans',
+              value: cardCounts.totalDeliveryChallans?.total_sum || 0,
+              subtitle: `${cardCounts.totalDeliveryChallans?.count || 0} challans`,
+              icon: 'tabler:truck-delivery',
+              color: 'primary',
+              isCurrency: true,
+            },
+            {
+              title: 'Active',
+              value: cardCounts.totalActive?.total_sum || 0,
+              subtitle: `${cardCounts.totalActive?.count || 0} active`,
+              icon: 'mdi:check-circle-outline',
+              color: 'success',
+              isCurrency: true,
+            },
+            {
+              title: 'Converted',
+              value: cardCounts.totalConverted?.total_sum || 0,
+              subtitle: `${cardCounts.totalConverted?.count || 0} converted`,
+              icon: 'mdi:arrow-right-circle-outline',
+              color: 'info',
+              isCurrency: true,
+            },
+            {
+              title: 'Cancelled',
+              value: cardCounts.totalCancelled?.total_sum || 0,
+              subtitle: `${cardCounts.totalCancelled?.count || 0} cancelled`,
+              icon: 'mdi:close-circle-outline',
+              color: 'error',
+              isCurrency: true,
+            },
+          ].map((card) => (
+            <Grid key={card.title}>
+              <HorizontalWithoutBorder {...card} />
+            </Grid>
+          ))}
         </Grid>
       </div>
 

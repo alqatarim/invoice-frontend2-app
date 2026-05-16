@@ -1,11 +1,8 @@
 'use client'
 
-// React Imports
-import { useState } from 'react'
-
 // Component Imports
 import EmailSettingsForm from './EmailSettingsForm'
-import useEmailSettingsHandlers from '@/handlers/settings/useEmailSettingsHandlers'
+import useEmailSettingsHandlers from './handler'
 
 const EmailSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
   const {

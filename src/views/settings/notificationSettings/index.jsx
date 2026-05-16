@@ -1,14 +1,40 @@
 'use client'
 
-import { useSettingsHandlers } from '@/handlers/settings/useSettingsHandlers'
+import useNotificationSettingsHandlers from './handler'
 import NotificationSettingsForm from './NotificationSettingsForm'
 import SettingsLayout from '../shared/SettingsLayout'
 
 const NotificationSettingsIndex = ({ initialData = {} }) => {
   const {
-    state,
-    notificationHandlers
-  } = useSettingsHandlers(initialData)
+    notificationSettings,
+    loading,
+    updating,
+    error,
+    getNotificationSettings,
+    updateNotificationSettings,
+    clearError
+  } = useNotificationSettingsHandlers(initialData)
+
+  const handleUpdate = async formData => {
+    try {
+      return await updateNotificationSettings(formData)
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message
+      }
+    }
+  }
+
+  const handleRefresh = async () => {
+    clearError()
+
+    try {
+      await getNotificationSettings()
+    } catch (error) {
+      return null
+    }
+  }
 
   return (
     <SettingsLayout
@@ -19,12 +45,12 @@ const NotificationSettingsIndex = ({ initialData = {} }) => {
       ]}
     >
       <NotificationSettingsForm
-        notificationSettings={state.notificationSettings || {}}
-        loading={state.loading}
-        updating={state.updating}
-        error={state.error}
-        onUpdate={notificationHandlers.updateNotificationSettings}
-        onRefresh={notificationHandlers.loadNotificationSettings}
+        notificationSettings={notificationSettings || {}}
+        loading={loading}
+        updating={updating}
+        error={error}
+        onUpdate={handleUpdate}
+        onRefresh={handleRefresh}
       />
     </SettingsLayout>
   )

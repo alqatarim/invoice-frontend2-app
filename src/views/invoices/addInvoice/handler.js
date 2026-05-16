@@ -7,10 +7,10 @@ import { InvoiceSchema } from '@/views/invoices/InvoiceSchema';
 import { formatDateForInput } from '@/utils/dateUtils';
 import { paymentMethods } from '@/data/dataSets';
 import { useGlobalLocationScope } from '@/contexts/GlobalLocationContext';
-import { notifyNotistackFormValidationErrors } from '@/handlers/shared/notifyNotistackFormValidationErrors';
 import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 import { calculateInvoiceTotals } from '@/utils/salesTotals';
+import { notifyNotistackFormValidationErrors } from '@/utils/notifyNotistackFormValidationErrors';
 const CASHIER_SIGNATURE_STORAGE_KEY = 'addInvoice.cashierSignatureId';
 
 const createEmptyInvoiceItem = () => ({

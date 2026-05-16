@@ -1,14 +1,28 @@
 'use client'
 
-import { useSettingsHandlers } from '@/handlers/settings/useSettingsHandlers'
+import useChangePasswordHandlers from './handler'
 import ChangePasswordForm from './ChangePasswordForm'
 import SettingsLayout from '../shared/SettingsLayout'
 
 const ChangePasswordIndex = () => {
-  const { 
-    state, 
-    passwordHandlers 
-  } = useSettingsHandlers()
+  const {
+    loading,
+    updating,
+    error,
+    changePassword
+  } = useChangePasswordHandlers()
+
+  const handleChangePassword = async formData => {
+    try {
+      const result = await changePassword(formData)
+      return result || { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message
+      }
+    }
+  }
 
   return (
     <SettingsLayout
@@ -19,10 +33,10 @@ const ChangePasswordIndex = () => {
       ]}
     >
       <ChangePasswordForm
-        loading={state.loading}
-        updating={state.updating}
-        error={state.error}
-        onChangePassword={passwordHandlers.changePassword}
+        loading={loading}
+        updating={updating}
+        error={error}
+        onChangePassword={handleChangePassword}
       />
     </SettingsLayout>
   )

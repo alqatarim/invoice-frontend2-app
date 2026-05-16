@@ -88,29 +88,26 @@ const BranchStockTable = ({
             Branch Stock Allocations
           </Typography>
           <Chip
-            size='small'
-            label={isRestrictedToAssignedBranches ? 'Assigned Branch Scope' : 'Company Scope'}
-            variant='tonal'
-            color={isRestrictedToAssignedBranches ? 'info' : 'primary'}
-            sx={{ height: 20, fontSize: '0.7rem' }}
-          />
-          <Chip
             size="small"
             label={`${branchesWithStock.length} branch${branchesWithStock.length !== 1 ? 'es' : ''}`}
-            variant="outlined"
+            variant="tonal"
             color="secondary"
+            sx={{ height: 20, fontSize: '0.7rem' }}
+          />
+
+          <Chip
+            size='small'
+            label={`Valuation: ${inventoryInfo?.valuationMethod || 'FIFO'}`}
+            variant='tonal'
+            color='primary'
             sx={{ height: 20, fontSize: '0.7rem' }}
           />
         </Box>
       </Box>
 
-      <Box className='flex flex-wrap gap-2 mb-3'>
-        <Chip
-          size='small'
-          label={`Valuation: ${inventoryInfo?.valuationMethod || 'FIFO'}`}
-          variant='tonal'
-          color='primary'
-        />
+
+
+      {/* Temporarily hidden. Keep for future inventory metadata display.
         <Chip
           size='small'
           label={`Batches: ${batches.length}`}
@@ -129,16 +126,18 @@ const BranchStockTable = ({
           variant='outlined'
           color='info'
         />
-        {lastCycleCount?.branchId ? (
-          <Chip
-            size='small'
-            label={`Last Count: ${Number(lastCycleCount.countedQuantity || 0)} (${lastCycleCount.variance > 0 ? '+' : ''}${Number(lastCycleCount.variance || 0)})`}
-            variant='outlined'
-            color={Number(lastCycleCount.variance || 0) === 0 ? 'success' : 'warning'}
-          />
-        ) : null}
-      </Box>
+        */}
+      {lastCycleCount?.branchId ? (
+        <Chip
+          size='small'
+          label={`Last Count: ${Number(lastCycleCount.countedQuantity || 0)} (${lastCycleCount.variance > 0 ? '+' : ''}${Number(lastCycleCount.variance || 0)})`}
+          variant='outlined'
+          color={Number(lastCycleCount.variance || 0) === 0 ? 'success' : 'warning'}
+        />
+      ) : null}
 
+
+      {/* Temporarily hidden. Keep for future transfer/serial summary display.
       {(recentTransfers.length > 0 || serialNumbers.length > 0) && (
         <Box
           sx={{
@@ -168,6 +167,7 @@ const BranchStockTable = ({
           ) : null}
         </Box>
       )}
+      */}
 
       {/* Branch Table - Override inherited styles from parent table */}
       <TableContainer
@@ -221,7 +221,7 @@ const BranchStockTable = ({
           <TableBody>
             {branchesWithStock.length > 0 ? (
               branchesWithStock.map((branch, index) => (
-                <TableRow key={branch.branchId || index}>
+                <TableRow key={branch._id || index}>
                   <TableCell>{branch.branchName || 'N/A'}</TableCell>
                   <TableCell align="center">
                     <Chip
@@ -337,33 +337,38 @@ const BranchStockTable = ({
             {newRow && (
               <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04) }}>
                 <TableCell>
-                  <FormControl size="small" fullWidth sx={{ minWidth: 0 }}>
-                    <Select
-                      value={newRow.branchId}
-                      onChange={(e) => updateNewRow('branchId', e.target.value)}
-                      displayEmpty
-                      disabled={!newRow.city}
-                      sx={selectSx}
-                    >
-                      <MenuItem value="" disabled>
-                        <Typography color="text.secondary" fontSize="0.8rem">
-                          {isRestrictedToAssignedBranches ? 'Select Assigned Branch' : 'Select Branch'}
-                        </Typography>
-                      </MenuItem>
-                      {filteredBranches.map((branch) => (
-                        <MenuItem key={branch.branchId} value={branch.branchId} sx={{ fontSize: '0.8rem' }}>
-                          {branch.name}
+                  {newRow.city ? (
+                    <FormControl size="small" fullWidth sx={{ minWidth: 0 }}>
+                      <Select
+                        value={newRow.branchId}
+                        onChange={(e) => updateNewRow('branchId', e.target.value)}
+                        displayEmpty
+                        sx={selectSx}
+                      >
+                        <MenuItem value="" disabled>
+                          <Typography color="text.secondary" fontSize="0.8rem">
+                            {isRestrictedToAssignedBranches ? 'Select Assigned Branch' : 'Select Branch'}
+                          </Typography>
                         </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                        {filteredBranches.map((branch) => (
+                          <MenuItem key={branch._id} value={branch._id} sx={{ fontSize: '0.8rem' }}>
+                            {branch.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  ) : (
+                    <Typography color="text.secondary" fontSize="0.8rem">
+                      -
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell align="center">
                   {newRow.branchId ? (
                     <Chip
                       size="small"
-                      label={branches.find(b => b.branchId === newRow.branchId)?.branchType || '-'}
-                      color={branches.find(b => b.branchId === newRow.branchId)?.branchType === 'Store' ? 'primary' : 'secondary'}
+                      label={branches.find(b => String(b._id || '') === newRow.branchId)?.branchType || '-'}
+                      color={branches.find(b => String(b._id || '') === newRow.branchId)?.branchType === 'Store' ? 'primary' : 'secondary'}
                       variant="tonal"
                       sx={{ fontSize: '0.75rem' }}
                     />

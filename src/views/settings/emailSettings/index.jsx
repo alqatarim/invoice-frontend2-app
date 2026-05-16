@@ -1,14 +1,40 @@
 'use client'
 
-import { useSettingsHandlers } from '@/handlers/settings/useSettingsHandlers'
+import useEmailSettingsHandlers from './handler'
 import EmailSettingsForm from './EmailSettingsForm'
 import SettingsLayout from '../shared/SettingsLayout'
 
 const EmailSettingsIndex = ({ initialData = {} }) => {
-  const { 
-    state, 
-    emailSettingsHandlers 
-  } = useSettingsHandlers(initialData)
+  const {
+    emailSettings,
+    loading,
+    updating,
+    error,
+    getEmailSettings,
+    updateEmailSettings,
+    clearError
+  } = useEmailSettingsHandlers(initialData)
+
+  const handleUpdate = async formData => {
+    try {
+      return await updateEmailSettings(formData)
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message
+      }
+    }
+  }
+
+  const handleRefresh = async () => {
+    clearError()
+
+    try {
+      await getEmailSettings()
+    } catch (error) {
+      return null
+    }
+  }
 
   return (
     <SettingsLayout
@@ -19,12 +45,12 @@ const EmailSettingsIndex = ({ initialData = {} }) => {
       ]}
     >
       <EmailSettingsForm
-        emailSettings={state.emailSettings || {}}
-        loading={state.loading}
-        updating={state.updating}
-        error={state.error}
-        onUpdate={emailSettingsHandlers.updateEmailSettings}
-        onRefresh={emailSettingsHandlers.loadEmailSettings}
+        emailSettings={emailSettings || {}}
+        loading={loading}
+        updating={updating}
+        error={error}
+        onUpdate={handleUpdate}
+        onRefresh={handleRefresh}
       />
     </SettingsLayout>
   )

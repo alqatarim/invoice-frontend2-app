@@ -10,7 +10,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
-import { usePaymentListHandlers } from '@/handlers/payments/usePaymentListHandlers';
+import { usePaymentListHandlers } from './handler';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { paymentColumns } from './paymentColumns';
 import AddPaymentDialog from '@/views/payments/addPayment/AddPaymentDialog';

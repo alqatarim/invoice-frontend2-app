@@ -1,11 +1,8 @@
 'use client'
 
-// React Imports
-import { useState } from 'react'
-
 // Component Imports
 import NotificationSettingsForm from './NotificationSettingsForm'
-import useNotificationSettingsHandlers from '@/handlers/settings/useNotificationSettingsHandlers'
+import useNotificationSettingsHandlers from './handler'
 
 const NotificationSettingsTab = ({ initialData = {}, enqueueSnackbar }) => {
   const {

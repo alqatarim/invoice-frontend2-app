@@ -3,15 +3,13 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
-  Avatar,
   Button,
   Grid,
-  Typography,
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import { amountFormat } from '@/utils/numberUtils';
-import HorizontalWithBorder from '@components/card-statistics/HorizontalWithBorder';
+import PageIconHeader from '@components/headers/PageIconHeader';
+import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
 import { getPaymentSummaryColumns } from './paymentSummaryColumns';
 const ListPaymentSummary = ({
      paymentSummaries = [],
@@ -62,82 +60,48 @@ const ListPaymentSummary = ({
 
      return (
           <div className='flex flex-col gap-5'>
-               <div className="flex justify-start items-center mb-5">
-                    <div className="flex items-center gap-2">
-                         <Avatar className='bg-primary/12 text-primary bg-primaryLight w-12 h-12'>
-                              <Icon icon="tabler:credit-card" fontSize={26} />
-                         </Avatar>
-                         <Typography variant="h5" className="font-semibold text-primary">
-                              Payment Summary
-                         </Typography>
-                    </div>
-               </div>
+               <PageIconHeader title='Payment Summary' icon='tabler:credit-card' />
 
                <div className="mb-2">
-                    <Grid container spacing={4}>
-                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                              <HorizontalWithBorder
-                                   title="Total Payments"
-                                   subtitle="No of Payments"
-                                   titleVariant='h5'
-                                   subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalPayments?.total_sum)}`}
-                                   statsVariant='h4'
-                                   trendNumber={cardCounts.totalPayments?.count || 0}
-                                   trendNumberVariant='body1'
-                                   avatarIcon='tabler:credit-card'
-                                   color="primary"
-                                   iconSize='30px'
-                              />
-                         </Grid>
-
-                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                              <HorizontalWithBorder
-                                   title="Successful"
-                                   subtitle="No of Successful"
-                                   titleVariant='h5'
-                                   subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalPaid?.total_sum)}`}
-                                   statsVariant='h4'
-                                   trendNumber={cardCounts.totalPaid?.count || 0}
-                                   trendNumberVariant='body1'
-                                   avatarIcon='mdi:check-circle-outline'
-                                   color="success"
-                                   iconSize='35px'
-                              />
-                         </Grid>
-
-                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                              <HorizontalWithBorder
-                                   title="Refunds"
-                                   subtitle="No of Refunds"
-                                   titleVariant='h5'
-                                   subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalRefund?.total_sum)}`}
-                                   statsVariant='h4'
-                                   trendNumber={cardCounts.totalRefund?.count || 0}
-                                   trendNumberVariant='body1'
-                                   avatarIcon='mdi:arrow-left-circle-outline'
-                                   color="warning"
-                                   iconSize='35px'
-                              />
-                         </Grid>
-
-                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                              <HorizontalWithBorder
-                                   title="Failed"
-                                   subtitle="No of Failed"
-                                   titleVariant='h5'
-                                   subtitleVariant='body2'
-                                   stats={`$ ${amountFormat(cardCounts.totalFailed?.total_sum)}`}
-                                   statsVariant='h4'
-                                   trendNumber={cardCounts.totalFailed?.count || 0}
-                                   trendNumberVariant='body1'
-                                   avatarIcon='mdi:close-circle-outline'
-                                   color="error"
-                                   iconSize='35px'
-                              />
-                         </Grid>
+                    <Grid container className='flex flex-wrap justify-between gap-0'>
+                         {[
+                              {
+                                   title: 'Total Payments',
+                                   value: cardCounts.totalPayments?.total_sum || 0,
+                                   subtitle: `${cardCounts.totalPayments?.count || 0} payments`,
+                                   icon: 'tabler:credit-card',
+                                   color: 'primary',
+                                   isCurrency: true,
+                              },
+                              {
+                                   title: 'Successful',
+                                   value: cardCounts.totalPaid?.total_sum || 0,
+                                   subtitle: `${cardCounts.totalPaid?.count || 0} successful`,
+                                   icon: 'mdi:check-circle-outline',
+                                   color: 'success',
+                                   isCurrency: true,
+                              },
+                              {
+                                   title: 'Refunds',
+                                   value: cardCounts.totalRefund?.total_sum || 0,
+                                   subtitle: `${cardCounts.totalRefund?.count || 0} refunds`,
+                                   icon: 'mdi:arrow-left-circle-outline',
+                                   color: 'warning',
+                                   isCurrency: true,
+                              },
+                              {
+                                   title: 'Failed',
+                                   value: cardCounts.totalFailed?.total_sum || 0,
+                                   subtitle: `${cardCounts.totalFailed?.count || 0} failed`,
+                                   icon: 'mdi:close-circle-outline',
+                                   color: 'error',
+                                   isCurrency: true,
+                              },
+                         ].map((card) => (
+                              <Grid key={card.title}>
+                                   <HorizontalWithoutBorder {...card} />
+                              </Grid>
+                         ))}
                     </Grid>
                </div>
 

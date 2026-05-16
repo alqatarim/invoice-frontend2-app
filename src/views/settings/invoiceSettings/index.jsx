@@ -1,14 +1,40 @@
 'use client'
 
-import { useSettingsHandlers } from '@/handlers/settings/useSettingsHandlers'
+import { useInvoiceSettingsHandlers } from './handler'
 import InvoiceSettingsForm from './InvoiceSettingsForm'
 import SettingsLayout from '../shared/SettingsLayout'
 
 const InvoiceSettingsIndex = ({ initialData = {} }) => {
   const {
-    state,
-    invoiceSettingsHandlers
-  } = useSettingsHandlers(initialData)
+    invoiceSettings,
+    loading,
+    updating,
+    error,
+    getInvoiceSettings,
+    updateInvoiceSettings,
+    clearError
+  } = useInvoiceSettingsHandlers(initialData)
+
+  const handleUpdate = async formData => {
+    try {
+      return await updateInvoiceSettings(formData)
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message
+      }
+    }
+  }
+
+  const handleRefresh = async () => {
+    clearError()
+
+    try {
+      await getInvoiceSettings()
+    } catch (error) {
+      return null
+    }
+  }
 
   return (
     <SettingsLayout
@@ -19,12 +45,12 @@ const InvoiceSettingsIndex = ({ initialData = {} }) => {
       ]}
     >
       <InvoiceSettingsForm
-        invoiceSettings={state.invoiceSettings || {}}
-        loading={state.loading}
-        updating={state.updating}
-        error={state.error}
-        onUpdate={invoiceSettingsHandlers.updateInvoiceSettings}
-        onRefresh={invoiceSettingsHandlers.loadInvoiceSettings}
+        invoiceSettings={invoiceSettings || {}}
+        loading={loading}
+        updating={updating}
+        error={error}
+        onUpdate={handleUpdate}
+        onRefresh={handleRefresh}
       />
     </SettingsLayout>
   )

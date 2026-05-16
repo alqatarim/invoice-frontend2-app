@@ -5,7 +5,7 @@ import { useState } from 'react'
 
 // Component Imports
 import CompanySettingsForm from './CompanySettingsForm'
-import useCompanySettingsHandlers from '@/handlers/settings/useCompanySettingsHandlers'
+import useCompanySettingsHandlers from './handler'
 import AppSnackbar from '@/components/shared/AppSnackbar'
 
 const CompanySettingsTab = ({ initialData = {}, enqueueSnackbar }) => {

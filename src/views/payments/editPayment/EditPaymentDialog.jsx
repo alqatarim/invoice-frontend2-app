@@ -26,7 +26,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { getPaymentDetails, getInvoices } from '@/app/(dashboard)/payments/actions';
-import { useEditPaymentHandlers } from '@/handlers/payments/editPayment/useEditPaymentHandlers';
+import { useEditPaymentHandlers } from './handler';
 import { formIcons } from '@/data/dataSets';
 
 // Must match backend enum: ["Cash", "Cheque", "Online", "Bank"]

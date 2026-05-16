@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Grid,
   Card,
@@ -37,6 +37,15 @@ const TaxSettingsForm = ({
     status: tax?.status !== undefined ? tax.status : true
   })
   const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    setFormData({
+      name: tax?.name || '',
+      taxRate: tax?.taxRate || '',
+      status: tax?.status !== undefined ? tax.status : true
+    })
+    setErrors({})
+  }, [tax])
 
   const handleChange = (field) => (event) => {
     const value = field === 'status' ? event.target.checked : event.target.value

@@ -1,14 +1,22 @@
 'use client'
 
-import { useBankSettingsHandlers } from '@/handlers/settings/useBankSettingsHandlers'
+import { useEffect } from 'react'
+import { useBankSettingsHandlers } from '../handler'
 import BankSettingsForm from '../shared/BankSettingsForm'
 import SettingsLayout from '../../shared/SettingsLayout'
 
 const EditBankSettingsIndex = ({ bankId, initialData = {} }) => {
-  const { 
-    state, 
-    actionHandlers 
+  const {
+    state,
+    dataHandlers,
+    actionHandlers
   } = useBankSettingsHandlers(initialData)
+
+  useEffect(() => {
+    if (bankId && !state.selectedBank) {
+      dataHandlers.loadBankById(bankId)
+    }
+  }, [bankId, state.selectedBank])
 
   const handleUpdate = async (formData) => {
     return await actionHandlers.updateBank(bankId, formData)

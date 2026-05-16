@@ -23,7 +23,7 @@ import UsersHead from './UsersHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import UserDialog from '@/components/dialogs/user-dialog';
 import UserViewDialog from '@/components/dialogs/user-view-dialog';
-import { useUsersListHandlers } from '@/handlers/users/useUsersListHandlers';
+import { useUsersListHandlers } from './handler';
 import { userTabs, userTableColumns } from '@/data/dataSets';
 import AppSnackbar from '@/components/shared/AppSnackbar';
 

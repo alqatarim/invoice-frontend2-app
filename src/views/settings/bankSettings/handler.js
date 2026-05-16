@@ -1,0 +1,1 @@
+export { useBankSettingsHandlers } from '../sharedHandlers'
