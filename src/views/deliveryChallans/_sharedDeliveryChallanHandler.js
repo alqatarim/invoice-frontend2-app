@@ -209,25 +209,25 @@ function useBankHandlers({ initialBanks, enqueueSnackbar, closeSnackbar, setValu
   };
 }
 
-function useSignatureHandlers({ signatures, deliveryChallanData, trigger }) {
-  const [signOptions, setSignOptions] = useState(signatures || []);
+function useSignatureHandlers({ employees, deliveryChallanData, trigger }) {
+  const [signOptions, setSignOptions] = useState(employees || []);
   const [selectedSignature, setSelectedSignature] = useState(
-    deliveryChallanData?.sign_type === 'manualSignature' && deliveryChallanData?.signatureId?.signatureImage
-      ? deliveryChallanData.signatureId.signatureImage
+    deliveryChallanData?.sign_type === 'manualSignature' && deliveryChallanData?.employee?.employeeImage
+      ? deliveryChallanData.employee.employeeImage
       : null
   );
 
   const handleSignatureSelection = (selectedOption, field) => {
     if (selectedOption) {
       field.onChange(selectedOption._id);
-      setSelectedSignature(selectedOption.signatureImage);
-      trigger('signatureId');
+      setSelectedSignature(selectedOption.employeeImage);
+      trigger('employee');
       return;
     }
 
     field.onChange('');
     setSelectedSignature(null);
-    trigger('signatureId');
+    trigger('employee');
   };
 
   return {
@@ -354,8 +354,8 @@ function useDeliveryChallanFormSubmission({ trigger, closeSnackbar, enqueueSnack
           taxInfo: JSON.stringify(item.taxInfo),
         })),
         sign_type: currentFormData.sign_type || 'manualSignature',
-        signatureName: currentFormData.signatureName,
-        signatureId: extractId(currentFormData.signatureId)
+        employeeName: currentFormData.employeeName,
+        employee: extractId(currentFormData.employee)
       };
 
       const loadingKey = enqueueSnackbar('Processing delivery challan...', {
@@ -457,7 +457,7 @@ export default function useDeliveryChallanHandlers({
   deliveryChallanData,
   productData,
   initialBanks,
-  signatures,
+  employees,
   onSave,
   enqueueSnackbar,
   closeSnackbar,
@@ -492,8 +492,8 @@ export default function useDeliveryChallanHandlers({
       bank: deliveryChallanData?.bank?._id || deliveryChallanData?.bank || '',
       roundOffValue: deliveryChallanData?.roundOffValue || 0,
       sign_type: deliveryChallanData?.sign_type || 'manualSignature',
-      signatureName: deliveryChallanData?.signatureName || '',
-      signatureId: deliveryChallanData?.signatureId?._id || deliveryChallanData?.signatureId || '',
+      employeeName: deliveryChallanData?.employeeName || '',
+      employee: deliveryChallanData?.employee?._id || deliveryChallanData?.employee || '',
       items: deliveryChallanData?.items?.map((item) => {
         const product = productData?.find((productItem) => productItem._id === item.productId);
         const unitId = product?.units?._id || item.unit || '';
@@ -570,8 +570,8 @@ export default function useDeliveryChallanHandlers({
     addBank,
   });
 
-  const signatureHandlers = useSignatureHandlers({
-    signatures,
+  const employeeHandlers = useSignatureHandlers({
+    employees,
     deliveryChallanData,
     setValue,
     trigger,
@@ -608,7 +608,7 @@ export default function useDeliveryChallanHandlers({
     setProductsCloneData,
     ...itemsHandlers,
     ...bankHandlers,
-    ...signatureHandlers,
+    ...employeeHandlers,
     ...dialogHandlers,
     ...formSubmissionHandlers,
   };

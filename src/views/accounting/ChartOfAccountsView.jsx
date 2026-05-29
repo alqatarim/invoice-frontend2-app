@@ -14,8 +14,8 @@ import {
   runAccountingBackfill,
   updateAccount,
 } from '@/app/(dashboard)/accounting/actions';
-import AccountingPageHeader from './components/AccountingPageHeader';
-import AccountFormDialog from './components/AccountFormDialog';
+import AccountingPageHeader from './AccountingPageHeader';
+import AccountFormDialog from './AccountFormDialog';
 import { formatDate } from './utils';
 
 const ChartOfAccountsView = ({

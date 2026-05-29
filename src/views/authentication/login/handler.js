@@ -42,6 +42,22 @@ export function useLoginHandler({ initialMode }) {
   const [isPasswordShown, setIsPasswordShown] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', status: 'loading' })
   const [errorState, setErrorState] = useState(null)
+  const [isLoginProcessing, setIsLoginProcessing] = useState(false)
+
+  const resolveRedirectURL = () => {
+    const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
+    return getLocalizedUrl(redirectURL, locale)
+  }
+
+  // Warm the post-login route so the actual navigation is near-instant
+  useEffect(() => {
+    try {
+      router.prefetch(resolveRedirectURL())
+    } catch (_) {
+      // prefetch is best-effort
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const {
     control,
@@ -63,6 +79,7 @@ export function useLoginHandler({ initialMode }) {
       const message = 'Your session expired. Please sign in again.'
       setErrorState(message)
       setSnackbar({ open: true, message, status: 'error' })
+      setIsLoginProcessing(false)
       return
     }
 
@@ -70,6 +87,7 @@ export function useLoginHandler({ initialMode }) {
       const message = getAuthErrorMessage(authError)
       setErrorState(message)
       setSnackbar({ open: true, message, status: 'error' })
+      setIsLoginProcessing(false)
     }
   }, [searchParams])
 
@@ -77,43 +95,75 @@ export function useLoginHandler({ initialMode }) {
     setIsPasswordShown(show => !show)
   }
 
+  const navigateToRedirect = () => {
+    router.replace(resolveRedirectURL())
+  }
+
   const handleCredentialsSubmit = async data => {
-    setSnackbar({ open: true, message: 'Logging In...', status: 'loading' })
-    setErrorState(null)
-
-    const res = await signIn('credentials', {
-      email: data.email,
-      password: data.password,
-      redirect: false
-    })
-
-    if (res && res.ok && res.error === null) {
-      setSnackbar({ open: true, message: 'Login Successful', status: 'success' })
-      const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
-
-      setTimeout(() => {
-        router.replace(getLocalizedUrl(redirectURL, locale))
-      }, 1000)
-
+    if (isLoginProcessing) {
       return
     }
 
-    if (res?.error) {
-      const error = getAuthErrorMessage(res.error)
+    setIsLoginProcessing(true)
+    setSnackbar({ open: true, message: 'Logging In...', status: 'loading' })
+    setErrorState(null)
+
+    // Re-prefetch right when the user commits, so the route is hot by the
+    // time the success animation finishes.
+    try {
+      router.prefetch(resolveRedirectURL())
+    } catch (_) {
+      // prefetch is best-effort
+    }
+
+    try {
+      const res = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false
+      })
+
+      if (res && res.ok && res.error === null) {
+        setIsLoginProcessing(false)
+        setSnackbar({ open: true, message: 'Login Successful', status: 'success' })
+        // The actual navigation is triggered by the form panel after its
+        // exit animation completes (see login.jsx). No artificial delay here.
+        return
+      }
+
+      const error = getAuthErrorMessage(res?.error) || 'Unable to sign in. Please try again.'
       setSnackbar({ open: true, message: `An error occurred: ${error}`, status: 'error' })
       setErrorState(error)
+      setIsLoginProcessing(false)
+    } catch (error) {
+      const message = error?.message || 'Unable to sign in. Please try again.'
+      setSnackbar({ open: true, message, status: 'error' })
+      setErrorState(message)
+      setIsLoginProcessing(false)
     }
   }
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
+    if (isLoginProcessing) {
+      return
+    }
+
     const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
 
+    setIsLoginProcessing(true)
     setErrorState(null)
     setSnackbar({ open: true, message: 'Redirecting to Google...', status: 'loading' })
 
-    signIn('google', {
-      callbackUrl: getLocalizedUrl(redirectURL, locale)
-    })
+    try {
+      await signIn('google', {
+        callbackUrl: getLocalizedUrl(redirectURL, locale)
+      })
+    } catch (error) {
+      const message = error?.message || 'Unable to start Google sign-in. Please try again.'
+      setSnackbar({ open: true, message, status: 'error' })
+      setErrorState(message)
+      setIsLoginProcessing(false)
+    }
   }
 
   const handleCloseSnackbar = (event, reason) => {
@@ -130,11 +180,13 @@ export function useLoginHandler({ initialMode }) {
     errors,
     handleSubmit,
     isPasswordShown,
+    isLoginProcessing,
     snackbar,
     errorState,
     handlePasswordToggle,
     handleCredentialsSubmit,
     handleGoogleSignIn,
     handleCloseSnackbar,
+    navigateToRedirect,
   }
 }

@@ -74,14 +74,15 @@ export function useDeliveryChallanListHandler({
   }, [pathname, router, searchParams, showSnackbar]);
 
   const refreshDeliveryChallans = useCallback(
-    async ({ page = pagination.current, pageSize = pagination.pageSize } = {}) => {
+    async ({ page = pagination.current, pageSize = pagination.pageSize, search = searchTerm } = {}) => {
       setLoading(true);
 
       try {
-        const response = await getFilteredDeliveryChallans(page, pageSize, {});
+        const response = await getFilteredDeliveryChallans(page, pageSize, { search });
         const nextDeliveryChallans = response?.deliveryChallans || [];
 
         setDeliveryChallans(nextDeliveryChallans);
+        setSearchTerm(search);
         setPagination(
           response?.pagination || {
             current: page,
@@ -98,25 +99,10 @@ export function useDeliveryChallanListHandler({
         setLoading(false);
       }
     },
-    [pagination.current, pagination.pageSize, showSnackbar]
+    [pagination.current, pagination.pageSize, searchTerm, showSnackbar]
   );
 
-  const filteredDeliveryChallans = useMemo(() => {
-    const normalizedSearch = String(searchTerm || '').trim().toLowerCase();
-
-    if (!normalizedSearch) {
-      return deliveryChallans;
-    }
-
-    return deliveryChallans.filter((challan) =>
-      [
-        challan?.challanNumber,
-        challan?.deliveryChallanNumber,
-        challan?.customerId?.name,
-        challan?.customerId?.phone,
-      ].some((value) => String(value || '').toLowerCase().includes(normalizedSearch))
-    );
-  }, [deliveryChallans, searchTerm]);
+  const filteredDeliveryChallans = deliveryChallans;
 
   const cardCounts = useMemo(
     () => ({
@@ -271,6 +257,13 @@ export function useDeliveryChallanListHandler({
     [refreshDeliveryChallans]
   );
 
+  const handleSearchInputChange = useCallback(
+    (value) => {
+      refreshDeliveryChallans({ page: 1, search: value });
+    },
+    [refreshDeliveryChallans]
+  );
+
   const closeSnackbar = useCallback((_, reason) => {
     if (reason === 'clickaway') {
       return;
@@ -292,7 +285,7 @@ export function useDeliveryChallanListHandler({
     snackbar,
     dialogState,
     cardCounts,
-    setSearchTerm,
+    handleSearchInputChange,
     handlePageChange,
     handlePageSizeChange,
     handleView,

@@ -2,9 +2,6 @@
 
 import { fetchWithAuth } from '@/Auth/fetchWithAuth'
 
-const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
-
-// Transform backend notification format to frontend format
 const transformNotification = (backendNotification) => ({
      id: backendNotification._id,
      title: backendNotification.title,
@@ -19,8 +16,34 @@ const transformNotification = (backendNotification) => ({
      avatarSkin: 'light-static'
 })
 
-// Fetch notifications from backend
-export async function getNotifications(skip = 0, limit = 50) {
+export async function getUnreadNotificationCount() {
+     try {
+          const response = await fetchWithAuth('/notification/unreadCount')
+          const count = Number(response?.data?.count || 0)
+
+          if (response.status === 'Success') {
+               return {
+                    success: true,
+                    count
+               }
+          }
+
+          return {
+               success: false,
+               error: 'Invalid response format',
+               count: 0
+          }
+     } catch (error) {
+          console.error('Error fetching notification count:', error)
+          return {
+               success: false,
+               error: error.message,
+               count: 0
+          }
+     }
+}
+
+export async function getNotifications(skip = 0, limit = 20) {
      try {
           const response = await fetchWithAuth(`/notification/listNotification?skip=${skip}&limit=${limit}`)
 
@@ -46,10 +69,8 @@ export async function getNotifications(skip = 0, limit = 50) {
      }
 }
 
-// Delete individual notification
 export async function deleteNotification(notificationId) {
      try {
-          // Validate input
           if (!notificationId) {
                throw new Error('Notification ID is required')
           }
@@ -71,7 +92,6 @@ export async function deleteNotification(notificationId) {
      }
 }
 
-// Clear all notifications
 export async function clearAllNotifications() {
      try {
           const response = await fetchWithAuth('/notification/clearAllNotifications', {
@@ -91,10 +111,8 @@ export async function clearAllNotifications() {
      }
 }
 
-// Mark individual notification as read
 export async function markNotificationAsRead(notificationId) {
      try {
-          // Validate input
           if (!notificationId) {
                throw new Error('Notification ID is required')
           }
@@ -116,7 +134,6 @@ export async function markNotificationAsRead(notificationId) {
      }
 }
 
-// Mark all notifications as read
 export async function markAllNotificationsAsRead() {
      try {
           const response = await fetchWithAuth('/notification/', {

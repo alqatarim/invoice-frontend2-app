@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import { IconButton } from '@mui/material';
-import { SnackbarProvider, closeSnackbar, useSnackbar } from 'notistack';
-import { Icon } from '@iconify/react';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
 import AddDebitNote from '@/views/debitNotes/addPurchaseReturn/AddDebitNote';
 import { addDebitNote } from '@/app/(dashboard)/debitNotes/actions';
 
@@ -17,7 +16,7 @@ function AddPurchaseReturnContent({
 }) {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  const handleAdd = async (formData, signatureURL) => {
+  const handleAdd = async (formData, employeeURL) => {
     try {
       const loadingKey = enqueueSnackbar('Adding debit note...', {
         variant: 'info',
@@ -25,7 +24,7 @@ function AddPurchaseReturnContent({
         preventDuplicate: true,
       });
 
-      const response = await addDebitNote(formData, signatureURL);
+      const response = await addDebitNote(formData, employeeURL);
       closeSnackbar(loadingKey);
 
       if (!response?.success) {
@@ -58,7 +57,7 @@ function AddPurchaseReturnContent({
       productData={initialProducts}
       taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      signatures={initialSignatures}
+      employees={initialSignatures}
       onSave={handleAdd}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}
@@ -68,25 +67,10 @@ function AddPurchaseReturnContent({
 }
 
 function AddPurchaseReturnIndex(props) {
-  const snackbarAction = (snackbarId) => (
-    <IconButton onClick={() => closeSnackbar(snackbarId)}>
-      <Icon icon="mdi:close" width={25} />
-    </IconButton>
-  );
-
   return (
-    <SnackbarProvider
-      maxSnack={7}
-      autoHideDuration={5000}
-      preventDuplicate
-      action={snackbarAction}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-    >
+    <FormFeatureSnackbarProvider>
       <AddPurchaseReturnContent {...props} />
-    </SnackbarProvider>
+    </FormFeatureSnackbarProvider>
   );
 }
 

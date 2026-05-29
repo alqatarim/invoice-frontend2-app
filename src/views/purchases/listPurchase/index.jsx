@@ -1,6 +1,9 @@
 'use client';
 
 import React from 'react';
+import { IconButton } from '@mui/material';
+import { Icon } from '@iconify/react';
+import { SnackbarProvider, closeSnackbar } from 'notistack';
 import PurchaseList from './PurchaseList';
 
 const PurchaseListIndex = ({
@@ -9,13 +12,27 @@ const PurchaseListIndex = ({
      initialVendors = [],
      initialErrorMessage = '',
 }) => {
+     const snackbarAction = snackbarId => (
+          <IconButton onClick={() => closeSnackbar(snackbarId)}>
+               <Icon icon="mdi:close" width={25} />
+          </IconButton>
+     );
+
      return (
-          <PurchaseList
-               initialPurchases={initialPurchases}
-               initialPagination={initialPagination}
-               vendors={initialVendors}
-               initialErrorMessage={initialErrorMessage}
-          />
+          <SnackbarProvider
+               maxSnack={7}
+               autoHideDuration={5000}
+               preventDuplicate
+               action={snackbarAction}
+               anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+               <PurchaseList
+                    initialPurchases={initialPurchases}
+                    initialPagination={initialPagination}
+                    vendors={initialVendors}
+                    initialErrorMessage={initialErrorMessage}
+               />
+          </SnackbarProvider>
      );
 };
 

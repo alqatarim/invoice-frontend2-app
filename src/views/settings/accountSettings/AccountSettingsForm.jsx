@@ -32,6 +32,7 @@ import dayjs from 'dayjs'
 
 // Icon Imports
 import { Icon } from '@iconify/react'
+import { genderOptions } from '@/data/dataSets'
 
 // Validation Schema
 const accountSettingsSchema = yup.object().shape({
@@ -61,11 +62,6 @@ const AccountSettingsForm = ({
 }) => {
      const [imagePreview, setImagePreview] = useState(null)
      const [imageError, setImageError] = useState('')
-
-     const genderOptions = [
-          { value: 2, label: 'Male' },
-          { value: 3, label: 'Female' }
-     ]
 
      const {
           control,
@@ -290,8 +286,8 @@ const AccountSettingsForm = ({
                                                        placeholder="Choose gender"
                                                   >
                                                        {genderOptions.map((option) => (
-                                                            <MenuItem key={option.value} value={option.value}>
-                                                                 {option.label}
+                                                            <MenuItem key={option.id} value={option.id}>
+                                                                 {option.text}
                                                             </MenuItem>
                                                        ))}
                                                   </Select>

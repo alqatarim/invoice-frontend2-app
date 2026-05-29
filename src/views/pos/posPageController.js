@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useAddInvoiceFeatureHandler from '@/views/invoices/addInvoice/handler';
 import { calculateInvoiceTotals } from '@/utils/salesTotals';
 import { formatDateForInput } from '@/utils/dateUtils';
-import { resolveProductBarcodeMatch } from '@/utils/productScaleBarcode';
 import { useGlobalLocationScope } from '@/contexts/GlobalLocationContext';
 import {
   findBranchByIdentifier,
@@ -14,7 +13,7 @@ import {
 import { PosSchema } from '@/views/pos/PosSchema';
 
 const HELD_SALES_KEY = 'standalonePos.heldSales';
-const CASHIER_STORAGE_KEY = 'standalonePos.cashierSignatureId';
+const LEGACY_CASHIER_SIGNATURE_STORAGE_KEY = 'standalonePos.cashierSignatureId';
 
 const toNumber = value => {
   const parsed = Number(value);
@@ -32,6 +31,67 @@ const normalizePaymentOption = option => {
     value: option.value || option.label || '',
     label: option.label || option.value || '',
   };
+};
+
+const getCashierLabel = cashier => {
+  const joinedName = [cashier?.firstName, cashier?.lastName]
+    .map(part => String(part || '').trim())
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    String(cashier?.label || '').trim() ||
+    String(cashier?.fullName || '').trim() ||
+    String(cashier?.fullname || '').trim() ||
+    joinedName ||
+    String(cashier?.userName || '').trim() ||
+    String(cashier?.email || '').trim() ||
+    'Cashier'
+  );
+};
+
+const normalizeCashierOption = cashier => {
+  if (!cashier) return null;
+  const id = String(cashier._id || cashier.value || cashier.id || '').trim();
+  if (!id) return null;
+
+  const assignedBranches = Array.isArray(cashier.assignedBranches)
+    ? cashier.assignedBranches
+    : [];
+  const assignedBranchCodes = [
+    ...(Array.isArray(cashier.assignedBranchCodes) ? cashier.assignedBranchCodes : []),
+    ...assignedBranches.map(branch => branch?.branchId),
+  ]
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+  const assignedBranchIds = [
+    ...(Array.isArray(cashier.assignedBranchIds) ? cashier.assignedBranchIds : []),
+    ...assignedBranches.map(branch => branch?._id),
+  ]
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+
+  return {
+    ...cashier,
+    _id: id,
+    value: id,
+    label: getCashierLabel(cashier),
+    assignedBranches,
+    assignedBranchCodes: [...new Set(assignedBranchCodes)],
+    assignedBranchIds: [...new Set(assignedBranchIds)],
+  };
+};
+
+const cashierHasBranchAccess = (cashier, branchId) => {
+  const normalizedBranchId = String(branchId || '').trim();
+  if (!normalizedBranchId) return true;
+
+  return (
+    (cashier?.assignedBranchIds || []).some(value => String(value) === normalizedBranchId) ||
+    (cashier?.assignedBranches || []).some(branch =>
+      String(branch?._id || '') === normalizedBranchId
+    )
+  );
 };
 
 const getBranchValidationMessage = (
@@ -75,35 +135,31 @@ export default function usePosPageController({
   allowedBranchesData,
   posSettings,
   bootstrapPaymentMethods,
+  cashiersData,
+  currentUserId,
   onSave,
   enqueueSnackbar,
   closeSnackbar,
   initialErrorMessage = '',
 }) {
-  const [barcodeDraft, setBarcodeDraft] = useState('');
   const [tenderedAmount, setTenderedAmount] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [isWalkIn, setIsWalkIn] = useState(true);
   const [heldSales, setHeldSales] = useState([]);
   const [posReceiptOpen, setPosReceiptOpen] = useState(false);
   const [posReceiptData, setPosReceiptData] = useState(null);
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'success',
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [branchError, setBranchError] = useState('');
 
-  const scanBufferRef = useRef('');
-  const scanTimeoutRef = useRef(null);
   const initialRowAddedRef = useRef(false);
 
   const handlers = useAddInvoiceFeatureHandler({
-    invoiceNumber,
+    initialInvoiceNumber: invoiceNumber,
+    customersData,
     productData,
     initialBanks,
-    signatures,
+    cashiersData,
+    currentUserId,
     onSave,
     enqueueSnackbar,
     closeSnackbar,
@@ -117,7 +173,8 @@ export default function usePosPageController({
     setValue,
     getValues,
     watch,
-    trigger,
+    setError,
+    clearErrors,
     errors,
     fields,
     watchItems,
@@ -134,7 +191,6 @@ export default function usePosPageController({
     handleUpdateItemProduct,
     handleDeleteItem,
     handleAddEmptyRow,
-    handleQuickAddProduct,
     handleClearScaleBarcode,
     handleClearAppliedPromotion,
     handleMenuItemClick,
@@ -143,9 +199,17 @@ export default function usePosPageController({
     handleTaxMenuItemClick,
     clearItems,
     appendItem,
+    handleError,
   } = handlers;
 
   const customers = Array.isArray(customersData) ? customersData : [];
+  const cashierOptions = useMemo(
+    () =>
+      (Array.isArray(cashiersData) ? cashiersData : [])
+        .map(normalizeCashierOption)
+        .filter(Boolean),
+    [cashiersData]
+  );
   const branches = useMemo(
     () => (Array.isArray(allowedBranchesData) ? allowedBranchesData : []).filter(isStoreBranch),
     [allowedBranchesData]
@@ -205,16 +269,6 @@ export default function usePosPageController({
     return paymentMethodOptions[0]?.value || 'Cash';
   }, [paymentMethodOptions, posSettings?.posDefaultPaymentMethod]);
 
-  const quickPayAmounts = useMemo(() => {
-    const raw = Array.isArray(posSettings?.posQuickPayAmounts)
-      ? posSettings.posQuickPayAmounts
-      : [];
-
-    const cleaned = raw.map(value => toNumber(value)).filter(value => value > 0);
-
-    return cleaned.length > 0 ? cleaned : [10, 50, 100, 200, 500];
-  }, [posSettings?.posQuickPayAmounts]);
-
   const totals = useMemo(
     () =>
       calculateInvoiceTotals(
@@ -227,7 +281,6 @@ export default function usePosPageController({
   const totalAmount = toNumber(totals.TotalAmount);
   const tenderedValue = toNumber(tenderedAmount);
   const changeAmount = Math.max(0, Number((tenderedValue - totalAmount).toFixed(2)));
-  const quickProducts = Array.isArray(productsCloneData) ? productsCloneData.slice(0, 10) : [];
 
   const activeBranch = useMemo(
     () => findBranchByIdentifier(branches, selectedBranchId),
@@ -235,16 +288,26 @@ export default function usePosPageController({
   );
   const activeBranchId = useMemo(() => resolveBranchId(activeBranch), [activeBranch]);
   const hasValidSelectedBranch = Boolean(activeBranchId) && isStoreSelected;
+  const availableCashiers = useMemo(
+    () => cashierOptions.filter(cashier => cashierHasBranchAccess(cashier, activeBranchId)),
+    [activeBranchId, cashierOptions]
+  );
 
-  const selectedCashierId = watch('signatureId');
+  const selectedCashierId = watch('cashierId');
+  const selectedCashier = useMemo(
+    () => cashierOptions.find(cashier => cashier._id === selectedCashierId) || null,
+    [cashierOptions, selectedCashierId]
+  );
 
   const pushSnackbar = useCallback((message, severity = 'success') => {
-    setSnackbar({
-      open: true,
-      message,
-      severity,
+    if (!message) return;
+
+    enqueueSnackbar(message, {
+      variant: severity,
+      preventDuplicate: true,
+      autoHideDuration: severity === 'error' ? 5000 : 3000,
     });
-  }, []);
+  }, [enqueueSnackbar]);
 
   const persistHeldSales = useCallback(nextHeldSales => {
     setHeldSales(nextHeldSales);
@@ -257,7 +320,6 @@ export default function usePosPageController({
     nextInvoiceNumber => {
       clearItems();
       handleAddEmptyRow();
-      setBarcodeDraft('');
       setTenderedAmount('');
       setIsWalkIn(true);
       setValue('customerId', walkInCustomerId);
@@ -286,6 +348,12 @@ export default function usePosPageController({
   useEffect(() => {
     setValue('posMode', true);
   }, [setValue]);
+
+  useEffect(() => {
+    if (initialErrorMessage) {
+      pushSnackbar(initialErrorMessage, 'error');
+    }
+  }, [initialErrorMessage, pushSnackbar]);
 
   useEffect(() => {
     const nextBranchId = String(globalLocationId || '').trim();
@@ -338,14 +406,6 @@ export default function usePosPageController({
   }, [getValues, handleAddEmptyRow]);
 
   useEffect(() => {
-    setValue('taxableAmount', Number(totals.taxableAmount || 0).toFixed(2));
-    setValue('totalDiscount', Number(totals.totalDiscount || 0).toFixed(2));
-    setValue('vat', Number(totals.vat || 0).toFixed(2));
-    setValue('TotalAmount', Number(totals.TotalAmount || 0).toFixed(2));
-    setValue('roundOffValue', Number(totals.roundOffValue || 0).toFixed(2));
-  }, [setValue, totals]);
-
-  useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const storedHeldSales = window.localStorage.getItem(HELD_SALES_KEY);
@@ -360,103 +420,8 @@ export default function usePosPageController({
       }
     }
 
-    const storedCashierId = window.localStorage.getItem(CASHIER_STORAGE_KEY);
-    if (storedCashierId) {
-      setValue('signatureId', storedCashierId);
-      setValue('sign_type', 'manualSignature');
-    }
+    window.localStorage.removeItem(LEGACY_CASHIER_SIGNATURE_STORAGE_KEY);
   }, [setValue]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    if (!selectedCashierId) {
-      window.localStorage.removeItem(CASHIER_STORAGE_KEY);
-      return;
-    }
-
-    window.localStorage.setItem(CASHIER_STORAGE_KEY, selectedCashierId);
-  }, [selectedCashierId]);
-
-  const handleBarcodeScan = useCallback(
-    value => {
-      const barcode = String(value || '').trim();
-      if (!barcode) return;
-
-      const barcodeMatch = resolveProductBarcodeMatch(productData, barcode);
-      if (!barcodeMatch?.product) {
-        pushSnackbar('No product found for this barcode', 'error');
-        return;
-      }
-
-      handleQuickAddProduct(
-        barcodeMatch.product,
-        barcodeMatch.scaleBarcodeMeta
-          ? {
-              forceNewLine: true,
-              quantityOverride: barcodeMatch.scaleBarcodeMeta.quantity,
-              rateOverride: barcodeMatch.scaleBarcodeMeta.rate,
-              barcodeOverride: barcodeMatch.scaleBarcodeMeta.barcode,
-              scaleBarcodeMeta: barcodeMatch.scaleBarcodeMeta,
-            }
-          : undefined
-      );
-
-      pushSnackbar(barcodeMatch.scaleBarcodeMeta?.summary || 'Product added', 'success');
-    },
-    [handleQuickAddProduct, productData, pushSnackbar]
-  );
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    const handleKeyDown = event => {
-      const active = document.activeElement;
-      const tagName = active?.tagName?.toLowerCase();
-      const isEditable =
-        ['input', 'textarea', 'select'].includes(tagName) || active?.isContentEditable;
-
-      if (isEditable) return;
-
-      if (event.key === 'Enter') {
-        const scannedValue = scanBufferRef.current;
-        scanBufferRef.current = '';
-
-        if (scanTimeoutRef.current) {
-          clearTimeout(scanTimeoutRef.current);
-          scanTimeoutRef.current = null;
-        }
-
-        if (scannedValue) {
-          handleBarcodeScan(scannedValue);
-        }
-
-        return;
-      }
-
-      if (event.key.length === 1) {
-        scanBufferRef.current += event.key;
-
-        if (scanTimeoutRef.current) {
-          clearTimeout(scanTimeoutRef.current);
-        }
-
-        scanTimeoutRef.current = window.setTimeout(() => {
-          scanBufferRef.current = '';
-          scanTimeoutRef.current = null;
-        }, 120);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      if (scanTimeoutRef.current) {
-        clearTimeout(scanTimeoutRef.current);
-      }
-    };
-  }, [handleBarcodeScan]);
 
   const handleCustomerChange = useCallback(
     customer => {
@@ -464,24 +429,10 @@ export default function usePosPageController({
         !customer || customer?.isWalkIn || customer?._id === walkInCustomerId;
 
       setIsWalkIn(shouldUseWalkIn);
-
-      if (!shouldUseWalkIn) {
-        setValue('customerId', customer?._id || '');
-      }
+      setValue('customerId', shouldUseWalkIn ? walkInCustomerId : customer?._id || '');
     },
     [setValue, walkInCustomerId]
   );
-
-  const handleBarcodeQuickAdd = useCallback(() => {
-    const value = barcodeDraft.trim();
-    if (!value) {
-      pushSnackbar('Enter a barcode first', 'error');
-      return;
-    }
-
-    handleBarcodeScan(value);
-    setBarcodeDraft('');
-  }, [barcodeDraft, handleBarcodeScan, pushSnackbar]);
 
   const buildHeldSaleSnapshot = useCallback(() => {
     const current = getValues();
@@ -502,6 +453,8 @@ export default function usePosPageController({
       notes: current.notes || '',
       termsAndCondition: current.termsAndCondition || '',
       bank: current.bank || '',
+      cashierId: current.cashierId || selectedCashier?._id || '',
+      cashierName: current.cashierName || selectedCashier?.label || '',
       signatureId: current.signatureId || '',
       items,
       total: totalAmount,
@@ -514,11 +467,14 @@ export default function usePosPageController({
     getValues,
     heldSales,
     isWalkIn,
+    selectedCashier,
     tenderedValue,
     totalAmount,
   ]);
 
   const handleHoldSale = useCallback(() => {
+    if (isSubmitting) return;
+
     const currentItems = Array.isArray(getValues('items'))
       ? getValues('items').filter(item => item?.productId)
       : [];
@@ -546,6 +502,7 @@ export default function usePosPageController({
     getValues,
     hasValidSelectedBranch,
     heldSales,
+    isSubmitting,
     persistHeldSales,
     pushSnackbar,
     resetSale,
@@ -576,6 +533,12 @@ export default function usePosPageController({
       setValue('notes', sale?.notes || '');
       setValue('termsAndCondition', sale?.termsAndCondition || '');
       setValue('bank', sale?.bank || '');
+      const fallbackCashier =
+        availableCashiers.find(cashier => cashier._id === String(currentUserId || '')) ||
+        availableCashiers[0] ||
+        null;
+      setValue('cashierId', sale?.cashierId || fallbackCashier?._id || '');
+      setValue('cashierName', sale?.cashierName || fallbackCashier?.label || '');
       setValue('signatureId', sale?.signatureId || '');
       setTenderedAmount(String(sale?.tenderedAmount || ''));
 
@@ -585,8 +548,10 @@ export default function usePosPageController({
     },
     [
       appendItem,
+      availableCashiers,
       branches,
       clearItems,
+      currentUserId,
       defaultBranchId,
       defaultPaymentMethod,
       setValue,
@@ -596,6 +561,8 @@ export default function usePosPageController({
 
   const handleLoadHeldSale = useCallback(
     saleId => {
+      if (isSubmitting) return;
+
       if (!hasValidSelectedBranch) {
         pushSnackbar(
           branchError || 'No assigned store is available to restore held sales',
@@ -616,51 +583,15 @@ export default function usePosPageController({
         restoreResult?.usedFallbackBranch ? 'warning' : 'success'
       );
     },
-    [branchError, hasValidSelectedBranch, heldSales, persistHeldSales, pushSnackbar, restoreHeldSale]
+    [branchError, hasValidSelectedBranch, heldSales, isSubmitting, persistHeldSales, pushSnackbar, restoreHeldSale]
   );
 
   const handleDeleteHeldSale = useCallback(
     saleId => {
+      if (isSubmitting) return;
       persistHeldSales(heldSales.filter(item => item.id !== saleId));
     },
-    [heldSales, persistHeldSales]
-  );
-
-  const handleResumeLatest = useCallback(() => {
-    if (!hasValidSelectedBranch) {
-      pushSnackbar(
-        branchError || 'No assigned store is available to resume held sales',
-        'error'
-      );
-      return;
-    }
-
-    if (heldSales.length === 0) {
-      pushSnackbar('No held sales available', 'info');
-      return;
-    }
-
-    const [latest, ...rest] = heldSales;
-    const restoreResult = restoreHeldSale(latest);
-    persistHeldSales(rest);
-    pushSnackbar(
-      restoreResult?.usedFallbackBranch
-        ? 'Resumed held sale in your current assigned store because the original store is no longer accessible'
-        : 'Resumed latest held sale',
-      restoreResult?.usedFallbackBranch ? 'warning' : 'success'
-    );
-  }, [branchError, hasValidSelectedBranch, heldSales, persistHeldSales, pushSnackbar, restoreHeldSale]);
-
-  const handleQuickTenderAmount = useCallback(
-    value => {
-      if (value === 'exact') {
-        setTenderedAmount(Number(totalAmount).toFixed(2));
-        return;
-      }
-
-      setTenderedAmount(String(value));
-    },
-    [totalAmount]
+    [heldSales, isSubmitting, persistHeldSales]
   );
 
   const buildCheckoutPayload = useCallback(() => {
@@ -688,11 +619,8 @@ export default function usePosPageController({
       branchId: activeBranchId,
       branchName: activeBranch?.name || '',
       branchType: activeBranch?.branchType || activeBranch?.kind || '',
-      cashierId: current.signatureId || '',
-      cashierName:
-        signOptions.find(option => option?._id === current.signatureId)?.signatureName ||
-        signOptions.find(option => option?._id === current.signatureId)?.label ||
-        '',
+      cashierId: current.cashierId || selectedCashier?._id || '',
+      cashierName: current.cashierName || selectedCashier?.label || '',
       posMode: true,
       documentType: 'receipt',
       isWalkIn,
@@ -711,20 +639,62 @@ export default function usePosPageController({
     getValues,
     isWalkIn,
     productLookup,
-    signOptions,
+    selectedCashier,
     tenderedValue,
     walkInCustomerId,
   ]);
 
   const handleCompleteSale = useCallback(async () => {
+    if (isSubmitting) {
+      return { success: false };
+    }
+
     if (!hasValidSelectedBranch) {
       pushSnackbar(branchError || 'Choose one of your assigned stores before checkout', 'error');
       return { success: false };
     }
 
-    const isValid = await trigger();
-    if (!isValid) {
-      pushSnackbar('Please correct the highlighted POS fields before checkout', 'error');
+    let validationErrors = null;
+    let isValid = false;
+
+    await handleSubmit(
+      () => {
+        isValid = true;
+      },
+      formErrors => {
+        validationErrors = formErrors;
+      }
+    )();
+
+    const currentItems = Array.isArray(getValues('items')) ? getValues('items') : [];
+    const noProductSelected = !currentItems.some((item) => item?.productId);
+    if (noProductSelected) {
+      setError('items.0.productId', {
+        type: 'manual',
+        message: 'Select a product before checkout',
+      });
+    } else {
+      clearErrors('items.0.productId');
+    }
+
+    if (!isValid || noProductSelected) {
+      const itemErrors = Array.isArray(validationErrors?.items)
+        ? [...validationErrors.items]
+        : [];
+      if (noProductSelected) {
+        itemErrors[0] = {
+          ...(itemErrors[0] || {}),
+          productId: {
+            type: 'manual',
+            message: 'Product is required',
+          },
+        };
+      }
+
+      handleError({
+        ...(validationErrors || {}),
+        ...(itemErrors.length ? { items: itemErrors } : {}),
+      });
       return { success: false };
     }
 
@@ -772,13 +742,18 @@ export default function usePosPageController({
   }, [
     branchError,
     buildCheckoutPayload,
+    clearErrors,
+    getValues,
+    handleError,
+    handleSubmit,
     hasValidSelectedBranch,
+    isSubmitting,
     onSave,
     pushSnackbar,
+    setError,
     setValue,
     tenderedValue,
     totalAmount,
-    trigger,
   ]);
 
   const handleUpdateCartQuantity = useCallback(
@@ -810,6 +785,7 @@ export default function usePosPageController({
   }, [posReceiptData?.nextInvoiceNumber, resetSale]);
 
   return {
+    autoFocusFirstProductCell: true,
     control,
     handleSubmit,
     watch,
@@ -819,9 +795,8 @@ export default function usePosPageController({
     fields,
     banks,
     signOptions,
+    cashierOptions: availableCashiers,
     paymentMethodOptions,
-    quickPayAmounts,
-    quickProducts,
     productsCloneData,
     branches,
     activeBranch,
@@ -833,8 +808,6 @@ export default function usePosPageController({
     setSelectedBranchId,
     isWalkIn,
     setIsWalkIn,
-    barcodeDraft,
-    setBarcodeDraft,
     tenderedAmount,
     setTenderedAmount,
     totalAmount,
@@ -848,16 +821,11 @@ export default function usePosPageController({
     setPosReceiptOpen,
     posReceiptData,
     heldSales,
-    snackbar,
-    setSnackbar,
     isSubmitting,
     handleCustomerChange,
-    handleBarcodeQuickAdd,
     handleHoldSale,
     handleLoadHeldSale,
     handleDeleteHeldSale,
-    handleResumeLatest,
-    handleQuickTenderAmount,
     handleCompleteSale,
     handleNewSale,
     handleUpdateItemProduct,
@@ -865,7 +833,6 @@ export default function usePosPageController({
     handleUpdateCartQuantity,
     handleDeleteItem,
     handleAddEmptyRow,
-    handleQuickAddProduct,
     handleClearScaleBarcode,
     handleMenuItemClick,
     handleTaxClick,

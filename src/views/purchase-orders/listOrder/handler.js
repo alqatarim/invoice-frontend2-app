@@ -52,16 +52,18 @@ function usePurchaseOrderListData({
         pageSize = pagination.pageSize,
         sortBy = sorting.sortBy,
         sortDirection = sorting.sortDirection,
+        search = stateRef.current.searchTerm,
       } = params;
 
       setLoading(true);
       try {
-        const result = await getFilteredPurchaseOrders('ALL', page, pageSize, {}, sortBy, sortDirection);
+        const result = await getFilteredPurchaseOrders('ALL', page, pageSize, { search }, sortBy, sortDirection);
 
         setPurchaseOrders(result.purchaseOrders);
         setPagination(result.pagination);
         setSorting({ sortBy, sortDirection });
         setFullDataset(result.purchaseOrders);
+        setSearchTerm(search);
 
         return result;
       } catch (error) {
@@ -116,30 +118,7 @@ function usePurchaseOrderListData({
       setSearchTerm(value);
 
       try {
-        const dataToFilter = fullDataset.length > 0 ? fullDataset : purchaseOrders;
-
-        if (value.trim() === '') {
-          setPurchaseOrders(dataToFilter);
-          setPagination(previous => ({
-            ...previous,
-            current: 1,
-            total: dataToFilter.length,
-          }));
-        } else {
-          const filtered = dataToFilter.filter(item =>
-            item.purchaseOrderId?.toLowerCase().includes(value.toLowerCase()) ||
-            item.vendorInfo?.vendor_name?.toLowerCase().includes(value.toLowerCase()) ||
-            item.vendorInfo?.phone?.includes(value) ||
-            item.notes?.toLowerCase().includes(value.toLowerCase())
-          );
-
-          setPurchaseOrders(filtered);
-          setPagination(previous => ({
-            ...previous,
-            current: 1,
-            total: filtered.length,
-          }));
-        }
+        await fetchData({ page: 1, search: value });
       } catch (error) {
         console.error('Error searching purchase orders:', error);
         onError?.(error.message || 'Search failed');
@@ -147,7 +126,7 @@ function usePurchaseOrderListData({
         setSearching(false);
       }
     },
-    [fullDataset, onError, purchaseOrders]
+    [fetchData, onError]
   );
 
   return {

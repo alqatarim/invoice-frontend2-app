@@ -53,7 +53,7 @@ const AddQuotationIndex = ({
         payment_method: formData.payment_method,
         bank: formData.bank,
         referenceNo: formData.referenceNo,
-        signatureId: formData.signatureId,
+        employee: formData.employee,
         notes: formData.notes,
         termsAndConditions: formData.termsAndConditions,
         items: formData.items,
@@ -86,7 +86,7 @@ const AddQuotationIndex = ({
       productData={initialProducts}
       taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      signatures={initialSignatures}
+      employees={initialSignatures}
       onSave={handleFormSubmit}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}

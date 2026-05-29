@@ -1,20 +1,32 @@
 'use client';
 
-import React from "react";
+import React, { useEffect } from "react";
+import { IconButton } from '@mui/material';
+import { Icon } from '@iconify/react';
+import { SnackbarProvider, closeSnackbar as closeNotistackSnackbar, useSnackbar } from 'notistack';
 import ListDeliveryChallans from "@/views/deliveryChallans/listDeliveryChallans/listDeliveryChallans";
-import AppSnackbar from '@/components/shared/AppSnackbar';
 import { useDeliveryChallanListHandler } from './handler';
 
-const DeliveryChallanListIndex = ({
+const DeliveryChallanListContent = ({
      initialDeliveryChallans = [],
      initialPagination = { current: 1, pageSize: 10, total: 0 },
      initialErrorMessage = '',
 }) => {
+     const { enqueueSnackbar } = useSnackbar();
      const handler = useDeliveryChallanListHandler({
           initialDeliveryChallans,
           initialPagination,
           initialErrorMessage,
      });
+
+     useEffect(() => {
+          if (!handler.snackbar.open || !handler.snackbar.message) return;
+
+          enqueueSnackbar(handler.snackbar.message, {
+               variant: handler.snackbar.severity || 'info',
+          });
+          handler.closeSnackbar();
+     }, [enqueueSnackbar, handler]);
 
      return (
           <>
@@ -28,7 +40,7 @@ const DeliveryChallanListIndex = ({
                     cardCounts={handler.cardCounts}
                     deleteDialogOpen={handler.dialogState.deleteOpen}
                     convertDialogOpen={handler.dialogState.convertOpen}
-                    onSearchChange={handler.setSearchTerm}
+                    onSearchChange={handler.handleSearchInputChange}
                     onPageChange={handler.handlePageChange}
                     onRowsPerPageChange={handler.handlePageSizeChange}
                     onView={handler.handleView}
@@ -41,14 +53,27 @@ const DeliveryChallanListIndex = ({
                     onConvertConfirm={handler.handleConvertConfirm}
                />
 
-               <AppSnackbar
-                    open={handler.snackbar.open}
-                    message={handler.snackbar.message}
-                    severity={handler.snackbar.severity}
-                    onClose={handler.closeSnackbar}
-                    autoHideDuration={6000}
-               />
           </>
+     );
+};
+
+const DeliveryChallanListIndex = props => {
+     const snackbarAction = snackbarId => (
+          <IconButton onClick={() => closeNotistackSnackbar(snackbarId)}>
+               <Icon icon="mdi:close" width={25} />
+          </IconButton>
+     );
+
+     return (
+          <SnackbarProvider
+               maxSnack={7}
+               autoHideDuration={5000}
+               preventDuplicate
+               action={snackbarAction}
+               anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          >
+               <DeliveryChallanListContent {...props} />
+          </SnackbarProvider>
      );
 };
 

@@ -136,6 +136,8 @@ export async function getPosBootstrap() {
       settings: {},
       invoiceNumber: '',
       paymentMethods: [],
+      cashiers: [],
+      currentUserId: '',
     };
   } catch (error) {
     console.error('Error loading POS bootstrap:', error);

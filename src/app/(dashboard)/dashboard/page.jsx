@@ -1,11 +1,12 @@
+import { getDashboardData } from '@/app/(dashboard)/dashboard/actions';
 import DashboardIndex from '@/views/dashboard';
-import { getDashboardData } from './actions';
 
 export default async function DashboardPage({ searchParams }) {
-  let initialDashboardData = null;
   const branchId = searchParams?.branchId || '';
   const fromDate = searchParams?.fromDate || '';
   const toDate = searchParams?.toDate || '';
+
+  let initialDashboardData = null;
 
   try {
     const response = await getDashboardData({ branchId, fromDate, toDate });
@@ -14,7 +15,7 @@ export default async function DashboardPage({ searchParams }) {
       initialDashboardData = response.data;
     }
   } catch (error) {
-    console.error('Failed to fetch initial dashboard data:', error);
+    console.error('Dashboard server prefetch failed:', error);
   }
 
   return (

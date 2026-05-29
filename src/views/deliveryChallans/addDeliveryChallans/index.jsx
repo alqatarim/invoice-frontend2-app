@@ -17,7 +17,7 @@ const AddDeliveryChallanContent = ({
 }) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  const handleAdd = async (formData, signatureURL) => {
+  const handleAdd = async (formData, employeeURL) => {
     try {
       const loadingKey = enqueueSnackbar('Adding delivery challan...', {
         variant: 'info',
@@ -25,7 +25,7 @@ const AddDeliveryChallanContent = ({
         preventDuplicate: true,
       });
 
-      const response = await addDeliveryChallan(formData, signatureURL);
+      const response = await addDeliveryChallan(formData, employeeURL);
       closeSnackbar(loadingKey);
 
       if (!response.success) {
@@ -57,7 +57,7 @@ const AddDeliveryChallanContent = ({
       productData={initialProducts}
       taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      signatures={initialSignatures}
+      employees={initialSignatures}
       onSave={handleAdd}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}

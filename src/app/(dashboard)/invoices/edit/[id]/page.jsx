@@ -6,7 +6,7 @@ import {
   getBranchesForDropdown,
   getCustomers,
   getInvoiceById,
-  getManualSignatures,
+  getInvoiceCashierBootstrap,
   getProducts,
   getTaxRates,
 } from './actions';
@@ -25,7 +25,7 @@ const EditInvoicePage = async ({ params }) => {
       initialProductData,
       initialTaxRates,
       initialBanks,
-      initialSignatures,
+      initialCashierBootstrap,
       initialBranchesData,
     ] = await Promise.all([
       getInvoiceById(id),
@@ -33,7 +33,7 @@ const EditInvoicePage = async ({ params }) => {
       getProducts(),
       getTaxRates(),
       getBanks(),
-      getManualSignatures(),
+      getInvoiceCashierBootstrap(),
       getBranchesForDropdown(),
     ]);
 
@@ -48,7 +48,8 @@ const EditInvoicePage = async ({ params }) => {
         initialProductData={initialProductData}
         initialTaxRates={initialTaxRates}
         initialBanks={initialBanks}
-        initialSignatures={initialSignatures}
+        initialCashiers={initialCashierBootstrap.cashiers}
+        initialCurrentUserId={initialCashierBootstrap.currentUserId}
         initialBranchesData={initialBranchesData}
       />
     );

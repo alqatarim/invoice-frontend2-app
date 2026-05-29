@@ -192,8 +192,8 @@ const BranchStockTable = ({
               blockSize: 'auto !important',
               lineHeight: '1.5 !important',
               padding: '8px 12px !important',
-              backgroundColor: `${theme.palette.background.paper} !important`,
-              color: `${theme.palette.text.secondary} !important`,
+              backgroundColor: `${theme.vars.palette.background.paper} !important`,
+              color: `${theme.vars.palette.text.secondary} !important`,
             },
             '& tbody td': {
               fontSize: '0.8rem !important',

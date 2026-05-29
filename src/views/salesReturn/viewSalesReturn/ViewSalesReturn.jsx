@@ -316,10 +316,10 @@ const ViewSalesReturn = ({ salesReturnData, loading }) => {
                   borderRadius={2}
                   sx={{ mt: 4, textAlign: 'left' }}
                  >
-                  <Typography variant="body2">{salesReturnData?.signatureName}</Typography>
-                  {salesReturnData?.signatureImage && (
+                  <Typography variant="body2">{salesReturnData?.employeeName}</Typography>
+                  {salesReturnData?.employeeImage && (
                     <img
-                      src={salesReturnData.signatureImage}
+                      src={salesReturnData.employeeImage}
                       alt="Signature"
                       style={{ maxWidth: '150px', marginTop: '10px' }}
                     />

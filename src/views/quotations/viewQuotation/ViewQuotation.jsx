@@ -50,14 +50,6 @@ const getStatusColor = (status) => {
   }
 };
 
-const statusOptions = [
-  { label: 'Accepted', value: 'ACCEPTED' },
-  { label: 'Drafted', value: 'DRAFTED' },
-  { label: 'Sent', value: 'SENT' },
-  { label: 'Expired', value: 'EXPIRED' },
-  { label: 'Rejected', value: 'REJECTED' }
-];
-
 const ViewQuotation = ({ quotationData, unitsList, productsList, enqueueSnackbar, closeSnackbar }) => {
   const theme = useTheme();
   const router = useRouter();
@@ -388,7 +380,7 @@ const ViewQuotation = ({ quotationData, unitsList, productsList, enqueueSnackbar
             )}
 
             {/* Signature */}
-            {quotationData.signatureId?.signatureImage && (
+            {quotationData.employee?.employeeImage && (
               <>
                 <Divider sx={{ my: 4 }} />
 
@@ -399,7 +391,7 @@ const ViewQuotation = ({ quotationData, unitsList, productsList, enqueueSnackbar
 
                   <Box className='mb-2'>
                     <img
-                      src={quotationData.signatureId?.signatureImage || quotationData.signatureImage}
+                      src={quotationData.employee?.employeeImage || quotationData.employeeImage}
                       alt="Signature"
                       style={{ maxHeight: '80px', maxWidth: '200px' }}
                     />

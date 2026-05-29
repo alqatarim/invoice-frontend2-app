@@ -5,6 +5,7 @@ import { usePermission } from '@/Auth/usePermission';
 import { getInventoryMovementHistory } from '@/app/(dashboard)/inventory/actions';
 import { getFilteredProducts } from '@/app/(dashboard)/products/actions';
 import useAccessibleBranchScope from '@/hooks/useAccessibleBranchScope';
+import { useGlobalLocationScope } from '@/contexts/GlobalLocationContext';
 import {
   findBranchByIdentifier,
   getBranchIdentifiers,
@@ -522,6 +523,7 @@ export function useInventoryListViewHandler({
     canView: usePermission('inventory', 'view'),
     canDelete: usePermission('inventory', 'delete'),
   };
+  const { selectedLocation, selectedLocationId } = useGlobalLocationScope();
 
   const [activeTab, setActiveTab] = useState('inventory');
   const [expandedRows, setExpandedRows] = useState({});
@@ -593,8 +595,12 @@ export function useInventoryListViewHandler({
   });
 
   const inventoryColumns = useMemo(
-    () => getInventoryColumns({ theme }),
-    [theme]
+    () => getInventoryColumns({
+      theme,
+      selectedBranch: selectedLocation,
+      selectedBranchId: selectedLocationId,
+    }),
+    [selectedLocation, selectedLocationId, theme]
   );
 
   const branchColumns = useMemo(() => getBranchInventoryColumns(), []);

@@ -9,7 +9,7 @@ import { useParams, useRouter } from "next/navigation";
 // MUI Imports
 import Badge from "@mui/material/Badge";
 import Avatar from "@mui/material/Avatar";
-import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import Popper from "@mui/material/Popper";
 import Fade from "@mui/material/Fade";
 import Paper from "@mui/material/Paper";
@@ -36,6 +36,7 @@ import { getLocalizedUrl } from "@/utils/i18n";
 const UserDropdown = () => {
 	// States
 	const [open, setOpen] = useState(false);
+	const [isLoggingOut, setIsLoggingOut] = useState(false);
 
 	// Refs
 	const anchorRef = useRef(null);
@@ -47,10 +48,13 @@ const UserDropdown = () => {
 	const { lang: locale } = useParams();
 
 	const handleDropdownOpen = () => {
+		if (isLoggingOut) return;
 		!open ? setOpen(true) : setOpen(false);
 	};
 
 	const handleDropdownClose = (event, url) => {
+		if (isLoggingOut) return;
+
 		if (url) {
 			router.push(getLocalizedUrl(url, locale));
 		}
@@ -62,19 +66,16 @@ const UserDropdown = () => {
 		setOpen(false);
 	};
 
-	const handleUserLogout = async () => {
-		try {
-			// Sign out from the app
-			await signOut({ redirect: false });
+	const handleUserLogout = () => {
+		if (isLoggingOut) return;
 
-			// Redirect to login page
-			router.push(getLocalizedUrl("/login", locale));
-		} catch (error) {
-			console.error(error);
-
-			// Show above error in a toast like following
-			// toastService.error((err as Error).message)
-		}
+		setIsLoggingOut(true);
+		// signOut handles session purge and navigation in a single round-trip,
+		// so the dashboard tree never re-renders with empty session data.
+		signOut({ callbackUrl: getLocalizedUrl("/login", locale) }).catch((error) => {
+			console.error("Logout error:", error);
+			setIsLoggingOut(false);
+		});
 	};
 
 	return (
@@ -118,73 +119,67 @@ const UserDropdown = () => {
 							}
 						>
 							<ClickAwayListener onClickAway={(e) => handleDropdownClose(e)}>
-								<MenuList>
-									<div
-										className="flex items-center plb-2 pli-4 gap-2"
-										tabIndex={-1}
-									>
-										<Avatar
-											alt={session?.user?.name || ""}
-											src={session?.user?.image || ""}
-										/>
-										<div className="flex items-start flex-col">
-											<Typography className="font-medium" color="text.primary">
-												{session?.user?.name || ""}
-											</Typography>
-											<Typography variant="caption">
-												{session?.user?.email || ""}
-											</Typography>
-										</div>
+								{isLoggingOut ? (
+									<div className="flex flex-col items-center justify-center gap-2 plb-6 pli-4">
+										<CircularProgress size={22} color="primary" />
+										<Typography variant="body2" color="text.secondary">
+											Signing out...
+										</Typography>
 									</div>
-
-									{/* Session Expiry Countdown Timer for Testing */}
-									<SessionCountdown token={session?.user?.token} />
-
-									<Divider className="mlb-1" />
-									<MenuItem
-										className="gap-3"
-										onClick={(e) => handleDropdownClose(e, "/profile")}
-									>
-										<i className="ri-user-3-line text-[22px]" />
-										<Typography color="text.primary">My Profile</Typography>
-									</MenuItem>
-									<MenuItem
-										className="gap-3"
-										onClick={(e) => handleDropdownClose(e, "/settings")}
-									>
-										<i className="ri-settings-4-line text-[22px]" />
-										<Typography color="text.primary">Settings</Typography>
-									</MenuItem>
-									{/* <MenuItem
-										className="gap-3"
-										onClick={(e) => handleDropdownClose(e, "/pages/pricing")}
-									>
-										<i className="ri-money-dollar-circle-line text-[22px]" />
-										<Typography color="text.primary">Pricing</Typography>
-									</MenuItem> */}
-									{/* <MenuItem
-										className="gap-3"
-										onClick={(e) => handleDropdownClose(e, "/pages/faq")}
-									>
-										<i className="ri-question-line text-[22px]" />
-										<Typography color="text.primary">FAQ</Typography>
-									</MenuItem> */}
-									<div className="flex items-center plb-2 pli-4">
-										<Button
-											fullWidth
-											variant="contained"
-											color="error"
-											size="small"
-											endIcon={<i className="ri-logout-box-r-line" />}
-											onClick={handleUserLogout}
-											sx={{
-												"& .MuiButton-endIcon": { marginInlineStart: 1.5 },
-											}}
+								) : (
+									<MenuList>
+										<div
+											className="flex items-center plb-2 pli-4 gap-2"
+											tabIndex={-1}
 										>
-											Logout
-										</Button>
-									</div>
-								</MenuList>
+											<Avatar
+												alt={session?.user?.name || ""}
+												src={session?.user?.image || ""}
+											/>
+											<div className="flex items-start flex-col">
+												<Typography className="font-medium" color="text.primary">
+													{session?.user?.name || ""}
+												</Typography>
+												<Typography variant="caption">
+													{session?.user?.email || ""}
+												</Typography>
+											</div>
+										</div>
+
+										<SessionCountdown token={session?.user?.token} />
+
+										<Divider className="mlb-1" />
+										<MenuItem
+											className="gap-3"
+											onClick={(e) => handleDropdownClose(e, "/profile")}
+										>
+											<i className="ri-user-3-line text-[22px]" />
+											<Typography color="text.primary">My Profile</Typography>
+										</MenuItem>
+										<MenuItem
+											className="gap-3"
+											onClick={(e) => handleDropdownClose(e, "/settings")}
+										>
+											<i className="ri-settings-4-line text-[22px]" />
+											<Typography color="text.primary">Settings</Typography>
+										</MenuItem>
+										<div className="flex items-center plb-2 pli-4">
+											<Button
+												fullWidth
+												variant="contained"
+												color="error"
+												size="small"
+												endIcon={<i className="ri-logout-box-r-line" />}
+												onClick={handleUserLogout}
+												sx={{
+													"& .MuiButton-endIcon": { marginInlineStart: 1.5 },
+												}}
+											>
+												Logout
+											</Button>
+										</div>
+									</MenuList>
+								)}
 							</ClickAwayListener>
 						</Paper>
 					</Fade>

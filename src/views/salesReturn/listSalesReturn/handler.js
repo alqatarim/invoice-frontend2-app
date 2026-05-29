@@ -51,7 +51,8 @@ function useDataHandler({
       const currentState = stateRef.current;
       const page = params.page || currentState.pagination.current;
       const limit = params.limit || currentState.pagination.pageSize;
-      const response = await getSalesReturnList(page, limit);
+      const search = params.search ?? currentState.searchTerm;
+      const response = await getSalesReturnList(page, limit, search);
 
       if (response?.success) {
         setSalesReturns(response.data || []);
@@ -60,6 +61,7 @@ function useDataHandler({
           pageSize: params.limit || prev.pageSize,
           total: response.totalRecords || 0
         }));
+        setSearchTerm(search);
         return { success: true, data: response.data };
       }
 
@@ -107,29 +109,14 @@ function useDataHandler({
     setSearchTerm(value);
 
     try {
-      if (value.trim() === '') {
-        setSalesReturns(initialSalesReturns || []);
-        setPagination((prev) => ({
-          ...prev,
-          current: 1,
-          total: (initialSalesReturns || []).length
-        }));
-      } else {
-        const filtered = (initialSalesReturns || []).filter((item) =>
-          item.credit_note_id?.toLowerCase().includes(value.toLowerCase()) ||
-          item.customerInfo?.name?.toLowerCase().includes(value.toLowerCase()) ||
-          item.customerInfo?.phone?.includes(value)
-        );
-        setSalesReturns(filtered);
-        setPagination((prev) => ({ ...prev, current: 1, total: filtered.length }));
-      }
+      await fetchSalesReturns({ search: value, page: 1 });
     } catch (error) {
       console.error('Error searching sales returns:', error);
       onError(error.message || 'Search failed');
     } finally {
       setSearching(false);
     }
-  }, [initialSalesReturns, onError]);
+  }, [fetchSalesReturns, onError]);
 
   const handleSearchSubmit = useCallback(async (event) => {
     event.preventDefault();
@@ -255,7 +242,7 @@ function useActionsHandler({ onError, onSuccess, fetchSalesReturns }) {
       return;
     }
 
-    router.push(`/sales-return/process-refund/${salesReturnId}`);
+    router.push(`/sales-return/sales-return-view/${salesReturnId}`);
   }, [onError, router]);
 
   return {

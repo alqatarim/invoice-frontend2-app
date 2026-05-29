@@ -41,11 +41,15 @@ function usePurchaseListData({
       if (loadingRef.current) return;
       loadingRef.current = true;
 
-      const { page = pagination.current, pageSize = pagination.pageSize } = params;
+      const {
+        page = pagination.current,
+        pageSize = pagination.pageSize,
+        search = stateRef.current.searchTerm,
+      } = params;
 
       setLoading(true);
       try {
-        const response = await getPurchaseList(page, pageSize, '', {});
+        const response = await getPurchaseList(page, pageSize, search, {});
 
         if (!response.success) {
           throw new Error(response.message);
@@ -58,6 +62,7 @@ function usePurchaseListData({
           total: response.totalRecords,
         });
         setFullDataset(response.data);
+        setSearchTerm(search);
 
         return {
           purchases: response.data,
@@ -115,31 +120,7 @@ function usePurchaseListData({
       setSearchTerm(value);
 
       try {
-        const dataToFilter = fullDataset.length > 0 ? fullDataset : purchases;
-
-        if (value.trim() === '') {
-          setPurchases(dataToFilter);
-          setPagination(previous => ({
-            ...previous,
-            current: 1,
-            total: dataToFilter.length,
-          }));
-        } else {
-          const filtered = dataToFilter.filter(item =>
-            item.purchaseId?.toLowerCase().includes(value.toLowerCase()) ||
-            item.vendorInfo?.vendor_name?.toLowerCase().includes(value.toLowerCase()) ||
-            item.vendorInfo?.phone?.includes(value) ||
-            item.notes?.toLowerCase().includes(value.toLowerCase()) ||
-            item.supplierInvoiceSerialNumber?.toLowerCase().includes(value.toLowerCase())
-          );
-
-          setPurchases(filtered);
-          setPagination(previous => ({
-            ...previous,
-            current: 1,
-            total: filtered.length,
-          }));
-        }
+        await fetchData({ page: 1, search: value });
       } catch (error) {
         console.error('Error searching purchases:', error);
         onError?.(error.message || 'Search failed');
@@ -147,7 +128,7 @@ function usePurchaseListData({
         setSearching(false);
       }
     },
-    [fullDataset, purchases, onError]
+    [fetchData, onError]
   );
 
   return {

@@ -93,9 +93,14 @@ export const PosSchema = yup.object().shape({
     .string()
     .required('Choose payment method'),
 
+  cashierId: yup
+    .string()
+    .required('Choose a cashier'),
+
   branchId: yup
     .string()
     .required('Choose a location from the top bar')
+    .matches(/^[a-f\d]{24}$/i, 'Choose a valid store')
     .test(
       'store-only-location',
       'The selected location is not a store. Choose a store from the top bar.',

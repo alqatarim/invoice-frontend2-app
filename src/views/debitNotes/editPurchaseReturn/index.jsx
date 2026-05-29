@@ -2,9 +2,8 @@
 
 import React from 'react';
 import { Box } from '@mui/material';
-import { IconButton } from '@mui/material';
-import { SnackbarProvider, closeSnackbar, useSnackbar } from 'notistack';
-import { Icon } from '@iconify/react';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
 import EditPurchaseReturn from '@/views/debitNotes/editPurchaseReturn/EditPurchaseReturn';
 import { updateDebitNote } from '@/app/(dashboard)/debitNotes/actions';
 
@@ -71,7 +70,7 @@ function EditPurchaseReturnContent({
       productData={initialProducts}
       taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      signatures={initialSignatures}
+      employees={initialSignatures}
       onSave={handleUpdate}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}
@@ -80,25 +79,10 @@ function EditPurchaseReturnContent({
 }
 
 function EditPurchaseReturnIndex(props) {
-  const snackbarAction = (snackbarId) => (
-    <IconButton onClick={() => closeSnackbar(snackbarId)}>
-      <Icon icon="mdi:close" width={25} />
-    </IconButton>
-  );
-
   return (
-    <SnackbarProvider
-      maxSnack={7}
-      autoHideDuration={5000}
-      preventDuplicate
-      action={snackbarAction}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-    >
+    <FormFeatureSnackbarProvider>
       <EditPurchaseReturnContent {...props} />
-    </SnackbarProvider>
+    </FormFeatureSnackbarProvider>
   );
 }
 

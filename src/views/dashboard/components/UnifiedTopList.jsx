@@ -21,16 +21,9 @@ import { motion } from 'framer-motion';
 
 import CustomAvatar from '@core/components/mui/Avatar';
 import CustomTabList from '@core/components/mui/TabList';
+import { dashboardEasing, dashboardTopListSections } from '@/data/dataSets';
 import { RiyalIcon } from '@/utils/currencyUtils';
 import { formatCompactNumber, formatWholeNumber } from '@/utils/numberUtils';
-
-const DASHBOARD_EASE = [0.22, 1, 0.36, 1];
-
-const TOP_LIST_SECTIONS = [
-	{ key: 'products', label: 'Top Products', icon: 'ri-archive-line', color: 'primary' },
-	{ key: 'customers', label: 'Top Customers', icon: 'ri-user-star-line', color: 'info' },
-	{ key: 'stock', label: 'Stock Alert', icon: 'ri-alarm-warning-line', color: 'warning' },
-];
 
 const safeArray = value => (Array.isArray(value) ? value : []);
 
@@ -82,7 +75,7 @@ const UnifiedListRow = ({ item, index, section, accent, isLast, delay = 0 }) => 
 			component={motion.div}
 			initial={{ opacity: 0, x: -6 }}
 			animate={{ opacity: 1, x: 0 }}
-			transition={{ duration: 0.35, ease: DASHBOARD_EASE, delay }}
+			transition={{ duration: 0.35, ease: dashboardEasing, delay }}
 			sx={{
 				position: 'relative',
 				py: 1.4,
@@ -264,7 +257,7 @@ export const UnifiedTopList = ({
 	const [activeSectionKey, setActiveSectionKey] = useState('products');
 
 	const activeSection =
-		TOP_LIST_SECTIONS.find(section => section.key === activeSectionKey) || TOP_LIST_SECTIONS[0];
+		dashboardTopListSections.find(section => section.key === activeSectionKey) || dashboardTopListSections[0];
 	const activeSectionAccent =
 		theme.palette[activeSection.color]?.main || theme.palette.primary.main;
 	const sectionItems = useMemo(
@@ -284,7 +277,7 @@ export const UnifiedTopList = ({
 
 	const renderSectionRows = sectionKey => {
 		const sectionMeta =
-			TOP_LIST_SECTIONS.find(section => section.key === sectionKey) || TOP_LIST_SECTIONS[0];
+			dashboardTopListSections.find(section => section.key === sectionKey) || dashboardTopListSections[0];
 		const sectionAccent =
 			theme.palette[sectionMeta.color]?.main || theme.palette.primary.main;
 		const items = sectionItems[sectionKey] || [];
@@ -339,7 +332,7 @@ export const UnifiedTopList = ({
 			component={motion.div}
 			initial={{ opacity: 0, y: 16 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.55, ease: DASHBOARD_EASE, delay }}
+			transition={{ duration: 0.55, ease: dashboardEasing, delay }}
 			sx={{
 				height: panelHeight,
 				position: 'relative',
@@ -421,7 +414,7 @@ export const UnifiedTopList = ({
 								aria-label="Dashboard top list sections"
 								className='min-h-[0]'
 							>
-								{TOP_LIST_SECTIONS.map(section => (
+								{dashboardTopListSections.map(section => (
 									<Tab
 										key={section.key}
 										value={section.key}
@@ -441,7 +434,7 @@ export const UnifiedTopList = ({
 					</Stack>
 
 					<Box sx={{ flex: 1, minHeight: 0 }}>
-						{TOP_LIST_SECTIONS.map(section => (
+						{dashboardTopListSections.map(section => (
 							<TabPanel key={section.key} value={section.key} sx={{ p: 0, height: '100%' }}>
 								<Box
 									sx={{

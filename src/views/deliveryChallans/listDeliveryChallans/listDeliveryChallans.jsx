@@ -341,10 +341,10 @@ const ListDeliveryChallans = ({
             variant="contained"
             color="error"
             disabled={loadingAction}
-            startIcon={loadingAction ? null : <Icon icon="tabler:trash" />}
+            startIcon={<Icon icon="tabler:trash" />}
             sx={{ borderRadius: '10px', py: 1, px: 3, ml: 2 }}
           >
-            {loadingAction ? 'Deleting...' : 'Delete'}
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
@@ -381,10 +381,10 @@ const ListDeliveryChallans = ({
             onClick={onConvertConfirm}
             variant="contained"
             disabled={loadingAction}
-            startIcon={loadingAction ? null : <Icon icon="tabler:arrow-right" />}
+            startIcon={<Icon icon="tabler:arrow-right" />}
             sx={{ borderRadius: '10px', py: 1, px: 3, ml: 2 }}
           >
-            {loadingAction ? 'Converting...' : 'Convert'}
+            Convert
           </Button>
         </DialogActions>
       </Dialog>

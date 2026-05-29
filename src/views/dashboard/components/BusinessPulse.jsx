@@ -21,13 +21,12 @@ import { Icon } from '@iconify/react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 import AppReactDatepicker from '@/libs/styles/AppReactDatepicker';
+import { dashboardEasing } from '@/data/dataSets';
 import { RiyalIcon } from '@/utils/currencyUtils';
 import { formatCompactNumber, formatWholeNumber } from '@/utils/numberUtils';
 
 import { CountUp } from './CountUp';
 import { Sparkline } from './Sparkline';
-
-const DASHBOARD_EASE = [0.22, 1, 0.36, 1];
 
 const PulseDateInput = forwardRef(function PulseDateInput(
 	{ displayValue, value, onClick, ...rest },
@@ -368,11 +367,17 @@ const KpiRibbonItem = ({ metric, delay = 0 }) => {
 	const { mode, systemMode } = useColorScheme();
 	const isDark = (mode === 'system' ? systemMode : mode) === 'dark';
 	const accent = theme.palette[metric.color]?.main || theme.palette.primary.main;
+	// const trendPercentageColor =
+	// 	metric.direction === 'positive'
+	// 		? theme.palette.success.dark
+	// 		: metric.direction === 'negative'
+	// 			? theme.palette.error.dark
+	// 			: theme.palette.text.secondary;
 	const trendColor =
 		metric.direction === 'positive'
-			? theme.palette.success.main
+			? theme.palette.success.dark
 			: metric.direction === 'negative'
-				? theme.palette.error.main
+				? theme.palette.error.dark
 				: theme.palette.text.secondary;
 	const trendIcon =
 		metric.direction === 'positive'
@@ -389,7 +394,7 @@ const KpiRibbonItem = ({ metric, delay = 0 }) => {
 			component={motion.div}
 			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5, ease: DASHBOARD_EASE, delay }}
+			transition={{ duration: 0.5, ease: dashboardEasing, delay }}
 			sx={{
 				minWidth: 0,
 				height: '100%',
@@ -412,7 +417,7 @@ const KpiRibbonItem = ({ metric, delay = 0 }) => {
 							<Typography
 								variant="overline"
 								color='text.secondary'
-								className='tracking-[0.5px] uppercase font-bold'
+								className='tracking-[0.8px] text-[0.75rem] uppercase font-bold'
 
 							>
 
@@ -444,21 +449,44 @@ const KpiRibbonItem = ({ metric, delay = 0 }) => {
 
 							</Stack>
 
+
 							{subLabel ? (
-								<Typography
-									variant="caption"
-									sx={{
-										color: 'text.secondary',
-										fontSize: '0.72rem',
-										lineHeight: 1.35,
-										overflow: 'hidden',
-										textOverflow: 'ellipsis',
-										whiteSpace: 'nowrap',
-									}}
-								>
-									{subLabel}
-								</Typography>
+
+								<Stack direction="row" alignItems="center" spacing={0.2}>
+									<Box
+										sx={{
+											display: 'inline-flex',
+											alignItems: 'center',
+											gap: 0.28,
+											px: 0.85,
+											py: 0.35,
+											borderRadius: 999,
+											color: trendColor,
+											flexShrink: 0,
+										}}
+									>
+										<Icon icon={trendIcon} width="0.75rem" />
+										<Typography variant="caption" color={trendColor} sx={{ fontWeight: 600, fontSize: '0.72rem' }}>
+											{metric.changeNumber}
+										</Typography>
+									</Box>
+									<Typography
+										variant="caption"
+										sx={{
+											color: 'text.secondary',
+											fontSize: '0.72rem',
+											lineHeight: 1.35,
+											overflow: 'hidden',
+											textOverflow: 'ellipsis',
+											whiteSpace: 'nowrap',
+										}}
+									>
+										{subLabel}
+									</Typography>
+								</Stack>
 							) : null}
+
+
 
 						</Stack>
 
@@ -468,29 +496,13 @@ const KpiRibbonItem = ({ metric, delay = 0 }) => {
 							spacing={0.8}
 							sx={{ minHeight: 30, minWidth: 0 }}
 						>
-							<Box
-								sx={{
-									display: 'inline-flex',
-									alignItems: 'center',
-									gap: 0.28,
-									px: 0.85,
-									py: 0.35,
-									borderRadius: 999,
-									color: trendColor,
-									flexShrink: 0,
-								}}
-							>
-								<Icon icon={trendIcon} width="0.75rem" />
-								<Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.7rem' }}>
-									{metric.changeNumber}
-								</Typography>
-							</Box>
+
 							{hasSpark ? (
 								<Box
 									sx={{
 										flex: '1 1 78px',
 										minWidth: 68,
-										maxWidth: 96,
+										maxWidth: 120,
 										height: 30,
 										display: 'flex',
 										alignItems: 'center',
@@ -500,7 +512,7 @@ const KpiRibbonItem = ({ metric, delay = 0 }) => {
 									<Sparkline
 										values={metric.spark || []}
 										color={accent}
-										width={88}
+										width={120}
 										height={26}
 										strokeWidth={1.8}
 									/>
@@ -639,7 +651,7 @@ export const BusinessPulse = ({
 			component={motion.div}
 			initial={{ opacity: 0, y: 16 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.6, ease: DASHBOARD_EASE }}
+			transition={{ duration: 0.6, ease: dashboardEasing }}
 			sx={{
 				position: 'relative',
 				overflow: 'hidden',
@@ -869,7 +881,7 @@ export const BusinessPulse = ({
 										fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
 										fontWeight: 900,
 										lineHeight: 0.95,
-										letterSpacing: '-0.03em',
+										letterSpacing: '0.03em',
 										color: netColor,
 										fontVariantNumeric: 'tabular-nums',
 									}}
@@ -952,7 +964,7 @@ export const BusinessPulse = ({
 								minWidth: 0,
 								display: 'grid',
 								gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, minmax(0, 1fr))' },
-								gap: 1.4,
+								gap: 5,
 							}}
 						>
 							{metricCards.map((metric, index) => (

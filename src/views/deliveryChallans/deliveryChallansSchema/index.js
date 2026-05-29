@@ -57,33 +57,33 @@ export const deliveryChallanSchema = yup.object().shape({
 
   sign_type: yup
     .string()
-    .required("Choose signature type")
-    .oneOf(['eSignature', 'manualSignature'], 'Invalid signature type'),
+    .required("Choose employee type")
+    .oneOf(['eSignature', 'manualSignature'], 'Invalid employee type'),
 
-  signatureName: yup
+  employeeName: yup
     .string()
     .when('sign_type', {
       is: 'eSignature',
       then: yup.string()
-        .required('Enter signature name')
+        .required('Enter employee')
         .min(2, 'Signature name must be at least 2 characters')
         .trim(),
       otherwise: yup.string().nullable()
     }),
 
-  signatureImage: yup
+  employeeImage: yup
     .mixed()
     .when('sign_type', {
       is: 'eSignature',
-      then: yup.mixed().required('Draw your signature'),
+      then: yup.mixed().required('Draw your employee'),
       otherwise: yup.mixed().nullable()
     }),
 
-  signatureId: yup
+  employee: yup
     .string()
     .when('sign_type', {
       is: 'manualSignature',
-      then: yup.string().required('Select a signature'),
+      then: yup.string().required('Select a employee'),
       otherwise: yup.string().nullable()
     }),
 
@@ -153,7 +153,7 @@ export const deliveryChallanSchema = yup.object().shape({
     .trim()
 
 }, [
-  ['signatureName', 'sign_type'],
-  ['signatureImage', 'sign_type'],
-  ['signatureId', 'sign_type']
+  ['employeeName', 'sign_type'],
+  ['employeeImage', 'sign_type'],
+  ['employee', 'sign_type']
 ]);

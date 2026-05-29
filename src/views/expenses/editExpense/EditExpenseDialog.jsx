@@ -30,7 +30,7 @@ import {
      expenseStatusOptions,
      formIcons,
 } from '@/data/dataSets';
-import { getNameFromPath } from '@/utils/fileUtils';
+import { getNameFromPath, isImageFile } from '@/utils/fileUtils';
 const EditExpenseDialog = ({
      open,
      expenseData = null,
@@ -177,7 +177,7 @@ const EditExpenseDialog = ({
                                                                            height: '100%'
                                                                       }}
                                                                  >
-                                                                      {imagePreview.startsWith('data:image') || (typeof imagePreview === 'string' && imagePreview.includes('image')) ? (
+                                                                      {isImageFile(imagePreview) ? (
                                                                            <img
                                                                                 src={imagePreview}
                                                                                 alt={expenseData?.expenseDetails?.expenseId || 'Expense'}

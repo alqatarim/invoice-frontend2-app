@@ -17,12 +17,13 @@ import AddPaymentDialog from '@/views/payments/addPayment/AddPaymentDialog';
 import EditPaymentDialog from '@/views/payments/editPayment/EditPaymentDialog';
 import ViewPaymentDialog from '@/views/payments/viewPayment/ViewPaymentDialog';
 import { addPayment, updatePayment } from '@/app/(dashboard)/payments/actions';
-import AppSnackbar from '@/components/shared/AppSnackbar';
 
 const PaymentList = ({
   initialPayments = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
   initialCustomerOptions = [],
+  onSuccess: notifySuccess,
+  onError: notifyError,
 }) => {
   const theme = useTheme();
   const { data: session } = useSession();
@@ -35,13 +36,6 @@ const PaymentList = ({
     canDelete: usePermission('payment', 'delete'),
   };
 
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
   // Dialog states
   const [dialogStates, setDialogStates] = useState({
     add: false,
@@ -53,12 +47,12 @@ const PaymentList = ({
 
   // Notification handlers
   const onError = useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'error' });
-  }, []);
+    notifyError?.(msg);
+  }, [notifyError]);
 
   const onSuccess = useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'success' });
-  }, []);
+    notifySuccess?.(msg);
+  }, [notifySuccess]);
 
   // Dialog handlers
   const handleOpenAddDialog = useCallback(() => {
@@ -245,13 +239,6 @@ const PaymentList = ({
         onSuccess={onSuccess}
       />
 
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        autoHideDuration={6000}
-      />
     </Box>
   );
 };

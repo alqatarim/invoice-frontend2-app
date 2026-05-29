@@ -1,14 +1,15 @@
 'use client'
 
-import React, { useState, useMemo, useCallback, useRef } from 'react'
+import React, { useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { useTheme, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Box, Typography } from '@mui/material'
+import { useTheme, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Box } from '@mui/material'
 import { Icon } from '@iconify/react'
 import CustomListTable from '@/components/custom-components/CustomListTable'
 import { getSalesReturnColumns } from './salesReturnColumns'
 import { usePermission } from '@/Auth/usePermission'
 import { useSalesReturnListHandlers } from './handler'
-import AppSnackbar from '@/components/shared/AppSnackbar'
+import { useSnackbar } from 'notistack'
+import SalesReturnHead from './salesReturnHead'
 
 /**
  * SalesReturnList Component - Now using customer pattern with proper search integration
@@ -16,8 +17,11 @@ import AppSnackbar from '@/components/shared/AppSnackbar'
 const SalesReturnList = ({
   initialSalesReturns = [],
   pagination = { current: 1, pageSize: 10, total: 0 },
+  initialCardCounts,
   initialErrorMessage = '',
 }) => {
+  const { enqueueSnackbar } = useSnackbar()
+
   // Permissions
   const permissions = {
     canCreate: usePermission('creditNote', 'create'),
@@ -26,28 +30,15 @@ const SalesReturnList = ({
     canDelete: usePermission('creditNote', 'delete'),
   }
 
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'success',
-  })
-
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') return
-    setSnackbar(prev => ({ ...prev, open: false }))
-  }
-
-  // Use refs for notification handlers to ensure stable references
-  const onErrorRef = useRef()
-  const onSuccessRef = useRef()
-
-  onErrorRef.current = (msg) => setSnackbar({ open: true, message: msg, severity: 'error' })
-  onSuccessRef.current = (msg) => setSnackbar({ open: true, message: msg, severity: 'success' })
+  useEffect(() => {
+    if (initialErrorMessage) {
+      enqueueSnackbar(initialErrorMessage, { variant: 'error' })
+    }
+  }, [enqueueSnackbar, initialErrorMessage])
 
   // Stable callback wrappers
-  const onError = useCallback((msg) => onErrorRef.current(msg), [])
-  const onSuccess = useCallback((msg) => onSuccessRef.current(msg), [])
+  const onError = useCallback((msg) => enqueueSnackbar(msg, { variant: 'error' }), [enqueueSnackbar])
+  const onSuccess = useCallback((msg) => enqueueSnackbar(msg, { variant: 'success' }), [enqueueSnackbar])
 
   const theme = useTheme()
 
@@ -100,16 +91,7 @@ const SalesReturnList = ({
   return (
     <Box className='flex flex-col gap-5'>
       {/* Header Section */}
-      <div className="flex justify-start items-center mb-5">
-        <div className="flex items-center gap-2">
-          <div className='bg-primary/12 text-primary bg-primaryLight w-12 h-12 rounded-full flex items-center justify-center'>
-            <Icon icon="mdi:invoice-export-outline" fontSize={26} style={{ transform: 'scaleX(-1)' }} />
-          </div>
-          <Typography variant="h5" className="font-semibold text-primary">
-            Sales Returns
-          </Typography>
-        </div>
-      </div>
+      <SalesReturnHead salesReturnListData={initialCardCounts} />
 
       {/* Main Sales Return Table - Properly connected to handlers */}
       <CustomListTable
@@ -176,13 +158,6 @@ const SalesReturnList = ({
         </DialogActions>
       </Dialog>
 
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={handleSnackbarClose}
-        autoHideDuration={6000}
-      />
     </Box>
   )
 }

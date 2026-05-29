@@ -370,7 +370,7 @@ const ViewDebitNote = ({ debitNoteData, loading }) => {
                     </Grid>
 
                     <Grid item xs={6}>
-                      {debitNoteData?.signatureId && (
+                      {debitNoteData?.employee && (
                         <div className="text-center">
                           <Typography variant="body2" color="text.secondary" className="mb-4">
                             Authorized Signature

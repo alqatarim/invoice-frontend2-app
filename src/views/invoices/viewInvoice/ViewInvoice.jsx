@@ -4,7 +4,6 @@ import React from 'react';
 import {
   Box,
   Divider,
-  Grid,
   Paper,
   Table,
   TableBody,
@@ -14,15 +13,67 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import InvoiceStatusBadge from '@/components/custom-components/InvoiceStatusBadge';
 import { formatDate } from '@/utils/dateUtils';
-import { formatCurrencyAmount } from '@/utils/numberUtils';
+import { RiyalIcon } from '@/utils/currencyUtils';
+
+const INVOICE_TEXT = '#111827';
+const INVOICE_MUTED = '#6b7280';
+const INVOICE_BORDER = '#e5e7eb';
+const INVOICE_PANEL = '#fafafa';
+
+const getAddress = (...parts) => parts.filter(Boolean).join(', ') || 'N/A';
+const formatAmount = value => Number(value || 0).toFixed(2);
+
+const Money = ({ value, strong = false }) => (
+  <Box className='inline-flex items-center justify-end gap-1 whitespace-nowrap'>
+    <RiyalIcon width={12} color={INVOICE_TEXT} />
+    <Typography
+      component='span'
+      variant='body2'
+      sx={{ fontSize: 12.5, fontWeight: strong ? 700 : 500, color: INVOICE_TEXT }}
+    >
+      {formatAmount(value)}
+    </Typography>
+  </Box>
+);
+
+const DetailRow = ({ label, value, strong = false }) => (
+  <Box className='flex items-start justify-between gap-5 py-1'>
+    <Typography variant='body2' sx={{ fontSize: 12.5, color: INVOICE_MUTED }}>
+      {label}
+    </Typography>
+    {React.isValidElement(value) ? (
+      value
+    ) : (
+      <Typography
+        variant='body2'
+        className='text-right'
+        sx={{ fontSize: 12.5, fontWeight: strong ? 700 : 500, color: INVOICE_TEXT }}
+      >
+        {value || 'N/A'}
+      </Typography>
+    )}
+  </Box>
+);
+
+const SectionCard = ({ title, children }) => (
+  <Paper
+    elevation={0}
+    className='rounded-lg border border-solid p-4'
+    sx={{ borderColor: INVOICE_BORDER, backgroundColor: '#ffffff !important', color: INVOICE_TEXT }}
+  >
+    <Typography variant='subtitle2' className='mb-3 font-semibold' sx={{ color: INVOICE_TEXT }}>
+      {title}
+    </Typography>
+    {children}
+  </Paper>
+);
 
 const ViewInvoice = ({
   invoiceData,
   companyData,
-  currencyData,
   invoiceLogo,
   previewId,
 }) => {
@@ -32,166 +83,154 @@ const ViewInvoice = ({
     <Paper
       id={previewId}
       elevation={0}
-      className='mx-auto w-full max-w-[220mm] rounded-2xl border border-solid border-[rgba(115,103,240,0.14)] bg-white p-6 shadow-sm print:max-w-full print:rounded-none print:border-0 print:p-0 print:shadow-none'
+      className='mx-auto w-full max-w-[190mm] rounded-xl border border-solid bg-white p-6 shadow-sm print:max-w-full print:rounded-none print:border-0 print:p-0 print:shadow-none'
+      sx={{
+        color: INVOICE_TEXT,
+        backgroundColor: '#ffffff !important',
+        borderColor: INVOICE_BORDER,
+        '& .MuiTypography-root': {
+          color: INVOICE_TEXT,
+        },
+        '& .MuiTableCell-root': {
+          color: INVOICE_TEXT,
+          borderColor: INVOICE_BORDER,
+        },
+        '& .MuiTableHead-root .MuiTableCell-root': {
+          color: '#374151',
+          backgroundColor: '#f9fafb',
+        },
+        '@media print': {
+          boxShadow: 'none',
+        },
+      }}
     >
-      <Box className='flex flex-col gap-6'>
-        <Box className='flex flex-col gap-4 md:flex-row md:items-start md:justify-between'>
+      <Box className='flex flex-col gap-5'>
+        <Box className='flex flex-col gap-5 border-b border-solid pb-5 sm:flex-row sm:items-start sm:justify-between' sx={{ borderColor: INVOICE_BORDER }}>
           <Box className='flex items-start gap-4'>
             {invoiceLogo || companyData?.companyLogo ? (
               <Box
                 component='img'
                 src={invoiceLogo || companyData?.companyLogo}
                 alt='Invoice logo'
-                className='max-h-20 w-auto max-w-[180px] object-contain'
+                className='max-h-16 w-auto max-w-[150px] object-contain'
               />
             ) : (
               <Box
-                className='flex h-20 w-20 items-center justify-center rounded-xl border border-dashed border-[rgba(115,103,240,0.24)] text-center text-sm font-medium'
-                sx={{ color: theme.palette.text.secondary }}
+                className='flex h-16 w-16 items-center justify-center rounded-lg border border-dashed text-center text-xs font-medium'
+                sx={{ color: INVOICE_MUTED, borderColor: '#d1d5db', backgroundColor: '#ffffff' }}
               >
                 Logo
               </Box>
             )}
             <Box>
-              <Typography variant='h4' className='font-semibold'>
+              <Typography variant='h4' className='font-semibold' sx={{ color: INVOICE_TEXT, lineHeight: 1.1 }}>
                 Invoice
               </Typography>
-              <Typography variant='body2' color='text.secondary' className='mt-1'>
-                Standard invoice preview
+              <Typography variant='body2' className='mt-2' sx={{ color: INVOICE_MUTED }}>
+                {companyData?.companyName || 'Company'}
               </Typography>
             </Box>
           </Box>
 
           <Paper
             elevation={0}
-            className='min-w-[260px] rounded-xl border border-solid border-[rgba(115,103,240,0.12)] p-4'
-            sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.03) }}
+            className='w-full rounded-lg border border-solid p-4 sm:w-[280px]'
+            sx={{ backgroundColor: `${INVOICE_PANEL} !important`, borderColor: INVOICE_BORDER, color: INVOICE_TEXT }}
           >
-            <Box className='mb-2 flex items-center justify-between gap-3'>
-              <Typography variant='subtitle2' color='text.secondary'>
+            <Box className='mb-2 flex items-start justify-between gap-4'>
+              <Typography variant='body2' sx={{ color: INVOICE_MUTED }}>
                 Invoice No.
               </Typography>
-              <Typography variant='h6' color='primary.main'>
+              <Typography variant='subtitle1' className='text-right font-semibold' sx={{ color: INVOICE_TEXT }}>
                 {invoiceData?.invoiceNumber || 'N/A'}
               </Typography>
             </Box>
             <Box className='mb-3 flex justify-end'>
               <InvoiceStatusBadge status={invoiceData?.status || 'DRAFTED'} />
             </Box>
-            <Box className='flex items-start justify-between gap-4 py-1.5'>
-              <Typography variant='body2' color='text.secondary'>Invoice Date</Typography>
-              <Typography variant='body2' className='text-right font-medium'>
-                {formatDate(invoiceData?.invoiceDate)}
-              </Typography>
-            </Box>
-            <Box className='flex items-start justify-between gap-4 py-1.5'>
-              <Typography variant='body2' color='text.secondary'>Due Date</Typography>
-              <Typography variant='body2' className='text-right font-medium'>
-                {formatDate(invoiceData?.dueDate)}
-              </Typography>
-            </Box>
-            <Box className='flex items-start justify-between gap-4 py-1.5'>
-              <Typography variant='body2' color='text.secondary'>Created At</Typography>
-              <Typography variant='body2' className='text-right font-medium'>
-                {formatDate(invoiceData?.createdAt)}
-              </Typography>
-            </Box>
-            <Box className='flex items-start justify-between gap-4 py-1.5'>
-              <Typography variant='body2' color='text.secondary'>Payment Method</Typography>
-              <Typography variant='body2' className='text-right font-medium'>
-                {invoiceData?.payment_method || 'N/A'}
-              </Typography>
-            </Box>
-            <Box className='flex items-start justify-between gap-4 py-1.5'>
-              <Typography variant='body2' color='text.secondary'>Reference No.</Typography>
-              <Typography variant='body2' className='text-right font-medium'>
-                {invoiceData?.referenceNo || 'N/A'}
-              </Typography>
-            </Box>
-            <Box className='flex items-start justify-between gap-4 py-1.5'>
-              <Typography variant='body2' color='text.secondary'>
-                {invoiceData?.posMode ? 'Cashier' : 'Staff'}
-              </Typography>
-              <Typography variant='body2' className='text-right font-medium'>
-                {invoiceData?.cashierName || 'N/A'}
-              </Typography>
-            </Box>
+            <DetailRow label='Invoice Date' value={formatDate(invoiceData?.invoiceDate)} />
+            <DetailRow label='Due Date' value={formatDate(invoiceData?.dueDate)} />
+            <DetailRow label='Payment Method' value={invoiceData?.payment_method || 'N/A'} />
+            <DetailRow label='Reference No.' value={invoiceData?.referenceNo || 'N/A'} />
+            <DetailRow
+              label='Cashier'
+              value={
+                invoiceData?.cashierId?.fullname ||
+                [invoiceData?.cashierId?.firstName, invoiceData?.cashierId?.lastName].filter(Boolean).join(' ') ||
+                invoiceData?.cashierId?.userName ||
+                invoiceData?.cashierId?.email ||
+                'N/A'
+              }
+            />
           </Paper>
         </Box>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Paper elevation={0} className='rounded-xl border border-solid border-[rgba(115,103,240,0.12)] p-4'>
-              <Typography variant='subtitle2' className='mb-3 font-semibold'>
-                From
-              </Typography>
-              <Typography variant='body1' className='font-semibold'>
-                {companyData?.companyName || 'Company'}
-              </Typography>
-              <Typography variant='body2' color='text.secondary' className='mt-2'>
-                {[
-                  companyData?.addressLine1,
-                  companyData?.addressLine2,
-                  companyData?.city,
-                  companyData?.state,
-                  companyData?.country,
-                  companyData?.pincode,
-                ].filter(Boolean).join(', ') || 'N/A'}
-              </Typography>
-              <Typography variant='body2' color='text.secondary' className='mt-2'>
-                {companyData?.email || 'N/A'}
-              </Typography>
-              <Typography variant='body2' color='text.secondary' className='mt-1'>
-                {companyData?.phone || 'N/A'}
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper elevation={0} className='rounded-xl border border-solid border-[rgba(115,103,240,0.12)] p-4'>
-              <Typography variant='subtitle2' className='mb-3 font-semibold'>
-                Bill To
-              </Typography>
-              <Typography variant='body1' className='font-semibold'>
-                {invoiceData?.customerId?.name ||
-                  invoiceData?.walkInCustomer?.name ||
-                  (invoiceData?.isWalkIn ? 'Walk-in Customer' : 'N/A')}
-              </Typography>
-              <Typography variant='body2' color='text.secondary' className='mt-2'>
-                {[
-                  invoiceData?.customerId?.billingAddress?.addressLine1,
-                  invoiceData?.customerId?.billingAddress?.addressLine2,
-                  invoiceData?.customerId?.billingAddress?.city,
-                  invoiceData?.customerId?.billingAddress?.state,
-                  invoiceData?.customerId?.billingAddress?.country,
-                  invoiceData?.customerId?.billingAddress?.pincode,
-                ].filter(Boolean).join(', ') || 'N/A'}
-              </Typography>
-              <Typography variant='body2' color='text.secondary' className='mt-2'>
-                {invoiceData?.customerId?.email || invoiceData?.walkInCustomer?.email || 'N/A'}
-              </Typography>
-              <Typography variant='body2' color='text.secondary' className='mt-1'>
-                {invoiceData?.customerId?.phone || invoiceData?.walkInCustomer?.phone || 'N/A'}
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
+        <Box className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+          <SectionCard title='From'>
+            <Typography variant='body1' className='font-semibold' sx={{ color: INVOICE_TEXT }}>
+              {companyData?.companyName || 'Company'}
+            </Typography>
+            <Typography variant='body2' className='mt-2' sx={{ color: INVOICE_MUTED }}>
+              {getAddress(
+                companyData?.addressLine1,
+                companyData?.addressLine2,
+                companyData?.city,
+                companyData?.state,
+                companyData?.country,
+                companyData?.pincode
+              )}
+            </Typography>
+            <Typography variant='body2' className='mt-2' sx={{ color: INVOICE_MUTED }}>
+              {companyData?.email || 'N/A'}
+            </Typography>
+            <Typography variant='body2' className='mt-1' sx={{ color: INVOICE_MUTED }}>
+              {companyData?.phone || 'N/A'}
+            </Typography>
+          </SectionCard>
+
+          <SectionCard title='Bill To'>
+            <Typography variant='body1' className='font-semibold' sx={{ color: INVOICE_TEXT }}>
+              {invoiceData?.customerId?.name ||
+                invoiceData?.walkInCustomer?.name ||
+                (invoiceData?.isWalkIn ? 'Walk-in Customer' : 'N/A')}
+            </Typography>
+            <Typography variant='body2' className='mt-2' sx={{ color: INVOICE_MUTED }}>
+              {getAddress(
+                invoiceData?.customerId?.billingAddress?.addressLine1,
+                invoiceData?.customerId?.billingAddress?.addressLine2,
+                invoiceData?.customerId?.billingAddress?.city,
+                invoiceData?.customerId?.billingAddress?.state,
+                invoiceData?.customerId?.billingAddress?.country,
+                invoiceData?.customerId?.billingAddress?.pincode
+              )}
+            </Typography>
+            <Typography variant='body2' className='mt-2' sx={{ color: INVOICE_MUTED }}>
+              {invoiceData?.customerId?.email || invoiceData?.walkInCustomer?.email || 'N/A'}
+            </Typography>
+            <Typography variant='body2' className='mt-1' sx={{ color: INVOICE_MUTED }}>
+              {invoiceData?.customerId?.phone || invoiceData?.walkInCustomer?.phone || 'N/A'}
+            </Typography>
+          </SectionCard>
+        </Box>
 
         <Box>
-          <Typography variant='h6' className='mb-3 font-semibold'>
+          <Typography variant='subtitle1' className='mb-3 font-semibold' sx={{ color: INVOICE_TEXT }}>
             Items
           </Typography>
-          <TableContainer component={Paper} variant='outlined' className='rounded-xl'>
-            <Table>
-              <TableHead sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.04) }}>
+          <TableContainer
+            component={Paper}
+            variant='outlined'
+            className='rounded-lg'
+            sx={{ overflowX: 'hidden', backgroundColor: '#ffffff !important', borderColor: INVOICE_BORDER }}
+          >
+            <Table size='small' sx={{ tableLayout: 'fixed', width: '100%' }}>
+              <TableHead sx={{ backgroundColor: '#f9fafb' }}>
                 <TableRow>
-                  <TableCell>Item</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell align='center'>Qty</TableCell>
-                  <TableCell align='center'>Unit</TableCell>
-                  <TableCell align='right'>Rate</TableCell>
-                  <TableCell align='right'>Discount</TableCell>
-                  <TableCell align='right'>Tax</TableCell>
-                  <TableCell align='right'>Amount</TableCell>
+                  <TableCell sx={{ width: '36%', fontWeight: 700 }}>Item</TableCell>
+                  <TableCell align='center' sx={{ width: '12%', fontWeight: 700 }}>Qty</TableCell>
+                  <TableCell align='right' sx={{ width: '16%', fontWeight: 700 }}>Rate</TableCell>
+                  <TableCell align='right' sx={{ width: '14%', fontWeight: 700 }}>Tax</TableCell>
+                  <TableCell align='right' sx={{ width: '22%', fontWeight: 700 }}>Amount</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -199,35 +238,29 @@ const ViewInvoice = ({
                   invoiceData.items.map((item, index) => (
                     <TableRow key={item._id || `${invoiceData?.invoiceNumber || 'N/A'}-${index}`}>
                       <TableCell>
-                        <Typography variant='body2' className='font-medium'>
+                        <Typography variant='body2' className='font-medium' sx={{ color: INVOICE_TEXT }}>
                           {item.name || 'Item'}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant='body2' color='text.secondary'>
-                          {item.description || 'N/A'}
+                        <Typography variant='caption' sx={{ color: INVOICE_MUTED }}>
+                          {item.description || item.sku || ''}
                         </Typography>
                       </TableCell>
                       <TableCell align='center'>{Number(item.quantity || 0)}</TableCell>
-                      <TableCell align='center'>{item.unit || item.units || 'N/A'}</TableCell>
                       <TableCell align='right'>
-                        {formatCurrencyAmount(currencyData || '$', Number(item.rate || 0))}
+                        <Money value={item.rate} />
                       </TableCell>
                       <TableCell align='right'>
-                        {formatCurrencyAmount(currencyData || '$', Number(item.discount || 0))}
+                        <Money value={item.tax} />
                       </TableCell>
                       <TableCell align='right'>
-                        {formatCurrencyAmount(currencyData || '$', Number(item.tax || 0))}
-                      </TableCell>
-                      <TableCell align='right'>
-                        {formatCurrencyAmount(currencyData || '$', Number(item.amount || 0))}
+                        <Money value={item.amount} strong />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} align='center'>
-                      <Typography variant='body2' color='text.secondary' className='py-6'>
+                    <TableCell colSpan={5} align='center'>
+                      <Typography variant='body2' className='py-6' sx={{ color: INVOICE_MUTED }}>
                         No invoice items found.
                       </Typography>
                     </TableCell>
@@ -238,114 +271,50 @@ const ViewInvoice = ({
           </TableContainer>
         </Box>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={7}>
-            <Box className='flex h-full flex-col gap-3'>
-              <Paper elevation={0} className='rounded-xl border border-solid border-[rgba(115,103,240,0.12)] p-4'>
-                <Typography variant='subtitle2' className='mb-3 font-semibold'>
-                  Notes
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  {invoiceData?.notes || 'No notes added for this invoice.'}
-                </Typography>
-              </Paper>
-
-              <Paper elevation={0} className='rounded-xl border border-solid border-[rgba(115,103,240,0.12)] p-4'>
-                <Typography variant='subtitle2' className='mb-3 font-semibold'>
-                  Terms & Conditions
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  {invoiceData?.termsAndCondition || 'No terms and conditions added.'}
-                </Typography>
-              </Paper>
-
-              {[invoiceData?.bank?.bankName || invoiceData?.bank?.name, invoiceData?.bank?.branch, invoiceData?.bank?.accountNumber, invoiceData?.bank?.IFSCCode].some(
-                value => value && value !== 'N/A'
-              ) && (
-                <Paper elevation={0} className='rounded-xl border border-solid border-[rgba(115,103,240,0.12)] p-4'>
-                  <Typography variant='subtitle2' className='mb-3 font-semibold'>
-                    Bank Details
-                  </Typography>
-                  <Box className='flex items-start justify-between gap-4 py-1.5'>
-                    <Typography variant='body2' color='text.secondary'>Bank</Typography>
-                    <Typography variant='body2' className='text-right font-medium'>
-                      {invoiceData?.bank?.bankName || invoiceData?.bank?.name || 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box className='flex items-start justify-between gap-4 py-1.5'>
-                    <Typography variant='body2' color='text.secondary'>Branch</Typography>
-                    <Typography variant='body2' className='text-right font-medium'>
-                      {invoiceData?.bank?.branch || 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box className='flex items-start justify-between gap-4 py-1.5'>
-                    <Typography variant='body2' color='text.secondary'>Account Number</Typography>
-                    <Typography variant='body2' className='text-right font-medium'>
-                      {invoiceData?.bank?.accountNumber || 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box className='flex items-start justify-between gap-4 py-1.5'>
-                    <Typography variant='body2' color='text.secondary'>IFSC Code</Typography>
-                    <Typography variant='body2' className='text-right font-medium'>
-                      {invoiceData?.bank?.IFSCCode || 'N/A'}
-                    </Typography>
-                  </Box>
-                </Paper>
-              )}
-            </Box>
-          </Grid>
-
-          <Grid item xs={12} md={5}>
-            <Paper elevation={0} className='rounded-xl border border-solid border-[rgba(115,103,240,0.12)] p-4'>
-              <Typography variant='subtitle2' className='mb-3 font-semibold'>
-                Summary
+        <Box className='grid grid-cols-1 gap-4 md:grid-cols-[1fr_280px]'>
+          <Box className='flex flex-col gap-4'>
+            <SectionCard title='Notes'>
+              <Typography variant='body2' sx={{ color: INVOICE_MUTED }}>
+                {invoiceData?.notes || 'No notes added for this invoice.'}
               </Typography>
-              <Box className='flex items-center justify-between py-1.5'>
-                <Typography variant='body2' color='text.secondary'>Subtotal</Typography>
-                <Typography variant='body2' className='font-medium'>
-                  {formatCurrencyAmount(currencyData || '$', Number(invoiceData?.taxableAmount || 0))}
-                </Typography>
-              </Box>
-              <Box className='flex items-center justify-between py-1.5'>
-                <Typography variant='body2' color='text.secondary'>Discount</Typography>
-                <Typography variant='body2' className='font-medium'>
-                  {formatCurrencyAmount(currencyData || '$', Number(invoiceData?.totalDiscount || 0))}
-                </Typography>
-              </Box>
-              <Box className='flex items-center justify-between py-1.5'>
-                <Typography variant='body2' color='text.secondary'>VAT</Typography>
-                <Typography variant='body2' className='font-medium'>
-                  {formatCurrencyAmount(currencyData || '$', Number(invoiceData?.vat || 0))}
-                </Typography>
-              </Box>
-              <Divider className='my-2' />
-              <Box className='flex items-center justify-between py-1.5 pt-3'>
-                <Typography variant='subtitle1' color='text.primary'>Total</Typography>
-                <Typography variant='subtitle1' className='font-semibold'>
-                  {formatCurrencyAmount(currencyData || '$', Number(invoiceData?.TotalAmount || 0))}
-                </Typography>
-              </Box>
-              <Box className='flex items-center justify-between py-1.5'>
-                <Typography variant='body2' color='text.secondary'>Paid</Typography>
-                <Typography variant='body2' className='font-medium'>
-                  {formatCurrencyAmount(currencyData || '$', Number(invoiceData?.paidAmount || 0))}
-                </Typography>
-              </Box>
-              <Box className='flex items-center justify-between py-1.5'>
-                <Typography variant='body2' color='text.secondary'>Balance</Typography>
-                <Typography variant='body2' className='font-medium'>
-                  {formatCurrencyAmount(
-                    currencyData || '$',
-                    Math.max(
-                      Number(invoiceData?.TotalAmount || 0) - Number(invoiceData?.paidAmount || 0),
-                      0
-                    )
-                  )}
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
+            </SectionCard>
+
+            <SectionCard title='Terms & Conditions'>
+              <Typography variant='body2' sx={{ color: INVOICE_MUTED }}>
+                {invoiceData?.termsAndCondition || 'No terms and conditions added.'}
+              </Typography>
+            </SectionCard>
+
+            {[invoiceData?.bank?.bankName || invoiceData?.bank?.name, invoiceData?.bank?.branch, invoiceData?.bank?.accountNumber, invoiceData?.bank?.IFSCCode].some(
+              value => value && value !== 'N/A'
+            ) && (
+              <SectionCard title='Bank Details'>
+                <DetailRow label='Bank' value={invoiceData?.bank?.bankName || invoiceData?.bank?.name || 'N/A'} />
+                <DetailRow label='Branch' value={invoiceData?.bank?.branch || 'N/A'} />
+                <DetailRow label='Account Number' value={invoiceData?.bank?.accountNumber || 'N/A'} />
+                <DetailRow label='IFSC Code' value={invoiceData?.bank?.IFSCCode || 'N/A'} />
+              </SectionCard>
+            )}
+          </Box>
+
+          <SectionCard title='Summary'>
+            <DetailRow label='Subtotal' value={<Money value={invoiceData?.taxableAmount} />} />
+            <DetailRow label='Discount' value={<Money value={invoiceData?.totalDiscount} />} />
+            <DetailRow label='VAT' value={<Money value={invoiceData?.vat} />} />
+            <Divider className='my-2' />
+            <DetailRow
+              label='Total'
+              value={<Money value={invoiceData?.TotalAmount} strong />}
+              strong
+            />
+            <DetailRow label='Paid' value={<Money value={invoiceData?.paidAmount} />} />
+            <DetailRow
+              label='Balance'
+              value={<Money value={Math.max(Number(invoiceData?.TotalAmount || 0) - Number(invoiceData?.paidAmount || 0), 0)} strong />}
+              strong
+            />
+          </SectionCard>
+        </Box>
       </Box>
     </Paper>
   );

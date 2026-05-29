@@ -4,6 +4,7 @@ import { useSnackbar } from 'notistack';
 
 import { usePermission } from '@/Auth/usePermission';
 import { addUser, deleteUser, getFilteredUsers, updateUser } from '@/app/(dashboard)/users/actions';
+import { userFilterOptions, userStatusOptions } from '@/data/dataSets';
 import { getUserColumns } from './userColumns';
 
 export const useUsersListHandlers = ({
@@ -284,21 +285,9 @@ export const useUsersListHandlers = ({
     event.target.src = '/images/avatars/default-avatar.png';
   }, []);
 
-  const roleOptions = useMemo(() => [
-    { value: 'Adminss', label: 'Admin' },
-    { value: 'Super Admin', label: 'Super Admin' },
-    { value: 'admin', label: 'Admin' },
-    { value: 'manager', label: 'Manager' },
-    { value: 'user', label: 'User' },
-    { value: 'accountant', label: 'Accountant' },
-    { value: 'developer', label: 'Developer' },
-    { value: 'guest', label: 'Guest' },
-  ], []);
+  const roleOptions = useMemo(() => userFilterOptions.roles, []);
 
-  const statusOptions = useMemo(() => [
-    { value: 'Active', label: 'Active' },
-    { value: 'Inactive', label: 'Inactive' },
-  ], []);
+  const statusOptions = useMemo(() => userStatusOptions, []);
 
   const columns = useMemo(() => {
     return getUserColumns({

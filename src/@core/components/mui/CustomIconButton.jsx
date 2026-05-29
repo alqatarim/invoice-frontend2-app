@@ -14,6 +14,11 @@ const CustomIconButton = styled(MuiButton)(({ skin, color, size, theme }) => {
     boxShadow: 'none !important',
 
     // Size-based styling
+    ...(size === 'xs' && {
+      fontSize: '16px',
+      padding: theme.spacing(1),
+      '& i, & svg': { fontSize: 'inherit' }
+    }),
     ...(size === 'small' ? {
       fontSize: '20px',
       padding: theme.spacing(1.75),
@@ -33,48 +38,48 @@ const CustomIconButton = styled(MuiButton)(({ skin, color, size, theme }) => {
     // Color-based styling - exactly matching Avatar
     ...(color &&
       skin === 'light' && {
+      backgroundColor: `var(--mui-palette-${color}-lightOpacity)`,
+      color: `var(--mui-palette-${color}-main)`,
+      '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
         backgroundColor: `var(--mui-palette-${color}-lightOpacity)`,
-        color: `var(--mui-palette-${color}-main)`,
-        '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
-          backgroundColor: `var(--mui-palette-${color}-lightOpacity)`,
-        }
-      }),
+      }
+    }),
 
-        ...(color &&
+    ...(color &&
       skin === 'lighter' && {
+      backgroundColor: `var(--mui-palette-${color}-lighterOpacity)`,
+      color: `var(--mui-palette-${color}-main)`,
+      '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
         backgroundColor: `var(--mui-palette-${color}-lighterOpacity)`,
-        color: `var(--mui-palette-${color}-main)`,
-        '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
-          backgroundColor: `var(--mui-palette-${color}-lighterOpacity)`,
-        }
-      }),
+      }
+    }),
 
-              ...(color &&
+    ...(color &&
       skin === 'lightest' && {
-         backgroundColor: `var(--mui-palette-${color}-lightestOpacity)`,
-        color: `var(--mui-palette-${color}-main)`,
-        '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
-          backgroundColor: `var(--mui-palette-${color}-lightestOpacity)`,
-        }
-      }),
+      backgroundColor: `var(--mui-palette-${color}-lightestOpacity)`,
+      color: `var(--mui-palette-${color}-main)`,
+      '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
+        backgroundColor: `var(--mui-palette-${color}-lightestOpacity)`,
+      }
+    }),
 
     ...(color &&
       skin === 'light-static' && {
+      backgroundColor: lighten(theme.palette[color].main, 0.84),
+      color: `var(--mui-palette-${color}-main)`,
+      '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
         backgroundColor: lighten(theme.palette[color].main, 0.84),
-        color: `var(--mui-palette-${color}-main)`,
-        '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
-          backgroundColor: lighten(theme.palette[color].main, 0.84),
-        }
-      }),
+      }
+    }),
 
     ...(color &&
       skin === 'filled' && {
+      backgroundColor: `var(--mui-palette-${color}-main)`,
+      color: `var(--mui-palette-${color}-contrastText)`,
+      '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
         backgroundColor: `var(--mui-palette-${color}-main)`,
-        color: `var(--mui-palette-${color}-contrastText)`,
-        '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
-          backgroundColor: `var(--mui-palette-${color}-main)`,
-        }
-      }),
+      }
+    }),
 
     // Button-specific hover effect
     '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {

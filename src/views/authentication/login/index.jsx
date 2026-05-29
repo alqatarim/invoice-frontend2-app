@@ -1,13 +1,13 @@
 'use client'
 
 import React from 'react'
-import LoginForm from '../LoginForm'
+import Login from './login'
 import { useLoginHandler } from './handler'
 
 const LoginIndex = ({ initialMode }) => {
   const controller = useLoginHandler({ initialMode })
 
-  return <LoginForm controller={controller} />
+  return <Login controller={controller} />
 }
 
 export default LoginIndex

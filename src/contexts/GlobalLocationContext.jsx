@@ -77,7 +77,11 @@ export function GlobalLocationProvider({ children }) {
     buildStoreOnlyValidationMessage(selectedLocation);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || selectedLocationIdState === null) return;
+    if (
+      typeof window === 'undefined' ||
+      selectedLocationIdState === null ||
+      !assignedBranches.length
+    ) return;
 
     const nextLocationId = selectedLocationId || '';
 
@@ -91,11 +95,22 @@ export function GlobalLocationProvider({ children }) {
     }
 
     window.localStorage.setItem(storageKey, nextLocationId);
-  }, [selectedLocationId, selectedLocationIdState, storageKey]);
+  }, [assignedBranches.length, selectedLocationId, selectedLocationIdState, storageKey]);
 
   const selectLocation = useCallback((locationId) => {
-    setSelectedLocationIdState(String(locationId || ''));
-  }, []);
+    const nextLocationId = String(locationId || '');
+
+    setSelectedLocationIdState(nextLocationId);
+
+    if (typeof window === 'undefined') return;
+
+    if (!nextLocationId) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+
+    window.localStorage.setItem(storageKey, nextLocationId);
+  }, [storageKey]);
 
   const value = useMemo(
     () => ({

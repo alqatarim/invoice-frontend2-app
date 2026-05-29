@@ -13,25 +13,17 @@ import { alpha, useColorScheme, useTheme } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 
 import CustomAvatar from '@core/components/mui/Avatar';
-import { statusOptions } from '@/data/dataSets';
+import {
+	dashboardEasing,
+	invoiceStatusFallbackColors,
+	statusOptions,
+} from '@/data/dataSets';
 import { formatCompactNumber, formatWholeNumber } from '@/utils/numberUtils';
 import { RiyalIcon } from '@/utils/currencyUtils';
-import { CountUp } from '@/views/dashboard/CountUp';
-
-const STATUS_COLOR_FALLBACK = {
-	PAID: 'success',
-	DRAFTED: 'secondary',
-	OVERDUE: 'error',
-	PARTIALLY_PAID: 'warning',
-	SENT: 'info',
-	UNPAID: 'warning',
-	REFUND: 'secondary',
-};
+import { CountUp } from '@/views/dashboard/components/CountUp';
 
 const normalizeStatus = (value = '') =>
 	String(value).trim().replace(/\s+/g, '_').toUpperCase();
-
-const EASE = [0.22, 1, 0.36, 1];
 
 const InvoicesInsights = ({
 	labels = [],
@@ -64,7 +56,7 @@ const InvoicesInsights = ({
 			const foundStatus = statusOptionsMap.get(normalizedStatus);
 			const colorKey =
 				foundStatus?.color ||
-				STATUS_COLOR_FALLBACK[normalizedStatus] ||
+				invoiceStatusFallbackColors[normalizedStatus] ||
 				'primary';
 			const amount = Number(amounts[index] || 0);
 			const muiColor = theme.palette[colorKey] || theme.palette.primary;
@@ -114,7 +106,7 @@ const InvoicesInsights = ({
 			component={motion.div}
 			initial={{ opacity: 0, y: 18 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.55, ease: EASE, delay: 0.3 }}
+			transition={{ duration: 0.55, ease: dashboardEasing, delay: 0.3 }}
 			sx={{ height: '100%' }}
 		>
 			<CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
@@ -128,10 +120,10 @@ const InvoicesInsights = ({
 				>
 					{/* <Box> */}
 
-					<CustomAvatar color="primary" skin="light" variant="rounded" size={36}>
-						<Icon icon="mdi:invoice-text-outline" width="1.4rem" />
+					<CustomAvatar color="primary" skin="light" variant="rounded" size={34}>
+						<Icon icon="mdi:invoice-text-outline" width="1.3rem" />
 					</CustomAvatar>
-					<Typography variant="h5" sx={{ fontWeight: 600 }}>
+					<Typography variant="h6" sx={{ fontWeight: 600 }}>
 						Invoices Insights
 					</Typography>
 					{/* <Typography
@@ -168,7 +160,7 @@ const InvoicesInsights = ({
 							<Typography
 								variant="caption"
 								sx={{
-									color: alpha(theme.palette.text.primary, isDark ? 0.85 : 0.65),
+									color: theme.vars.palette.text.secondary,
 									fontWeight: 700,
 									textTransform: 'uppercase',
 									letterSpacing: 1,
@@ -178,7 +170,7 @@ const InvoicesInsights = ({
 								Total invoiced
 							</Typography>
 							<Stack direction="row" alignItems="baseline" spacing={0.6} sx={{ mt: 0.4 }}>
-								<RiyalIcon width="1.05rem" color={theme.palette.text.primary} />
+								<RiyalIcon width="1.05rem" color={theme.vars.palette.text.secondary} />
 								<Typography
 									sx={{
 										fontSize: { xs: '1.9rem', md: '2.2rem' },
@@ -366,12 +358,13 @@ const StatusLedgerRow = ({ status, index, isHovered, isDimmed, onHover, onLeave 
 			component={motion.div}
 			initial={{ opacity: 0, x: -8 }}
 			animate={{ opacity: 1, x: 0 }}
-			transition={{ duration: 0.4, ease: EASE, delay: 0.5 + index * 0.05 }}
+			transition={{ duration: 0.4, ease: dashboardEasing, delay: 0.5 + index * 0.05 }}
 			onMouseEnter={onHover}
 			onMouseLeave={onLeave}
 			sx={{
 				cursor: 'pointer',
-				p: 1.2,
+				px: 2.5,
+				py: 1.2,
 				borderRadius: 1.5,
 				transition: 'background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease',
 				opacity: isDimmed ? 0.55 : 1,
@@ -389,8 +382,8 @@ const StatusLedgerRow = ({ status, index, isHovered, isDimmed, onHover, onLeave 
 				<Stack direction="row" alignItems="center" spacing={2.5} sx={{ minWidth: 0, flex: 1 }}>
 					<Box
 						sx={{
-							width: 10,
-							height: 10,
+							width: 8.5,
+							height: 8.5,
 							borderRadius: '50%',
 							backgroundColor: status.accent,
 							flexShrink: 0,
@@ -398,7 +391,7 @@ const StatusLedgerRow = ({ status, index, isHovered, isDimmed, onHover, onLeave 
 							transition: 'box-shadow 0.25s ease',
 						}}
 					/>
-					<Box sx={{ minWidth: 0 }}>
+					<Box className='flex flex-col gap-1 min-w-0 ' >
 						<Typography
 							sx={{
 								fontSize: '0.85rem',
@@ -407,6 +400,7 @@ const StatusLedgerRow = ({ status, index, isHovered, isDimmed, onHover, onLeave 
 								overflow: 'hidden',
 								textOverflow: 'ellipsis',
 								whiteSpace: 'nowrap',
+								color: theme.vars.palette.text.primary,
 							}}
 						>
 							{status.label}
@@ -424,15 +418,16 @@ const StatusLedgerRow = ({ status, index, isHovered, isDimmed, onHover, onLeave 
 					</Box>
 				</Stack>
 
-				<Stack spacing={0.1} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
-					<Stack direction="row" alignItems="center" spacing={0.4}>
-						<RiyalIcon width="0.78rem" color={theme.palette.text.secondary} />
+				<Stack spacing={0.5} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
+					<Stack direction="row" alignItems="center" spacing={0.2}>
+						<RiyalIcon width="0.7rem" color={theme.vars.palette.text.primary} />
 						<Typography
 							sx={{
 								fontSize: '0.85rem',
 								fontWeight: 700,
-								lineHeight: 1.2,
+								// lineHeight: 1.2,
 								fontVariantNumeric: 'tabular-nums',
+								color: theme.vars.palette.text.primary,
 							}}
 						>
 							{formatCompactNumber(status.amount)}

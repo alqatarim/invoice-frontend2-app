@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import AppSnackbar from '@/components/shared/AppSnackbar';
+import React, { useCallback, useEffect } from 'react';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
 import AddPurchase from '@/views/purchases/addPurchase/AddPurchase';
 import { addPurchase } from '@/app/(dashboard)/purchases/actions';
 
-const AddPurchaseIndex = ({
+const AddPurchaseContent = ({
   initialVendors = [],
   initialProducts = [],
   initialTaxRates = [],
@@ -15,87 +16,72 @@ const AddPurchaseIndex = ({
   initialPurchaseNumber = '',
   initialErrorMessage = ''
 }) => {
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'info'
-  });
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
+  useEffect(() => {
+    if (initialErrorMessage) {
+      enqueueSnackbar(initialErrorMessage, { variant: 'error' });
+    }
+  }, [enqueueSnackbar, initialErrorMessage]);
 
-  const handleSave = async (purchaseData, signatureURL) => {
+  const handleSave = useCallback(async (purchaseData, employeeURL) => {
     try {
-      // Show loading state
-      setSnackbar({
-        open: true,
-        message: 'Creating purchase...',
-        severity: 'info'
+      const loadingKey = enqueueSnackbar('Creating purchase...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: true,
       });
 
-      const response = await addPurchase(purchaseData, signatureURL);
+      const response = await addPurchase(purchaseData, employeeURL);
+      closeSnackbar(loadingKey);
 
       if (!response.success) {
-        // Handle validation errors from the server
-        if (response.errors && Array.isArray(response.errors)) {
-          setSnackbar({
-            open: true,
-            message: response.errors.join('\n'),
-            severity: 'error'
-          });
-        } else {
-          setSnackbar({
-            open: true,
-            message: response.message || 'Failed to create purchase',
-            severity: 'error'
-          });
-        }
+        const errorMessage = Array.isArray(response.errors)
+          ? response.errors.join('\n')
+          : response.message || 'Failed to create purchase';
+        enqueueSnackbar(errorMessage, {
+          variant: 'error',
+          autoHideDuration: 5000,
+          preventDuplicate: true,
+        });
       } else {
-        setSnackbar({
-          open: true,
-          message: 'Purchase created successfully!',
-          severity: 'success'
+        enqueueSnackbar('Purchase created successfully!', {
+          variant: 'success',
+          autoHideDuration: 3000,
         });
       }
 
       return response;
     } catch (error) {
       console.error('Error creating purchase:', error);
-      setSnackbar({
-        open: true,
-        message: error.message || 'An unexpected error occurred',
-        severity: 'error'
-      });
+      closeSnackbar();
+      enqueueSnackbar(error.message || 'An unexpected error occurred', { variant: 'error' });
       return {
         success: false,
         message: error.message || 'Failed to create purchase'
       };
     }
-  };
+  }, [closeSnackbar, enqueueSnackbar]);
 
   return (
-    <>
-      <AddPurchase
-        onSave={handleSave}
-        vendorsData={initialVendors}
-        productData={initialProducts}
-        taxRates={initialTaxRates}
-        initialBanks={initialBanks}
-        signatures={initialSignatures}
-        purchaseNumber={initialPurchaseNumber}
-      />
-
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={handleSnackbarClose}
-        autoHideDuration={6000}
-      />
-    </>
+    <AddPurchase
+      onSave={handleSave}
+      vendorsData={initialVendors}
+      productData={initialProducts}
+      taxRates={initialTaxRates}
+      initialBanks={initialBanks}
+      employees={initialSignatures}
+      purchaseNumber={initialPurchaseNumber}
+      enqueueSnackbar={enqueueSnackbar}
+      closeSnackbar={closeSnackbar}
+    />
   );
 };
+
+const AddPurchaseIndex = props => (
+  <FormFeatureSnackbarProvider>
+    <AddPurchaseContent {...props} />
+  </FormFeatureSnackbarProvider>
+);
 
 export default AddPurchaseIndex;

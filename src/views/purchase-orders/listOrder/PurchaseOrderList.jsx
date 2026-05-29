@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
@@ -19,13 +19,13 @@ import { useTheme } from '@mui/material/styles';
 import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
 import { useSearchParams } from 'next/navigation';
+import { useSnackbar } from 'notistack';
 
 import PurchaseOrderHead from '@/views/purchase-orders/listOrder/PurchaseOrderHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { usePurchaseOrderListHandlers } from './handler';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { getPurchaseOrderColumns } from './purchaseOrderColumns';
-import AppSnackbar from '@/components/shared/AppSnackbar';
 
 /**
  * Simplified PurchaseOrderList Component - matches vendor list structure
@@ -38,6 +38,7 @@ const PurchaseOrderList = ({
   const theme = useTheme();
   const { data: session } = useSession();
   const searchParams = useSearchParams();
+  const { enqueueSnackbar } = useSnackbar();
 
   // Permissions
   const permissions = {
@@ -47,21 +48,20 @@ const PurchaseOrderList = ({
     canDelete: usePermission('purchase_order', 'delete'),
   };
 
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'success',
-  });
+  useEffect(() => {
+    if (initialErrorMessage) {
+      enqueueSnackbar(initialErrorMessage, { variant: 'error' });
+    }
+  }, [enqueueSnackbar, initialErrorMessage]);
 
   // Notification handlers
   const onError = React.useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'error' });
-  }, []);
+    enqueueSnackbar(msg, { variant: 'error' });
+  }, [enqueueSnackbar]);
 
   const onSuccess = React.useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'success' });
-  }, []);
+    enqueueSnackbar(msg, { variant: 'success' });
+  }, [enqueueSnackbar]);
 
   // Initialize simplified handlers
   const handlers = usePurchaseOrderListHandlers({
@@ -220,14 +220,6 @@ const PurchaseOrderList = ({
           </Button>
         </DialogActions>
       </Dialog>
-
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        autoHideDuration={6000}
-      />
 
       {/* Convert to Purchase Dialog */}
       <Dialog

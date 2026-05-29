@@ -2,15 +2,15 @@ import React from 'react';
 import { Controller } from 'react-hook-form';
 import {
   Autocomplete,
-  Box,
-  FormControl,
-  IconButton,
-  Menu,
-  MenuItem,
   TextField,
+  MenuItem,
+  FormControl,
   Typography,
+  IconButton,
+  Box,
+  Menu,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
 import { productSupportsScaleBarcode } from '@/utils/productScaleBarcode';
@@ -38,6 +38,72 @@ const normalizeRateInput = (value) => {
   return Math.max(0, Number(parsed.toFixed(4)));
 };
 
+const OPTION_GRID_COLUMNS = 'minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 0.75fr)';
+
+const preventAutocompleteInputBlur = (event) => {
+  event.preventDefault();
+};
+
+// Stable listbox reference — avoids Autocomplete remount loops during POS re-renders.
+const ProductOptionsListbox = React.forwardRef(function ProductOptionsListbox(listboxProps, ref) {
+  const theme = useTheme();
+  const { children, sx, onMouseDown, ...other } = listboxProps;
+
+  return (
+    <Box
+      component="ul"
+      ref={ref}
+      {...other}
+      onMouseDown={(event) => {
+        preventAutocompleteInputBlur(event);
+        onMouseDown?.(event);
+      }}
+      sx={[
+        { m: 0, p: 0, listStyle: 'none' },
+        sx,
+      ]}
+    >
+      <Box
+        component="li"
+        role="presentation"
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: OPTION_GRID_COLUMNS,
+          columnGap: 2,
+          alignItems: 'center',
+          px: 6,
+          py: 2.5,
+          position: 'sticky',
+          top: 0,
+          zIndex: 2,
+          bgcolor: theme.palette.background.default,
+          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+        }}
+      >
+        <Typography
+          variant="overline"
+          sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
+        >
+          Name
+        </Typography>
+        <Typography
+          variant="overline"
+          sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
+        >
+          Category
+        </Typography>
+        <Typography
+          variant="overline"
+          sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
+        >
+          SKU
+        </Typography>
+      </Box>
+      {children}
+    </Box>
+  );
+});
+
 export const getPosColumns = ({
   control,
   errors,
@@ -55,13 +121,15 @@ export const getPosColumns = ({
   handleUpdateItemProduct,
   handleClearAppliedPromotion,
   handleClearScaleBarcode,
+  handleDeleteItem,
+  handleAddEmptyRow,
   handleMenuItemClick,
   handleTaxClick,
   handleTaxClose,
   handleTaxMenuItemClick,
-  handleDeleteItem,
-  handleAddEmptyRow,
   fields,
+  autoFocusFirstProductCell = false,
+  disabled = false,
 }) => {
   const availableProducts = Array.isArray(productsCloneData) ? productsCloneData : [];
   const allProducts = Array.isArray(productData) ? productData : [];
@@ -69,7 +137,7 @@ export const getPosColumns = ({
 
   const resolveProductById = (productId) => {
     if (!productId) return null;
-    return allProducts.find((p) => p._id === productId) || null;
+    return allProducts.find((product) => product._id === productId) || null;
   };
 
   return [
@@ -87,59 +155,42 @@ export const getPosColumns = ({
             const selectedProduct =
               resolveProductById(field.value) ||
               (watched.productId
-                ? { _id: watched.productId, name: watched.name || '', sku: watched.sku || '', category: watched.category || null }
+                ? {
+                  _id: watched.productId,
+                  name: watched.name || '',
+                  sku: watched.sku || '',
+                  category: watched.category || null,
+                }
                 : null);
             const options = selectedProduct
-              ? [selectedProduct, ...availableProducts.filter((p) => p._id !== selectedProduct._id)]
+              ? [selectedProduct, ...availableProducts.filter((product) => product._id !== selectedProduct._id)]
               : availableProducts;
-
-            const gridCols = 'minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.75fr)';
-
-            const ListboxComponent = React.forwardRef(function PosListbox(props, ref) {
-              const { children, sx, ...other } = props;
-              return (
-                <Box component="ul" ref={ref} {...other} sx={[{ m: 0, p: 0, listStyle: 'none' }, sx]}>
-                  <Box
-                    component="li"
-                    role="presentation"
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: gridCols,
-                      columnGap: 2,
-                      px: 6,
-                      py: 2,
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 2,
-                      bgcolor: theme.palette.background.default,
-                      borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                    }}
-                  >
-                    <Typography variant="overline" sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}>Name</Typography>
-                    <Typography variant="overline" sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}>Category</Typography>
-                    <Typography variant="overline" sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}>SKU</Typography>
-                  </Box>
-                  {children}
-                </Box>
-              );
-            });
 
             return (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 <Autocomplete
                   fullWidth
+                  disabled={disabled}
                   options={options}
                   value={selectedProduct}
-                  getOptionLabel={(o) => o?.name || ''}
-                  filterOptions={(opts, { inputValue }) => {
-                    const s = inputValue.trim().toLowerCase();
-                    if (!s) return opts;
-                    return opts.filter((o) =>
-                      [o?.name, o?.sku, getProductCategoryLabel(o)].some((v) => String(v || '').toLowerCase().includes(s))
-                    );
+                  getOptionLabel={(option) => option?.name || ''}
+                  filterOptions={(options, { inputValue }) => {
+                    const search = inputValue.trim().toLowerCase();
+                    if (!search) return options;
+                    return options.filter((option) => {
+                      const name = option?.name || '';
+                      const sku = option?.sku || '';
+                      const category = getProductCategoryLabel(option);
+                      return [name, sku, category]
+                        .filter(Boolean)
+                        .some((value) => String(value).toLowerCase().includes(search));
+                    });
                   }}
                   onChange={(_, newValue) => {
-                    if (!newValue?._id) { field.onChange(''); return; }
+                    if (!newValue?._id) {
+                      field.onChange('');
+                      return;
+                    }
                     field.onChange(newValue._id);
                     handleUpdateItemProduct(index, newValue._id, field.value);
                   }}
@@ -147,58 +198,146 @@ export const getPosColumns = ({
                     <TextField
                       {...params}
                       size="small"
-                      placeholder="Search product..."
-                      autoFocus={index === 0}
+                      placeholder="Select Product"
+                      autoFocus={autoFocusFirstProductCell && index === 0}
                       error={!!errors.items?.[index]?.productId}
-                      helperText={errors.items?.[index]?.productId?.message}
-                      inputProps={{ ...params.inputProps, className: `${params.inputProps?.className ?? ''} text-[0.85rem]` }}
+                      inputProps={{
+                        ...params.inputProps,
+                        className: `${params.inputProps?.className ?? ''} text-[0.85rem]`,
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'secondary.light'
+                        },
+                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'secondary.main'
+                        },
+                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'primary.main'
+                        }
+                      }}
                     />
                   )}
-                  renderOption={(props, option, { index: oi }) => {
-                  const { key, ...rest } = props;
+                  renderOption={(props, option, { index: optionIndex }) => {
+                  const { key, onMouseDown, ...optionProps } = props;
+                  const zebraBg = optionIndex % 2 ? alpha(theme.palette.primary.main, 0.015) : 'transparent';
+
                   return (
                     <Box
                       key={key}
                       component="li"
-                      {...rest}
+                      {...optionProps}
+                      onMouseDown={(event) => {
+                        preventAutocompleteInputBlur(event);
+                        onMouseDown?.(event);
+                      }}
                       sx={{
                         display: 'grid',
-                        gridTemplateColumns: gridCols,
+                        gridTemplateColumns: OPTION_GRID_COLUMNS,
                         columnGap: 2,
+                        alignItems: 'center',
                         px: 6,
                         py: 0.9,
                         minHeight: 38,
-                        backgroundColor: oi % 2 ? alpha(theme.palette.primary.main, 0.015) : 'transparent',
+                        backgroundColor: zebraBg,
                         borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+                        transition: 'background-color 120ms ease',
                         '&:last-of-type': { borderBottom: 'none' },
-                        '&:hover': { backgroundColor: theme.palette.secondary.lightestOpacity },
-                        '&[data-focus="true"]': { backgroundColor: theme.palette.primary.main },
-                        '&[aria-selected="true"]': { backgroundColor: theme.palette.primary.lightOpacity },
+                        '&:hover': {
+                          backgroundColor: theme.palette.secondary.lightestOpacity
+                        },
+                        '&[data-focus="true"]': {
+                          backgroundColor: theme.palette.primary.main
+                        },
+                        '&[aria-selected="true"]': {
+                          backgroundColor: theme.palette.primary.lightOpacity
+                        },
+                        '&[aria-selected="true"][data-focus="true"]': {
+                          backgroundColor: theme.palette.primary.main
+                        }
                       }}
                     >
-                      <Typography noWrap sx={{ fontSize: '0.8rem' }}>{option.name}</Typography>
-                      <Typography noWrap sx={{ fontSize: '0.8rem' }}>{getProductCategoryLabel(option)}</Typography>
-                      <Typography noWrap sx={{ fontSize: '0.8rem' }}>{option.sku || '—'}</Typography>
+                      <Typography
+                        variant="h6"
+                        noWrap
+                        sx={{
+                          minWidth: 0,
+                          // color: 'text.secondary',
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        {option.name}
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        noWrap
+                        sx={{
+                          minWidth: 0,
+                          // color: 'text.secondary',
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        {getProductCategoryLabel(option)}
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        noWrap
+                        sx={{
+                          minWidth: 0,
+                          // color: 'text.secondary',
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        {option.sku || '—'}
+                      </Typography>
                     </Box>
                   );
                   }}
                   noOptionsText={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2, px: 1 }}>
                       <Icon icon="mdi:package-variant-closed" width={22} color={theme.palette.text.secondary} />
-                      <Typography variant="body2" color="text.secondary">No products found</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        No products found
+                      </Typography>
                     </Box>
                   }
-                  slots={{ listbox: ListboxComponent }}
+                  slots={{ listbox: ProductOptionsListbox }}
                   PaperProps={{
-                    sx: { borderRadius: '12px', boxShadow: theme.shadows[8], border: `1px solid ${alpha(theme.palette.divider, 0.12)}`, mt: 1, overflow: 'hidden' },
+                    sx: {
+
+                      borderRadius: '12px',
+                      boxShadow: theme.shadows[8],
+                      border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
+                      mt: 1,
+                      overflow: 'hidden'
+                    }
                   }}
                   slotProps={{
-                    popper: { placement: 'bottom-start', sx: { width: 'auto !important', minWidth: 520, maxWidth: 'min(760px, calc(100vw - 32px))' } },
-                    listbox: { sx: { maxHeight: 320, py: 0 } },
+
+                    htmlInput: {
+                      className: 'text-[0.85rem]',
+                    },
+                    popper: {
+
+                      placement: 'bottom-start',
+                      sx: {
+                        width: 'auto !important',
+                        minWidth: 520,
+                        maxWidth: 'min(760px, calc(100vw - 32px))',
+                      }
+                    },
+                    listbox: {
+                      onMouseDown: preventAutocompleteInputBlur,
+                      sx: {
+                        maxHeight: 320,
+                        py: 0,
+                      },
+                    },
                   }}
-                  isOptionEqualToValue={(o, v) => o._id === v._id}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
                   disableClearable
                   autoHighlight
+                  openOnFocus
                 />
                 {watched.promotionAutoApplied && watched.promotionSummary ? (
                   <Typography variant="caption" color="success.main" sx={{ lineHeight: 1.2, pl: 0.5 }}>
@@ -214,28 +353,27 @@ export const getPosColumns = ({
             );
           }}
         />
-      ),
+      )
     },
     {
       key: 'sku',
-      label: <Typography variant="overline" fontWeight={500}>SKU</Typography>,
+      label: <Typography variant="overline" fontWeight={500} >SKU</Typography>,
       width: '10%',
       align: 'center',
       renderCell: (_, index) => {
         const watched = watchItems?.[index] || {};
         const product = resolveProductById(watched.productId);
         const sku = watched.sku || product?.sku || '—';
-
         return (
           <Typography variant="body1" color="text.primary" className="text-[0.85rem] whitespace-nowrap">
             {sku}
           </Typography>
         );
-      },
+      }
     },
     {
       key: 'quantity',
-      label: <Typography variant="overline" fontWeight={500}>Qty</Typography>,
+      label: <Typography variant="overline" fontWeight={500} >Qty</Typography>,
       width: '10%',
       align: 'center',
       renderCell: (item, index) => {
@@ -256,8 +394,9 @@ export const getPosColumns = ({
                   type="number"
                   variant="outlined"
                   size="small"
-                  placeholder="Qty"
-                  className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden"
+                  placeholder="Quantity"
+                  disabled={disabled}
+                  className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
                   slotProps={{
                     htmlInput: {
                       className: 'text-[0.85rem]',
@@ -278,26 +417,22 @@ export const getPosColumns = ({
                     if (watched.scaleBarcodeSummary) {
                       handleClearScaleBarcode(index);
                     }
-                    setValue(`items.${index}.quantity`, quantity, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    });
+                    setValue(`items.${index}.quantity`, quantity, { shouldValidate: true, shouldDirty: true });
                     setValue(`items.${index}.isRateFormUpadted`, true);
                     const nextItem = getValues(`items.${index}`);
                     updateCalculatedFields(index, { ...nextItem, quantity }, setValue);
                   }}
                   error={!!errors.items?.[index]?.quantity}
-                  helperText={errors.items?.[index]?.quantity?.message}
                 />
               </FormControl>
             )}
           />
         );
-      },
+      }
     },
     {
       key: 'rate',
-      label: <Typography variant="overline" fontWeight={500}>Rate</Typography>,
+      label: <Typography variant="overline" fontWeight={500} >Rate</Typography>,
       width: '12%',
       align: 'center',
       renderCell: (item, index) => (
@@ -310,65 +445,93 @@ export const getPosColumns = ({
                 {...field}
                 type="number"
                 variant="outlined"
-                size="small"
                 placeholder="Rate"
-                className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden"
+                size="small"
+                disabled={disabled}
+                className="min-w-[90px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
                 slotProps={{
                   input: {
                     sx: { paddingLeft: '8px' },
-                    startAdornment: <Icon icon="lucide:saudi-riyal" width={18} color={theme.palette.secondary.main} />,
+                    startAdornment: (
+                      <Icon icon="lucide:saudi-riyal" width={20} color={theme.palette.secondary.main} />
+                    ),
                   },
-                  htmlInput: { className: 'text-[0.85rem]', sx: { paddingLeft: '4px' }, min: 0, step: 0.01 },
+                  htmlInput: {
+                    className: 'text-[0.85rem]',
+                    sx: { paddingLeft: '4px' },
+                    min: 0,
+                    step: 0.01,
+                  },
                 }}
-                onChange={(e) => {
+                onChange={(event) => {
                   const watched = watchItems?.[index] || {};
-                  const rate = normalizeRateInput(e.target.value);
+                  const rate = normalizeRateInput(event.target.value);
                   if (watched.scaleBarcodeSummary) {
                     handleClearScaleBarcode(index);
                   }
-                  setValue(`items.${index}.rate`, rate, { shouldValidate: true, shouldDirty: true });
+                  setValue(`items.${index}.rate`, rate);
                   setValue(`items.${index}.form_updated_rate`, Number(rate || 0).toFixed(4));
                   setValue(`items.${index}.isRateFormUpadted`, 'true');
                   const nextItem = getValues(`items.${index}`);
                   updateCalculatedFields(index, nextItem, setValue);
                 }}
                 error={!!errors.items?.[index]?.rate}
-                helperText={errors.items?.[index]?.rate?.message}
               />
             </FormControl>
           )}
         />
-      ),
+      )
     },
     {
       key: 'discount',
-      label: <Typography variant="overline" fontWeight={500}>Discount</Typography>,
+      label: <Typography variant="overline" fontWeight={500} >Discount</Typography>,
       width: '18%',
       align: 'center',
-      renderCell: (_, index) => {
-        const watched = watchItems?.[index] || {};
-
+      renderCell: (item, index) => {
+        const watched = watchItems[index] || {};
         return (
           <Box
-            className="flex flex-row items-center justify-start gap-1"
-            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            <CustomOriginalIconButton
+            className='flex flex-row items-center justify-start gap-1'
+            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* <CustomIconButton
+              variant="tonal"
               onClick={(event) => setDiscountMenu({ anchorEl: event.currentTarget, rowIndex: index })}
               color="primary"
+              skin="lightest"
               size="small"
+              className="min-w-[32px] min-h-[36px] px-2 py-0"
+            >
+              {Number(watched.discountType) === 2 ? (
+                <Icon icon="lucide:percent" color={theme.palette.primary.light} width={19} />
+              ) : Number(watched.discountType) === 3 ? (
+                <Icon icon="lucide:saudi-riyal" color={theme.palette.primary.light} width={19} />
+              ) : ''}
+            </CustomIconButton> */}
+
+
+
+            <CustomOriginalIconButton
+              // variant=""
+              onClick={(event) => setDiscountMenu({ anchorEl: event.currentTarget, rowIndex: index })}
+              color="primary"
+              // skin="lightest"
+              size="small"
+              disabled={disabled}
+            // className="min-w-[32px] min-h-[36px] px-2 py-0"
             >
               {Number(watched.discountType) === 2 ? (
                 <Icon icon="lucide:percent" color={theme.palette.primary.light} height={18} />
               ) : Number(watched.discountType) === 3 ? (
                 <Icon icon="lucide:saudi-riyal" color={theme.palette.primary.light} height={16} />
-              ) : (
-                <Icon icon="ri-discount-percent-line" color={theme.palette.primary.light} height={18} />
-              )}
+              ) : ''}
             </CustomOriginalIconButton>
+
+
 
             {Number(watched.discountType) === 2 ? (
               <Controller
+                fullWidth
+                // sx={{ flex: 1 }}
                 name={`items.${index}.form_updated_discount`}
                 control={control}
                 render={({ field }) => {
@@ -383,7 +546,6 @@ export const getPosColumns = ({
                     const nextItem = getValues(`items.${index}`);
                     updateCalculatedFields(index, nextItem, setValue);
                   };
-
                   return (
                     <TextField
                       {...field}
@@ -392,9 +554,12 @@ export const getPosColumns = ({
                       variant="outlined"
                       size="small"
                       fullWidth
+                      // sx={{ flex: 1 }}
                       placeholder="Discount (%)"
+                      disabled={disabled}
                       aria-label="Discount Percentage"
-                      className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden"
+                      tabIndex={0}
+                      className=" [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
                       slotProps={{
                         htmlInput: {
                           className: 'text-[0.85rem]',
@@ -442,7 +607,6 @@ export const getPosColumns = ({
                     const nextItem = getValues(`items.${index}`);
                     updateCalculatedFields(index, nextItem, setValue);
                   };
-
                   return (
                     <TextField
                       {...field}
@@ -451,9 +615,12 @@ export const getPosColumns = ({
                       variant="outlined"
                       size="small"
                       fullWidth
+                      sx={{ flex: 1 }}
                       placeholder="Discount"
+                      disabled={disabled}
                       aria-label="Discount Fixed Amount"
-                      className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden"
+                      tabIndex={0}
+                      className=" [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
                       slotProps={{
                         htmlInput: {
                           className: 'text-[0.85rem]',
@@ -471,54 +638,52 @@ export const getPosColumns = ({
             )}
 
             <Menu
-              anchorEl={discountMenu?.anchorEl}
-              open={discountMenu?.rowIndex === index && Boolean(discountMenu?.anchorEl)}
+              anchorEl={discountMenu.anchorEl}
+              open={discountMenu.rowIndex === index && Boolean(discountMenu.anchorEl)}
               onClose={() => setDiscountMenu({ anchorEl: null, rowIndex: null })}
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               PaperProps={{ sx: { borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' } }}
-              className="[&_.MuiMenuItem-root]:py-1"
+              className='[&_.MuiMenuItem-root]:py-1'
             >
               <MenuItem
                 onClick={() => {
                   handleMenuItemClick(index, 2);
                   setDiscountMenu({ anchorEl: null, rowIndex: null });
                 }}
-                className="flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight"
+                disabled={disabled}
+                className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
               >
                 <Typography variant="overline">Percentage</Typography>
-                <Box className="flex flex-row items-center gap-1">
+                <Box className='flex flex-row items-center gap-1'>
                   <Icon icon="material-symbols:percent-rounded" width="20" color={theme.palette.primary.main} />
                 </Box>
               </MenuItem>
               <MenuItem
+                className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
                 onClick={() => {
                   handleMenuItemClick(index, 3);
                   setDiscountMenu({ anchorEl: null, rowIndex: null });
                 }}
-                className="flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight"
+                disabled={disabled}
               >
                 <Typography variant="overline">Fixed Amount</Typography>
-                <Box className="flex flex-row items-center gap-1">
+                <Box className='flex flex-row items-center gap-1'>
                   <Icon icon="lucide:saudi-riyal" width="20" color={theme.palette.primary.main} />
                 </Box>
               </MenuItem>
             </Menu>
           </Box>
         );
-      },
+      }
     },
     {
       key: 'amount',
-      label: <Typography variant="overline" fontWeight={500}>Total</Typography>,
+      label: <Typography variant="overline" fontWeight={500} >Total</Typography>,
       width: '16%',
       align: 'center',
       renderCell: (item, index) => {
-        const watched = watchItems?.[index] || {};
-        const vatRate =
-          watched.taxInfo && typeof watched.taxInfo === 'object'
-            ? Number(watched.taxInfo.taxRate || 0)
-            : 0;
+        const watched = watchItems[index] || {};
         const vatAmount = Number(watched.tax || 0);
 
         return (
@@ -532,7 +697,11 @@ export const getPosColumns = ({
             }}
           >
             <Box className="flex flex-row items-center gap-0.5">
-              <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={14} />
+              <Icon
+                icon="lucide:saudi-riyal"
+                color={theme.vars?.palette?.text?.secondary || theme.palette.text.secondary}
+                width={14}
+              />
               <Typography variant="h6" fontWeight={500} className="text-[0.85rem] whitespace-nowrap">
                 {isNaN(Number(watched.amount)) ? '0.00' : Number(watched.amount).toFixed(2)}
               </Typography>
@@ -542,22 +711,13 @@ export const getPosColumns = ({
               onClick={(event) => handleTaxClick(event, index)}
               color="primary"
               size="small"
+              disabled={disabled}
               sx={{
                 borderRadius: 999,
                 px: 0.75,
                 py: 0.25,
-                // bgcolor: alpha(theme.palette.primary.main, 0.06),
               }}
             >
-
-              {/* <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ whiteSpace: 'nowrap', lineHeight: 1.2 }}
-              >
-                VAT {vatRate}%: {Number.isFinite(vatAmount) ? vatAmount.toFixed(2) : '0.00'}
-              </Typography> */}
-
               <Typography
                 variant="caption"
                 color="text.secondary"
@@ -578,6 +738,7 @@ export const getPosColumns = ({
                 <MenuItem
                   key={tax._id}
                   onClick={() => handleTaxMenuItemClick(index, tax)}
+                  disabled={disabled}
                   sx={{
                     py: 1,
                     '&:hover': {
@@ -606,7 +767,7 @@ export const getPosColumns = ({
             </Menu>
           </Box>
         );
-      },
+      }
     },
     {
       key: 'actions',
@@ -618,9 +779,10 @@ export const getPosColumns = ({
           size="small"
           color="error"
           onClick={() => handleDeleteItem(index)}
-          onKeyDown={(e) => {
-            if (e.key === 'Tab' && !e.shiftKey && index === fields.length - 1) {
-              e.preventDefault();
+          disabled={disabled}
+          onKeyDown={(event) => {
+            if (event.key === 'Tab' && !event.shiftKey && index === fields.length - 1) {
+              event.preventDefault();
               handleAddEmptyRow();
             }
           }}
@@ -628,7 +790,7 @@ export const getPosColumns = ({
         >
           <Icon icon="ic:twotone-delete" width={20} color={theme.palette.error.main} />
         </IconButton>
-      ),
+      )
     },
   ];
 };

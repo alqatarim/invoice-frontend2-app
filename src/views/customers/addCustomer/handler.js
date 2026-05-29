@@ -2,52 +2,8 @@
 
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import * as yup from 'yup'
 import { addCustomer } from '@/app/(dashboard)/customers/actions'
-
-const addCustomerSchema = yup.object().shape({
-  name: yup
-    .string()
-    .required('Enter Name')
-    .max(50, 'Name must be at most 50 characters'),
-  email: yup
-    .string()
-    .email('Enter Valid Email')
-    .required('Enter Email'),
-  phone: yup
-    .string()
-    .required('Enter Phone number')
-    .max(15, 'Phone Number Must Be At Most 15 Digits')
-    .matches(/^\+?[1-9]\d*$/, 'Invalid Phone Number'),
-  website: yup.string().url('Enter valid website URL').nullable(),
-  notes: yup.string().nullable(),
-  status: yup.string().oneOf(['Active', 'Deactive']).default('Active'),
-  billingAddress: yup.object().shape({
-    name: yup.string().required('Enter Name'),
-    addressLine1: yup.string().required('Enter Address Line 1'),
-    addressLine2: yup.string().required('Enter Address Line 2'),
-    city: yup.string().required('Enter City'),
-    state: yup.string().required('Enter State'),
-    country: yup.string().required('Enter Country'),
-    pincode: yup.string().required('Enter Pincode')
-  }),
-  shippingAddress: yup.object().shape({
-    name: yup.string().required('Enter Name'),
-    addressLine1: yup.string().required('Enter Address Line 1'),
-    addressLine2: yup.string().required('Enter Address Line 2'),
-    city: yup.string().required('Enter City'),
-    state: yup.string().required('Enter State'),
-    country: yup.string().required('Enter Country'),
-    pincode: yup.string().required('Enter Pincode')
-  }),
-  bankDetails: yup.object().shape({
-    bankName: yup.string(),
-    branch: yup.string(),
-    accountHolderName: yup.string(),
-    accountNumber: yup.string(),
-    IFSC: yup.string().max(15, 'IFSC must be at most 15 characters')
-  })
-})
+import CustomerSchema from '@/views/customers/CustomerSchema'
 
 const INITIAL_FORM_DATA = {
   name: '',
@@ -187,13 +143,13 @@ export const useAddCustomerHandler = ({ onError, onSuccess, enqueueSnackbar, clo
     try {
       if (field.includes('.')) {
         const [section, fieldName] = field.split('.')
-        const sectionSchema = addCustomerSchema.fields[section]
+        const sectionSchema = CustomerSchema.fields[section]
 
         if (sectionSchema?.fields?.[fieldName]) {
           await sectionSchema.fields[fieldName].validate(formData[section][fieldName])
         }
-      } else if (addCustomerSchema.fields[field]) {
-        await addCustomerSchema.fields[field].validate(formData[field])
+      } else if (CustomerSchema.fields[field]) {
+        await CustomerSchema.fields[field].validate(formData[field])
       }
 
       setErrors(prev => ({
@@ -223,7 +179,7 @@ export const useAddCustomerHandler = ({ onError, onSuccess, enqueueSnackbar, clo
 
   const validateForm = useCallback(async () => {
     try {
-      await addCustomerSchema.validate(formData, { abortEarly: false })
+      await CustomerSchema.validate(formData, { abortEarly: false })
       setErrors({})
       return true
     } catch (validationErrors) {

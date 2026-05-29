@@ -10,6 +10,16 @@ import {
 } from '@mui/material'
 import { Icon } from '@iconify/react'
 
+const SELECTED_PHONE_MAX_CHARS = 0
+const SELECTED_EMAIL_MAX_CHARS = 33
+
+const truncateCustomerText = (value = '', maxChars = 0) => {
+  const text = String(value || '')
+  if (!maxChars || text.length <= maxChars) return text
+
+  return `${text.slice(0, maxChars)}...`
+}
+
 const CustomerAutocomplete = ({
   control,
   errors,
@@ -20,7 +30,8 @@ const CustomerAutocomplete = ({
   size = 'small',
   label = 'Customer',
   placeholder = '',
-  inputRef = null
+  inputRef = null,
+  disabled = false
 }) => {
   const theme = useTheme()
   const customers = Array.isArray(customersData) ? customersData : []
@@ -56,6 +67,10 @@ const CustomerAutocomplete = ({
       control={control}
       render={({ field }) => {
         const selectedCustomer = getSelectedCustomer(field.value)
+        const selectedCustomerLabel = String(selectedCustomer?.name || '').trim().toLowerCase()
+        const hasSelectedCustomerContact = Boolean(selectedCustomer?.phone || selectedCustomer?.email)
+        const selectedPhoneLabel = truncateCustomerText(selectedCustomer?.phone, SELECTED_PHONE_MAX_CHARS)
+        const selectedEmailLabel = truncateCustomerText(selectedCustomer?.email, SELECTED_EMAIL_MAX_CHARS)
         const optionGridColumns = 'minmax(0, 1.2fr) minmax(0, 0.85fr) minmax(0, 1.25fr)'
 
         const CustomerOptionsListbox = React.forwardRef(function CustomerOptionsListbox(listboxProps, ref) {
@@ -84,25 +99,28 @@ const CustomerAutocomplete = ({
                   position: 'sticky',
                   top: 0,
                   zIndex: 2,
-                  bgcolor: theme.palette.background.default,
+                  bgcolor: theme.vars.palette.background.default,
                   borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`
                 }}
               >
                 <Typography
                   variant="overline"
-                  sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
+                  color='text.secondary'
+                  sx={{ fontWeight: 600, lineHeight: 1.2 }}
                 >
                   Name
                 </Typography>
                 <Typography
                   variant="overline"
-                  sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
+                  color='text.secondary'
+                  sx={{ fontWeight: 600, lineHeight: 1.2 }}
                 >
                   Phone
                 </Typography>
                 <Typography
                   variant="overline"
-                  sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
+                  color='text.secondary'
+                  sx={{ fontWeight: 600, lineHeight: 1.2 }}
                 >
                   Email
                 </Typography>
@@ -116,11 +134,12 @@ const CustomerAutocomplete = ({
           <Autocomplete
             fullWidth
             size={size}
+            disabled={disabled}
             options={options}
             getOptionLabel={option => option?.name || walkInLabel}
             filterOptions={(options, { inputValue }) => {
               const search = inputValue.trim().toLowerCase()
-              if (!search) return options
+              if (!search || (selectedCustomerLabel && search === selectedCustomerLabel)) return options
               return options.filter((option) => {
                 const name = option?.name || ''
                 const phone = option?.phone || ''
@@ -146,104 +165,115 @@ const CustomerAutocomplete = ({
                 inputRef={inputRef}
                 InputProps={{
                   ...params.InputProps,
-                  endAdornment: selectedCustomer ? (
-                    <Box
-
-                      className='flex flex-col items-start justify-end gap-0 bg-secondaryLightest rounded-md py-0.5 px-2'
-                      sx={{
-                        // Give the input value priority over this endAdornment.
-                        // This keeps the adornment from consuming too much horizontal space.
-                        flex: '0 1 auto',
-                        minWidth: 0,
-                        maxWidth: 'min(240px, 50%)',
-                        overflow: 'hidden',
-                        // ml: 1
-                      }}
-                    >
-                      <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.2,
-                        minWidth: 0,
-                        maxWidth: '100%',
-                        overflow: 'hidden',
-                        justifyContent: 'flex-end'
-                      }}
-
+                  endAdornment: selectedCustomer && hasSelectedCustomerContact ? (
+                    <>
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: 14,
+                          // right: 54,
+                          bottom: 7,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          // minWidth: 0,
+                          overflow: 'hidden',
+                          pointerEvents: 'auto',
+                        }}
+                        className='bg-secondaryLighter rounded-md py-0.5 px-2'
                       >
-
-                        <Icon icon="mdi:phone" width={14} color={theme.palette.text.secondary} />
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: 'text.secondary',
-                            fontSize: '0.72rem',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            minWidth: 0,
-                            userSelect: 'text',
-                            cursor: 'text',
-                            '&:hover': {
-                              color: 'text.primary'
-                            }
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.getSelection) {
-                              const selection = window.getSelection();
-                              const range = document.createRange();
-                              range.selectNodeContents(e.currentTarget);
-                              selection.removeAllRanges();
-                              selection.addRange(range);
-                            }
-                          }}
-                        >
-                          {selectedCustomer.phone || ''}
-                        </Typography>
+                        {selectedCustomer.phone ? (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                              flex: '0 0 auto',
+                              minWidth: 'max-content',
+                              overflow: 'visible'
+                            }}
+                          >
+                            <Icon icon="mdi:phone" width={13} color={theme.vars.palette.text.secondary} />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: 'text.secondary',
+                                fontSize: '0.7rem',
+                                lineHeight: 1.2,
+                                whiteSpace: 'nowrap',
+                                overflow: 'visible',
+                                minWidth: 'max-content',
+                                userSelect: 'text',
+                                cursor: 'text',
+                                '&:hover': {
+                                  color: 'text.primary'
+                                }
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.getSelection) {
+                                  const selection = window.getSelection();
+                                  const range = document.createRange();
+                                  range.selectNodeContents(e.currentTarget);
+                                  selection.removeAllRanges();
+                                  selection.addRange(range);
+                                }
+                              }}
+                              title={selectedCustomer.phone}
+                            >
+                              {selectedPhoneLabel}
+                            </Typography>
+                          </Box>
+                        ) : null}
+                        {selectedCustomer.email ? (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                              flex: '1 1 auto',
+                              minWidth: 0,
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <Icon icon="mdi:email-outline" width={13} color={theme.vars.palette.text.secondary} />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: 'text.secondary',
+                                fontSize: '0.7rem',
+                                lineHeight: 1.2,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                minWidth: 0,
+                                userSelect: 'text',
+                                cursor: 'text',
+                                '&:hover': {
+                                  color: 'text.primary'
+                                }
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.getSelection) {
+                                  const selection = window.getSelection();
+                                  const range = document.createRange();
+                                  range.selectNodeContents(e.currentTarget);
+                                  selection.removeAllRanges();
+                                  selection.addRange(range);
+                                }
+                              }}
+                              title={selectedCustomer.email}
+                            >
+                              {selectedEmailLabel}
+                            </Typography>
+                          </Box>
+                        ) : null}
                       </Box>
-
-                      <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.2,
-                        minWidth: 0,
-                        maxWidth: '100%',
-                        overflow: 'hidden',
-                        justifyContent: 'flex-end'
-                      }}>
-                        <Icon icon="mdi:email-outline" width={14} color={theme.palette.text.secondary} />
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: 'text.secondary',
-                            fontSize: '0.72rem',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            minWidth: 0,
-                            userSelect: 'text',
-                            cursor: 'text',
-                            '&:hover': {
-                              color: 'text.primary'
-                            }
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.getSelection) {
-                              const selection = window.getSelection();
-                              const range = document.createRange();
-                              range.selectNodeContents(e.currentTarget);
-                              selection.removeAllRanges();
-                              selection.addRange(range);
-                            }
-                          }}
-                        >
-                          {selectedCustomer.email || ''}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ) : (params.InputProps.endAdornment || null)
+                      {params.InputProps.endAdornment}
+                    </>
+                  ) : params.InputProps.endAdornment,
+                  startAdornment: params.InputProps.startAdornment
                 }}
                 sx={{
                   '& .MuiFormHelperText-root': {
@@ -252,13 +282,16 @@ const CustomerAutocomplete = ({
                   },
                   ...(selectedCustomer
                     ? {
-                      // Autocomplete reserves extra right padding for popup/clear icons.
-                      // When we replace endAdornment, that reserved space becomes blank.
-                      '& .MuiAutocomplete-inputRoot': {
-                        paddingRight: '12px !important'
+                      '& .MuiInputBase-root': {
+                        alignItems: 'flex-start',
+                        minHeight: hasSelectedCustomerContact ? 58 : undefined,
+                        py: hasSelectedCustomerContact ? '6px' : undefined,
                       },
                       '& .MuiAutocomplete-input': {
-                        paddingRight: '0 !important'
+                        fontSize: '0.9rem',
+                        lineHeight: 1.25,
+                        pt: hasSelectedCustomerContact ? '3px !important' : undefined,
+                        pb: hasSelectedCustomerContact ? '19px !important' : undefined,
                       }
                     }
                     : {})

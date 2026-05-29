@@ -81,47 +81,31 @@ export const InvoiceSchema = yup.object().shape({
     .nullable()
     .trim(),
 
-  posMode: yup
-    .boolean()
-    .default(false),
+  tenderedAmount: yup
+    .number()
+    .transform((value, originalValue) => (originalValue === '' || originalValue == null ? 0 : value))
+    .min(0, 'Tendered amount cannot be negative')
+    .test(
+      'not-more-than-total',
+      'Tendered amount cannot exceed total due',
+      function (value) {
+        const total = Number(this.parent.TotalAmount || 0);
+        const tendered = Number(value || 0);
 
-  sign_type: yup
+        return tendered <= total;
+      }
+    )
+    .typeError('Tendered amount must be a number'),
+
+  changeAmount: yup
+    .number()
+    .transform((value, originalValue) => (originalValue === '' || originalValue == null ? 0 : value))
+    .min(0)
+    .nullable(),
+
+  cashierId: yup
     .string()
-    .when('posMode', {
-      is: true,
-      then: yup.string().nullable(),
-      otherwise: yup
-        .string()
-        .required("Choose signature type")
-        .oneOf(['eSignature', 'manualSignature'], 'Invalid signature type')
-    }),
-
-  signatureName: yup
-    .string()
-    .when(['sign_type', 'posMode'], {
-      is: (sign_type, posMode) => sign_type === 'eSignature' && !posMode,
-      then: yup.string()
-        .required('Enter signature name')
-        .min(2, 'Signature name must be at least 2 characters')
-        .trim(),
-      otherwise: yup.string().nullable()
-    }),
-
-  signatureImage: yup
-    .mixed()
-    .when(['sign_type', 'posMode'], {
-      is: (sign_type, posMode) => sign_type === 'eSignature' && !posMode,
-      then: yup.mixed().required('Draw your signature'),
-      otherwise: yup.mixed().nullable()
-    }),
-
-  signatureId: yup
-    .mixed()
-    .when(['sign_type', 'posMode'], {
-      is: (sign_type, posMode) => sign_type === 'manualSignature' && !posMode,
-      then: yup.string().required('Select a signature'),
-      otherwise: yup.mixed().nullable()
-    }),
+    .required('Choose a cashier'),
 
   items: yup
     .array()
@@ -177,9 +161,4 @@ export const InvoiceSchema = yup.object().shape({
     .string()
     .nullable()
     .trim()
-
-}, [
-  ['signatureName', 'sign_type'],
-  ['signatureImage', 'sign_type'],
-  ['signatureId', 'sign_type']
-]);
+});

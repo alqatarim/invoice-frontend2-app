@@ -1,72 +1,49 @@
 "use client";
 
-// React Imports
-import { useState, useEffect, useCallback, memo } from "react";
+import { useCallback, useEffect, useState, memo } from "react";
 
-// MUI Imports
 import Typography from "@mui/material/Typography";
 
-// Data Imports
+import { formatTimeRemaining } from "@/Auth/tokenUtils";
 import { sessionConfig } from "@/data/dataSets";
 
-// Memoized countdown component to prevent unnecessary parent re-renders
 const SessionCountdown = memo(({ token }) => {
-	const [timeRemaining, setTimeRemaining] = useState(null);
+	const [timeRemaining, setTimeRemaining] = useState(() =>
+		formatTimeRemaining(token)
+	);
 
-	// Memoized calculation function to prevent recreating on every render
-	const calculateTimeRemaining = useCallback(() => {
-		if (!token) {
-			return null;
-		}
-
-		try {
-			const payload = JSON.parse(atob(token.split(".")[1]));
-			const currentTime = Date.now() / 1000;
-			const timeUntilExpiry = payload.exp - currentTime;
-
-			if (timeUntilExpiry <= 0) {
-				return "Expired";
-			}
-
-			// Convert seconds to hours, minutes, seconds
-			const hours = Math.floor(timeUntilExpiry / 3600);
-			const minutes = Math.floor((timeUntilExpiry % 3600) / 60);
-			const seconds = Math.floor(timeUntilExpiry % 60);
-
-			if (hours > 0) {
-				return `${hours}h ${minutes}m ${seconds}s`;
-			} else if (minutes > 0) {
-				return `${minutes}m ${seconds}s`;
-			} else {
-				return `${seconds}s`;
-			}
-		} catch (error) {
-			return "Invalid Token";
-		}
+	const updateTimer = useCallback(() => {
+		setTimeRemaining(formatTimeRemaining(token));
 	}, [token]);
 
-	// Update countdown timer - isolated to this component only
 	useEffect(() => {
-		const updateTimer = () => {
-			setTimeRemaining(calculateTimeRemaining());
-		};
-
-		// Initial calculation
 		updateTimer();
 
-		// Update using centralized interval
 		const interval = setInterval(
 			updateTimer,
 			sessionConfig.countdownTimer.updateInterval
 		);
 
 		return () => clearInterval(interval);
-	}, [calculateTimeRemaining]);
+	}, [updateTimer]);
 
-	// Don't render if no time remaining calculated
-	if (!timeRemaining) {
-		return null;
-	}
+	if (!timeRemaining) return null;
+
+	const isExpiredOrInvalid =
+		timeRemaining === "Expired" || timeRemaining === "Invalid Token";
+	const minutesPart = timeRemaining.includes("m")
+		? parseInt(timeRemaining.split("m")[0], 10)
+		: NaN;
+	const isWarning =
+		!isExpiredOrInvalid &&
+		Number.isFinite(minutesPart) &&
+		minutesPart < sessionConfig.countdownTimer.warningThreshold;
+
+	const colorClass = isExpiredOrInvalid
+		? sessionConfig.countdownTimer.colors.expired
+		: isWarning
+			? sessionConfig.countdownTimer.colors.warning
+			: sessionConfig.countdownTimer.colors.normal;
 
 	return (
 		<div
@@ -80,15 +57,7 @@ const SessionCountdown = memo(({ token }) => {
 					</Typography>
 					<Typography
 						variant="body2"
-						className={`font-mono font-bold ${
-							timeRemaining === "Expired" || timeRemaining === "Invalid Token"
-								? sessionConfig.countdownTimer.colors.expired
-								: timeRemaining.includes("m") &&
-								  parseInt(timeRemaining.split("m")[0]) <
-										sessionConfig.countdownTimer.warningThreshold
-								? sessionConfig.countdownTimer.colors.warning
-								: sessionConfig.countdownTimer.colors.normal
-						}`}
+						className={`font-mono font-bold ${colorClass}`}
 					>
 						{timeRemaining}
 					</Typography>

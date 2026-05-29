@@ -14,38 +14,38 @@ export const PurchaseReturnSchema = yup.object().shape({
 
   sign_type: yup
     .string()
-    .required("Choose signature type")
-    .oneOf(['eSignature', 'manualSignature'], 'Invalid signature type'),
+    .required("Choose employee type")
+    .oneOf(['eSignature', 'manualSignature'], 'Invalid employee type'),
 
-  signatureName: yup
+  employeeName: yup
     .string()
     .when('sign_type', {
       is: 'eSignature',
       then: yup.string()
-        .required('Enter signature name')
+        .required('Enter employee')
         .min(2, 'Signature name must be at least 2 characters')
         .trim(),
       otherwise: yup.string().nullable()
     }),
 
-  signatureData: yup
+  employeeData: yup
     .string()
     .when('sign_type', {
       is: 'eSignature',
       then: yup.string()
-        .required('Draw your signature')
-        .test('is-valid-signature', 'Please draw your signature', value => {
+        .required('Draw your employee')
+        .test('is-valid-employee', 'Please draw your employee', value => {
           return value && value.startsWith('data:image/');
         }),
       otherwise: yup.string().nullable()
     }),
 
-  signatureId: yup
+  employee: yup
     .string()
     .when('sign_type', {
       is: 'manualSignature',
       then: yup.string()
-        .required('Select a signature'),
+        .required('Select a employee'),
       otherwise: yup.string().nullable()
     }),
 
@@ -164,7 +164,7 @@ export const PurchaseReturnSchema = yup.object().shape({
     .trim()
 
 }, [
-  ['signatureName', 'sign_type'],
-  ['signatureData', 'sign_type'],
-  ['signatureId', 'sign_type']
+  ['employeeName', 'sign_type'],
+  ['employeeData', 'sign_type'],
+  ['employee', 'sign_type']
 ]);

@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
+
 // Next Imports
 import Link from 'next/link'
 
@@ -60,6 +62,9 @@ const itemVariants = {
   },
 }
 
+const MotionCard = motion(Card)
+const SUCCESS_REDIRECT_DELAY_MS = 1000
+
 // Full-screen success animation shown right after login
 const SuccessOverlay = () => (
   <motion.div
@@ -75,8 +80,6 @@ const SuccessOverlay = () => (
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background:
-        'radial-gradient(circle at center, rgba(115,103,240,0.22) 0%, rgba(15,15,35,0.65) 70%)',
       backdropFilter: 'blur(10px)',
       WebkitBackdropFilter: 'blur(10px)',
     }}
@@ -138,10 +141,10 @@ const SuccessOverlay = () => (
       transition={{ delay: 0.55, duration: 0.4 }}
       style={{ marginTop: 28, textAlign: 'center', padding: '0 24px' }}
     >
-      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 600 }}>
+      <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 600 }}>
         Welcome back!
       </Typography>
-      <Typography sx={{ color: 'rgba(255,255,255,0.78)', mt: 0.5 }}>
+      <Typography sx={{ color: 'text.secondary', mt: 0.5 }}>
         Redirecting to your dashboard...
       </Typography>
     </motion.div>
@@ -153,7 +156,7 @@ const LoginHeroPanel = ({ isDark, animate }) => {
 
   return (
     <Box
-      className='flex bs-full items-center justify-center flex-1 min-bs-[100dvh] relative p-6 max-md:hidden'
+      className='absolute inset-0 flex bs-full items-center justify-center min-bs-[100dvh] p-6 max-md:hidden'
       sx={{
         overflow: 'hidden',
         isolation: 'isolate',
@@ -236,12 +239,14 @@ const Login = ({ controller }) => {
     errors = {},
     handleSubmit,
     isPasswordShown = false,
+    isLoginProcessing = false,
     snackbar = { open: false, message: '', status: 'loading' },
     errorState,
     handlePasswordToggle,
     handleCredentialsSubmit,
     handleGoogleSignIn,
     handleCloseSnackbar,
+    navigateToRedirect,
   } = controller || {}
 
   if (!controller || !control || typeof handleSubmit !== 'function') {
@@ -253,164 +258,209 @@ const Login = ({ controller }) => {
   const isDark = currentMode === 'dark'
   const prefersReducedMotion = useReducedMotion()
 
-  const isLoading = snackbar.open && snackbar.status === 'loading'
   const isSuccess = snackbar.open && snackbar.status === 'success'
+  const disableAuthActions = isLoginProcessing || isSuccess
+  const [hasFormPanelExited, setHasFormPanelExited] = useState(false)
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false)
+  const redirectTimerRef = useRef(null)
+  const formExitTransition = prefersReducedMotion
+    ? { duration: 0.01 }
+    : { duration: 0.45, ease: [0.76, 0, 0.24, 1] }
+
+  useEffect(() => {
+    if (!isSuccess) {
+      setHasFormPanelExited(false)
+      setShowSuccessOverlay(false)
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current)
+        redirectTimerRef.current = null
+      }
+    }
+  }, [isSuccess])
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current)
+      }
+    }
+  }, [])
 
   return (
-    <div className='flex bs-full justify-center'>
+    <div className='flex bs-full min-bs-[100dvh] justify-center relative overflow-hidden'>
       <LoginHeroPanel isDark={isDark} animate={!prefersReducedMotion} />
 
       {/* Right side with login form */}
-      <Card className='flex rounded-none justify-center items-center bs-full !min-is-full p-6 md:!min-is-[unset] md:p-12 md:is-[400px]'>
-        <div
-          className='absolute block-start-5 sm:block-start-[33px] inline-start-6 sm:inline-start-[38px]'
+      {!hasFormPanelExited && (
+        <MotionCard
+          className='flex rounded-none justify-center items-center bs-full !min-is-full p-6 md:!min-is-[unset] md:p-12 md:is-[400px]'
+          sx={{
+            position: 'absolute',
+            insetBlock: 0,
+            insetInlineEnd: 0,
+            zIndex: 2,
+          }}
+          initial={false}
+          animate={isSuccess ? { x: '110%' } : { x: 0 }}
+          transition={formExitTransition}
+          onAnimationComplete={() => {
+            if (isSuccess) {
+              setHasFormPanelExited(true)
+              setShowSuccessOverlay(true)
+              if (typeof navigateToRedirect === 'function') {
+                redirectTimerRef.current = setTimeout(() => {
+                  navigateToRedirect()
+                }, SUCCESS_REDIRECT_DELAY_MS)
+              }
+            }
+          }}
         >
-          <div className='flex justify-center items-center gap-3 mbe-6'>
-            <Logo className='text-primary' width={50} height={50} />
-            <Typography variant='h4' className='font-semibold tracking-[0.15px]'>
-              Invoices
-            </Typography>
-          </div>
-        </div>
-
-        <motion.div
-          className='flex flex-col gap-5 is-full sm:is-auto md:is-full sm:max-is-[380px] md:max-is-[unset]'
-          variants={containerVariants}
-          initial='hidden'
-          animate='show'
-        >
-          <motion.div variants={itemVariants}>
-            <Typography variant='h4'>{`Welcome to Invoices!👋🏻`}</Typography>
-            <Typography>Please sign-in to your account and start the adventure</Typography>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <Alert icon={false} className='bg-[var(--mui-palette-primary-lightOpacity)]'>
-              <Typography variant='body2' color='primary'>
-                Email: <span className='font-medium'>superadmin@dreamstechnologies.com</span> / Pass:{' '}
-                <span className='font-medium'>Dgt@2023</span>
-              </Typography>
-            </Alert>
-          </motion.div>
-
-          {errorState ? (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Alert severity='error'>{errorState}</Alert>
-            </motion.div>
-          ) : null}
-
-          <motion.form
-            variants={itemVariants}
-            noValidate
-            autoComplete='off'
-            onSubmit={handleSubmit(handleCredentialsSubmit)}
-            className='flex flex-col gap-5'
+          <div
+            className='absolute block-start-5 sm:block-start-[33px] inline-start-6 sm:inline-start-[38px]'
           >
-            <Controller
-              name='email'
-              control={control}
-              rules={{ required: true }}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  autoFocus
-                  type='email'
-                  label='Email'
-                  error={Boolean(errors.email)}
-                  helperText={errors.email?.message}
-                />
-              )}
-            />
-            <Controller
-              name='password'
-              control={control}
-              rules={{ required: true }}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label='Password'
-                  id='login-password'
-                  type={isPasswordShown ? 'text' : 'password'}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <IconButton onClick={handlePasswordToggle} edge='end'>
-                          <i className={isPasswordShown ? 'ri-eye-off-line' : 'ri-eye-line'} />
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }}
-                  error={Boolean(errors.password)}
-                  helperText={errors.password?.message}
-                />
-              )}
-            />
-            <div className='flex justify-between items-center flex-wrap gap-x-3 gap-y-1'>
-              <FormControlLabel control={<Checkbox defaultChecked />} label='Remember me' />
-              <Typography className='text-end' color='primary' component={Link} href='/forgot-password'>
-                Forgot password?
+            <div className='flex justify-center items-center gap-3 mbe-6'>
+              <Logo className='text-primary' width={50} height={50} />
+              <Typography variant='h4' className='font-semibold tracking-[0.15px]'>
+                Invoices
               </Typography>
             </div>
+          </div>
+
+          <motion.div
+            className='flex flex-col gap-5 is-full sm:is-auto md:is-full sm:max-is-[380px] md:max-is-[unset]'
+            variants={containerVariants}
+            initial='hidden'
+            animate='show'
+          >
+            <motion.div variants={itemVariants}>
+              <Typography variant='h4'>{`Welcome to Invoices!👋🏻`}</Typography>
+              <Typography>Please sign-in to your account and start the adventure</Typography>
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <Alert icon={false} className='bg-[var(--mui-palette-primary-lightOpacity)]'>
+                <Typography variant='body2' color='primary'>
+                  Email: <span className='font-medium'>superadmin@dreamstechnologies.com</span> / Pass:{' '}
+                  <span className='font-medium'>Dgt@2023</span>
+                </Typography>
+              </Alert>
+            </motion.div>
+
+            {errorState ? (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Alert severity='error'>{errorState}</Alert>
+              </motion.div>
+            ) : null}
+
+            <motion.form
+              variants={itemVariants}
+              noValidate
+              autoComplete='off'
+              onSubmit={handleSubmit(handleCredentialsSubmit)}
+              className='flex flex-col gap-5'
+            >
+              <Controller
+                name='email'
+                control={control}
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    autoFocus
+                    type='email'
+                    label='Email'
+                    error={Boolean(errors.email)}
+                    helperText={errors.email?.message}
+                  />
+                )}
+              />
+              <Controller
+                name='password'
+                control={control}
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label='Password'
+                    id='login-password'
+                    type={isPasswordShown ? 'text' : 'password'}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position='end'>
+                          <IconButton onClick={handlePasswordToggle} edge='end'>
+                            <i className={isPasswordShown ? 'ri-eye-off-line' : 'ri-eye-line'} />
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
+                    error={Boolean(errors.password)}
+                    helperText={errors.password?.message}
+                  />
+                )}
+              />
+              <div className='flex justify-between items-center flex-wrap gap-x-3 gap-y-1'>
+                <FormControlLabel control={<Checkbox defaultChecked />} label='Remember me' />
+                <Typography className='text-end' color='primary' component={Link} href='/forgot-password'>
+                  Forgot password?
+                </Typography>
+              </div>
+              <motion.div
+                whileHover={disableAuthActions ? undefined : { y: -2 }}
+                whileTap={disableAuthActions ? undefined : { scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              >
+                <Button
+                  fullWidth
+                  variant='contained'
+                  type='submit'
+                  disabled={disableAuthActions}
+                  sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: '0 8px 24px rgba(115,103,240,0.35)',
+                    transition: 'box-shadow 0.3s ease',
+                    '&:hover': { boxShadow: '0 12px 28px rgba(115,103,240,0.45)' },
+                  }}
+                >
+                  Log In
+                </Button>
+              </motion.div>
+            </motion.form>
+
+            <motion.div variants={itemVariants}>
+              <Divider className='gap-3'>or</Divider>
+            </motion.div>
+
             <motion.div
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
+              variants={itemVariants}
+              whileHover={disableAuthActions ? undefined : { y: -2 }}
+              whileTap={disableAuthActions ? undefined : { scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
             >
               <Button
                 fullWidth
-                variant='contained'
-                type='submit'
-                disabled={isLoading || isSuccess}
-                sx={{
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: '0 8px 24px rgba(115,103,240,0.35)',
-                  transition: 'box-shadow 0.3s ease',
-                  '&:hover': { boxShadow: '0 12px 28px rgba(115,103,240,0.45)' },
-                }}
-                startIcon={
-                  isLoading ? <CircularProgress size={18} color='inherit' /> : null
-                }
+                variant='outlined'
+                color='secondary'
+                className='self-center text-textPrimary'
+                onClick={handleGoogleSignIn}
+                disabled={disableAuthActions}
+                startIcon={<img src='/images/logos/google.png' alt='Google' width={18} height={18} />}
               >
-                {isLoading ? 'Signing in...' : 'Log In'}
+                Sign in with Google
               </Button>
             </motion.div>
-          </motion.form>
-
-          <motion.div variants={itemVariants}>
-            <Divider className='gap-3'>or</Divider>
           </motion.div>
-
-          <motion.div
-            variants={itemVariants}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-          >
-            <Button
-              fullWidth
-              variant='outlined'
-              color='secondary'
-              className='self-center text-textPrimary'
-              startIcon={<img src='/images/logos/google.png' alt='Google' width={22} />}
-              sx={{ '& .MuiButton-startIcon': { marginInlineEnd: 3 } }}
-              onClick={handleGoogleSignIn}
-              disabled={isLoading || isSuccess}
-            >
-              Sign in with Google
-            </Button>
-          </motion.div>
-        </motion.div>
-      </Card>
+        </MotionCard>
+      )}
 
       {/* Success overlay replaces the snackbar on success for a richer celebration */}
-      <AnimatePresence>{isSuccess && <SuccessOverlay />}</AnimatePresence>
+      <AnimatePresence>{showSuccessOverlay && <SuccessOverlay />}</AnimatePresence>
 
       <StyledSnackbar
         anchorOrigin={{

@@ -6,7 +6,7 @@ import { Button, IconButton, MenuItem, TextField, Typography } from '@mui/materi
 import { Icon } from '@iconify/react';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import StoreScopeSelect from '@/components/shared/StoreScopeSelect';
-import AccountingPageHeader from '../components/AccountingPageHeader';
+import AccountingPageHeader from '../AccountingPageHeader';
 import { formatCurrency, formatDate, getSourceHref } from '../utils';
 
 const GeneralLedger = ({

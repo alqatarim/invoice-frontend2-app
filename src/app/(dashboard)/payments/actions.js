@@ -271,23 +271,31 @@ export async function addPayment(data) {
   }
 }
 
-export async function updatePayment(data) {
+export async function updatePayment(id, data = {}) {
   try {
-    const formData = new FormData();
+    const paymentId = id || data.id;
+    const payload = {
+      payment_number: data.payment_number || data.paymentNumber,
+      invoiceId: data.invoiceId,
+      payment_method: data.payment_method || data.paymentMethod || data.paymentMode?.value || data.paymentMode,
+      amount: data.amount !== undefined ? Number(data.amount) : undefined,
+      received_on: data.received_on || (data.date ? dayjs(data.date).toISOString() : undefined),
+      referenceNo: data.referenceNo || data.reference,
+      notes: data.notes || data.description,
+    };
 
-    // Append all fields
-    formData.append('_id', data.id);
-    if (data.date) formData.append('date', dayjs(data.date).toISOString());
-    if (data.amount) formData.append('amount', Number(data.amount).toString());
-    if (data.customerId) formData.append('customerId', data.customerId);
-    if (data.paymentNumber) formData.append('paymentNumber', data.paymentNumber);
-    if (data.invoiceId) formData.append('invoiceId', data.invoiceId);
-    if (data.paymentMode) formData.append('paymentMode', data.paymentMode?.value || data.paymentMode);
-    if (data.description) formData.append('description', data.description);
+    Object.keys(payload).forEach(key => {
+      if (payload[key] === undefined || payload[key] === null || payload[key] === '') {
+        delete payload[key];
+      }
+    });
 
-    const response = await fetchWithAuth(`${ENDPOINTS.PAYMENT.UPDATE}/${data.id}`, {
+    const response = await fetchWithAuth(`${ENDPOINTS.PAYMENT.UPDATE}/${paymentId}`, {
       method: 'PUT',
-      body: formData
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
     });
 
     if (!response || response.code !== 200) {

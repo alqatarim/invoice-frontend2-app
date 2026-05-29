@@ -13,9 +13,7 @@ const CustomersPage = async () => {
 
   return (
     <CustomerListIndex
-      initialCustomers={initialCustomerData?.customers || []}
-      initialPagination={initialCustomerData?.pagination || { current: 1, pageSize: 10, total: 0 }}
-      initialSummary={initialCustomerData?.summary}
+      initialListData={initialCustomerData}
     />
   );
 };

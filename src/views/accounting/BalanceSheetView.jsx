@@ -11,8 +11,8 @@ import StoreScopeSelect from '@/components/shared/StoreScopeSelect';
 import useAccessibleStoreScope from '@/hooks/useAccessibleStoreScope';
 import { getBalanceSheet } from '@/app/(dashboard)/accounting/actions';
 import { findBranchByIdentifier } from '@/utils/branchAccess';
-import AccountingPageHeader from './components/AccountingPageHeader';
-import AccountingReportTable from './components/AccountingReportTable';
+import AccountingPageHeader from './AccountingPageHeader';
+import AccountingReportTable from './AccountingReportTable';
 import { formatCurrency } from './utils';
 
 const BalanceSheetView = ({

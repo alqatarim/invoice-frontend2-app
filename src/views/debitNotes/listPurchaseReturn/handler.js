@@ -35,6 +35,11 @@ function useDebitNoteListHandlers({
   const [sortDirection, setSortDirection] = useState(initialSortDirection || 'asc');
   const [searchTerm, setSearchTerm] = useState('');
   const loadingRef = useRef(false);
+  const stateRef = useRef({ searchTerm: '' });
+
+  useEffect(() => {
+    stateRef.current.searchTerm = searchTerm;
+  }, [searchTerm]);
 
   useEffect(() => {
     if (initialDebitNotes) {
@@ -118,7 +123,7 @@ function useDebitNoteListHandlers({
     onSuccess('Convert functionality not implemented yet');
   }, [onSuccess]);
 
-  const fetchDebitNotes = useCallback(async (page = pagination.current, pageSize = pagination.pageSize) => {
+  const fetchDebitNotes = useCallback(async (page = pagination.current, pageSize = pagination.pageSize, search = stateRef.current.searchTerm) => {
     if (loadingRef.current) {
       return;
     }
@@ -126,7 +131,7 @@ function useDebitNoteListHandlers({
     loadingRef.current = true;
     try {
       setLoading(true);
-      const response = await getDebitNotesList(page, pageSize);
+      const response = await getDebitNotesList(page, pageSize, search);
       if (response.success) {
         setDebitNotes(response.data || []);
         setPagination({
@@ -134,6 +139,7 @@ function useDebitNoteListHandlers({
           pageSize,
           total: response.totalRecords || 0,
         });
+        setSearchTerm(search);
       } else {
         onError(response.message || 'Failed to fetch debit notes');
       }
@@ -172,7 +178,8 @@ function useDebitNoteListHandlers({
 
   const handleSearchInputChange = useCallback((searchValue) => {
     setSearchTerm(searchValue);
-  }, []);
+    fetchDebitNotes(1, pagination.pageSize, searchValue);
+  }, [fetchDebitNotes, pagination.pageSize]);
 
   return {
     debitNotes,

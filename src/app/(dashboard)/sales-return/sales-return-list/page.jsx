@@ -11,6 +11,7 @@ import { getSalesReturnList } from '@/app/(dashboard)/sales-return/actions';
 const SalesReturnListPage = async () => {
   let initialSalesReturns = [];
   let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialCardCounts;
   let initialErrorMessage = '';
 
   try {
@@ -23,6 +24,7 @@ const SalesReturnListPage = async () => {
         pageSize: 10,
         total: response.totalRecords || 0
       };
+      initialCardCounts = response.cardCounts;
     }
   } catch (error) {
     console.error('Error fetching initial sales return data:', error);
@@ -33,6 +35,7 @@ const SalesReturnListPage = async () => {
     <SalesReturnListIndex
       initialSalesReturns={initialSalesReturns}
       initialPagination={initialPagination}
+      initialCardCounts={initialCardCounts}
       initialErrorMessage={initialErrorMessage}
     />
   );

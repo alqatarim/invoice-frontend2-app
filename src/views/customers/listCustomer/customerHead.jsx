@@ -4,21 +4,20 @@ import React, { useMemo } from 'react'
 import { Grid } from '@mui/material'
 import PageIconHeader from '@components/headers/PageIconHeader'
 import HorizontalWithoutBorder from '@/components/card-statistics/HorizontalWithoutBorder'
-import { getDefaultCustomerSummary } from './customerSummary'
-
-
 
 const percentOfTotal = (value, total) => Math.round((value / Math.max(total, 1)) * 100)
 
-const CustomerHead = ({ summary = getDefaultCustomerSummary() }) => {
+const CustomerHead = ({ customerListData }) => {
   // const theme = useTheme()
 
-  const customerStats = useMemo(
+  const cardCounts = useMemo(
     () => ({
-      ...getDefaultCustomerSummary(),
-      ...(summary || {}),
+      totalCustomers: customerListData?.totalCustomers || 0,
+      paidCustomers: customerListData?.paidCustomers || 0,
+      outstandingCustomers: customerListData?.outstandingCustomers || 0,
+      dueCustomers: customerListData?.dueCustomers || 0,
     }),
-    [summary]
+    [customerListData]
   )
 
   const statCards = useMemo(() => {
@@ -27,7 +26,7 @@ const CustomerHead = ({ summary = getDefaultCustomerSummary() }) => {
       paidCustomers,
       outstandingCustomers,
       dueCustomers,
-    } = customerStats
+    } = cardCounts
 
     return [
       {
@@ -59,7 +58,7 @@ const CustomerHead = ({ summary = getDefaultCustomerSummary() }) => {
         indicator: `${percentOfTotal(dueCustomers, totalCustomers)}%`,
       },
     ]
-  }, [customerStats])
+  }, [cardCounts])
 
   return (
     <>

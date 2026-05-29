@@ -1,11 +1,52 @@
 import { Typography, Box, IconButton, Tooltip, Chip } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
+import CustomIconButtonTwo from '@core/components/mui/CustomIconButton';
+
+const getSelectedBranchStock = (row, selectedBranchId = '') => {
+  const branches = row?.inventory_Info?.[0]?.branches || [];
+  const branchStock = selectedBranchId
+    ? branches.find((branch) => String(branch?.branchId || '') === String(selectedBranchId))
+    : null;
+
+  return {
+    branches,
+    branchStock,
+    quantity: selectedBranchId
+      ? Math.max(0, Number(branchStock?.quantity || 0))
+      : (row.inventory_Info?.[0]?.quantity || 0),
+  };
+};
+
+const buildSelectedBranchRow = (row, selectedBranch = {}, selectedBranchId = '') => {
+  const inventoryInfo = row?.inventory_Info?.[0] || {};
+  const { branchStock, quantity } = getSelectedBranchStock(row, selectedBranchId);
+
+  return {
+    rowType: 'branch',
+    branchId: selectedBranchId,
+    branchName: selectedBranch?.name || branchStock?.branchName || '',
+    branchType: selectedBranch?.branchType || branchStock?.branchType || '',
+    province: selectedBranch?.province || branchStock?.province || '',
+    city: selectedBranch?.city || branchStock?.city || '',
+    district: selectedBranch?.district || branchStock?.district || '',
+    quantity,
+    parentItem: {
+      _id: row?._id,
+      name: row?.name,
+      sku: row?.sku,
+      sellingPrice: row?.sellingPrice,
+      purchasePrice: row?.purchasePrice,
+      inventory_Info: [inventoryInfo],
+    },
+  };
+};
 
 /**
  * Inventory table column definitions - Main table only
  * Branch-specific columns are rendered in the expanded sub-table
  */
-export const getInventoryColumns = ({ theme }) => {
+export const getInventoryColumns = ({ theme, selectedBranch = null, selectedBranchId = '' }) => {
   return [
     {
       key: 'expand',
@@ -149,19 +190,84 @@ export const getInventoryColumns = ({ theme }) => {
     {
       key: 'quantity',
       visible: true,
-      label: 'Quantity',
+      label: 'Qty',
       sortable: true,
       align: 'center',
       renderCell: (row) => {
-        const branches = row?.inventory_Info?.[0]?.branches || [];
-        const total = branches.length
-          ? branches.reduce((sum, branch) => sum + Math.max(0, Number(branch?.quantity || 0)), 0)
-          : (row.inventory_Info?.[0]?.quantity || 0);
+        const { quantity } = getSelectedBranchStock(row, selectedBranchId);
 
         return (
           <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-            {total}
+            {quantity}
           </Typography>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      visible: true,
+      label: '',
+      sortable: false,
+      align: 'center',
+      width: '120px',
+      renderCell: (row, rowIndex, handlers) => {
+        if (!handlers?.permissions?.canUpdate) return null;
+
+        const isAnyLoading = Boolean(
+          handlers?.stockLoading?.addStock ||
+          handlers?.stockLoading?.removeStock ||
+          handlers?.stockLoading?.transferStock ||
+          handlers?.stockLoading?.cycleCount
+        );
+        const hasSelectedBranch = Boolean(selectedBranchId);
+        const { quantity } = getSelectedBranchStock(row, selectedBranchId);
+        const branchRow = buildSelectedBranchRow(row, selectedBranch, selectedBranchId);
+
+        const openStockDialog = (event, type) => {
+          event.stopPropagation();
+          if (!hasSelectedBranch) return;
+          handlers?.openStockDialog?.(type, branchRow, event.currentTarget);
+        };
+
+        return (
+          <Box className="flex items-center justify-center gap-1" onClick={(event) => event.stopPropagation()}>
+            <Tooltip title={hasSelectedBranch ? 'Add Stock' : 'Choose a branch from the top bar'} arrow>
+              <span>
+                <CustomIconButtonTwo
+                  size="small"
+                  // variant="tonal"
+                  skin="light"
+                  color="success"
+                  onClick={(event) => openStockDialog(event, 'add')}
+                  disabled={isAnyLoading || !hasSelectedBranch}
+                >
+                  <Icon icon="mdi:plus" width={18} />
+                </CustomIconButtonTwo>
+              </span>
+            </Tooltip>
+            <Tooltip
+              title={
+                !hasSelectedBranch
+                  ? 'Choose a branch from the top bar'
+                  : quantity > 0
+                    ? 'Remove Stock'
+                    : 'No stock in selected branch'
+              }
+              arrow
+            >
+              <span>
+                <CustomIconButtonTwo
+                  size="small"
+                  skin="light"
+                  color="error"
+                  onClick={(event) => openStockDialog(event, 'remove')}
+                  disabled={isAnyLoading || !hasSelectedBranch || quantity <= 0}
+                >
+                  <Icon icon="mdi:minus" width={18} color={theme.palette.error.main} />
+                </CustomIconButtonTwo>
+              </span>
+            </Tooltip>
+          </Box>
         );
       },
     },

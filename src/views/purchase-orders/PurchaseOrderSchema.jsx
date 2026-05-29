@@ -28,11 +28,6 @@ const purchaseOrderItemSchema = yup.object().shape({
   amount: yup.number()
     .min(0, 'Amount cannot be negative')
     .typeError('Amount must be a number'),
-  form_updated_rate: yup.number(),
-  form_updated_discount: yup.number(),
-  form_updated_discounttype: yup.number(),
-  form_updated_tax: yup.number(),
-  isRateFormUpadted: yup.mixed()
 });
 
 // Main purchase order schema for adding new purchase orders
@@ -65,31 +60,31 @@ export const purchaseOrderSchema = yup.object().shape({
   roundOff: yup.boolean(),
   roundOffValue: yup.number(),
   sign_type: yup.string()
-    .oneOf(['eSignature', 'manualSignature'], 'Invalid signature type')
+    .oneOf(['eSignature', 'manualSignature'], 'Invalid employee type')
     .required('Signature type is required'),
-  signatureName: yup.string()
+  employeeName: yup.string()
     .when('sign_type', {
       is: 'eSignature',
       then: (schema) => schema.required('Signature name is required'),
       otherwise: (schema) => schema
     }),
-  signatureData: yup.string()
+  employeeData: yup.string()
     .when('sign_type', {
       is: 'eSignature',
       then: (schema) => schema.test(
         'is-drawn',
-        'Please draw your signature',
+        'Please draw your employee',
         (value) => value === 'true'
       ),
       otherwise: (schema) => schema
     }),
-  signatureId: yup.string()
+  employee: yup.string()
     .when('sign_type', {
       is: 'manualSignature',
       then: (schema) => schema.required('Signature is required'),
       otherwise: (schema) => schema
     }),
-  signatureImage: yup.string(),
+  employeeImage: yup.string(),
   notes: yup.string(),
   termsAndCondition: yup.string(),
   items: yup.array()
@@ -120,9 +115,9 @@ export const viewPurchaseOrderSchema = yup.object().shape({
   roundOff: yup.boolean(),
   roundOffValue: yup.number(),
   sign_type: yup.string(),
-  signatureName: yup.string(),
-  signatureId: yup.string(),
-  signatureImage: yup.string(),
+  employeeName: yup.string(),
+  employee: yup.string(),
+  employeeImage: yup.string(),
   notes: yup.string(),
   termsAndCondition: yup.string(),
   items: yup.array().of(yup.object())

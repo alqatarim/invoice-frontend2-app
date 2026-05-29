@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { CircularProgress, Box, Typography } from '@mui/material';
-import AppSnackbar from '@/components/shared/AppSnackbar';
+import React, { useCallback, useEffect } from 'react';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
 import EditPurchaseOrder from '@/views/purchase-orders/editOrder/EditPurchaseOrder';
 import { updatePurchaseOrder } from '@/app/(dashboard)/purchase-orders/actions';
 
-
-
-const EditPurchaseOrderIndex = ({
+const EditPurchaseOrderContent = ({
   orderId,
   initialPurchaseOrderData,
   initialVendors = [],
@@ -18,88 +16,72 @@ const EditPurchaseOrderIndex = ({
   initialSignatures = [],
   initialErrorMessage = ''
 }) => {
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'info'
-  });
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
+  useEffect(() => {
+    if (initialErrorMessage) {
+      enqueueSnackbar(initialErrorMessage, { variant: 'error' });
+    }
+  }, [enqueueSnackbar, initialErrorMessage]);
 
-  const handleSave = async (orderData, signatureURL) => {
+  const handleSave = useCallback(async (orderData, employeeURL) => {
     try {
-      setSnackbar({
-        open: true,
-        message: 'Updating purchase order...',
-        severity: 'info'
+      const loadingKey = enqueueSnackbar('Updating purchase order...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: true,
       });
 
-      const response = await updatePurchaseOrder(orderId, orderData, signatureURL);
+      const response = await updatePurchaseOrder(orderId, orderData, employeeURL);
+      closeSnackbar(loadingKey);
 
       if (!response.success) {
-        if (response.errors && Array.isArray(response.errors)) {
-          setSnackbar({
-            open: true,
-            message: response.errors.join('\n'),
-            severity: 'error'
-          });
-        } else {
-          setSnackbar({
-            open: true,
-            message: response.message || 'Failed to update purchase order',
-            severity: 'error'
-          });
-        }
+        const errorMessage = Array.isArray(response.errors)
+          ? response.errors.join('\n')
+          : response.message || 'Failed to update purchase order';
+        enqueueSnackbar(errorMessage, {
+          variant: 'error',
+          autoHideDuration: 5000,
+          preventDuplicate: true,
+        });
       } else {
-        setSnackbar({
-          open: true,
-          message: 'Purchase order updated successfully!',
-          severity: 'success'
+        enqueueSnackbar('Purchase order updated successfully!', {
+          variant: 'success',
+          autoHideDuration: 3000,
         });
       }
 
       return response;
     } catch (error) {
       console.error('Error updating purchase order:', error);
-      setSnackbar({
-        open: true,
-        message: error.message || 'An unexpected error occurred',
-        severity: 'error'
-      });
+      closeSnackbar();
+      enqueueSnackbar(error.message || 'An unexpected error occurred', { variant: 'error' });
       return {
         success: false,
         message: error.message || 'Failed to update purchase order'
       };
     }
-  };
-
-
-
+  }, [closeSnackbar, enqueueSnackbar, orderId]);
 
   return (
-    <>
-      <EditPurchaseOrder
-        purchaseOrderData={initialPurchaseOrderData}
-        onSave={handleSave}
-        vendorsData={initialVendors}
-        productData={initialProducts}
-        taxRates={initialTaxRates}
-        initialBanks={initialBanks}
-        signatures={initialSignatures}
-      />
-
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={handleSnackbarClose}
-        autoHideDuration={6000}
-      />
-    </>
+    <EditPurchaseOrder
+      purchaseOrderData={initialPurchaseOrderData}
+      onSave={handleSave}
+      vendorsData={initialVendors}
+      productData={initialProducts}
+      taxRates={initialTaxRates}
+      initialBanks={initialBanks}
+      employees={initialSignatures}
+      enqueueSnackbar={enqueueSnackbar}
+      closeSnackbar={closeSnackbar}
+    />
   );
 };
+
+const EditPurchaseOrderIndex = props => (
+  <FormFeatureSnackbarProvider>
+    <EditPurchaseOrderContent {...props} />
+  </FormFeatureSnackbarProvider>
+);
 
 export default EditPurchaseOrderIndex;

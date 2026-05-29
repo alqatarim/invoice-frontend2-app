@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { paymentMethods } from '@/data/dataSets';
 import { calculatePurchaseItemValues } from '@/utils/purchaseItemCalculations';
 import { formatNewBuyItem } from '@/utils/formatNewBuyItem';
+import { notifyNotistackFormValidationErrors } from '@/utils/notifyNotistackFormValidationErrors';
 import { purchaseOrderSchema } from '../addOrder/PurchaseOrderSchema';
 
 function mapPurchaseOrderItems(items = []) {
@@ -55,9 +56,9 @@ function useFormHandler({ purchaseOrderData }) {
     roundOff: purchaseOrderData?.roundOff || false,
     roundOffValue: purchaseOrderData?.roundOffValue || 0,
     sign_type: purchaseOrderData?.sign_type || 'manualSignature',
-    signatureName: purchaseOrderData?.signatureName || '',
-    signatureId: purchaseOrderData?.signatureId || '',
-    signatureImage: purchaseOrderData?.signatureImage || '',
+    employeeName: purchaseOrderData?.employeeName || '',
+    employee: purchaseOrderData?.employee || '',
+    employeeImage: purchaseOrderData?.employeeImage || '',
     notes: purchaseOrderData?.notes || '',
     termsAndCondition: purchaseOrderData?.termsAndCondition || '',
     items: mapPurchaseOrderItems(purchaseOrderData?.items),
@@ -254,21 +255,21 @@ function useBankHandler({ initialBanks, addBank }) {
   };
 }
 
-function useSignatureHandler({ signatures, setValue }) {
-  const [signOptions] = useState(signatures || []);
+function useSignatureHandler({ employees, setValue }) {
+  const [signOptions] = useState(employees || []);
 
   const handleSignatureSelection = (selected, field) => {
     if (selected) {
       field.onChange(selected._id);
-      setValue('signatureName', selected.signatureName);
-      setValue('signatureImage', selected.signatureImage);
+      setValue('employeeName', selected.employeeName);
+      setValue('employeeImage', selected.employeeImage);
       setValue('sign_type', 'manualSignature');
       return;
     }
 
     field.onChange('');
-    setValue('signatureName', '');
-    setValue('signatureImage', '');
+    setValue('employeeName', '');
+    setValue('employeeImage', '');
   };
 
   return {
@@ -313,17 +314,11 @@ function useDialogHandler({ setValue, getValues }) {
   };
 }
 
-function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, onSave }) {
+function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, getValues, onSave }) {
   const router = useRouter();
 
   const handleFormSubmit = async data => {
     try {
-      const isValid = await trigger();
-      if (!isValid) {
-        console.error('Form validation failed');
-        return;
-      }
-
       closeSnackbar?.();
 
       const purchaseOrderNumber = data.purchaseOrderNumber || data.purchaseOrderId || '';
@@ -342,10 +337,10 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, onSave 
         totalDiscount: Number(data.totalDiscount),
         roundOff: data.roundOff || false,
         roundOffValue: Number(data.roundOffValue) || 0,
-        sign_type: data.sign_type || 'eSignature',
-        signatureName: data.signatureName || '',
-        signatureId: data.signatureId || '',
-        signatureImage: data.signatureImage || '',
+        sign_type: data.sign_type || 'manualSignature',
+        employeeName: data.employeeName || '',
+        employee: data.employee || '',
+        employeeImage: data.employeeImage || '',
         notes: data.notes || '',
         termsAndCondition: data.termsAndCondition || '',
         items: (data.items || []).map(item => ({
@@ -368,8 +363,8 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, onSave 
         })),
       };
 
-      const signatureURL = data.sign_type === 'eSignature' && data.signatureImage ? data.signatureImage : null;
-      const result = await onSave(purchaseOrderPayload, signatureURL);
+      const employeeURL = data.sign_type === 'eSignature' && data.employeeImage ? data.employeeImage : null;
+      const result = await onSave(purchaseOrderPayload, employeeURL);
 
       if (result.success) {
         setTimeout(() => {
@@ -387,24 +382,11 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, onSave 
   };
 
   const handleError = errors => {
-    console.error('Form validation errors:', errors);
-
-    let firstError = 'Please check all required fields';
-
-    if (errors.vendorId) {
-      firstError = 'Please select a vendor';
-    } else if (errors.items?.length > 0) {
-      firstError = 'Please check product details';
-    } else if (errors.bank) {
-      firstError = 'Please select a bank';
-    } else if (errors.payment_method || errors.paymentMode) {
-      firstError = 'Please select a payment method';
-    }
-
-    enqueueSnackbar?.(firstError, {
-      variant: 'error',
-      autoHideDuration: 5000,
-      preventDuplicate: false,
+    notifyNotistackFormValidationErrors({
+      errors,
+      closeSnackbar,
+      enqueueSnackbar,
+      getValues,
     });
   };
 
@@ -418,7 +400,7 @@ export default function useEditPurchaseOrderHandlers({
   purchaseOrderData,
   productData,
   initialBanks,
-  signatures,
+  employees,
   onSave,
   enqueueSnackbar,
   closeSnackbar,
@@ -444,8 +426,8 @@ export default function useEditPurchaseOrderHandlers({
     addBank,
   });
 
-  const signatureHandler = useSignatureHandler({
-    signatures,
+  const employeeHandler = useSignatureHandler({
+    employees,
     setValue,
   });
 
@@ -458,6 +440,7 @@ export default function useEditPurchaseOrderHandlers({
     trigger,
     closeSnackbar,
     enqueueSnackbar,
+    getValues,
     onSave,
   });
 
@@ -475,8 +458,8 @@ export default function useEditPurchaseOrderHandlers({
     newBank: bankHandler.newBank,
     setNewBank: bankHandler.setNewBank,
     handleAddBank: bankHandler.handleAddBank,
-    signOptions: signatureHandler.signOptions,
-    handleSignatureSelection: signatureHandler.handleSignatureSelection,
+    signOptions: employeeHandler.signOptions,
+    handleSignatureSelection: employeeHandler.handleSignatureSelection,
     paymentMethods,
     notesExpanded: dialogHandler.notesExpanded,
     termsDialogOpen: dialogHandler.termsDialogOpen,

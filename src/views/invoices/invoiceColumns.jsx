@@ -9,12 +9,9 @@ import {
   IconButton,
   Box,
   Menu,
-  Grid,
-  Button,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
-import CustomIconButton from '@core/components/mui/CustomIconButton';
 import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
 import { productSupportsScaleBarcode } from '@/utils/productScaleBarcode';
 
@@ -22,12 +19,6 @@ const getProductCategoryLabel = (product) => {
   if (!product) return '—';
   if (typeof product.category === 'string') return product.category;
   return product.category?.name || product.category?.title || '—';
-};
-
-const getProductUnitLabel = (product) => {
-  if (!product) return '—';
-  if (typeof product.units === 'string') return product.units;
-  return product.units?.name || '—';
 };
 
 const normalizeQuantityInput = (value, allowDecimals = false) => {
@@ -72,9 +63,11 @@ export const getInvoiceFormColumns = ({
   handleTaxMenuItemClick,
   fields,
   autoFocusFirstProductCell = false,
+  disabled = false,
 }) => {
   const availableProducts = Array.isArray(productsCloneData) ? productsCloneData : [];
   const allProducts = Array.isArray(productData) ? productData : [];
+  const taxOptions = Array.isArray(taxRates) ? taxRates : [];
 
   const resolveProductById = (productId) => {
     if (!productId) return null;
@@ -84,9 +77,9 @@ export const getInvoiceFormColumns = ({
   return [
     {
       key: 'product',
-      label: <Typography variant="overline" fontWeight={500}>Product/Service</Typography>,
-      width: '18%',
-      align: 'center',
+      label: <Typography variant="overline" fontWeight={500}>Product</Typography>,
+      width: '28%',
+      align: 'left',
       renderCell: (item, index) => (
         <Controller
           name={`items.${index}.productId`}
@@ -167,6 +160,7 @@ export const getInvoiceFormColumns = ({
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 <Autocomplete
                   fullWidth
+                  disabled={disabled}
                   options={options}
                   value={selectedProduct}
                   getOptionLabel={(option) => option?.name || ''}
@@ -363,22 +357,6 @@ export const getInvoiceFormColumns = ({
       }
     },
     {
-      key: 'unit',
-      label: <Typography variant="overline" fontWeight={500} >Unit</Typography>,
-      width: '8%',
-      align: 'center',
-      renderCell: (_, index) => {
-        const watched = watchItems?.[index] || {};
-        const product = resolveProductById(watched.productId);
-        const unit = watched.units || getProductUnitLabel(product);
-        return (
-          <Typography variant="body1" color="text.primary" className="text-[0.85rem] whitespace-nowrap">
-            {unit || '—'}
-          </Typography>
-        );
-      }
-    },
-    {
       key: 'quantity',
       label: <Typography variant="overline" fontWeight={500} >Qty</Typography>,
       width: '10%',
@@ -402,6 +380,7 @@ export const getInvoiceFormColumns = ({
                   variant="outlined"
                   size="small"
                   placeholder="Quantity"
+                  disabled={disabled}
                   className="[&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
                   slotProps={{
                     htmlInput: {
@@ -453,6 +432,7 @@ export const getInvoiceFormColumns = ({
                 variant="outlined"
                 placeholder="Rate"
                 size="small"
+                disabled={disabled}
                 className="min-w-[90px] [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
                 slotProps={{
                   input: {
@@ -490,7 +470,7 @@ export const getInvoiceFormColumns = ({
     {
       key: 'discount',
       label: <Typography variant="overline" fontWeight={500} >Discount</Typography>,
-      width: '15%',
+      width: '18%',
       align: 'center',
       renderCell: (item, index) => {
         const watched = watchItems[index] || {};
@@ -521,6 +501,7 @@ export const getInvoiceFormColumns = ({
               color="primary"
               // skin="lightest"
               size="small"
+              disabled={disabled}
             // className="min-w-[32px] min-h-[36px] px-2 py-0"
             >
               {Number(watched.discountType) === 2 ? (
@@ -560,6 +541,7 @@ export const getInvoiceFormColumns = ({
                       fullWidth
                       // sx={{ flex: 1 }}
                       placeholder="Discount (%)"
+                      disabled={disabled}
                       aria-label="Discount Percentage"
                       tabIndex={0}
                       className=" [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
@@ -620,6 +602,7 @@ export const getInvoiceFormColumns = ({
                       fullWidth
                       sx={{ flex: 1 }}
                       placeholder="Discount"
+                      disabled={disabled}
                       aria-label="Discount Fixed Amount"
                       tabIndex={0}
                       className=" [&_input::-webkit-outer-spin-button]:hidden [&_input::-webkit-inner-spin-button]:hidden [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&_.MuiOutlinedInput-root.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-primary"
@@ -653,6 +636,7 @@ export const getInvoiceFormColumns = ({
                   handleMenuItemClick(index, 2);
                   setDiscountMenu({ anchorEl: null, rowIndex: null });
                 }}
+                disabled={disabled}
                 className='flex flex-row gap-4 items-center justify-between [&:hover]:bg-primaryLight'
               >
                 <Typography variant="overline">Percentage</Typography>
@@ -666,6 +650,7 @@ export const getInvoiceFormColumns = ({
                   handleMenuItemClick(index, 3);
                   setDiscountMenu({ anchorEl: null, rowIndex: null });
                 }}
+                disabled={disabled}
               >
                 <Typography variant="overline">Fixed Amount</Typography>
                 <Box className='flex flex-row items-center gap-1'>
@@ -678,49 +663,72 @@ export const getInvoiceFormColumns = ({
       }
     },
     {
-      key: 'vat',
-      label: <Typography variant="overline" fontWeight={500} >VAT</Typography>,
-      width: '12%',
+      key: 'amount',
+      label: <Typography variant="overline" fontWeight={500} >Total</Typography>,
+      width: '16%',
       align: 'center',
       renderCell: (item, index) => {
         const watched = watchItems[index] || {};
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CustomOriginalIconButton
-              // variant="tonal"
-              onClick={(event) => handleTaxClick(event, index)}
-              color="primary"
-              // skin="lightest"
-              size="small"
-              className="px-1"
-            >
-              <Typography variant="button" fontSize={13} color="primary.light">
-                {watched.taxInfo && typeof watched.taxInfo === 'object' ? (watched.taxInfo.taxRate || 0) : 0}%
-              </Typography>
+        const vatAmount = Number(watched.tax || 0);
 
-            </CustomOriginalIconButton>
-            <Box className="flex flex-row items-center gap-0.5 ">
-              <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={14} />
-              <Typography variant="h6" fontWeight={400} className="text-[0.85rem]">
-                {isNaN(Number(watched.tax)) ? '0.00' : Number(watched.tax).toFixed(0)}
+        return (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.5,
+              minWidth: 0,
+            }}
+          >
+            <Box className="flex flex-row items-center gap-0.5">
+              <Icon
+                icon="lucide:saudi-riyal"
+                color={theme.vars?.palette?.text?.secondary || theme.palette.text.secondary}
+                width={14}
+              />
+              <Typography variant="h6" fontWeight={500} className="text-[0.85rem] whitespace-nowrap">
+                {isNaN(Number(watched.amount)) ? '0.00' : Number(watched.amount).toFixed(2)}
               </Typography>
             </Box>
+
+            <CustomOriginalIconButton
+              onClick={(event) => handleTaxClick(event, index)}
+              color="primary"
+              size="small"
+              disabled={disabled}
+              sx={{
+                borderRadius: 999,
+                px: 0.75,
+                py: 0.25,
+              }}
+            >
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ whiteSpace: 'nowrap', fontStyle: 'italic', lineHeight: 1.2, fontWeight: 500, fontSize: '0.7rem' }}
+              >
+                (VAT {Number.isFinite(vatAmount) ? vatAmount.toFixed(2) : '0.00'})
+              </Typography>
+            </CustomOriginalIconButton>
+
             <Menu
-              anchorEl={taxMenu.anchorEl}
-              open={taxMenu.rowIndex === index && Boolean(taxMenu.anchorEl)}
+              anchorEl={taxMenu?.anchorEl}
+              open={taxMenu?.rowIndex === index && Boolean(taxMenu?.anchorEl)}
               onClose={handleTaxClose}
               anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
-              {taxRates.map((tax) => (
+              {taxOptions.map((tax) => (
                 <MenuItem
                   key={tax._id}
                   onClick={() => handleTaxMenuItemClick(index, tax)}
+                  disabled={disabled}
                   sx={{
                     py: 1,
                     '&:hover': {
-                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08)
-                    }
+                      backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                    },
                   }}
                 >
                   <Box className="flex flex-row items-center justify-between w-[8em]">
@@ -730,10 +738,10 @@ export const getInvoiceFormColumns = ({
                       sx={{
                         fontWeight: 600,
                         color: 'primary.main',
-                        backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                        backgroundColor: alpha(theme.palette.primary.main, 0.1),
                         px: 1,
                         py: 0.5,
-                        borderRadius: '4px'
+                        borderRadius: '4px',
                       }}
                     >
                       {tax.taxRate}%
@@ -747,32 +755,16 @@ export const getInvoiceFormColumns = ({
       }
     },
     {
-      key: 'amount',
-      label: <Typography variant="overline" fontWeight={500} >Amount</Typography>,
-      width: '10%',
-      align: 'center',
-      renderCell: (item, index) => {
-        const watched = watchItems[index] || {};
-        return (
-          <Box className="flex flex-row items-center gap-0.5">
-            <Icon icon="lucide:saudi-riyal" color={theme.palette.secondary.light} width={14} />
-            <Typography variant="h6" fontWeight={400} className="text-[0.85rem]">
-              {isNaN(Number(watched.amount)) ? '0.00' : Number(watched.amount).toFixed(2)}
-            </Typography>
-          </Box>
-        );
-      }
-    },
-    {
       key: 'actions',
       label: '',
-      width: '5%',
-      align: 'left',
+      width: '6%',
+      align: 'center',
       renderCell: (item, index) => (
         <IconButton
           size="small"
           color="error"
           onClick={() => handleDeleteItem(index)}
+          disabled={disabled}
           onKeyDown={(event) => {
             if (event.key === 'Tab' && !event.shiftKey && index === fields.length - 1) {
               event.preventDefault();

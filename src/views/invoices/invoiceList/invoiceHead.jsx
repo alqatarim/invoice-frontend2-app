@@ -26,7 +26,7 @@ const InvoiceHead = ({ invoiceListData }) => {
       {
         title: 'Total Invoiced',
         value: cardCounts.totalInvoice?.total_sum || 0,
-        subtitle: `${cardCounts.totalInvoice?.count || 0} invoices`,
+        // subtitle: `${cardCounts.totalInvoice?.count || 0} invoices`,
         icon: 'iconamoon:invoice',
         color: 'primary',
         isCurrency: true,
@@ -34,7 +34,7 @@ const InvoiceHead = ({ invoiceListData }) => {
       {
         title: 'Outstanding',
         value: cardCounts.totalOutstanding?.total_sum || 0,
-        subtitle: `${cardCounts.totalOutstanding?.count || 0} outstanding`,
+        // subtitle: `${cardCounts.totalOutstanding?.count || 0} outstanding`,
         icon: 'mdi:access-time',
         color: 'warning',
         isCurrency: true,
@@ -42,7 +42,7 @@ const InvoiceHead = ({ invoiceListData }) => {
       {
         title: 'Total Overdue',
         value: cardCounts.totalOverdue?.total_sum || 0,
-        subtitle: `${cardCounts.totalOverdue?.count || 0} overdue`,
+        // subtitle: `${cardCounts.totalOverdue?.count || 0} overdue`,
         icon: 'mdi:clock-alert-outline',
         color: 'error',
         isCurrency: true,
@@ -50,7 +50,7 @@ const InvoiceHead = ({ invoiceListData }) => {
       {
         title: 'Drafts',
         value: cardCounts.totalDrafted?.total_sum || 0,
-        subtitle: `${cardCounts.totalDrafted?.count || 0} drafts`,
+        // subtitle: `${cardCounts.totalDrafted?.count || 0} drafts`,
         icon: 'mdi:draw-pen',
         color: 'info',
         isCurrency: true,

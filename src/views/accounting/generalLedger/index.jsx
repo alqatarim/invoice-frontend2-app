@@ -3,7 +3,7 @@
 import React from 'react';
 import { Paper } from '@mui/material';
 import AppSnackbar from '@/components/shared/AppSnackbar';
-import AccountingEntryDetailsDialog from '../components/AccountingEntryDetailsDialog';
+import AccountingEntryDetailsDialog from '../AccountingEntryDetailsDialog';
 import GeneralLedger from './GeneralLedger';
 import { useGeneralLedgerHandler } from './handler';
 

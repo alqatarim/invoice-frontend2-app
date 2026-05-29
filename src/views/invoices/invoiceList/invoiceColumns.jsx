@@ -20,6 +20,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     renderCell: (row) => (
       <Link href={`/invoices/invoice-view/${row._id}`} passHref>
         <Typography
+          variant="body1"
           className="cursor-pointer text-primary hover:underline"
           align='center'
         >
@@ -41,13 +42,13 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     ),
   },
   {
-    key: 'invoiceTo',
+    key: 'customer',
     visible: true,
-    label: 'Invoice To',
+    label: 'Customer',
     sortable: true,
     align: 'center',
     renderCell: (row) => (
-      <Box className="flex justify-between items-start flex-col gap-1">
+      <>
         {row.isWalkIn || !row.customerId?._id ? (
           <Typography
             variant="body1"
@@ -65,18 +66,29 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
             </Typography>
           </Link>
         )}
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          className='cursor-text select-text truncate text-[0.85rem]'
-        >
-          {row.isWalkIn ? '—' : row.customerId?.phone || 'N/A'}
-        </Typography>
-      </Box>
+      </>
+
+    ),
+  },
+
+  {
+    key: 'phone',
+    visible: true,
+    label: 'Phone',
+    sortable: true,
+    align: 'center',
+    renderCell: (row) => (
+      <Typography
+        variant="body1"
+        color='text.primary'
+        className='cursor-text select-text truncate text-[0.9rem] text-start'
+      >
+        {row.isWalkIn ? '—' : row.customerId?.phone || 'N/A'}
+      </Typography>
     ),
   },
   {
-    key: 'amounts',
+    key: 'amount',
     label: 'Amount',
     visible: true,
     align: 'center',
@@ -86,16 +98,16 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
       const percentPaid = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
       return (
-        <div className="flex flex-col min-w-[130px] w-full">
-          <div className="flex flex-row justify-between items-center mb-0 w-full">
-            <Typography color="text.primary" className='text-[0.9rem] ml-2'>{paid}</Typography>
-            <div className="flex items-center gap-1 min-w-[48px] justify-end mr-2">
-              <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
-              <Typography color="text.primary" className='text-[1rem] font-medium'>{total}</Typography>
-            </div>
+        <div className="flex flex-col min-w-[80px]">
+
+
+          <div className="flex items-center gap-0.5 justify-start">
+            <Icon icon="lucide:saudi-riyal" width="0.8rem" color={theme.palette.text.secondary} />
+            <Typography variant="body1" color="text.primary" className='text-[1rem] font-medium'>{total.toFixed(0)}</Typography>
           </div>
+
           <div className="flex-1 w-full">
-            <LinearProgress variant="determinate" color='info' value={percentPaid} className='!h-[3px]' />
+            <LinearProgress variant="determinate" color='info' value={percentPaid} className='!h-[2px]' />
           </div>
         </div>
       );

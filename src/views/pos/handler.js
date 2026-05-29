@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
+import { usePermissions } from '@/Auth/PermissionsContext';
 import {
   getPrimaryStoreBranch,
   mergeAccessibleStoreBranches,
@@ -19,15 +20,26 @@ export function usePosViewHandler({
   initialPosSettings = {},
   initialInvoiceNumber = '',
   initialPaymentMethods = [],
+  initialCashiers = [],
+  initialCurrentUserId = '',
+  initialCanAccessPos = false,
+  initialCanCreateInvoice = false,
   initialErrorMessage = '',
   onSave,
   enqueueSnackbar,
   closeSnackbar,
 }) {
   const { data: session } = useSession();
-  const canViewInvoice = usePermission('invoice', 'view');
-  const canCreateInvoice = usePermission('invoice', 'create');
-  const canAccessPos = canViewInvoice || canCreateInvoice;
+  const permissions = usePermissions();
+  const isPermissionsLoading = Boolean(permissions?.isLoading);
+  const clientCanViewInvoice = usePermission('invoice', 'view');
+  const clientCanCreateInvoice = usePermission('invoice', 'create');
+  const canCreateInvoice = permissions?.isReady
+    ? clientCanCreateInvoice
+    : initialCanCreateInvoice;
+  const canAccessPos = permissions?.isReady
+    ? clientCanViewInvoice || clientCanCreateInvoice
+    : initialCanAccessPos;
 
   const companyMembership = session?.user?.companyMembership || {};
   const allowedPosStores = useMemo(() => {
@@ -50,6 +62,8 @@ export function usePosViewHandler({
     allowedBranchesData: allowedPosStores,
     posSettings: initialPosSettings,
     bootstrapPaymentMethods: initialPaymentMethods,
+    cashiersData: initialCashiers,
+    currentUserId: initialCurrentUserId || session?.user?.id || '',
     onSave,
     enqueueSnackbar,
     closeSnackbar,
@@ -60,6 +74,7 @@ export function usePosViewHandler({
     controller,
     canAccessPos,
     canCreateInvoice,
+    isPermissionsLoading: isPermissionsLoading && !initialCanAccessPos,
     primaryStore,
   };
 }

@@ -11,14 +11,37 @@ export const dataURLtoBlob = (dataURL) => {
   return new Blob([arrayBuffer], { type: mimeString });
 };
 
+export function normalizeFileSource(source) {
+  if (typeof source === 'string') {
+    const trimmedSource = source.trim();
+    return trimmedSource || null;
+  }
+
+  if (Array.isArray(source)) {
+    return source.map(normalizeFileSource).find(Boolean) || null;
+  }
+
+  if (source && typeof source === 'object') {
+    return normalizeFileSource(
+      source.url || source.path || source.preview || source.base64 || source.dataURL
+    );
+  }
+
+  return null;
+}
+
 export function isImageFile(url) {
-  if (!url || typeof url !== 'string') return false;
-  return /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+  const normalizedUrl = normalizeFileSource(url);
+  if (!normalizedUrl) return false;
+
+  return normalizedUrl.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(normalizedUrl);
 };
 
 export function getFileName(url) {
-  if (!url || typeof url !== 'string') return '';
-  return url.split('/').pop() || '';
+  const normalizedUrl = normalizeFileSource(url);
+  if (!normalizedUrl) return '';
+
+  return normalizedUrl.split('/').pop() || '';
 };
 
 export function blobToObject(blob) {
@@ -311,19 +334,21 @@ export const getNameFromPath = (imageSource, selectedFile) => {
     return selectedFile.name;
   }
 
-  if (typeof imageSource === 'string') {
+  const normalizedImageSource = normalizeFileSource(imageSource);
+
+  if (normalizedImageSource) {
     // Handle URLs, local paths, and mixed formats
-    let pathToProcess = imageSource;
+    let pathToProcess = normalizedImageSource;
 
     // If it's a full URL, extract the pathname
     try {
-      if (imageSource.startsWith('http://') || imageSource.startsWith('https://')) {
-        const url = new URL(imageSource);
+      if (normalizedImageSource.startsWith('http://') || normalizedImageSource.startsWith('https://')) {
+        const url = new URL(normalizedImageSource);
         pathToProcess = url.pathname;
       }
     } catch (e) {
       // Not a valid URL, continue with original string
-      pathToProcess = imageSource;
+      pathToProcess = normalizedImageSource;
     }
 
     // Handle both forward slashes and backslashes

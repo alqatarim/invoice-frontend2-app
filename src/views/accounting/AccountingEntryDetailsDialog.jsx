@@ -14,7 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 
-import { formatCurrency, formatDate, getSourceHref } from '../utils';
+import { formatCurrency, formatDate, getSourceHref } from './utils';
 
 const AccountingEntryDetailsDialog = ({ open, onClose, entry }) => {
   const sourceHref = getSourceHref({

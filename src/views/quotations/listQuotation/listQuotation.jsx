@@ -34,13 +34,14 @@ import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
 import { formatDate } from '@/utils/dateUtils';
+import { formatDecimal } from '@/utils/numberUtils';
 import dayjs from 'dayjs';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { deleteQuotation, convertToInvoice, updateQuotationStatus, getQuotationsList } from '@/app/(dashboard)/quotations/actions';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import OptionMenu from '@core/components/option-menu';
-import AppSnackbar from '@/components/shared/AppSnackbar';
-import { quotationStatusOptions } from '@/data/dataSets';
+import { useSnackbar } from 'notistack';
+import { quotationPaymentMethodOptions, quotationStatusOptions } from '@/data/dataSets';
 import PageIconHeader from '@components/headers/PageIconHeader';
 import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
 
@@ -49,23 +50,6 @@ const getStatusColor = (status) => {
      const statusOption = quotationStatusOptions.find(opt => opt.value === status);
      return statusOption?.color || 'default';
 };
-
-// Format number helper function
-const formatNumber = (value) => {
-     if (value === null || value === undefined) return '0.00';
-     const num = typeof value === 'string' ? parseFloat(value) : value;
-     return isNaN(num) ? '0.00' : Number(num).toFixed(2);
-};
-
-// Payment method options
-const paymentMethodOptions = [
-     { value: 'Cash', label: 'Cash' },
-     { value: 'Credit Card', label: 'Credit Card' },
-     { value: 'Debit Card', label: 'Debit Card' },
-     { value: 'Bank Transfer', label: 'Bank Transfer' },
-     { value: 'Check', label: 'Check' },
-     { value: 'Online', label: 'Online Payment' }
-];
 
 const ListQuotation = ({
      initialQuotations = [],
@@ -77,6 +61,7 @@ const ListQuotation = ({
      const router = useRouter();
      const searchParams = useSearchParams();
      const { data: session } = useSession();
+     const { enqueueSnackbar } = useSnackbar();
      const successParam = searchParams.get('success');
      const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -110,21 +95,20 @@ const ListQuotation = ({
      const [loadingAction, setLoadingAction] = useState(false);
      const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Cash');
 
-     // Snackbar state
-     const [snackbar, setSnackbar] = useState({
-          open: Boolean(initialErrorMessage),
-          message: initialErrorMessage || '',
-          severity: initialErrorMessage ? 'error' : 'success',
-     });
+     useEffect(() => {
+          if (initialErrorMessage) {
+               enqueueSnackbar(initialErrorMessage, { variant: 'error' });
+          }
+     }, [enqueueSnackbar, initialErrorMessage]);
 
      // Notification handlers
      const onError = React.useCallback(msg => {
-          setSnackbar({ open: true, message: msg, severity: 'error' });
-     }, []);
+          enqueueSnackbar(msg, { variant: 'error' });
+     }, [enqueueSnackbar]);
 
      const onSuccess = React.useCallback(msg => {
-          setSnackbar({ open: true, message: msg, severity: 'success' });
-     }, []);
+          enqueueSnackbar(msg, { variant: 'success' });
+     }, [enqueueSnackbar]);
 
      // Calculate card counts with new categories: Total, Open, Converted, Expired
      const cardCounts = {
@@ -146,14 +130,15 @@ const ListQuotation = ({
           }
      };
 
-     const fetchQuotations = useCallback(async ({ page = pagination.current, pageSize = pagination.pageSize } = {}) => {
+     const fetchQuotations = useCallback(async ({ page = pagination.current, pageSize = pagination.pageSize, search = searchTerm } = {}) => {
           setLoading(true);
           try {
-               const response = await getQuotationsList(page, pageSize, {});
+               const response = await getQuotationsList(page, pageSize, { search });
                if (response?.success) {
                     const nextData = response.data || [];
                     setQuotations(nextData);
                     setFilteredQuotations(nextData);
+                    setSearchTerm(search);
                     setPagination({
                          current: page,
                          pageSize,
@@ -167,21 +152,7 @@ const ListQuotation = ({
           } finally {
                setLoading(false);
           }
-     }, [onError, pagination.current, pagination.pageSize]);
-
-     // Search functionality
-     useEffect(() => {
-          if (!searchTerm) {
-               setFilteredQuotations(quotations);
-          } else {
-               const filtered = quotations.filter(quotation =>
-                    quotation.quotation_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    quotation.customerId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    quotation.customerId?.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-               );
-               setFilteredQuotations(filtered);
-          }
-     }, [searchTerm, quotations]);
+     }, [onError, pagination.current, pagination.pageSize, searchTerm]);
 
      // Show success message if redirected from add/edit page
      useEffect(() => {
@@ -364,7 +335,7 @@ const ListQuotation = ({
                     <div className="flex items-center gap-1 justify-center">
                          <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
                          <Typography color="text.primary" className='text-[1rem] font-medium'>
-                              {formatNumber(row.TotalAmount)}
+                              {formatDecimal(row.TotalAmount)}
                          </Typography>
                     </div>
                ),
@@ -574,7 +545,7 @@ const ListQuotation = ({
                               rowKey={(row) => row._id || row.id}
                               showSearch={true}
                               searchValue={searchTerm}
-                              onSearchChange={(value) => setSearchTerm(value)}
+                              onSearchChange={(value) => fetchQuotations({ page: 1, search: value })}
                               searchPlaceholder="Search quotations..."
                               onRowClick={
                                    permissions.canView
@@ -630,7 +601,7 @@ const ListQuotation = ({
                               variant="contained"
                               color="error"
                               disabled={loadingAction}
-                              startIcon={loadingAction ? null : <Icon icon="tabler:trash" />}
+                              startIcon={<Icon icon="tabler:trash" />}
                               sx={{
                                    borderRadius: '10px',
                                    py: 1,
@@ -638,7 +609,7 @@ const ListQuotation = ({
                                    ml: 2
                               }}
                          >
-                              {loadingAction ? 'Deleting...' : 'Delete'}
+                              Delete
                          </Button>
                     </DialogActions>
                </Dialog>
@@ -674,7 +645,7 @@ const ListQuotation = ({
                                         onChange={(e) => setSelectedPaymentMethod(e.target.value)}
                                         disabled={loadingAction}
                                    >
-                                        {paymentMethodOptions.map((option) => (
+                                        {quotationPaymentMethodOptions.map((option) => (
                                              <MenuItem key={option.value} value={option.value}>
                                                   {option.label}
                                              </MenuItem>
@@ -715,21 +686,14 @@ const ListQuotation = ({
                               variant="contained"
                               size="small"
                               disabled={loadingAction || !selectedPaymentMethod}
-                              startIcon={loadingAction && <CircularProgress size={16} />}
+                              startIcon={<Icon icon="tabler:arrow-right" />}
                               sx={{ borderRadius: '8px', ml: 1 }}
                          >
-                              {loadingAction ? 'Converting...' : 'Convert'}
+                              Convert
                          </Button>
                     </DialogActions>
                </Dialog>
 
-               <AppSnackbar
-                    open={snackbar.open}
-                    message={snackbar.message}
-                    severity={snackbar.severity}
-                    onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-                    autoHideDuration={6000}
-               />
           </div>
      );
 };

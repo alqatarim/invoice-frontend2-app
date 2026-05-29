@@ -123,15 +123,7 @@ export async function addPurchase(data, signatureURL) {
           if (data.notes) formData.append('notes', data.notes);
           if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
           if (data.bank) formData.append('bank', data.bank);
-          if (data.sign_type) formData.append('sign_type', data.sign_type);
-
-          // Handle signature based on type
-          if (data.sign_type === 'manualSignature' && data.signatureId) {
-               formData.append('signatureId', data.signatureId);
-          } else if (data.sign_type === 'eSignature') {
-               if (data.signatureName) formData.append('signatureName', data.signatureName);
-               if (data.signatureData) formData.append('signatureData', data.signatureData);
-          }
+          if (data.employee) formData.append('employee', data.employee);
 
           // Add total values with number conversion
           if (data.taxableAmount) formData.append('taxableAmount', Number(data.taxableAmount).toString());
@@ -141,17 +133,6 @@ export async function addPurchase(data, signatureURL) {
 
           // Add the subTotal field
           if (data.subTotal) formData.append('subTotal', Number(data.subTotal).toString());
-
-          // Handle signature if provided
-          if (signatureURL) {
-               try {
-                    const blob = await dataURLtoBlob(signatureURL);
-                    formData.append('signatureImage', blob, 'signature.png');
-               } catch (error) {
-                    console.error('Error processing signature:', error);
-                    throw new Error('Failed to process signature');
-               }
-          }
 
           const response = await fetchWithAuth(ENDPOINTS.PURCHASE.ADD, {
                method: 'POST',
@@ -221,15 +202,7 @@ export async function updatePurchase(id, data, signatureURL) {
           if (data.notes) formData.append('notes', data.notes);
           if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
           if (data.bank) formData.append('bank', data.bank);
-          if (data.sign_type) formData.append('sign_type', data.sign_type);
-
-          // Handle signature based on type
-          if (data.sign_type === 'manualSignature' && data.signatureId) {
-               formData.append('signatureId', data.signatureId);
-          } else if (data.sign_type === 'eSignature') {
-               if (data.signatureName) formData.append('signatureName', data.signatureName);
-               if (data.signatureData) formData.append('signatureData', data.signatureData);
-          }
+          if (data.employee) formData.append('employee', data.employee);
 
           // Add total values with number conversion
           if (data.taxableAmount) formData.append('taxableAmount', Number(data.taxableAmount).toString());
@@ -239,17 +212,6 @@ export async function updatePurchase(id, data, signatureURL) {
 
           // Add the subTotal field
           if (data.subTotal) formData.append('subTotal', Number(data.subTotal).toString());
-
-          // Handle signature if provided
-          if (signatureURL) {
-               try {
-                    const blob = await dataURLtoBlob(signatureURL);
-                    formData.append('signatureImage', blob, 'signature.png');
-               } catch (error) {
-                    console.error('Error processing signature:', error);
-                    throw new Error('Failed to process signature');
-               }
-          }
 
           const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE.UPDATE}/${id}`, {
                method: 'PUT',
@@ -322,13 +284,19 @@ export async function getBanks() {
 }
 
 export async function getSignatures() {
-     try {
-          const response = await fetchWithAuth('/drop_down/signature');
-          return response.data || [];
-     } catch (error) {
-          console.error('Error fetching signatures:', error);
-          return [];
-     }
+  try {
+    const response = await fetchWithAuth('/pos/bootstrap', { cache: 'no-store' });
+    const employees = response?.data?.cashiers || [];
+    return employees.map(employee => ({
+      ...employee,
+      _id: employee._id || employee.value || employee.id,
+      employeeName: employee.label || employee.fullName || employee.email || 'Employee',
+      signatureName: employee.label || employee.fullName || employee.email || 'Employee',
+    }));
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    return [];
+  }
 }
 
 export async function getUnits() {

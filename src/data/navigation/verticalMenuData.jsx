@@ -98,12 +98,12 @@ const verticalMenuData = (dictionary, params) => [
           {
             label: dictionary['navigation'].list,
             icon: 'ri-circle-line',
-            href: '/purchase-orders/purchase-order-list'
+            href: '/purchase-orders/order-list'
           },
           {
             label: dictionary['navigation'].add,
             icon: 'ri-circle-line',
-            href: '/purchase-orders/purchase-order-add'
+            href: '/purchase-orders/order-add'
           }
         ]
       },

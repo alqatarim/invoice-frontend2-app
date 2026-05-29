@@ -104,8 +104,80 @@ frontend/src/views/[module]/
 ├── add[Module]/                  # Add components
 ├── edit[Module]/                 # Edit components
 └── view[Module]/                 # View components
-└── [Module]Schema/               # Schem
+└── [Module]Schema/               # Schema
 ```
+
+### Document Form Refactor Pattern
+For document-style features such as invoices, POS, sales returns, purchases, purchase orders, debit notes, delivery challans, and quotations, prefer the refactored sales return shape. The goal is to avoid duplicated add/edit implementations while keeping mode-specific behavior explicit and readable.
+
+Use this structure when add and edit share the same fields, item table, totals, validation UX, and save flow:
+```
+frontend/src/views/[feature]/
+├── [feature].jsx                  # Shared add/edit form UI
+├── handler.js                     # Shared add/edit form handler
+├── [feature]Columns.jsx           # Shared item table columns
+├── [Feature]Schema.js             # Add/edit schemas
+├── add[Feature]/
+│   ├── index.jsx                  # Snackbar provider + add save action wrapper
+│   └── Add[Feature].jsx           # Thin add screen wrapper
+└── edit[Feature]/
+    ├── index.jsx                  # Snackbar provider + update save action wrapper
+    └── Edit[Feature].jsx          # Thin edit screen wrapper
+```
+
+#### Shared Form Component
+- Keep one shared form component at the feature root when add and edit render the same UI, for example `src/views/salesReturn/salesReturn.jsx`.
+- The shared form receives `mode`, `title`, `documentNumber`, optional `recordId`, server-loaded datasets, `handlers`, and `columnsFactory`.
+- Do not duplicate the full form into add/edit folders just to change labels, initial values, or save behavior.
+- Keep add/edit wrappers thin. They should create the handler with `mode: 'add'` or `mode: 'edit'`, then render the shared form.
+- Page/index files should own the save action and snackbar save lifecycle. UI components should not know backend endpoint details.
+
+#### Shared Handler
+- Prefer one root-level `handler.js` when add/edit behavior is mostly shared, for example `src/views/salesReturn/handler.js`.
+- Export a single default hook such as `useSalesReturnHandler({ mode, ...props })`.
+- Keep mode differences isolated in small helper functions inside the same file:
+  - `buildAddDefaultValues`
+  - `buildEditDefaultValues`
+  - `normalizeEditItem`
+  - `createEmpty[Feature]Item`
+  - `mapPayloadItems`
+  - `buildAddPayload`
+  - `buildEditPayload`
+- Do not create thin barrel/wrapper handler files in `add[Feature]/handler.js` or `edit[Feature]/handler.js` if they only forward to the shared handler.
+- Avoid a giant conditional-heavy hook. Shared row behavior, dialogs, validation error routing, totals recalculation, product filtering/restoring, and save navigation should be common code. Add/edit-only behavior should be named and kept near the top as helper functions.
+- Preserve backend contracts. Add payloads and update payloads may differ; keep those differences explicit in `buildAddPayload` and `buildEditPayload`.
+- Normalize edit data once at the boundary before passing it to React Hook Form. Do not scatter edit-data shape checks across columns and UI components.
+
+#### Shared Columns
+- If add/edit item table cells are the same, use one root-level columns file, for example `src/views/salesReturn/salesReturnColumns.jsx`.
+- Add/edit wrappers should import this columns factory directly and pass it to the shared form. Do not create thin add/edit column wrapper files just to re-export the shared columns.
+- Follow POS item-table UX for document rows where applicable:
+  - Product cell should use searchable `Autocomplete`, not a basic `Select`, when product search matters.
+  - Keep Autocomplete listbox/option components stable at module scope to avoid remount and blur/click issues.
+  - Use compact numeric inputs for quantity, rate, and discount.
+  - Discount type should use a small icon button/menu.
+  - VAT/tax controls can be folded into the total cell when this gives a cleaner row layout.
+  - Keep row action behavior such as Tab on last delete button adding a new row when the feature already supports it.
+- Columns should call handler callbacks only. Do not put persistence, server actions, or backend endpoint details in column files.
+- Keep feature-specific columns standalone when behavior differs meaningfully. Do not re-export POS or invoice columns directly for another document feature.
+
+#### Totals And Actions
+- Use shared totals components where the totals UX matches the feature.
+- For document forms without tendered amount, received amount, or change fields, use the compact one-column totals pattern like `TotalsTwo`.
+- The primary submit/update/complete action should live beneath the totals rows when using the compact summary.
+- Avoid carrying POS-only checkout fields into non-POS document summaries.
+
+#### Snackbar And Validation
+- Document form indexes should wrap content with `FormFeatureSnackbarProvider`.
+- Save handlers in add/edit index files should show persistent loading snackbars, close them when the server action returns, then show success/error snackbars.
+- Route React Hook Form validation errors through the shared notistack validation utility.
+- Do not show document form validation through inline helper text when the established feature pattern uses snackbars.
+- Avoid duplicate validation paths. Let `handleSubmit(handleFormSubmit, handleError)` route validation errors.
+
+#### When Not To Combine Add/Edit
+- Do not force a shared handler or shared form when add and edit have materially different UI, item behavior, payload contracts, permissions, or save flows.
+- If combining creates many nested conditionals, split only the genuinely shared helpers and keep mode-specific files.
+- Prefer one clear shared file over many thin wrapper files. Thin wrappers are only useful when they add real mode-specific setup or readability.
 
 ### Key Development Patterns
 1. **FormData Usage**: All client-server communication uses FormData

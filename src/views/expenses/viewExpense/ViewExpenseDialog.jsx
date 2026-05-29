@@ -17,6 +17,7 @@ import { Icon } from '@iconify/react';
 import { useTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import { formIcons } from '@/data/dataSets';
+import { getNameFromPath, isImageFile, normalizeFileSource } from '@/utils/fileUtils';
 const ViewExpenseDialog = ({
      open,
      expenseData = null,
@@ -28,6 +29,7 @@ const ViewExpenseDialog = ({
 }) => {
      const theme = useTheme();
      const expense = expenseData;
+     const attachmentPreview = normalizeFileSource(expense?.expenseDetails?.attachment);
 
      const handleClose = () => {
           onClose();
@@ -102,7 +104,7 @@ const ViewExpenseDialog = ({
                     ) : expense ? (
                          <Box className="p-6">
                               {/* Expense Attachment */}
-                              {expense.expenseDetails?.attachment && (
+                              {attachmentPreview && (
                                    <Box className="flex justify-center mb-6">
                                         <Box
                                              sx={{
@@ -118,9 +120,9 @@ const ViewExpenseDialog = ({
                                                   overflow: 'hidden'
                                              }}
                                         >
-                                             {expense.expenseDetails.attachment.includes('image') ? (
+                                             {isImageFile(attachmentPreview) ? (
                                                   <img
-                                                       src={expense.expenseDetails.attachment}
+                                                       src={attachmentPreview}
                                                        alt={expense.expenseDetails?.expenseId || 'Expense'}
                                                        style={{
                                                             width: '100%',
@@ -133,7 +135,7 @@ const ViewExpenseDialog = ({
                                                   <Box sx={{ textAlign: 'center' }}>
                                                        <Icon icon="mdi:file-document-outline" width={60} color={theme.palette.primary.main} />
                                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                                            Attachment Available
+                                                            {getNameFromPath(attachmentPreview)}
                                                        </Typography>
                                                   </Box>
                                              )}

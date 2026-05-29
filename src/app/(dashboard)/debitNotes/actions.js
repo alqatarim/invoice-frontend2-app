@@ -31,13 +31,13 @@ const ENDPOINTS = {
 
 const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
 
-export async function getDebitNotesList(page = 1, pageSize = 10) {
+export async function getDebitNotesList(page = 1, pageSize = 10, search = '') {
   try {
     const skipSize = page === 1 ? 0 : (page - 1) * pageSize;
 
 
     const response = await fetchWithAuth(
-      `${ENDPOINTS.DEBIT_NOTE.LIST}?limit=${pageSize}&skip=${skipSize}`
+      `${ENDPOINTS.DEBIT_NOTE.LIST}?limit=${pageSize}&skip=${skipSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`
     );
 
     if (response.code !== 200) {
@@ -130,10 +130,16 @@ export async function getBanks() {
 
 export async function getSignatures() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, CACHE_STABLE_DROPDOWN);
-    return response.data || [];
+    const response = await fetchWithAuth('/pos/bootstrap', { cache: 'no-store' });
+    const employees = response?.data?.cashiers || [];
+    return employees.map(employee => ({
+      ...employee,
+      _id: employee._id || employee.value || employee.id,
+      employeeName: employee.label || employee.fullName || employee.email || 'Employee',
+      signatureName: employee.label || employee.fullName || employee.email || 'Employee',
+    }));
   } catch (error) {
-    console.error('Error fetching signatures:', error);
+    console.error('Error fetching employees:', error);
     return [];
   }
 }
@@ -173,20 +179,13 @@ export async function addDebitNote(data, signatureURL) {
       }
     });
 
+    formData.delete('signatureId');
+    formData.delete('signatureName');
+    formData.delete('signatureImage');
+
     // Ensure required fields are present
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type || 'eSignature');
-
-    // Handle signature
-    if (signatureURL) {
-      try {
-        const blob = await dataURLtoBlob(signatureURL);
-        formData.append('signatureImage', blob, 'signature.png');
-      } catch (error) {
-        console.error('Error processing signature:', error);
-        throw new Error('Failed to process signature');
-      }
-    }
+    formData.append('employee', data.employee || '');
 
     const response = await fetchWithAuth(ENDPOINTS.DEBIT_NOTE.ADD, {
       method: 'POST',
@@ -280,41 +279,7 @@ export async function updateDebitNote(data) {
     formData.append('purchaseOrderDate', data.purchaseOrderDate);
     formData.append('vendorId', data.vendorId);
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type);
-
-    // Handle signature based on type
-    if (data.sign_type === "eSignature") {
-      formData.append("signatureName", data.signatureName || "");
-
-      if (data.signatureImage) {
-        try {
-          if (typeof data.signatureImage === 'string' && data.signatureImage.startsWith('data:image')) {
-            // Handle base64 image
-            const blob = await dataURLtoBlob(data.signatureImage);
-            const file = new File([blob], 'signature.png', { type: 'image/png' });
-            formData.append("signatureImage", file);
-
-          } else if (typeof data.signatureImage === 'string' && data.signatureImage.startsWith('http')) {
-            // Handle image URL
-            const response = await fetch(data.signatureImage);
-            const blob = await response.blob();
-            const file = new File([blob], 'signature.png', { type: 'image/png' });
-            formData.append("signatureImage", file);
-
-          } else if (data.signatureImage instanceof Blob) {
-            // Handle if it's already a Blob
-            const file = new File([data.signatureImage], 'signature.png', { type: 'image/png' });
-            formData.append("signatureImage", file);
-
-          }
-        } catch (error) {
-          console.error('Error processing signature:', error);
-          throw new Error('Failed to process signature: ' + error.message);
-        }
-      }
-    } else {
-      formData.append("signatureId", data.signatureId || "");
-    }
+    formData.append('employee', data.employee || '');
 
     const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.UPDATE}/${data.id}`, {
       method: 'PUT',

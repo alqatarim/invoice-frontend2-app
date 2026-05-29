@@ -179,6 +179,9 @@ async function fetchPurchaseOrdersWithSingleStatus(status, page, pageSize, filte
   if (filters.purchaseOrderId && Array.isArray(filters.purchaseOrderId) && filters.purchaseOrderId.length > 0) {
     url += `&purchaseOrderId=${filters.purchaseOrderId.map(id => encodeURIComponent(id)).join(',')}`;
   }
+  if (filters.search) {
+    url += `&search=${encodeURIComponent(filters.search)}`;
+  }
   if (filters.fromDate) {
     url += `&fromDate=${encodeURIComponent(filters.fromDate)}`;
   }
@@ -242,7 +245,7 @@ export async function searchPurchaseOrders(searchTerm) {
 
 export async function deletePurchaseOrder (id) {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.DELETE}/${id}/softDelete`, {
+    const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.DELETE}/${id}/softdelete`, {
       method: 'PATCH'
     });
 
@@ -307,24 +310,16 @@ export async function clonePurchaseOrder(id) {
       body: {}
     });
 
-
-    // If we have clonedDebitNote directly, it means success
-    if (response.clonedDebitNote) {
-      return {
-        success: true,
-        data: response.clonedDebitNote,
-        message: 'Purchase order cloned successfully'
-      };
-    }
-
-    // If we have a code and it's not 200, it's an error
     if (response.code !== 200) {
       const errorMessage = response.data?.message?.[0] || response.message || 'Failed to clone purchase order';
       throw new Error(errorMessage);
     }
 
-    // Fallback error if no valid response format is found
-    throw new Error('Invalid response format from server');
+    return {
+      success: true,
+      data: response.data,
+      message: response.message || 'Purchase order cloned successfully'
+    };
 
   } catch (error) {
     console.error('Error cloning purchase order:', error);
@@ -388,15 +383,29 @@ export async function getBanks  () {
   }
 };
 
-export async function getSignatures ()  {
+export async function getSignatures() {
   try {
-    const response = await fetchWithAuth('/drop_down/signature', CACHE_STABLE_DROPDOWN);
-    return response.data;
+    const response = await fetchWithAuth('/pos/bootstrap', { cache: 'no-store' });
+    const employees = response?.data?.cashiers || [];
+    return employees.map(employee => ({
+      ...employee,
+      _id: employee._id || employee.value || employee.id,
+      employeeName: employee.label || employee.fullName || employee.email || 'Employee',
+      signatureName: employee.label || employee.fullName || employee.email || 'Employee',
+    }));
   } catch (error) {
-    console.error('Error fetching signatures:', error);
+    console.error('Error fetching employees:', error);
     return [];
   }
 };
+
+export async function printDownloadPurchaseOrder(id) {
+  if (!id) {
+    throw new Error('Purchase order id is required');
+  }
+
+  return `/purchase-orders/order-view/${id}?print=true`;
+}
 
 export async function addPurchaseOrder(data, signatureURL) {
   try {
@@ -437,20 +446,13 @@ export async function addPurchaseOrder(data, signatureURL) {
       }
     });
 
+    formData.delete('signatureId');
+    formData.delete('signatureName');
+    formData.delete('signatureImage');
+
     // Ensure required fields are present
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type || 'eSignature');
-
-    // Handle signature
-    if (signatureURL) {
-      try {
-        const blob = await dataURLtoBlob(signatureURL);
-        formData.append('signatureImage', blob, 'signature.png');
-      } catch (error) {
-        console.error('Error processing signature:', error);
-        throw new Error('Failed to process signature');
-      }
-    }
+    formData.append('employee', data.employee || '');
 
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.ADD, {
       method: 'POST',
@@ -546,18 +548,7 @@ export async function updatePurchaseOrder(id, data, signatureURL) {
     formData.append("bank", data.bank?._id || "");
     formData.append("notes", data.notes);
     formData.append("termsAndCondition", data.termsAndCondition);
-    formData.append("sign_type", data.sign_type);
-
-    // 4. Signature Handling
-    if (data.sign_type === "eSignature") {
-      formData.append("signatureName", data.signatureName || "");
-      if (signatureURL) {
-        const blob = await dataURLtoBlob(signatureURL);
-        formData.append("signatureImage", blob);
-      }
-    } else {
-      formData.append("signatureId", data.signatureId || "");
-    }
+    formData.append("employee", data.employee || "");
 
     // 5. API Call
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.UPDATE}/${id}`, {

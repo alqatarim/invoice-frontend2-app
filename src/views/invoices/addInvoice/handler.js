@@ -11,7 +11,56 @@ import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 import { calculateInvoiceTotals } from '@/utils/salesTotals';
 import { notifyNotistackFormValidationErrors } from '@/utils/notifyNotistackFormValidationErrors';
-const CASHIER_SIGNATURE_STORAGE_KEY = 'addInvoice.cashierSignatureId';
+const CASHIER_STORAGE_KEY = 'addInvoice.cashierId';
+
+const getCashierLabel = cashier => {
+  const joinedName = [cashier?.firstName, cashier?.lastName]
+    .map(part => String(part || '').trim())
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    String(cashier?.label || '').trim() ||
+    String(cashier?.fullName || '').trim() ||
+    String(cashier?.fullname || '').trim() ||
+    joinedName ||
+    String(cashier?.userName || '').trim() ||
+    String(cashier?.email || '').trim() ||
+    'Cashier'
+  );
+};
+
+const normalizeCashierOption = (cashier) => {
+  const id = String(cashier?._id || cashier?.value || cashier?.id || '').trim();
+  if (!id) return null;
+
+  const assignedBranches = Array.isArray(cashier.assignedBranches) ? cashier.assignedBranches : [];
+  const assignedBranchIds = [
+    ...(Array.isArray(cashier.assignedBranchIds) ? cashier.assignedBranchIds : []),
+    ...assignedBranches.map(branch => branch?._id),
+  ]
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+
+  return {
+    ...cashier,
+    _id: id,
+    value: id,
+    label: getCashierLabel(cashier),
+    assignedBranches,
+    assignedBranchIds: [...new Set(assignedBranchIds)],
+  };
+};
+
+const cashierHasBranchAccess = (cashier, branchId) => {
+  const normalizedBranchId = String(branchId || '').trim();
+  if (!normalizedBranchId) return true;
+
+  return (
+    (cashier?.assignedBranchIds || []).some(value => String(value) === normalizedBranchId) ||
+    (cashier?.assignedBranches || []).some(branch => String(branch?._id || '') === normalizedBranchId)
+  );
+};
 
 const createEmptyInvoiceItem = () => ({
   productId: '',
@@ -62,10 +111,9 @@ const buildAddInvoicePayload = (currentFormData) => ({
   notes: currentFormData.notes || '',
   bank: currentFormData.bank || '',
   termsAndCondition: currentFormData.termsAndCondition || '',
-  sign_type: currentFormData.sign_type || 'manualSignature',
-  signatureName: currentFormData.signatureName || '',
-  signatureId: currentFormData.signatureId || '',
-  signatureImage: currentFormData.signatureImage || null,
+  cashierId: currentFormData.cashierId || '',
+  tenderedAmount: currentFormData.tenderedAmount || 0,
+  changeAmount: currentFormData.changeAmount || 0,
   items: (currentFormData.items || []).map((item) => ({
     productId: item.productId,
     name: item.name,
@@ -98,23 +146,17 @@ export default function useAddInvoiceFeatureHandler({
   productData = [],
   taxRates = [],
   initialBanks = [],
-  signatures = [],
+  cashiersData = [],
+  currentUserId = '',
   onSave,
   addBank,
   enqueueSnackbar,
   closeSnackbar,
   schema = InvoiceSchema,
 }) {
-  const signOptions = useMemo(
-    () =>
-      Array.isArray(signatures)
-        ? signatures.map((signature) => ({
-            value: signature?._id,
-            label: signature?.signatureName,
-            ...signature,
-          }))
-        : [],
-    [signatures]
+  const cashierOptions = useMemo(
+    () => (Array.isArray(cashiersData) ? cashiersData.map(normalizeCashierOption).filter(Boolean) : []),
+    [cashiersData]
   );
   const walkInCustomerId = useMemo(
     () =>
@@ -137,6 +179,8 @@ export default function useAddInvoiceFeatureHandler({
     getValues,
     watch,
     trigger,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
@@ -159,10 +203,9 @@ export default function useAddInvoiceFeatureHandler({
       termsAndCondition: '',
       bank: '',
       roundOffValue: 0,
-      sign_type: 'manualSignature',
-      signatureName: '',
-      signatureId: '',
-      signatureImage: null,
+      cashierId: '',
+      tenderedAmount: 0,
+      changeAmount: 0,
       items: [createEmptyInvoiceItem()],
     },
   });
@@ -174,7 +217,15 @@ export default function useAddInvoiceFeatureHandler({
 
   const watchItems = useWatch({ control, name: 'items' });
   const watchRoundOff = useWatch({ control, name: 'roundOff' });
-  const selectedCashierSignatureId = useWatch({ control, name: 'signatureId' });
+  const selectedCashierId = useWatch({ control, name: 'cashierId' });
+  const availableCashiers = useMemo(
+    () => cashierOptions.filter(cashier => cashierHasBranchAccess(cashier, selectedLocationId)),
+    [cashierOptions, selectedLocationId]
+  );
+  const selectedCashier = useMemo(
+    () => cashierOptions.find(option => option._id === selectedCashierId) || null,
+    [cashierOptions, selectedCashierId]
+  );
   const isWalkIn = Boolean(useWatch({ control, name: 'isWalkIn' }));
 
   const [productsCloneData, setProductsCloneData] = useState(productData || []);
@@ -194,28 +245,38 @@ export default function useAddInvoiceFeatureHandler({
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const stored = window.localStorage.getItem(CASHIER_SIGNATURE_STORAGE_KEY);
-    if (!stored) return;
-
-    const current = getValues('signatureId');
-    if (!current) {
-      setValue('signatureId', stored);
-      setValue('sign_type', 'manualSignature');
-    }
-  }, [getValues, setValue]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    if (!selectedCashierSignatureId) {
-      window.localStorage.removeItem(CASHIER_SIGNATURE_STORAGE_KEY);
+    if (!availableCashiers.length) {
+      setValue('cashierId', '');
       return;
     }
 
-    window.localStorage.setItem(CASHIER_SIGNATURE_STORAGE_KEY, selectedCashierSignatureId);
-  }, [selectedCashierSignatureId]);
+    const current = String(getValues('cashierId') || '').trim();
+    const currentCashier = availableCashiers.find(option => option._id === current);
+
+    if (currentCashier) {
+      return;
+    }
+
+    const stored =
+      typeof window !== 'undefined' ? window.localStorage.getItem(CASHIER_STORAGE_KEY) : '';
+    const currentUserCashier = availableCashiers.find(cashier => cashier._id === String(currentUserId || ''));
+    const storedCashier = availableCashiers.find(option => option._id === stored);
+    const nextCashier = currentUserCashier || storedCashier || availableCashiers[0];
+
+    setValue('cashierId', nextCashier?._id || '', { shouldValidate: true });
+  }, [availableCashiers, currentUserId, getValues, setValue]);
+
+  useEffect(() => {
+
+    if (typeof window === 'undefined') return;
+
+    if (!selectedCashierId) {
+      window.localStorage.removeItem(CASHIER_STORAGE_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(CASHIER_STORAGE_KEY, selectedCashierId);
+  }, [selectedCashier, selectedCashierId, setValue]);
 
   useEffect(() => {
     setValue('branchId', selectedLocationId || '', { shouldValidate: true });
@@ -306,6 +367,8 @@ export default function useAddInvoiceFeatureHandler({
       setValue(`items.${index}.${key}`, value);
     });
 
+    clearErrors(`items.${index}`);
+
     setProductsCloneData((prev) => {
       const next = [...prev];
 
@@ -318,7 +381,7 @@ export default function useAddInvoiceFeatureHandler({
 
       return next.filter((entry) => entry._id !== productId);
     });
-  }, [closeSnackbar, enqueueSnackbar, productData, setValue]);
+  }, [clearErrors, closeSnackbar, enqueueSnackbar, productData, setValue]);
 
   const handleDeleteItem = useCallback((index) => {
     const currentItems = getValues('items');
@@ -445,10 +508,9 @@ export default function useAddInvoiceFeatureHandler({
     appendItem(formattedItem);
   }, [appendItem, getValues, setValue, updateCalculatedFields]);
 
-  const handleSignatureSelection = (selected, field) => {
+  const handleCashierSelection = (selected, field) => {
     if (selected) {
       field.onChange(selected._id);
-      setValue('sign_type', 'manualSignature');
       return;
     }
 
@@ -530,19 +592,11 @@ export default function useAddInvoiceFeatureHandler({
     try {
       closeSnackbar();
 
-      const isValid = await trigger();
-      if (!isValid) {
-        notifyNotistackFormValidationErrors({ errors, closeSnackbar, enqueueSnackbar, getValues });
-        return { success: false };
-      }
-
       const currentFormData = {
         ...data,
         invoiceNumber: data.invoiceNumber || initialInvoiceNumber,
         customerId: isWalkIn ? walkInCustomerId : data.customerId,
-        sign_type: data.sign_type || 'manualSignature',
-        signatureId: data.signatureId || '',
-        signatureName: data.signatureName || '',
+        cashierId: data.cashierId || selectedCashier?._id || '',
       };
 
       const result = await onSave(buildAddInvoicePayload(currentFormData));
@@ -603,6 +657,8 @@ export default function useAddInvoiceFeatureHandler({
     handleSubmit,
     watch,
     trigger,
+    setError,
+    clearErrors,
     setValue,
     getValues,
     errors,
@@ -613,7 +669,7 @@ export default function useAddInvoiceFeatureHandler({
     banks,
     newBank,
     setNewBank,
-    signOptions,
+    cashierOptions: availableCashiers,
     paymentMethods,
     notesExpanded,
     termsDialogOpen,
@@ -640,7 +696,7 @@ export default function useAddInvoiceFeatureHandler({
     handleAddEmptyRow,
     handleQuickAddProduct,
     handleAddBank,
-    handleSignatureSelection,
+    handleCashierSelection,
     handleFormSubmit,
     handleError,
     handleMenuItemClick,

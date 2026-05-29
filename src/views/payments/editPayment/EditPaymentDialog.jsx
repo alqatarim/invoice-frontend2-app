@@ -27,15 +27,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { getPaymentDetails, getInvoices } from '@/app/(dashboard)/payments/actions';
 import { useEditPaymentHandlers } from './handler';
-import { formIcons } from '@/data/dataSets';
+import { formIcons, paymentRecordModes } from '@/data/dataSets';
 
-// Must match backend enum: ["Cash", "Cheque", "Online", "Bank"]
-const paymentModes = [
-     { value: 'Cash', label: 'Cash' },
-     { value: 'Cheque', label: 'Cheque' },
-     { value: 'Online', label: 'Online' },
-     { value: 'Bank', label: 'Bank Transfer' }
-];
 
 const EditPaymentDialog = ({ open, paymentId, onClose, onSave, customerOptions = [] }) => {
      const theme = useTheme();
@@ -514,7 +507,7 @@ const EditPaymentDialog = ({ open, paymentId, onClose, onSave, customerOptions =
                                                                            />
                                                                       }
                                                                  >
-                                                                      {paymentModes.map((mode) => (
+                                                                      {paymentRecordModes.map((mode) => (
                                                                            <MenuItem key={mode.value} value={mode.value}>
                                                                                 {mode.label}
                                                                            </MenuItem>

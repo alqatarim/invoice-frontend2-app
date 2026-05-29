@@ -6,7 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import dayjs from 'dayjs'
 
-import { validateExpenseAttachment } from '@/utils/fileUtils'
+import { normalizeFileSource, validateExpenseAttachment } from '@/utils/fileUtils'
 
 const editExpenseSchema = yup.object().shape({
   expenseId: yup.string().required('Expense ID is required'),
@@ -46,7 +46,7 @@ export const useEditExpenseHandlers = ({ expenseData, onSave }) => {
 
   useEffect(() => {
     if (expenseData && typeof expenseData === 'object') {
-      setImagePreview(expenseData.expenseDetails?.attachment || null)
+      setImagePreview(normalizeFileSource(expenseData.expenseDetails?.attachment))
       setSelectedFile(null)
       setImageError('')
 
@@ -74,7 +74,7 @@ export const useEditExpenseHandlers = ({ expenseData, onSave }) => {
       setImageError('')
     } else {
       setImageError(validation.error)
-      setImagePreview(expenseData?.expenseDetails?.attachment || null)
+      setImagePreview(normalizeFileSource(expenseData?.expenseDetails?.attachment))
       setSelectedFile(null)
     }
   }
@@ -123,7 +123,7 @@ export const useEditExpenseHandlers = ({ expenseData, onSave }) => {
         setImageError('')
       } else {
         setImageError(validation.error)
-        setImagePreview(expenseData?.expenseDetails?.attachment || null)
+        setImagePreview(normalizeFileSource(expenseData?.expenseDetails?.attachment))
         setSelectedFile(null)
       }
     }

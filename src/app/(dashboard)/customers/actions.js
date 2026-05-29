@@ -2,7 +2,6 @@
 
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 import { processSignatureImage } from '@/utils/fileUtils';
-import { buildFallbackCustomerSummary } from '@/views/customers/listCustomer/customerSummary';
 
 const ENDPOINTS = {
   CUSTOMER: {
@@ -64,7 +63,6 @@ export async function getInitialCustomerData() {
 
     if (response.code === 200) {
       const customers = response.data || [];
-      const summary = response.summary || buildFallbackCustomerSummary(customers);
 
       return {
         customers,
@@ -73,7 +71,7 @@ export async function getInitialCustomerData() {
           pageSize: 10,
           total: response.totalRecords || customers.length,
         },
-        summary
+        cardCounts: response.summary
       };
     } else {
       console.error('Failed to fetch initial customer data');
@@ -131,9 +129,7 @@ export async function getFilteredCustomers(apiParams) {
       return {
         customers,
         total: response.totalRecords || customers.length,
-        summary:
-          response.summary ||
-          buildFallbackCustomerSummary(customers, apiParams.search_customer || ''),
+        cardCounts: response.summary,
       };
     } else {
       console.error('Failed to fetch filtered customers:', response.message);

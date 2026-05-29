@@ -1,7 +1,6 @@
 'use server';
 
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
-import { processSignatureImage } from '@/utils/fileUtils';
 
 const ENDPOINTS = {
   invoice: {
@@ -12,7 +11,9 @@ const ENDPOINTS = {
   dropdown: {
     product: '/drop_down/product',
     tax: '/drop_down/tax',
-    signature: '/drop_down/signature',
+  },
+  pos: {
+    bootstrap: '/pos/bootstrap',
   },
   bank: {
     list: '/bankSettings/listBanks',
@@ -97,17 +98,20 @@ export async function getBanks() {
   }
 }
 
-export async function getManualSignatures() {
+export async function getInvoiceCashierBootstrap() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.dropdown.signature, CACHE_STABLE_DROPDOWN);
+    const response = await fetchWithAuth(ENDPOINTS.pos.bootstrap, { cache: 'no-store' });
 
     if (response?.code !== 200) {
-      throw new Error(response?.message || 'Failed to fetch manual signatures');
+      throw new Error(response?.message || 'Failed to fetch invoice cashiers');
     }
 
-    return response?.data || [];
+    return {
+      cashiers: response?.data?.cashiers || [],
+      currentUserId: response?.data?.currentUserId || '',
+    };
   } catch (error) {
-    console.error('Error fetching invoice signatures:', error);
+    console.error('Error fetching invoice cashiers:', error);
     throw error;
   }
 }
@@ -225,34 +229,17 @@ export async function addInvoice(invoiceData) {
   formData.append('referenceNo', invoiceData?.referenceNo || '');
   formData.append('taxableAmount', invoiceData?.taxableAmount || 0);
   formData.append('TotalAmount', invoiceData?.TotalAmount || 0);
+  formData.append('tenderedAmount', invoiceData?.tenderedAmount || 0);
+  formData.append('changeAmount', invoiceData?.changeAmount || 0);
   formData.append('vat', invoiceData?.vat || 0);
   formData.append('totalDiscount', invoiceData?.totalDiscount || 0);
   formData.append('roundOff', invoiceData?.roundOff || false);
   formData.append('bank', invoiceData?.bank || '');
   formData.append('notes', invoiceData?.notes || '');
   formData.append('termsAndCondition', invoiceData?.termsAndCondition || '');
-  formData.append('sign_type', invoiceData?.sign_type || 'manualSignature');
+  formData.append('cashierId', invoiceData?.cashierId || '');
   formData.append('isRecurring', false);
   formData.append('recurringCycle', '0');
-
-  if (invoiceData?.sign_type === 'eSignature') {
-    formData.append('signatureName', invoiceData?.signatureName || '');
-
-    if (invoiceData?.signatureImage) {
-      try {
-        const signatureFile = await processSignatureImage(invoiceData.signatureImage);
-
-        if (signatureFile) {
-          formData.append('signatureImage', signatureFile);
-        }
-      } catch (error) {
-        console.error('Error processing invoice signature:', error);
-        throw new Error(`Failed to process signature: ${error.message}`);
-      }
-    }
-  } else {
-    formData.append('signatureId', invoiceData?.signatureId || '');
-  }
 
   try {
     const response = await fetchWithAuth(ENDPOINTS.invoice.add, {

@@ -6,6 +6,21 @@ export const paymentMethods = [
 	{ value: "Online", label: "Online" },
 ];
 
+export const paymentRecordModes = [
+	{ value: "Cash", label: "Cash" },
+	{ value: "Cheque", label: "Cheque" },
+	{ value: "Online", label: "Online" },
+	{ value: "Bank", label: "Bank Transfer" },
+];
+
+export const quotationPaymentMethodOptions = [
+	...paymentMethods,
+	{ value: "Credit Card", label: "Credit Card" },
+	{ value: "Debit Card", label: "Debit Card" },
+	{ value: "Bank Transfer", label: "Bank Transfer" },
+	{ value: "Check", label: "Check" },
+];
+
 export const dashboardFilters = [
 	{ value: "all", label: "All Time", apiValue: "" },
 	{ value: "week", label: "This Week", apiValue: "week" },
@@ -59,6 +74,28 @@ export const dashboardHeroStatCards = [
 		color: "success",
 	},
 ];
+
+// Sections rendered inside the dashboard's unified top list panel.
+export const dashboardTopListSections = [
+	{ key: "products", label: "Top Products", icon: "ri-archive-line", color: "primary" },
+	{ key: "customers", label: "Top Customers", icon: "ri-user-star-line", color: "info" },
+	{ key: "stock", label: "Stock Alert", icon: "ri-alarm-warning-line", color: "warning" },
+];
+
+// Shared cubic-bezier easing curve used across dashboard motion components.
+export const dashboardEasing = [0.22, 1, 0.36, 1];
+
+// Fallback MUI palette key per invoice status. Used when statusOptions does
+// not declare a color for a given status (e.g. legacy/unknown statuses).
+export const invoiceStatusFallbackColors = {
+	PAID: "success",
+	DRAFTED: "secondary",
+	OVERDUE: "error",
+	PARTIALLY_PAID: "warning",
+	SENT: "info",
+	UNPAID: "warning",
+	REFUND: "secondary",
+};
 
 export const expensePaymentModeOptions = [
 	{ label: "Cash", value: "Cash" },
@@ -179,6 +216,12 @@ export const productTabs = [
 	{ value: "PRODUCT", label: "Products" },
 	{ value: "CATEGORY", label: "Categories" },
 	{ value: "UNIT", label: "Units" },
+];
+
+export const productNavigationTabs = [
+	{ key: "products", label: "Products", href: "/products/product-list" },
+	{ key: "categories", label: "Categories", href: "/categories/category-list" },
+	{ key: "units", label: "Units", href: "/units/unit-list" },
 ];
 
 export const productStatusOptions = [

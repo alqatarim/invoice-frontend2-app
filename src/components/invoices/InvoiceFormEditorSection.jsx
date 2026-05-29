@@ -26,7 +26,7 @@ import CustomIconButton from '@core/components/mui/CustomIconButton';
 import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
 import CustomerAutocomplete from '@/components/custom-components/CustomerAutocomplete';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
-import InvoiceTotals from '@/components/custom-components/InvoiceTotals';
+import { Totals } from '@/components/totals';
 
 const InvoiceFormEditorSection = ({
   controller,
@@ -434,7 +434,7 @@ const InvoiceFormEditorSection = ({
     </Grid>
 
     <Grid size={{ xs: 12, lg: 2.5 }}>
-      <InvoiceTotals
+      <Totals
         control={controller.control}
         handleSubmit={controller.handleSubmit}
         handleFormSubmit={controller.handleFormSubmit}

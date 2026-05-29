@@ -34,7 +34,7 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
     sortable: true,
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-        {row.createdAt ? formatDate(row.createdAt) : 'N/A'}
+        {row.credit_note_date ? moment(row.credit_note_date).format('DD MMM YY') : 'N/A'}
       </Typography>
     ),
   },

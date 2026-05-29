@@ -160,6 +160,7 @@ export async function updateExpense(data) {
 
     // Append all fields manually to match old implementation
     formData.append('_id', data.id);
+    formData.append('expenseId', data.expenseId || '');
     formData.append('reference', data.reference || '');
     formData.append('amount', Number(data.amount).toString());
     formData.append('paymentMode', data.paymentMode?.value || data.paymentMode);

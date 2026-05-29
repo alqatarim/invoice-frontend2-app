@@ -3,12 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button, ButtonGroup } from '@mui/material';
-
-const navigationTabs = [
-  { key: 'products', label: 'Products', href: '/products/product-list' },
-  { key: 'categories', label: 'Categories', href: '/categories/category-list' },
-  { key: 'units', label: 'Units', href: '/units/unit-list' },
-];
+import { productNavigationTabs } from '@/data/dataSets';
 
 const ProductNavigationButtons = ({ activeTab = 'products' }) => (
   <div className='flex justify-center mt-6 mb-3'>
@@ -18,7 +13,7 @@ const ProductNavigationButtons = ({ activeTab = 'products' }) => (
       color='primary'
       sx={{ '& .MuiButton-root': { width: 120 } }}
     >
-      {navigationTabs.map(tab => {
+      {productNavigationTabs.map(tab => {
         const isActive = tab.key === activeTab;
 
         return (

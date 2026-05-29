@@ -28,9 +28,32 @@ export function useDashboardHandler({
 	);
 
 	const [filteredDashboardData, setFilteredDashboardData] = useState(null);
-	const [selectedBranchId, setSelectedBranchId] = useState(initialBranchId || '');
-	const [appliedDateRange, setAppliedDateRange] = useState(initialRange);
-	const [draftDateRange, setDraftDateRange] = useState(initialRange);
+	const [selectedBranchId, setSelectedBranchIdState] = useState(initialBranchId || '');
+	const [appliedDateRange, setAppliedDateRangeState] = useState(initialRange);
+	const [draftDateRange, setDraftDateRangeState] = useState(initialRange);
+
+	// Setters that bail out when the next value matches the current one. This
+	// keeps the dashboard tree from re-rendering on equivalent updates (e.g.
+	// reapplying the same date range or branch).
+	const setSelectedBranchId = useCallback((nextBranchId) => {
+		setSelectedBranchIdState((prev) => (prev === nextBranchId ? prev : nextBranchId));
+	}, []);
+
+	const setAppliedDateRange = useCallback((nextRange) => {
+		setAppliedDateRangeState((prev) =>
+			prev.fromDate === nextRange.fromDate && prev.toDate === nextRange.toDate
+				? prev
+				: nextRange
+		);
+	}, []);
+
+	const setDraftDateRange = useCallback((nextRange) => {
+		setDraftDateRangeState((prev) =>
+			prev.fromDate === nextRange.fromDate && prev.toDate === nextRange.toDate
+				? prev
+				: nextRange
+		);
+	}, []);
 	const [productsTab, setProductsTab] = useState('all');
 	const [customersTab, setCustomersTab] = useState('all');
 	const [financeTab, setFinanceTab] = useState('sales');
@@ -53,7 +76,7 @@ export function useDashboardHandler({
 		setProductsTab('all');
 		setCustomersTab('all');
 		setFinanceTab('sales');
-	}, [initialBranchId, initialRange]);
+	}, [initialBranchId, initialRange, setAppliedDateRange, setDraftDateRange, setSelectedBranchId]);
 
 	const hasActiveDateRange = Boolean(appliedDateRange.fromDate && appliedDateRange.toDate);
 	const dateRangeLabel = hasActiveDateRange
@@ -171,13 +194,18 @@ export function useDashboardHandler({
 		setDraftDateRange(appliedDateRange);
 	};
 
-	const handleRefresh = async () => {
+	const handleRefresh = useCallback(async () => {
 		await loadDashboardData({
 			nextBranchId: selectedBranchId,
 			nextFromDate: appliedDateRange.fromDate,
 			nextToDate: appliedDateRange.toDate,
 		});
-	};
+	}, [
+		appliedDateRange.fromDate,
+		appliedDateRange.toDate,
+		loadDashboardData,
+		selectedBranchId,
+	]);
 
 	const closeSnackbar = () => {
 		setSnackbar(DEFAULT_SNACKBAR);

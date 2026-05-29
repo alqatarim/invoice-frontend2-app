@@ -1,12 +1,10 @@
 'use client';
 
 import React, { useCallback } from 'react';
-import { IconButton } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Icon } from '@iconify/react';
-import { SnackbarProvider, closeSnackbar, useSnackbar } from 'notistack';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
-import AppSnackbar from '@/components/shared/AppSnackbar';
 import InvoiceTermsDialog from '@/components/invoices/InvoiceTermsDialog';
 import EditInvoice from './EditInvoice';
 import useEditInvoiceFeatureHandler from './handler';
@@ -18,7 +16,8 @@ const EditInvoiceContent = ({
   initialProductData = [],
   initialTaxRates = [],
   initialBanks = [],
-  initialSignatures = [],
+  initialCashiers = [],
+  initialCurrentUserId = '',
   initialBranchesData = [],
 }) => {
   const theme = useTheme();
@@ -70,7 +69,8 @@ const EditInvoiceContent = ({
     productData: initialProductData,
     taxRates: initialTaxRates,
     initialBanks,
-    signatures: initialSignatures,
+    cashiersData: initialCashiers,
+    currentUserId: initialCurrentUserId,
     branchesData: initialBranchesData,
     onSave: handleUpdate,
     addBank,
@@ -94,40 +94,15 @@ const EditInvoiceContent = ({
         handleAddBank={controller.handleAddBank}
       />
 
-      <AppSnackbar
-        open={controller.snackbar.open}
-        message={controller.snackbar.message}
-        severity={controller.snackbar.severity}
-        onClose={() => controller.setSnackbar((current) => ({ ...current, open: false }))}
-        autoHideDuration={3000}
-      />
-
       <InvoiceTermsDialog controller={controller} theme={theme} />
     </>
   );
 };
 
-const EditInvoiceIndex = (props) => {
-  const snackbarAction = (snackbarId) => (
-    <IconButton onClick={() => closeSnackbar(snackbarId)}>
-      <Icon icon='mdi:close' width={25} />
-    </IconButton>
-  );
-
-  return (
-    <SnackbarProvider
-      maxSnack={7}
-      autoHideDuration={5000}
-      preventDuplicate
-      action={snackbarAction}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-    >
-      <EditInvoiceContent {...props} />
-    </SnackbarProvider>
-  );
-};
+const EditInvoiceIndex = (props) => (
+  <FormFeatureSnackbarProvider>
+    <EditInvoiceContent {...props} />
+  </FormFeatureSnackbarProvider>
+);
 
 export default EditInvoiceIndex;

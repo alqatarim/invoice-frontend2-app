@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 
-import { formatCurrency } from '../utils';
+import { formatCurrency } from './utils';
 
 const AccountingReportTable = ({
   title,

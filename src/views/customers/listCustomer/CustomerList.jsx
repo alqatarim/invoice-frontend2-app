@@ -24,12 +24,11 @@ import { getCustomerColumns } from './customerColumns'
 import { usePermission } from '@/Auth/usePermission'
 import CustomerHead from '@/views/customers/listCustomer/customerHead'
 import { useCustomerListHandler } from './handler'
-import { getDefaultCustomerSummary } from './customerSummary'
 
 const CustomerList = ({
   initialCustomers = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
-  initialSummary = getDefaultCustomerSummary(),
+  initialCardCounts,
 }) => {
   const theme = useTheme()
   const { enqueueSnackbar } = useSnackbar()
@@ -71,7 +70,6 @@ const CustomerList = ({
   const handler = useCustomerListHandler({
     initialCustomers,
     initialPagination,
-    initialSummary,
     initialSortBy: 'createdAt',
     initialSortDirection: 'desc',
     onError,
@@ -115,7 +113,7 @@ const CustomerList = ({
   return (
     <Box className='flex flex-col gap-5'>
       <CustomerHead
-        summary={handler.summary}
+        customerListData={initialCardCounts}
       />
 
       <CustomListTable

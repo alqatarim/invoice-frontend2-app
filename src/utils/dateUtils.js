@@ -28,3 +28,12 @@ export function formatDateForInput(dateString) {
 export function parseDateForSubmission(dateString) {
   return dateString ? dayjs(dateString).toISOString() : null;
 }
+
+export function formatDateTime(value) {
+  if (!value) return '—';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '—';
+
+  return parsed.toLocaleString();
+}

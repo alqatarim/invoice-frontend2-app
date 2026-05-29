@@ -8,7 +8,6 @@ import {
   deleteCustomer,
   getFilteredCustomers,
 } from '@/app/(dashboard)/customers/actions';
-import { getDefaultCustomerSummary } from './customerSummary';
 
 const DEFAULT_PAGINATION = {
   current: 1,
@@ -19,7 +18,6 @@ const DEFAULT_PAGINATION = {
 export function useCustomerListHandler({
   initialCustomers = [],
   initialPagination = DEFAULT_PAGINATION,
-  initialSummary = getDefaultCustomerSummary(),
   initialSortBy = 'createdAt',
   initialSortDirection = 'desc',
   onError,
@@ -29,7 +27,6 @@ export function useCustomerListHandler({
 
   const [customers, setCustomers] = useState(initialCustomers);
   const [pagination, setPagination] = useState(initialPagination);
-  const [summary, setSummary] = useState(initialSummary);
   const [sortBy, setSortBy] = useState(initialSortBy);
   const [sortDirection, setSortDirection] = useState(initialSortDirection);
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,7 +84,6 @@ export function useCustomerListHandler({
         });
 
         setCustomers(result?.customers || []);
-        setSummary(result?.summary || getDefaultCustomerSummary());
         setPagination({
           current: page,
           pageSize,
@@ -335,7 +331,6 @@ export function useCustomerListHandler({
   return {
     customers: customersWithIndex,
     pagination,
-    summary,
     sortBy,
     sortDirection,
     searchTerm,

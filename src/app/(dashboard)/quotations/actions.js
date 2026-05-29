@@ -9,7 +9,7 @@ const ENDPOINTS = {
     LIST: '/quotation/quotationList',
     ADD: '/quotation/addQuotation',
     VIEW: '/quotation/viewQuotation',
-    UPDATE: '/quotation/updateQuotation',
+    UPDATE: '/quotation',
     DELETE: '/quotation/deleteQuotation',
     GET_QUOTATION_NUMBER: '/quotation/getQuotationNumber',
     UPDATE_STATUS: '/quotation/update_status'
@@ -23,6 +23,49 @@ const ENDPOINTS = {
 };
 
 const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
+const appendQuotationFormData = (formData, data = {}) => {
+  const items = Array.isArray(data.items) ? data.items : [];
+
+  items.forEach((item, index) => {
+    Object.entries(item || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      const nextValue = key === 'taxInfo' && typeof value !== 'string'
+        ? JSON.stringify(value)
+        : value;
+
+      formData.append(`items[${index}][${key}]`, nextValue);
+    });
+  });
+
+  formData.append('quotation_id', data.quotation_id || data.quotationNumber || '');
+  formData.append('customerId', data.customerId || '');
+  formData.append(
+    'quotation_date',
+    data.quotation_date || data.date || data.quotationDate
+      ? dayjs(data.quotation_date || data.date || data.quotationDate).toISOString()
+      : ''
+  );
+  formData.append(
+    'due_date',
+    data.due_date || data.expiryDate || data.dueDate
+      ? dayjs(data.due_date || data.expiryDate || data.dueDate).toISOString()
+      : ''
+  );
+  formData.append('reference_no', data.reference_no || data.referenceNo || '');
+  formData.append('discountType', data.discountType || '3');
+  formData.append('discount', Number(data.discount || 0).toString());
+  formData.append('tax', Number(data.tax || data.totalTax || data.vat || 0).toString());
+  formData.append('taxableAmount', Number(data.taxableAmount || data.subTotal || 0).toString());
+  formData.append('totalDiscount', Number(data.totalDiscount || 0).toString());
+  formData.append('vat', Number(data.vat || data.totalTax || 0).toString());
+  formData.append('roundOff', Boolean(data.roundOff));
+  formData.append('TotalAmount', Number(data.TotalAmount || data.totalAmount || 0).toString());
+  formData.append('bank', data.bank || '');
+  formData.append('notes', data.notes || '');
+  formData.append('termsAndCondition', data.termsAndCondition || data.termsAndConditions || '');
+  formData.append('employee', data.employee || '');
+};
 
 export async function getQuotationsList(page = 1, pageSize = 10, filters = {}) {
   try {
@@ -40,6 +83,9 @@ export async function getQuotationsList(page = 1, pageSize = 10, filters = {}) {
 
     if (filters.status && filters.status.length > 0) {
       queryParams.push(`status=${filters.status.join(',')}`);
+    }
+    if (filters.search) {
+      queryParams.push(`search=${encodeURIComponent(filters.search)}`);
     }
 
     const response = await fetchWithAuth(
@@ -118,31 +164,7 @@ export async function getQuotationDetails(id) {
 export async function addQuotation(data) {
   try {
     const formData = new FormData();
-
-    // Append all required fields
-    formData.append('quotationNumber', data.quotationNumber);
-    formData.append('customerId', data.customerId);
-    formData.append('customerName', data.customerName || '');
-    formData.append('subject', data.subject || '');
-    formData.append('date', data.date ? dayjs(data.date).format('YYYY-MM-DD') : '');
-    formData.append('expiryDate', data.expiryDate ? dayjs(data.expiryDate).format('YYYY-MM-DD') : '');
-    formData.append('status', data.status || 'DRAFTED');
-    formData.append('subTotal', data.subTotal || 0);
-    formData.append('totalAmount', data.totalAmount || 0);
-    formData.append('totalDiscount', data.totalDiscount || 0);
-    formData.append('totalTax', data.totalTax || 0);
-    formData.append('notes', data.notes || '');
-    formData.append('termsAndConditions', data.termsAndConditions || '');
-
-    // Append items as JSON string
-    if (data.items && data.items.length > 0) {
-      formData.append('items', JSON.stringify(data.items));
-    }
-
-    // If there's a signature, append it
-    if (data.signature) {
-      formData.append('signature', data.signature);
-    }
+    appendQuotationFormData(formData, data);
 
     const response = await fetchWithAuth(ENDPOINTS.QUOTATION.ADD, {
       method: 'POST',
@@ -174,30 +196,7 @@ export const createQuotation = addQuotation;
 export async function updateQuotation(id, data) {
   try {
     const formData = new FormData();
-
-    // Append all required fields
-    formData.append('quotationNumber', data.quotationNumber);
-    formData.append('customerId', data.customerId);
-    formData.append('subject', data.subject || '');
-    formData.append('date', data.date ? dayjs(data.date).format('YYYY-MM-DD') : '');
-    formData.append('expiryDate', data.expiryDate ? dayjs(data.expiryDate).format('YYYY-MM-DD') : '');
-    formData.append('status', data.status || 'DRAFTED');
-    formData.append('subTotal', data.subTotal || 0);
-    formData.append('totalAmount', data.totalAmount || 0);
-    formData.append('totalDiscount', data.totalDiscount || 0);
-    formData.append('totalTax', data.totalTax || 0);
-    formData.append('notes', data.notes || '');
-    formData.append('termsAndConditions', data.termsAndConditions || '');
-
-    // Append items as JSON string
-    if (data.items && data.items.length > 0) {
-      formData.append('items', JSON.stringify(data.items));
-    }
-
-    // If there's a signature, append it
-    if (data.signature) {
-      formData.append('signature', data.signature);
-    }
+    appendQuotationFormData(formData, data);
 
     const response = await fetchWithAuth(`${ENDPOINTS.QUOTATION.UPDATE}/${id}`, {
       method: 'PUT',
@@ -230,7 +229,9 @@ export async function updateQuotation(id, data) {
 export async function getQuotationNumber() {
   try {
     const response = await fetchWithAuth(ENDPOINTS.QUOTATION.GET_QUOTATION_NUMBER);
-    return response.data;
+    return {
+      quotationNumber: response.data,
+    };
   } catch (error) {
     console.error('Error fetching quotation number:', error);
     throw error;
@@ -378,10 +379,16 @@ export async function getBanks() {
 
 export async function getSignatures() {
   try {
-    const response = await fetchWithAuth('/drop_down/signature', CACHE_STABLE_DROPDOWN);
-    return response.data || [];
+    const response = await fetchWithAuth('/pos/bootstrap', { cache: 'no-store' });
+    const employees = response?.data?.cashiers || [];
+    return employees.map(employee => ({
+      ...employee,
+      _id: employee._id || employee.value || employee.id,
+      employeeName: employee.label || employee.fullName || employee.email || 'Employee',
+      signatureName: employee.label || employee.fullName || employee.email || 'Employee',
+    }));
   } catch (error) {
-    console.error('Error fetching signatures:', error);
+    console.error('Error fetching employees:', error);
     return [];
   }
 }

@@ -304,7 +304,7 @@ const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
             )}
 
             {/* Signature */}
-            {deliveryChallanData?.signatureImage && (
+            {deliveryChallanData?.employeeImage && (
               <>
                 <Divider sx={{ my: 4 }} />
 
@@ -315,15 +315,15 @@ const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
 
                   <Box className='mb-2'>
                     <img
-                      src={deliveryChallanData.signatureImage}
+                      src={deliveryChallanData.employeeImage}
                       alt="Signature"
                       style={{ maxHeight: '80px', maxWidth: '200px' }}
                     />
                   </Box>
 
-                  {deliveryChallanData?.signatureName && (
+                  {deliveryChallanData?.employeeName && (
                     <Typography variant="body2" color="text.secondary">
-                      {deliveryChallanData.signatureName}
+                      {deliveryChallanData.employeeName}
                     </Typography>
                   )}
                 </Box>

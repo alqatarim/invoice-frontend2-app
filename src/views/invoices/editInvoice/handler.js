@@ -42,6 +42,55 @@ const createEmptyInvoiceItem = () => ({
   scaleBarcodeSummary: '',
 });
 
+const getCashierLabel = cashier => {
+  const joinedName = [cashier?.firstName, cashier?.lastName]
+    .map(part => String(part || '').trim())
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    String(cashier?.label || '').trim() ||
+    String(cashier?.fullName || '').trim() ||
+    String(cashier?.fullname || '').trim() ||
+    joinedName ||
+    String(cashier?.userName || '').trim() ||
+    String(cashier?.email || '').trim() ||
+    'Cashier'
+  );
+};
+
+const normalizeCashierOption = (cashier) => {
+  const id = String(cashier?._id || cashier?.value || cashier?.id || '').trim();
+  if (!id) return null;
+
+  const assignedBranches = Array.isArray(cashier.assignedBranches) ? cashier.assignedBranches : [];
+  const assignedBranchIds = [
+    ...(Array.isArray(cashier.assignedBranchIds) ? cashier.assignedBranchIds : []),
+    ...assignedBranches.map(branch => branch?._id),
+  ]
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+
+  return {
+    ...cashier,
+    _id: id,
+    value: id,
+    label: getCashierLabel(cashier),
+    assignedBranches,
+    assignedBranchIds: [...new Set(assignedBranchIds)],
+  };
+};
+
+const cashierHasBranchAccess = (cashier, branchId) => {
+  const normalizedBranchId = String(branchId || '').trim();
+  if (!normalizedBranchId) return true;
+
+  return (
+    (cashier?.assignedBranchIds || []).some(value => String(value) === normalizedBranchId) ||
+    (cashier?.assignedBranches || []).some(branch => String(branch?._id || '') === normalizedBranchId)
+  );
+};
+
 const normalizePaymentMethod = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
 
@@ -96,10 +145,9 @@ const buildEditInvoicePayload = (currentFormData) => ({
   notes: currentFormData.notes || '',
   bank: currentFormData.bank || '',
   termsAndCondition: currentFormData.termsAndCondition || '',
-  sign_type: currentFormData.sign_type || 'manualSignature',
-  signatureName: currentFormData.signatureName || '',
-  signatureId: currentFormData.signatureId || '',
-  signatureImage: currentFormData.signatureImage || null,
+  cashierId: currentFormData.cashierId || '',
+  tenderedAmount: currentFormData.tenderedAmount || 0,
+  changeAmount: currentFormData.changeAmount || 0,
   items: (currentFormData.items || []).map((item) => ({
     productId: item.productId,
     name: item.name,
@@ -132,7 +180,8 @@ export default function useEditInvoiceFeatureHandler({
   productData = [],
   taxRates = [],
   initialBanks = [],
-  signatures = [],
+  cashiersData = [],
+  currentUserId = '',
   onSave,
   addBank,
   enqueueSnackbar,
@@ -147,16 +196,9 @@ export default function useEditInvoiceFeatureHandler({
     return mapped.length ? mapped : [createEmptyInvoiceItem()];
   }, [initialInvoiceData?.items]);
 
-  const signOptions = useMemo(
-    () =>
-      Array.isArray(signatures)
-        ? signatures.map((signature) => ({
-            value: signature?._id,
-            label: signature?.signatureName,
-            ...signature,
-          }))
-        : [],
-    [signatures]
+  const cashierOptions = useMemo(
+    () => (Array.isArray(cashiersData) ? cashiersData.map(normalizeCashierOption).filter(Boolean) : []),
+    [cashiersData]
   );
   const walkInCustomerId = useMemo(
     () =>
@@ -200,15 +242,14 @@ export default function useEditInvoiceFeatureHandler({
       termsAndCondition: initialInvoiceData?.termsAndCondition || '',
       bank: initialInvoiceData?.bank?._id || initialInvoiceData?.bank || '',
       roundOffValue: Number(initialInvoiceData?.roundOffValue || 0),
-      sign_type: 'manualSignature',
-      signatureName: initialInvoiceData?.signatureName || '',
-      signatureId: initialInvoiceData?.signatureId?._id || initialInvoiceData?.signatureId || '',
-      signatureImage: null,
+      cashierId: initialInvoiceData?.cashierId?._id || initialInvoiceData?.cashierId || '',
+      tenderedAmount: Number(initialInvoiceData?.tenderedAmount || 0),
+      changeAmount: Number(initialInvoiceData?.changeAmount || 0),
       items: initialItems,
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control,
     name: 'items',
   });
@@ -216,6 +257,15 @@ export default function useEditInvoiceFeatureHandler({
   const watchItems = useWatch({ control, name: 'items' });
   const watchRoundOff = useWatch({ control, name: 'roundOff' });
   const watchInvoiceNumber = useWatch({ control, name: 'invoiceNumber' });
+  const selectedCashierId = useWatch({ control, name: 'cashierId' });
+  const availableCashiers = useMemo(
+    () => cashierOptions.filter(cashier => cashierHasBranchAccess(cashier, selectedLocationId)),
+    [cashierOptions, selectedLocationId]
+  );
+  const selectedCashier = useMemo(
+    () => cashierOptions.find(option => option._id === selectedCashierId) || null,
+    [cashierOptions, selectedCashierId]
+  );
   const isWalkIn = Boolean(useWatch({ control, name: 'isWalkIn' }));
 
   const [productsCloneData, setProductsCloneData] = useState(() => {
@@ -251,6 +301,27 @@ export default function useEditInvoiceFeatureHandler({
     setValue('TotalAmount', totals.TotalAmount);
     setValue('roundOffValue', totals.roundOffValue);
   }, [setValue, watchItems, watchRoundOff]);
+
+  useEffect(() => {
+    if (!availableCashiers.length) {
+      setValue('cashierId', '');
+      return;
+    }
+
+    const current = String(getValues('cashierId') || '').trim();
+    const currentCashier = availableCashiers.find(option => option._id === current);
+    if (currentCashier) {
+      return;
+    }
+
+    const currentUserCashier = availableCashiers.find(cashier => cashier._id === String(currentUserId || ''));
+    const nextCashier = currentUserCashier || availableCashiers[0];
+
+    setValue('cashierId', nextCashier?._id || '', { shouldValidate: true });
+  }, [availableCashiers, currentUserId, getValues, setValue]);
+
+  useEffect(() => {
+  }, [selectedCashier, setValue]);
 
   const updateCalculatedFields = useCallback((index, values) => {
     const computed = calculateItemValues(values);
@@ -367,14 +438,32 @@ export default function useEditInvoiceFeatureHandler({
     [getValues, productData, remove]
   );
 
+  const clearItems = useCallback(() => {
+    replace([]);
+    setProductsCloneData(Array.isArray(productData) ? productData : []);
+  }, [productData, replace]);
+
+  const appendItem = useCallback((item = {}) => {
+    const nextItem = {
+      ...createEmptyInvoiceItem(),
+      ...item,
+      key: item?.key || Date.now(),
+    };
+
+    append(nextItem);
+
+    if (nextItem.productId) {
+      setProductsCloneData((prev) => prev.filter((entry) => entry?._id !== nextItem.productId));
+    }
+  }, [append]);
+
   const handleAddEmptyRow = useCallback(() => {
     append(createEmptyInvoiceItem());
   }, [append]);
 
-  const handleSignatureSelection = (selected, field) => {
+  const handleCashierSelection = (selected, field) => {
     if (selected) {
       field.onChange(selected._id);
-      setValue('sign_type', 'manualSignature');
       return;
     }
 
@@ -456,18 +545,10 @@ export default function useEditInvoiceFeatureHandler({
     try {
       closeSnackbar();
 
-      const isValid = await trigger();
-      if (!isValid) {
-        notifyNotistackFormValidationErrors({ errors, closeSnackbar, enqueueSnackbar, getValues });
-        return { success: false };
-      }
-
       const currentFormData = {
         ...data,
         customerId: isWalkIn ? walkInCustomerId : data.customerId,
-        sign_type: data.sign_type || 'manualSignature',
-        signatureId: data.signatureId || '',
-        signatureName: data.signatureName || '',
+        cashierId: data.cashierId || selectedCashier?._id || '',
       };
 
       const result = await onSave(buildEditInvoicePayload(currentFormData));
@@ -537,7 +618,7 @@ export default function useEditInvoiceFeatureHandler({
     banks,
     newBank,
     setNewBank,
-    signOptions,
+    cashierOptions: availableCashiers,
     paymentMethods,
     notesExpanded,
     termsDialogOpen,
@@ -558,9 +639,11 @@ export default function useEditInvoiceFeatureHandler({
     handleClearAppliedPromotion,
     handleClearScaleBarcode,
     handleDeleteItem,
+    clearItems,
+    appendItem,
     handleAddEmptyRow,
     handleAddBank,
-    handleSignatureSelection,
+    handleCashierSelection,
     handleFormSubmit,
     handleError,
     handleMenuItemClick,

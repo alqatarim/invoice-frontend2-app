@@ -4,6 +4,39 @@ const DEFAULT_ITEM_FIELD_KEY = 'items';
 
 const defaultGetItemLabel = (item, index) => item?.name || `Item ${index + 1}`;
 
+const INTERNAL_ITEM_FIELD_KEYS = new Set([
+  'form_updated_rate',
+  'form_updated_discount',
+  'form_updated_discounttype',
+  'form_updated_tax',
+  'isRateFormUpadted',
+  'key',
+  'images',
+  'promotionMeta',
+  'promotionAutoApplied',
+  'promotionSummary',
+  'scaleBarcodeMeta',
+  'scaleBarcodeSummary',
+  'taxableAmount',
+  'barcode',
+  'unit',
+]);
+
+const getValidationMessage = (fieldError) => {
+  const message = String(fieldError?.message || '').trim();
+  if (!message) return null;
+
+  if (
+    message.includes('form_updated_')
+    || message.includes('isRateFormUpadted')
+    || /must be a `number` type, but the final value was: `NaN`/i.test(message)
+  ) {
+    return null;
+  }
+
+  return message;
+};
+
 export function notifyNotistackFormValidationErrors({
   errors,
   closeSnackbar,
@@ -13,7 +46,7 @@ export function notifyNotistackFormValidationErrors({
   getItemLabel = defaultGetItemLabel,
   delayMs = 200,
 }) {
-  closeSnackbar();
+  closeSnackbar?.();
 
   setTimeout(() => {
     const errorEntries = Object.entries(errors || {});
@@ -28,6 +61,7 @@ export function notifyNotistackFormValidationErrors({
           enqueueSnackbar(error.message, {
             variant: 'error',
             preventDuplicate: true,
+            autoHideDuration: 5000,
             key: `error-${itemFieldKey}-${Date.now()}`,
           });
         }
@@ -40,11 +74,15 @@ export function notifyNotistackFormValidationErrors({
           const itemLabel = getItemLabel(itemValues[index], index);
 
           Object.entries(itemError).forEach(([fieldKey, fieldError]) => {
-            if (!fieldError?.message) return;
+            if (INTERNAL_ITEM_FIELD_KEYS.has(fieldKey)) return;
 
-            enqueueSnackbar(`${itemLabel}: ${fieldError.message}`, {
+            const message = getValidationMessage(fieldError);
+            if (!message) return;
+
+            enqueueSnackbar(`${itemLabel}: ${message}`, {
               variant: 'error',
               preventDuplicate: true,
+              autoHideDuration: 5000,
               key: `error-${itemFieldKey}-${index}-${fieldKey}-${Date.now()}`,
             });
           });
@@ -57,6 +95,7 @@ export function notifyNotistackFormValidationErrors({
         enqueueSnackbar(error.message, {
           variant: 'error',
           preventDuplicate: true,
+          autoHideDuration: 5000,
           key: `error-${key}-${Date.now()}`,
         });
       }

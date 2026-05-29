@@ -5,9 +5,9 @@ import { Button, Chip, IconButton } from '@mui/material';
 import { Icon } from '@iconify/react';
 
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import AccountingPageHeader from './components/AccountingPageHeader';
-import AccountingEntryDetailsDialog from './components/AccountingEntryDetailsDialog';
-import JournalEntryFormDialog from './components/JournalEntryFormDialog';
+import AccountingPageHeader from './AccountingPageHeader';
+import AccountingEntryDetailsDialog from './AccountingEntryDetailsDialog';
+import JournalEntryFormDialog from './JournalEntryFormDialog';
 import { formatCurrency, formatDate } from './utils';
 
 const ManualEntriesView = ({
@@ -105,7 +105,7 @@ const ManualEntriesView = ({
         rows={entries}
         rowKey={row => row._id}
         showSearch
-        onSearchChange={value => fetchEntries({ search: value, page: 1 })}
+        onSearchChange={value => onSearch({ search: value, page: 1, pageSize: pagination.pageSize || 10 })}
         searchPlaceholder={type === 'voucher' ? 'Search vouchers...' : 'Search journals...'}
         addRowButton={canCreate ? (
           <Button

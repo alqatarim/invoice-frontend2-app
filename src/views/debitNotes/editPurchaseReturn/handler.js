@@ -6,6 +6,7 @@ import { formatDateForInput } from '@/utils/dateUtils';
 import { calculatePurchaseItemValues } from '@/utils/purchaseItemCalculations';
 import { formatPurchaseItem } from '@/utils/formatNewBuyItem';
 import { paymentMethods } from '@/data/dataSets';
+import { notifyNotistackFormValidationErrors } from '@/utils/notifyNotistackFormValidationErrors';
 
 function useFormHandler({ debitNoteData }) {
   const {
@@ -35,9 +36,9 @@ function useFormHandler({ debitNoteData }) {
       bankId: debitNoteData?.bankId || '',
       roundOffValue: debitNoteData?.roundOffValue || 0,
       sign_type: debitNoteData?.sign_type || 'manualSignature',
-      signatureName: debitNoteData?.signatureName || '',
-      signatureId: debitNoteData?.signatureId || '',
-      signatureImage: debitNoteData?.signatureImage || null,
+      employeeName: debitNoteData?.employeeName || '',
+      employee: debitNoteData?.employee || '',
+      employeeImage: debitNoteData?.employeeImage || null,
       items: debitNoteData?.items || []
     }
   });
@@ -249,19 +250,19 @@ function useBankHandler({ initialBanks, addBank }) {
   };
 }
 
-function useSignatureHandler({ signatures, setValue }) {
+function useSignatureHandler({ employees, setValue }) {
   const [signOptions, setSignOptions] = useState([]);
 
   useEffect(() => {
-    if (signatures?.length > 0) {
-      const signArray = signatures.map((item) => ({
+    if (employees?.length > 0) {
+      const signArray = employees.map((item) => ({
         value: item?._id,
-        label: item?.signatureName,
+        label: item?.employeeName,
         ...item
       }));
       setSignOptions(signArray);
     }
-  }, [signatures]);
+  }, [employees]);
 
   const handleSignatureSelection = (selected, field) => {
     if (selected) {
@@ -317,23 +318,16 @@ function useDialogHandler({ setValue, getValues }) {
 }
 
 function useDebitNoteSubmissionHandler({
-  trigger,
   closeSnackbar,
   enqueueSnackbar,
   onSave,
   getValues,
   includeId = false,
-  failureMessage = 'Failed to save debit note'
+  failureMessage = 'Failed to save debit note',
 }) {
-  const handleFormSubmit = async (data, errors, handleError) => {
+  const handleFormSubmit = async (data) => {
     try {
       closeSnackbar?.();
-
-      const isValid = await trigger();
-      if (!isValid) {
-        handleError(errors);
-        return;
-      }
 
       const currentFormData = data;
       if (!currentFormData) {
@@ -360,9 +354,9 @@ function useDebitNoteSubmissionHandler({
           '',
         termsAndCondition: currentFormData.termsAndCondition || '',
         sign_type: currentFormData.sign_type || 'manualSignature',
-        signatureName: currentFormData.signatureName || '',
-        signatureId: currentFormData.signatureId || '',
-        signatureImage: currentFormData.signatureImage || null,
+        employeeName: currentFormData.employeeName || '',
+        employee: currentFormData.employee || '',
+        employeeImage: currentFormData.employeeImage || null,
         items: (currentFormData.items || []).map((item) => ({
           productId: item.productId,
           name: item.name,
@@ -412,70 +406,18 @@ function useDebitNoteSubmissionHandler({
     }
   };
 
-  const handleError = (errors) => {
-    closeSnackbar?.();
-
-    setTimeout(() => {
-      const errorCount = Object.keys(errors).length;
-      if (errorCount === 0) {
-        return;
-      }
-
-      const formValues = getValues();
-      Object.entries(errors).forEach(([key, error]) => {
-        if (key === 'items') {
-          if (error.message) {
-            enqueueSnackbar(error.message, {
-              variant: 'error',
-              preventDuplicate: true,
-              key: `error-items-${Date.now()}`,
-              anchorOrigin: {
-                vertical: 'top',
-                horizontal: 'right'
-              }
-            });
-          }
-
-          if (Array.isArray(error)) {
-            error.forEach((itemError, index) => {
-              if (!itemError) {
-                return;
-              }
-
-              const productName = formValues.items?.[index]?.name || `Item ${index + 1}`;
-              Object.entries(itemError).forEach(([fieldKey, fieldError]) => {
-                if (fieldError && fieldError.message) {
-                  enqueueSnackbar(`${productName}: ${fieldError.message}`, {
-                    variant: 'error',
-                    preventDuplicate: true,
-                    key: `error-item-${index}-${fieldKey}-${Date.now()}`,
-                    anchorOrigin: {
-                      vertical: 'top',
-                      horizontal: 'right'
-                    }
-                  });
-                }
-              });
-            });
-          }
-        } else if (error && error.message) {
-          enqueueSnackbar(error.message, {
-            variant: 'error',
-            preventDuplicate: true,
-            key: `error-${key}-${Date.now()}`,
-            anchorOrigin: {
-              vertical: 'top',
-              horizontal: 'right'
-            }
-          });
-        }
-      });
-    }, 200);
+  const handleError = (formErrors) => {
+    notifyNotistackFormValidationErrors({
+      errors: formErrors,
+      closeSnackbar,
+      enqueueSnackbar,
+      getValues,
+    });
   };
 
   return {
     handleFormSubmit,
-    handleError
+    handleError,
   };
 }
 
@@ -483,7 +425,7 @@ export default function useEditDebitNoteHandlers({
   debitNoteData,
   productData,
   initialBanks,
-  signatures,
+  employees,
   onSave,
   enqueueSnackbar,
   closeSnackbar,
@@ -523,8 +465,8 @@ export default function useEditDebitNoteHandlers({
     addBank
   });
 
-  const signatureHandler = useSignatureHandler({
-    signatures,
+  const employeeHandler = useSignatureHandler({
+    employees,
     setValue
   });
 
@@ -534,13 +476,12 @@ export default function useEditDebitNoteHandlers({
   });
 
   const submissionHandler = useDebitNoteSubmissionHandler({
-    trigger,
     closeSnackbar,
     enqueueSnackbar,
     onSave,
     getValues,
     includeId: true,
-    failureMessage: 'Failed to update debit note'
+    failureMessage: 'Failed to update debit note',
   });
 
   return {
@@ -559,7 +500,7 @@ export default function useEditDebitNoteHandlers({
     productsCloneData,
     paymentMethods,
     ...bankHandler,
-    ...signatureHandler,
+    ...employeeHandler,
     ...itemsHandler,
     ...dialogHandler,
     ...submissionHandler

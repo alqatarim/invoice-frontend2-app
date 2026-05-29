@@ -1,10 +1,9 @@
 'use client';
 
 import React from 'react';
-import { IconButton } from '@mui/material';
-import { Icon } from '@iconify/react';
-import { SnackbarProvider, closeSnackbar, useSnackbar } from 'notistack';
-import PosPage from './PosPage';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
+import Pos from './POS';
 import { checkoutPosSale } from '@/app/(dashboard)/pos/actions';
 import { usePosViewHandler } from './handler';
 
@@ -18,6 +17,10 @@ const PosContent = ({
   initialPosSettings = {},
   initialInvoiceNumber = '',
   initialPaymentMethods = [],
+  initialCashiers = [],
+  initialCurrentUserId = '',
+  initialCanAccessPos = false,
+  initialCanCreateInvoice = false,
   initialErrorMessage = '',
 }) => {
   const { enqueueSnackbar, closeSnackbar: dismissSnackbar } = useSnackbar();
@@ -33,22 +36,10 @@ const PosContent = ({
       const response = await checkoutPosSale(payload);
       dismissSnackbar(loadingKey);
 
-      if (!response.success) {
-        enqueueSnackbar(response.message || 'Failed to complete POS checkout', {
-          variant: 'error',
-          autoHideDuration: 5000,
-          preventDuplicate: true,
-        });
-      }
-
       return response;
     } catch (error) {
       dismissSnackbar();
       const errorMessage = error.message || 'Failed to complete POS checkout';
-      enqueueSnackbar(errorMessage, {
-        variant: 'error',
-        autoHideDuration: 5000,
-      });
 
       return {
         success: false,
@@ -67,6 +58,10 @@ const PosContent = ({
     initialPosSettings,
     initialInvoiceNumber,
     initialPaymentMethods,
+    initialCashiers,
+    initialCurrentUserId,
+    initialCanAccessPos,
+    initialCanCreateInvoice,
     initialErrorMessage,
     onSave: handleCheckout,
     enqueueSnackbar,
@@ -74,38 +69,24 @@ const PosContent = ({
   });
 
   return (
-    <PosPage
+    <Pos
+      initialCustomersData={initialCustomersData}
+      initialProductData={initialProductData}
       initialTaxRates={initialTaxRates}
       initialInvoiceNumber={initialInvoiceNumber}
       controller={handler.controller}
       canAccessPos={handler.canAccessPos}
       canCreateInvoice={handler.canCreateInvoice}
+      isPermissionsLoading={handler.isPermissionsLoading}
       primaryStore={handler.primaryStore}
     />
   );
 };
 
-const PosIndex = (props) => {
-  const snackbarAction = (snackbarId) => (
-    <IconButton onClick={() => closeSnackbar(snackbarId)}>
-      <Icon icon="mdi:close" width={25} />
-    </IconButton>
-  );
-
-  return (
-    <SnackbarProvider
-      maxSnack={7}
-      autoHideDuration={5000}
-      preventDuplicate
-      action={snackbarAction}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-    >
-      <PosContent {...props} />
-    </SnackbarProvider>
-  );
-};
+const PosIndex = (props) => (
+  <FormFeatureSnackbarProvider>
+    <PosContent {...props} />
+  </FormFeatureSnackbarProvider>
+);
 
 export default PosIndex;

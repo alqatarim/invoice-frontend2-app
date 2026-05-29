@@ -19,11 +19,6 @@ const purchaseItemSchema = yup.object().shape({
      taxInfo: yup.object(),
      amount: yup.number()
           .min(0, 'Amount cannot be negative'),
-     form_updated_rate: yup.number(),
-     form_updated_discount: yup.number(),
-     form_updated_discounttype: yup.number(),
-     form_updated_tax: yup.number(),
-     isRateFormUpadted: yup.mixed()
 });
 
 // Main purchase schema
@@ -51,14 +46,14 @@ export const purchaseSchema = yup.object().shape({
      roundOff: yup.boolean(),
      roundOffValue: yup.number(),
      sign_type: yup.string().oneOf(['eSignature', 'manualSignature']),
-     signatureName: yup.string(),
-     signatureId: yup.string()
+     employeeName: yup.string(),
+     employee: yup.string()
           .when('sign_type', {
                is: 'manualSignature',
                then: (schema) => schema.required('Signature is required'),
                otherwise: (schema) => schema
           }),
-     signatureImage: yup.string(),
+     employeeImage: yup.string(),
      notes: yup.string(),
      termsAndCondition: yup.string(),
      items: yup.array()

@@ -331,7 +331,7 @@ const ViewPurchaseOrder = ({ purchaseOrderData, onEdit, onDelete, onClone, onCon
             )}
 
             {/* Signature */}
-            {(purchaseOrderData.signatureImage || purchaseOrderData.signatureName) && (
+            {(purchaseOrderData.employeeImage || purchaseOrderData.employeeName) && (
               <>
                 <Divider sx={{ my: 4 }} />
                 
@@ -340,19 +340,19 @@ const ViewPurchaseOrder = ({ purchaseOrderData, onEdit, onDelete, onClone, onCon
                     Authorized Signature
                   </Typography>
                   
-                  {purchaseOrderData.signatureImage && (
+                  {purchaseOrderData.employeeImage && (
                     <Box className='mb-2'>
                       <img
-                        src={purchaseOrderData.signatureImage}
+                        src={purchaseOrderData.employeeImage}
                         alt="Signature"
                         style={{ maxHeight: '80px', maxWidth: '200px' }}
                       />
                     </Box>
                   )}
                   
-                  {purchaseOrderData.signatureName && (
+                  {purchaseOrderData.employeeName && (
                     <Typography variant="body2" color="text.secondary">
-                      {purchaseOrderData.signatureName}
+                      {purchaseOrderData.employeeName}
                     </Typography>
                   )}
                 </Box>

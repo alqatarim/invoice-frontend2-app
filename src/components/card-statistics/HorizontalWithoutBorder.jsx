@@ -11,7 +11,7 @@ import { motion } from 'framer-motion'
 
 // Component Imports
 import Avatar from '@/components/avatar/Avatar'
-import { CountUp } from '@/views/dashboard/CountUp'
+import { CountUp } from '@/views/dashboard/components/CountUp'
 import { RiyalIcon } from '@/utils/currencyUtils'
 import { formatCompactNumber } from '@/utils/numberUtils'
 
@@ -108,7 +108,11 @@ const HorizontalWithoutBorder = ({
 							{title}
 						</Typography>
 
-						<Box className='flex flex-row items-end justify-start gap-1'>
+						<Box className='flex flex-row items-end justify-start gap-0.5'>
+
+							{shouldShowCurrencyIcon ? (
+								<RiyalIcon width={currencyIconWidth} color={theme.palette.text.primary} />
+							) : null}
 							<Typography
 								sx={{
 									display: 'flex',
@@ -116,7 +120,7 @@ const HorizontalWithoutBorder = ({
 									gap: 0.5,
 									fontSize: '1.8rem',
 									fontWeight: 700,
-									lineHeight: 1,
+									lineHeight: 0.8,
 									letterSpacing: '-0.025em',
 									color: 'text.primary',
 									fontVariantNumeric: 'tabular-nums',
@@ -124,12 +128,7 @@ const HorizontalWithoutBorder = ({
 								color={iconColor}
 							>
 								{displayValue.isNumeric ? (
-									<>
-										{shouldShowCurrencyIcon ? (
-											<RiyalIcon width={currencyIconWidth} color={theme.palette.text.primary} />
-										) : null}
-										<CountUp value={displayValue.value} formatter={valueFormatter} />
-									</>
+									<CountUp value={displayValue.value} formatter={valueFormatter} />
 								) : (
 									displayValue.value
 								)}
@@ -137,7 +136,8 @@ const HorizontalWithoutBorder = ({
 							<Typography
 								variant='h6'
 								color='text.secondary'
-								className='tracking-[0.2px] text-[0.8rem]'
+								lineHeight={0.8}
+								className='tracking-[0.2px] text-[0.8rem] ml-0.5'
 								sx={{
 									fontVariantNumeric: 'tabular-nums',
 								}}

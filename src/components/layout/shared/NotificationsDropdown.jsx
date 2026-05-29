@@ -1,7 +1,7 @@
 "use client";
 
 // React Imports
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // MUI Imports
 import IconButton from "@mui/material/IconButton";
@@ -17,6 +17,7 @@ import Divider from "@mui/material/Divider";
 import Avatar from "@mui/material/Avatar";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Button from "@mui/material/Button";
+import Skeleton from "@mui/material/Skeleton";
 
 // Third Party Components
 import classnames from "classnames";
@@ -77,6 +78,21 @@ const getAvatar = (params) => {
 	}
 };
 
+const NotificationListSkeleton = () => (
+	<div>
+		{[0, 1, 2].map((item) => (
+			<div key={item} className="flex plb-3 pli-4 gap-3">
+				<Skeleton variant="circular" width={40} height={40} />
+				<div className="flex flex-col flex-auto gap-1">
+					<Skeleton variant="text" width="55%" height={20} />
+					<Skeleton variant="text" width="85%" height={16} />
+					<Skeleton variant="text" width="35%" height={14} />
+				</div>
+			</div>
+		))}
+	</div>
+);
+
 const NotificationDropdown = () => {
 	// States
 	const [open, setOpen] = useState(false);
@@ -87,6 +103,8 @@ const NotificationDropdown = () => {
 		loading,
 		notificationCount,
 		readAll,
+		hasLoadedNotifications,
+		fetchNotifications,
 		markAsRead,
 		removeNotification,
 		markAllAsRead,
@@ -98,6 +116,12 @@ const NotificationDropdown = () => {
 
 	// Refs
 	const anchorRef = useRef(null);
+
+	useEffect(() => {
+		if (!open) return;
+
+		fetchNotifications();
+	}, [fetchNotifications, open]);
 
 	const handleClose = () => {
 		setOpen(false);
@@ -244,7 +268,9 @@ const NotificationDropdown = () => {
 									</div>
 									<Divider />
 									<ScrollWrapper hidden={hidden}>
-										{notifications.length === 0 ? (
+										{loading && !hasLoadedNotifications ? (
+											<NotificationListSkeleton />
+										) : notifications.length === 0 ? (
 											<div className="flex items-center justify-center plb-12">
 												<Typography variant="body2" color="text.secondary">
 													No notifications

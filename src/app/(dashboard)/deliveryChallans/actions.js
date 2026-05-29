@@ -42,6 +42,9 @@ export async function getFilteredDeliveryChallans(page, pageSize, filters = {}) 
     if (filters.customer && Array.isArray(filters.customer) && filters.customer.length > 0) {
       url += `&customer=${filters.customer.map(id => encodeURIComponent(id)).join(',')}`;
     }
+    if (filters.search) {
+      url += `&search=${encodeURIComponent(filters.search)}`;
+    }
 
     const response = await fetchWithAuth(url);
 
@@ -182,10 +185,16 @@ export async function getBanks() {
  */
 export async function getSignatures() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, CACHE_STABLE_DROPDOWN);
-    return response.data || [];
+    const response = await fetchWithAuth('/pos/bootstrap', { cache: 'no-store' });
+    const employees = response?.data?.cashiers || [];
+    return employees.map(employee => ({
+      ...employee,
+      _id: employee._id || employee.value || employee.id,
+      employeeName: employee.label || employee.fullName || employee.email || 'Employee',
+      signatureName: employee.label || employee.fullName || employee.email || 'Employee',
+    }));
   } catch (error) {
-    console.error('Error fetching signatures:', error);
+    console.error('Error fetching employees:', error);
     return [];
   }
 }
@@ -268,22 +277,7 @@ export async function addDeliveryChallan(data, signatureURL) {
     
     // Required fields with defaults
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type || 'manualSignature');
-    
-    // Signature fields
-    if (data.signatureName) formData.append('signatureName', data.signatureName);
-    if (data.signatureId) formData.append('signatureId', data.signatureId);
-
-    // Handle signature image for eSignature type
-    if (signatureURL && data.sign_type === 'eSignature') {
-      try {
-        const blob = await dataURLtoBlob(signatureURL);
-        formData.append('signatureImage', blob, 'signature.png');
-      } catch (error) {
-        console.error('Error processing signature:', error);
-        throw new Error('Failed to process signature');
-      }
-    }
+    formData.append('employee', data.employee || '');
 
     const response = await fetchWithAuth(ENDPOINTS.DELIVERY_CHALLANS.ADD, {
       method: 'POST',
@@ -391,22 +385,7 @@ export async function updateDeliveryChallan(id, data, signatureURL) {
     
     // Required fields with defaults
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type || 'manualSignature');
-    
-    // Signature fields
-    if (data.signatureName) formData.append('signatureName', data.signatureName);
-    if (data.signatureId) formData.append('signatureId', data.signatureId);
-
-    // Handle signature image for eSignature type
-    if (signatureURL && data.sign_type === 'eSignature') {
-      try {
-        const blob = await dataURLtoBlob(signatureURL);
-        formData.append('signatureImage', blob, 'signature.png');
-      } catch (error) {
-        console.error('Error processing signature:', error);
-        throw new Error('Failed to process signature');
-      }
-    }
+    formData.append('employee', data.employee || '');
 
     const response = await fetchWithAuth(`${ENDPOINTS.DELIVERY_CHALLANS.UPDATE}/${id}`, {
       method: 'PUT',

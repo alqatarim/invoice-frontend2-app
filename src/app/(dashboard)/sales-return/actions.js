@@ -28,12 +28,12 @@ const ENDPOINTS = {
 
 const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
 
-export async function getSalesReturnList(page = 1, pageSize = 10) {
+export async function getSalesReturnList(page = 1, pageSize = 10, search = '') {
   try {
     const skipSize = page === 1 ? 0 : (page - 1) * pageSize;
 
     const response = await fetchWithAuth(
-      `${ENDPOINTS.CREDIT_NOTE.LIST}?limit=${pageSize}&skip=${skipSize}`,
+      `${ENDPOINTS.CREDIT_NOTE.LIST}?limit=${pageSize}&skip=${skipSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
       {
         cache: 'no-store'
       }
@@ -46,7 +46,8 @@ export async function getSalesReturnList(page = 1, pageSize = 10) {
     return {
       success: true,
       data: response.data || [],
-      totalRecords: response.totalRecords || 0
+      totalRecords: response.totalRecords || 0,
+      cardCounts: response.summary
     };
   } catch (error) {
     console.error('Error fetching sales returns list:', error);
@@ -132,10 +133,16 @@ export async function getBanks() {
 
 export async function getSignatures() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.SIGNATURE, CACHE_STABLE_DROPDOWN);
-    return response.data || [];
+    const response = await fetchWithAuth('/pos/bootstrap', { cache: 'no-store' });
+    const employees = response?.data?.cashiers || [];
+    return employees.map(employee => ({
+      ...employee,
+      _id: employee._id || employee.value || employee.id,
+      employeeName: employee.label || employee.fullName || employee.email || 'Employee',
+      signatureName: employee.label || employee.fullName || employee.email || 'Employee',
+    }));
   } catch (error) {
-    console.error('Error fetching signatures:', error);
+    console.error('Error fetching employees:', error);
     return [];
   }
 }
@@ -191,21 +198,10 @@ export async function addSalesReturn(data, signatureURL) {
     formData.append('bank', data.bank || '');
     formData.append('notes', data.notes || '');
     formData.append('termsAndCondition', data.termsAndCondition || '');
+    formData.append('employee', data.employee || '');
 
     // Ensure required fields are present
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type || 'eSignature');
-
-    // Handle signature
-    if (signatureURL) {
-      try {
-        const blob = await dataURLtoBlob(signatureURL);
-        formData.append('signatureImage', blob, 'signature.png');
-      } catch (error) {
-        console.error('Error processing signature:', error);
-        throw new Error('Failed to process signature');
-      }
-    }
 
     const response = await fetchWithAuth(ENDPOINTS.CREDIT_NOTE.ADD, {
       method: 'POST',
@@ -297,41 +293,7 @@ export async function updateSalesReturn(data) {
     formData.append("termsAndCondition", data.termsAndCondition || '');
     formData.append('customerId', data.customerId);
     formData.append('roundOff', data.roundOff || false);
-    formData.append('sign_type', data.sign_type);
-
-    // Handle signature based on type
-    if (data.sign_type === "eSignature") {
-      formData.append("signatureName", data.signatureName || "");
-
-      if (data.signatureImage) {
-        try {
-          if (typeof data.signatureImage === 'string' && data.signatureImage.startsWith('data:image')) {
-            // Handle base64 image
-            const blob = await dataURLtoBlob(data.signatureImage);
-            const file = new File([blob], 'signature.png', { type: 'image/png' });
-            formData.append("signatureImage", file);
-
-          } else if (typeof data.signatureImage === 'string' && data.signatureImage.startsWith('http')) {
-            // Handle image URL
-            const response = await fetch(data.signatureImage);
-            const blob = await response.blob();
-            const file = new File([blob], 'signature.png', { type: 'image/png' });
-            formData.append("signatureImage", file);
-
-          } else if (data.signatureImage instanceof Blob) {
-            // Handle if it's already a Blob
-            const file = new File([data.signatureImage], 'signature.png', { type: 'image/png' });
-            formData.append("signatureImage", file);
-
-          }
-        } catch (error) {
-          console.error('Error processing signature:', error);
-          throw new Error('Failed to process signature: ' + error.message);
-        }
-      }
-    } else {
-      formData.append("signatureId", data.signatureId || "");
-    }
+    formData.append('employee', data.employee || '');
 
     const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.UPDATE}/${data.id}`, {
       method: 'PUT',
@@ -421,7 +383,8 @@ export async function filterSalesReturns(searchData) {
     return {
       success: true,
       data: response.data || [],
-      totalRecords: response.totalRecords || 0
+      totalRecords: response.totalRecords || 0,
+      cardCounts: response.summary
     };
   } catch (error) {
     console.error('Error filtering sales returns:', error);

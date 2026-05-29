@@ -1,8 +1,6 @@
 'use client';
 
-import React from 'react';
-
-import { Button, Paper, Stack, Typography } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import AppSnackbar from '@/components/shared/AppSnackbar';
 
@@ -10,6 +8,8 @@ import Dashboard from './Dashboard';
 import { useDashboardDerivedData } from './useDashboardDerivedData';
 import { useDashboardForecast } from './useDashboardForecast';
 import { useDashboardHandler } from './handler';
+
+const EMPTY_DASHBOARD = Object.freeze({});
 
 const DashboardIndex = ({
 	initialDashboardData = null,
@@ -22,11 +22,25 @@ const DashboardIndex = ({
 		initialFromDate,
 		initialToDate,
 	});
-
-	const activeDashboardData = handler.filteredDashboardData || initialDashboardData || {};
-	const hasDashboardData = Boolean(
-		activeDashboardData && Object.keys(activeDashboardData).length > 0
+	const { handleRefresh } = handler;
+	const [hasRequestedInitialData, setHasRequestedInitialData] = useState(
+		Boolean(initialDashboardData)
 	);
+
+	const activeDashboardData = useMemo(
+		() => handler.filteredDashboardData || initialDashboardData || EMPTY_DASHBOARD,
+		[handler.filteredDashboardData, initialDashboardData]
+	);
+	const hasDashboardData = activeDashboardData !== EMPTY_DASHBOARD;
+	const isLoadingDashboardData =
+		!hasDashboardData && (!hasRequestedInitialData || handler.isRefreshing);
+
+	useEffect(() => {
+		if (initialDashboardData || hasRequestedInitialData) return;
+
+		setHasRequestedInitialData(true);
+		handleRefresh();
+	}, [handleRefresh, hasRequestedInitialData, initialDashboardData]);
 
 	const {
 		aiForecastData,
@@ -53,37 +67,8 @@ const DashboardIndex = ({
 		comparisonLabel: handler.comparisonLabel,
 	});
 
-	if (!hasDashboardData) {
-		return (
-			<>
-				<Paper className="flex flex-col items-center gap-4 p-8 text-center">
-					<Stack spacing={1}>
-						<Typography variant="h6">Unable to load dashboard data.</Typography>
-						<Typography variant="body2" color="text.secondary">
-							Refresh to retry the initial dashboard request.
-						</Typography>
-					</Stack>
-
-					<Button
-						variant="contained"
-						onClick={handler.handleRefresh}
-						disabled={handler.isRefreshing}
-					>
-						{handler.isRefreshing ? 'Retrying...' : 'Retry'}
-					</Button>
-				</Paper>
-
-				<AppSnackbar
-					open={handler.snackbar.open}
-					message={handler.snackbar.message}
-					severity={handler.snackbar.severity}
-					onClose={handler.closeSnackbar}
-					autoHideDuration={6000}
-					anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-				/>
-			</>
-		);
-	}
+	const isFinanceTrendLoading =
+		isLoadingDashboardData || (hasDashboardData && isGeneratingAIForecast);
 
 	return (
 		<>
@@ -98,6 +83,8 @@ const DashboardIndex = ({
 				hasActiveDateRange={handler.hasActiveDateRange}
 				isRefreshing={handler.isRefreshing}
 				isGeneratingAIForecast={isGeneratingAIForecast}
+				isLoading={isLoadingDashboardData}
+				isFinanceTrendLoading={isFinanceTrendLoading}
 				aiInsightCards={aiInsightCards}
 				metricCards={metricCards}
 				netIncome={netIncome}
