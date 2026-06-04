@@ -17,7 +17,7 @@ const getStorageKey = ({ userId = '', companyId = '' } = {}) =>
   `${GLOBAL_LOCATION_STORAGE_PREFIX}.${userId || 'anonymous'}.${companyId || 'default'}`;
 
 const getLocationTypeLabel = (location = null) =>
-  String(location?.branchType || location?.kind || '').trim();
+  String(location?.branchType || location?.type || '').trim();
 
 const buildStoreOnlyValidationMessage = (location = null) => {
   if (!location) {
@@ -32,9 +32,8 @@ const buildStoreOnlyValidationMessage = (location = null) => {
   const normalizedType =
     locationType.charAt(0).toLowerCase() + locationType.slice(1);
 
-  return `${
-    location?.name || 'The selected location'
-  } is a ${normalizedType}. Choose a store from the top bar to continue.`;
+  return `${location?.name || 'The selected location'
+    } is a ${normalizedType}. Choose a store from the top bar to continue.`;
 };
 
 export function GlobalLocationProvider({ children }) {

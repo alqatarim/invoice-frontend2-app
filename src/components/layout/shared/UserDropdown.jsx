@@ -32,6 +32,7 @@ import SessionCountdown from "./SessionCountdown";
 
 // Util Imports
 import { getLocalizedUrl } from "@/utils/i18n";
+import { resolveUserAvatarUrl } from "@/utils/defaultUserAvatar";
 
 const UserDropdown = () => {
 	// States
@@ -46,6 +47,10 @@ const UserDropdown = () => {
 	const { data: session } = useSession();
 	const { settings } = useSettings();
 	const { lang: locale } = useParams();
+	const avatarSrc = resolveUserAvatarUrl({
+		image: session?.user?.image || "",
+		userId: session?.user?.id || "",
+	});
 
 	const handleDropdownOpen = () => {
 		if (isLoggingOut) return;
@@ -90,7 +95,7 @@ const UserDropdown = () => {
 				<Avatar
 					ref={anchorRef}
 					alt={session?.user?.name || ""}
-					src={session?.user?.image || ""}
+					src={avatarSrc}
 					onClick={handleDropdownOpen}
 					className="cursor-pointer bs-[38px] is-[38px]"
 				/>
@@ -134,7 +139,7 @@ const UserDropdown = () => {
 										>
 											<Avatar
 												alt={session?.user?.name || ""}
-												src={session?.user?.image || ""}
+												src={avatarSrc}
 											/>
 											<div className="flex items-start flex-col">
 												<Typography className="font-medium" color="text.primary">

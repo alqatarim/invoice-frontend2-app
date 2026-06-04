@@ -4,37 +4,38 @@ import React, { useMemo } from 'react';
 import { Grid } from '@mui/material';
 import PageIconHeader from '@components/headers/PageIconHeader';
 import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
-
-const BranchHead = ({ branches = [] }) => {
+import { branchesOptions } from '@/data/dataSets';
+const BranchHead = ({ summary = {} }) => {
   const stats = useMemo(() => {
-    const total = branches.length;
-    const stores = branches.filter(item => item.kind === 'STORE' || item.branchType === 'Store').length;
-    const warehouses = branches.filter(item => item.kind === 'WAREHOUSE' || item.branchType === 'Warehouse').length;
+    const total = Number(summary.totalLocations || summary.total || 0);
+    const stores = Number(summary.stores || 0);
+    const warehouses = Number(summary.warehouses || 0);
+
     return { total, stores, warehouses };
-  }, [branches]);
+  }, [summary]);
 
   const statCards = useMemo(
     () => [
       {
         title: 'Total Locations',
         value: stats.total,
-        subtitle: 'Stores And Warehouses',
-        icon: 'mdi:map-marker',
-        color: 'primary',
+        // subtitle: 'Stores And Warehouses',
+        icon: branchesOptions.find(option => option.value === 'Locations')?.icon || 'mdi:location-multiple-outline',
+        color: branchesOptions.find(option => option.value === 'Locations')?.color || 'primary',
       },
       {
         title: 'Stores',
         value: stats.stores,
-        subtitle: 'Retail Stores',
-        icon: 'mdi:storefront-outline',
-        color: 'info',
+        // subtitle: 'Retail Stores',
+        icon: branchesOptions.find(option => option.value === 'Store')?.icon || 'mdi:storefront-outline',
+        color: branchesOptions.find(option => option.value === 'Store')?.color || 'info',
       },
       {
         title: 'Warehouses',
         value: stats.warehouses,
-        subtitle: 'Storage Sites',
-        icon: 'mdi:warehouse',
-        color: 'success',
+        // subtitle: 'Storage Sites',
+        icon: branchesOptions.find(option => option.value === 'Warehouse')?.icon || 'mdi:warehouse',
+        color: branchesOptions.find(option => option.value === 'Warehouse')?.color || 'success',
       },
     ],
     [stats]
@@ -42,7 +43,7 @@ const BranchHead = ({ branches = [] }) => {
 
   return (
     <>
-      <PageIconHeader title='Stores & Warehouses' icon='mdi:map-marker' />
+      <PageIconHeader title='Stores & Warehouses' icon='mdi:location-multiple-outline' />
 
       <div className="mb-2">
         <Grid container className='flex flex-wrap justify-between gap-0'>

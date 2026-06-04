@@ -2,66 +2,55 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useTheme, alpha } from '@mui/material/styles';
 import {
-  Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
-  Grid,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Menu,
+  MenuItem,
   Typography,
-  useMediaQuery,
-  Divider
 } from '@mui/material';
 import { Icon } from '@iconify/react';
-import { formatDate } from '@/utils/dateUtils';
-import { formatNumber } from '@/utils/numberUtils';
-import dayjs from 'dayjs';
-import { updateQuotationStatus } from '@/app/(dashboard)/quotations/actions';
+import CustomIconButton from '@core/components/mui/CustomIconButton';
+import DocumentViewPreview, { compactDocumentLines, toDocumentAmount } from '@/components/shared/DocumentViewPreview';
+import { getQuotationStatusOption, quotationStatusOptions, quotationStatusValues } from '@/data/dataSets';
+import useQuotationViewHandlers from './handler';
 
+const getAddress = (...parts) => parts.filter(Boolean).join(', ');
 
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'ACCEPTED':
-      return 'success';
-    case 'REJECTED':
-      return 'error';
-    case 'SENT':
-      return 'info';
-    case 'EXPIRED':
-      return 'warning';
-    case 'DRAFTED':
-      return 'secondary';
-    case 'CONVERTED':
-      return 'primary';
-    default:
-      return 'default';
-  }
-};
-
-const ViewQuotation = ({ quotationData, unitsList, productsList, enqueueSnackbar, closeSnackbar }) => {
-  const theme = useTheme();
-  const router = useRouter();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-
+const ViewQuotation = ({
+  quotationData,
+  unitsList,
+  productsList,
+  onEdit,
+  onDelete,
+  onClone,
+  onConvert,
+  onStatusChange,
+  enqueueSnackbar,
+}) => {
   const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
-  const [actionsMenuAnchorEl, setActionsMenuAnchorEl] = useState(null);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [openConvertDialog, setOpenConvertDialog] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const isExpired = quotationData.due_date && dayjs(quotationData.due_date).isBefore(dayjs(), 'day');
+  const handlers = useQuotationViewHandlers({
+    quotationData,
+    onEdit,
+    onDelete,
+    onClone,
+    onConvert,
+    onStatusChange,
+    enqueueSnackbar,
+  });
+
+  const {
+    handleEdit,
+    handleDelete,
+    handleClone,
+    handleConvert,
+    handleStatusChange,
+    handlePrint,
+    handleDownloadPDF,
+    formatDate,
+    formatCurrency,
+  } = handlers;
 
   if (!quotationData) {
     return (
@@ -73,348 +62,158 @@ const ViewQuotation = ({ quotationData, unitsList, productsList, enqueueSnackbar
     );
   }
 
-  // Helper function to find product name by ID
-  const getProductName = (productId) => {
-    const product = productsList?.find(product => product._id === productId);
-    return product?.name
-  };
+  const statusOption = getQuotationStatusOption(quotationData.status);
 
-  // Helper function to find unit name by ID
-  const getUnitName = (unitId) => {
-    const unit = unitsList?.find(unit => unit._id === unitId);
-    return unit?.name
-  };
-
-  const handleStatusMenuOpen = (event) => {
-    setStatusMenuAnchorEl(event.currentTarget);
-  };
-
-  const handleStatusMenuClose = () => {
-    setStatusMenuAnchorEl(null);
-  };
-
-  const handleStatusChange = async (status) => {
-    try {
-      setIsLoading(true);
-      const response = await updateQuotationStatus(quotationData._id, status);
-
-      if (response.success) {
-        enqueueSnackbar('Quotation status updated successfully!', { variant: 'success' });
-        // Refresh the page to show updated status
-        router.refresh();
-      } else {
-        throw new Error(response.message || 'Failed to update quotation status');
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      enqueueSnackbar('Failed to update status: ' + error.message, { variant: 'error' });
-    } finally {
-      setIsLoading(false);
-      handleStatusMenuClose();
+  const getProductName = productId => {
+    if (productId && typeof productId === 'object') {
+      return productId.name || productId.productName || 'Item';
     }
+
+    const product = productsList?.find(item => item._id === productId);
+    return product?.name || productId;
   };
 
+  const getUnitName = unitId => {
+    if (unitId && typeof unitId === 'object') {
+      return unitId.name || unitId.unitName || 'N/A';
+    }
 
-
-
-
-
-
-
-
-
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleDownloadPDF = () => {
-    // PDF download functionality
-    console.log('Download PDF');
-  };
-
-  const handleEdit = () => {
-    router.push(`/quotations/quotation-edit/${quotationData._id}`);
+    const unit = unitsList?.find(item => item._id === unitId);
+    return unit?.name || unitId;
   };
 
   const actionButtons = (
-    <Box className='flex flex-row gap-2'>
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<Icon icon="tabler:edit" width={20} />}
-        onClick={handleEdit}
-      >
-        Edit
-      </Button>
-      <Button
-        variant="outlined"
-        startIcon={<Icon icon="tabler:printer" width={20} />}
-        onClick={handlePrint}
-      >
-        Print
-      </Button>
-      <Button
-        variant="outlined"
-        startIcon={<Icon icon="tabler:download" width={20} />}
-        onClick={handleDownloadPDF}
-      >
-        Download
-      </Button>
+    <Box className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <Box>
+        <Typography variant="h5" className="font-semibold text-primary">
+          Quotation Details
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Quotation: #{quotationData.quotation_id || 'N/A'}
+        </Typography>
+      </Box>
+
+      <Box className="flex flex-row flex-wrap gap-2">
+        <Button component={Link} href="/quotations/quotation-list" variant="outlined" startIcon={<Icon icon="tabler:arrow-left" />}>
+          Back to List
+        </Button>
+        <Button variant="contained" color="primary" startIcon={<Icon icon="tabler:edit" width={20} />} onClick={handleEdit}>
+          Edit
+        </Button>
+        <Button variant="outlined" startIcon={<Icon icon="tabler:copy" width={20} />} onClick={handleClone}>
+          Clone
+        </Button>
+        <Button variant="outlined" color="success" startIcon={<Icon icon="tabler:transform" width={20} />} onClick={handleConvert}>
+          Convert
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<Icon icon="tabler:status-change" width={20} />}
+          onClick={event => setStatusMenuAnchorEl(event.currentTarget)}
+        >
+          Status
+        </Button>
+        <CustomIconButton variant="outlined" color="primary" onClick={handlePrint} size="medium">
+          <Icon icon="tabler:printer" width={20} />
+        </CustomIconButton>
+        <CustomIconButton variant="outlined" color="primary" onClick={handleDownloadPDF} size="medium">
+          <Icon icon="tabler:download" width={20} />
+        </CustomIconButton>
+        <CustomIconButton variant="outlined" color="error" onClick={handleDelete} size="medium">
+          <Icon icon="tabler:trash" width={20} />
+        </CustomIconButton>
+      </Box>
     </Box>
   );
 
+  const customer = quotationData.customerId || {};
+  const customerAddress = customer.billingAddress || {};
+
+  const itemColumns = [
+    { key: 'index', label: '#' },
+    { key: 'item', label: 'Item' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'quantity', label: 'Qty' },
+    { key: 'price', label: 'Price' },
+    { key: 'discount', label: 'Discount' },
+    { key: 'tax', label: 'VAT' },
+    { key: 'total', label: 'Total' },
+  ];
+
+  const itemRows = Array.isArray(quotationData.items)
+    ? quotationData.items.map((item, index) => ({
+      key: item._id || `${quotationData.quotation_id || 'quotation'}-${index}`,
+      cells: [
+        index + 1,
+        getProductName(item.productId) || item.name || 'Item',
+        getUnitName(item.unit) || 'N/A',
+        Number(item.quantity || 0),
+        formatCurrency(item.rate || 0),
+        formatCurrency(item.discount || 0),
+        `${toDocumentAmount(item.tax)}%`,
+        formatCurrency(item.amount || 0),
+      ],
+    }))
+    : [];
+
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <Box className='flex flex-row justify-between items-start mb-6'>
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-                  Quotation
-                </Typography>
-                <Typography variant="h6" color="primary.main">
-                  #{quotationData.quotation_id || ''}
-                </Typography>
-              </Box>
-              {actionButtons}
-            </Box>
+    <>
+      <Menu anchorEl={statusMenuAnchorEl} open={Boolean(statusMenuAnchorEl)} onClose={() => setStatusMenuAnchorEl(null)}>
+        {quotationStatusOptions
+          .filter(option => option.value !== quotationStatusValues.CONVERTED)
+          .map(option => (
+            <MenuItem
+              key={option.value}
+              onClick={() => {
+                handleStatusChange(option.value);
+                setStatusMenuAnchorEl(null);
+              }}
+            >
+              {option.label}
+            </MenuItem>
+          ))}
+      </Menu>
 
-            {/* Quotation Details */}
-            <Grid container spacing={4}>
-              {/* Left Column - Quotation Info */}
-              <Grid item xs={12} md={6}>
-                <Box className='mb-6'>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                    Quotation Details
-                  </Typography>
-
-                  <Box className='space-y-2'>
-                    <Box className='flex justify-between'>
-                      <Typography variant="body2" color="text.secondary">Creation Date:</Typography>
-                      <Typography variant="body2">{formatDate(quotationData.quotation_date)}</Typography>
-                    </Box>
-
-                    <Box className='flex justify-between'>
-                      <Typography variant="body2" color="text.secondary">Expiry Date:</Typography>
-                      <Typography variant="body2">{formatDate(quotationData.due_date)}</Typography>
-                    </Box>
-
-                    <Box className='flex justify-between'>
-                      <Typography variant="body2" color="text.secondary">Total Amount:</Typography>
-                      <Typography variant="body2">{formatNumber(quotationData.TotalAmount)}</Typography>
-                    </Box>
-
-                    <Box className='flex justify-between'>
-                      <Typography variant="body2" color="text.secondary">Status:</Typography>
-                      <Chip
-                        label={quotationData.status}
-                        color={getStatusColor(quotationData.status)}
-                        size="small"
-                      />
-                    </Box>
-
-                    <Box className='flex justify-between'>
-                      <Typography variant="body2" color="text.secondary">Expired:</Typography>
-                      <Chip
-                        label={isExpired ? 'Yes' : 'No'}
-                        color={isExpired ? 'error' : 'success'}
-                        size="small"
-                      />
-                    </Box>
-                  </Box>
-                </Box>
-              </Grid>
-
-              {/* Right Column - Customer Info */}
-              <Grid item xs={12} md={6}>
-                <Box className='mb-6'>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                    Customer Information
-                  </Typography>
-
-                  <Box className='space-y-2'>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {quotationData.customerId?.name || 'N/A'}
-                    </Typography>
-
-                    <Typography variant="body2" color="text.secondary">
-                      {quotationData.customerId?.email || ''}
-                    </Typography>
-
-                    <Typography variant="body2" color="text.secondary">
-                      {quotationData.customerId?.phone || ''}
-                    </Typography>
-
-                    {quotationData.customerId?.billingAddress && (
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          {quotationData.customerId.billingAddress.addressLine1 || ''}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {quotationData.customerId.billingAddress.city || ''} {quotationData.customerId.billingAddress.state || ''}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {quotationData.customerId.billingAddress.pincode || ''}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 4 }} />
-
-            {/* Items Table */}
-            <Box className='mb-6'>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                Items
-              </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead sx={{ backgroundColor: theme.palette.grey[50] }}>
-                    <TableRow>
-                      <TableCell>Item</TableCell>
-                      <TableCell>Units</TableCell>
-                      <TableCell align="center">Quantity</TableCell>
-                      <TableCell align="right">Rate</TableCell>
-                      <TableCell align="right">Discount</TableCell>
-                      <TableCell align="right">VAT</TableCell>
-                      <TableCell align="right">Amount</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {quotationData.items && quotationData.items.length > 0 ? (
-                      quotationData.items.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {getProductName(item.productId)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>{getUnitName(item.unit)}</TableCell>
-                          <TableCell align="center">{item.quantity}</TableCell>
-                          <TableCell align="right">{formatNumber(item.rate)}</TableCell>
-                          <TableCell align="right">
-                            {quotationData.discountType === '2'
-                              ? `${item.discount}% (${formatNumber((item.discount / 100) * item.rate * item.quantity)})`
-                              : `${formatNumber(item.discount)}`}
-                          </TableCell>
-                          <TableCell align="right">{item.tax}%</TableCell>
-                          <TableCell align="right">{formatNumber(item.amount)}</TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                          No items found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
-
-            {/* Totals Section */}
-            <Box className='flex justify-end mb-6'>
-              <Box className='w-80'>
-                <Box className='flex justify-between py-2'>
-                  <Typography variant="body2">Subtotal:</Typography>
-                  <Typography variant="body2">{formatNumber(quotationData.taxableAmount)}</Typography>
-                </Box>
-
-                <Box className='flex justify-between py-2'>
-                  <Typography variant="body2">Discount:</Typography>
-                  <Typography variant="body2">-{formatNumber(quotationData.totalDiscount)}</Typography>
-                </Box>
-
-                <Box className='flex justify-between py-2'>
-                  <Typography variant="body2">VAT:</Typography>
-                  <Typography variant="body2">{formatNumber(quotationData.vat)}</Typography>
-                </Box>
-
-                <Divider sx={{ my: 1 }} />
-
-                <Box className='flex justify-between py-2'>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Total:</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    {formatNumber(quotationData.TotalAmount)}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-
-
-            {/* Notes and Terms */}
-            {(quotationData.notes || quotationData.termsAndCondition) && (
-              <>
-                <Divider sx={{ my: 4 }} />
-
-                <Grid container spacing={4}>
-                  {quotationData.notes && (
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Notes
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {quotationData.notes}
-                      </Typography>
-                    </Grid>
-                  )}
-
-                  {quotationData.termsAndCondition && (
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Terms and Conditions
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {quotationData.termsAndCondition}
-                      </Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              </>
-            )}
-
-            {/* Signature */}
-            {quotationData.employee?.employeeImage && (
-              <>
-                <Divider sx={{ my: 4 }} />
-
-                <Box className='text-right'>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                    Authorized Signature
-                  </Typography>
-
-                  <Box className='mb-2'>
-                    <img
-                      src={quotationData.employee?.employeeImage || quotationData.employeeImage}
-                      alt="Signature"
-                      style={{ maxHeight: '80px', maxWidth: '200px' }}
-                    />
-                  </Box>
-                </Box>
-              </>
-            )}
-
-            {/* Back Button */}
-            <Box className='flex justify-start mt-6'>
-              <Button
-                variant="outlined"
-                component={Link}
-                href="/quotations/quotation-list"
-                startIcon={<Icon icon="tabler:arrow-left" />}
-              >
-                Back to List
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+      <DocumentViewPreview
+        actionBar={actionButtons}
+        pageClassName="quotation-page"
+        documentTitle="QUOTATION"
+        documentNumber={quotationData.quotation_id}
+        metaRows={[
+          { label: 'Creation Date', value: formatDate(quotationData.quotation_date) },
+          { label: 'Expiry Date', value: formatDate(quotationData.due_date) },
+          { label: 'Status', value: statusOption.label },
+        ]}
+        leftSectionTitle="Quote To:"
+        leftLines={compactDocumentLines([
+          customer.name,
+          getAddress(
+            customerAddress.addressLine1,
+            customerAddress.addressLine2,
+            customerAddress.city,
+            customerAddress.state,
+            customerAddress.pincode
+          ),
+          customer.email,
+          customer.phone,
+        ])}
+        rightSectionTitle="Quotation Details:"
+        rightRows={[
+          { label: 'Status:', value: statusOption.label },
+          { label: 'Total:', value: formatCurrency(quotationData.TotalAmount || 0) },
+        ]}
+        itemColumns={itemColumns}
+        itemRows={itemRows}
+        terms={quotationData.termsAndCondition}
+        notes={quotationData.notes}
+        summaryRows={[
+          { label: 'Subtotal:', value: quotationData.taxableAmount },
+          { label: 'Discount:', value: quotationData.totalDiscount },
+          { label: 'VAT:', value: quotationData.vat },
+        ]}
+        totalRow={{ label: 'Total:', value: quotationData.TotalAmount }}
+      />
+    </>
   );
 };
 

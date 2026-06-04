@@ -107,7 +107,7 @@ const InvoicesInsights = ({
 			initial={{ opacity: 0, y: 18 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.55, ease: dashboardEasing, delay: 0.3 }}
-			sx={{ height: '100%' }}
+			sx={{ width: '100%', height: '100%' }}
 		>
 			<CardContent sx={{ p: { xs: 2.5, md: 3 } }}>
 				{/* Header */}
@@ -154,7 +154,7 @@ const InvoicesInsights = ({
 						</Typography>
 					</Box>
 				) : (
-					<Box className='flex flex-col space-between gap-5'>
+					<Box className='flex flex-col space-between gap-2'>
 						{/* Headline total */}
 						<Box>
 							<Typography
@@ -170,10 +170,10 @@ const InvoicesInsights = ({
 								Total invoiced
 							</Typography>
 							<Stack direction="row" alignItems="baseline" spacing={0.6} sx={{ mt: 0.4 }}>
-								<RiyalIcon width="1.05rem" color={theme.vars.palette.text.secondary} />
+								<RiyalIcon width="0.9rem" color={theme.vars.palette.text.secondary} />
 								<Typography
 									sx={{
-										fontSize: { xs: '1.9rem', md: '2.2rem' },
+										fontSize: { xs: '1rem', md: '1.5rem' },
 										fontWeight: 800,
 										lineHeight: 1.1,
 										letterSpacing: '-0.02em',
@@ -200,7 +200,7 @@ const InvoicesInsights = ({
 							<Box
 								sx={{
 									position: 'relative',
-									height: 12,
+									height: 8,
 									borderRadius: 999,
 									overflow: 'hidden',
 									display: 'flex',
@@ -364,7 +364,7 @@ const StatusLedgerRow = ({ status, index, isHovered, isDimmed, onHover, onLeave 
 			sx={{
 				cursor: 'pointer',
 				px: 2.5,
-				py: 1.2,
+				py: 1,
 				borderRadius: 1.5,
 				transition: 'background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease',
 				opacity: isDimmed ? 0.55 : 1,
@@ -391,10 +391,10 @@ const StatusLedgerRow = ({ status, index, isHovered, isDimmed, onHover, onLeave 
 							transition: 'box-shadow 0.25s ease',
 						}}
 					/>
-					<Box className='flex flex-col gap-1 min-w-0 ' >
+					<Box className='flex flex-col gap-0.5 min-w-0 ' >
 						<Typography
 							sx={{
-								fontSize: '0.85rem',
+								fontSize: '0.8rem',
 								fontWeight: 600,
 								lineHeight: 1.2,
 								overflow: 'hidden',
@@ -418,7 +418,7 @@ const StatusLedgerRow = ({ status, index, isHovered, isDimmed, onHover, onLeave 
 					</Box>
 				</Stack>
 
-				<Stack spacing={0.5} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
+				<Stack spacing={0} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
 					<Stack direction="row" alignItems="center" spacing={0.2}>
 						<RiyalIcon width="0.7rem" color={theme.vars.palette.text.primary} />
 						<Typography

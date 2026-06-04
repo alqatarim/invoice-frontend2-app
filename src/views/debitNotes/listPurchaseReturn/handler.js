@@ -1,12 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '@mui/material/styles';
 import { usePermission } from '@/Auth/usePermission';
 import {
   cloneDebitNote,
   deleteDebitNote,
   getDebitNotesList,
+  processPurchaseReturnRefund,
+  setPurchaseReturnAsPending,
 } from '@/app/(dashboard)/debitNotes/actions';
 import { getDebitNoteColumns } from './debitNoteColumns';
 
@@ -19,182 +22,210 @@ const DEFAULT_PAGINATION = {
 function useDebitNoteListHandlers({
   initialDebitNotes,
   initialPagination,
-  initialSortBy,
-  initialSortDirection,
+  initialSummary = {},
   onError,
   onSuccess,
 }) {
+  const router = useRouter();
   const [debitNotes, setDebitNotes] = useState(initialDebitNotes || []);
+  const [summary, setSummary] = useState(initialSummary || {});
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     current: initialPagination?.current || 1,
     pageSize: initialPagination?.pageSize || 10,
     total: initialPagination?.total || 0,
   });
-  const [sortBy, setSortBy] = useState(initialSortBy || '');
-  const [sortDirection, setSortDirection] = useState(initialSortDirection || 'asc');
+  const [sortBy, setSortBy] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDebitNote, setSelectedDebitNote] = useState(null);
   const loadingRef = useRef(false);
-  const stateRef = useRef({ searchTerm: '' });
+  const onErrorRef = useRef(onError);
+  const stateRef = useRef({ searchTerm: '', pagination });
 
   useEffect(() => {
-    stateRef.current.searchTerm = searchTerm;
-  }, [searchTerm]);
+    onErrorRef.current = onError;
+  }, [onError]);
 
   useEffect(() => {
-    if (initialDebitNotes) {
-      setDebitNotes(initialDebitNotes);
-    }
-  }, [initialDebitNotes]);
+    stateRef.current = { searchTerm, pagination };
+  }, [searchTerm, pagination]);
 
-  useEffect(() => {
-    if (initialPagination) {
-      setPagination({
-        current: initialPagination.current || 1,
-        pageSize: initialPagination.pageSize || 10,
-        total: initialPagination.total || 0,
-      });
-    }
-  }, [initialPagination]);
+  const fetchDebitNotes = useCallback(
+    async (page = stateRef.current.pagination.current, pageSize = stateRef.current.pagination.pageSize, search = stateRef.current.searchTerm) => {
+      if (loadingRef.current) return;
 
-  const handleView = useCallback((id) => {
-    window.open(`/debitNotes/purchaseReturn-view/${id}`, '_blank');
-  }, []);
-
-  const handleEdit = useCallback((id) => {
-    window.open(`/debitNotes/purchaseReturn-edit/${id}`, '_blank');
-  }, []);
-
-  const handleDelete = useCallback(async (id) => {
-    try {
-      setLoading(true);
-      const response = await deleteDebitNote(id);
-
-      if (response.success) {
-        setDebitNotes((prev) => prev.filter((debitNote) => debitNote._id !== id));
-        setPagination((prev) => ({
-          ...prev,
-          total: prev.total - 1,
-        }));
-        onSuccess('Debit note deleted successfully');
-      } else {
-        onError(response.message || 'Failed to delete debit note');
-      }
-    } catch (error) {
-      onError(error.message || 'Error deleting debit note');
-    } finally {
-      setLoading(false);
-    }
-  }, [onError, onSuccess]);
-
-  const handleClone = useCallback(async (id) => {
-    try {
-      setLoading(true);
-      const response = await cloneDebitNote(id);
-
-      if (response.success) {
-        if (response.data) {
-          setDebitNotes((prev) => [response.data, ...prev]);
-          setPagination((prev) => ({
-            ...prev,
-            total: prev.total + 1,
-          }));
+      loadingRef.current = true;
+      try {
+        setLoading(true);
+        const response = await getDebitNotesList(page, pageSize, search);
+        if (response.success) {
+          setDebitNotes(response.data || []);
+          setPagination({
+            current: page,
+            pageSize,
+            total: response.totalRecords || 0,
+          });
+          setSummary(response.summary || {});
+          setSearchTerm(search);
+        } else {
+          onErrorRef.current?.(response.message || 'Failed to fetch purchase returns');
         }
-        onSuccess('Debit note cloned successfully');
-      } else {
-        onError(response.message || 'Failed to clone debit note');
+      } catch (error) {
+        onErrorRef.current?.(error.message || 'Failed to fetch purchase returns');
+      } finally {
+        setLoading(false);
+        loadingRef.current = false;
       }
-    } catch (error) {
-      onError(error.message || 'Error cloning debit note');
-    } finally {
-      setLoading(false);
-    }
-  }, [onError, onSuccess]);
+    },
+    []
+  );
 
-  const handleSend = useCallback(async () => {
-    onSuccess('Send functionality not implemented yet');
-  }, [onSuccess]);
+  const executeAction = useCallback(
+    async (action, fallbackMessage, shouldRefresh = true) => {
+      try {
+        const result = await action();
 
-  const handlePrintDownload = useCallback((id) => {
-    window.open(`/debitNotes/purchaseReturn-view/${id}`, '_blank');
+        if (result?.success === false) {
+          throw new Error(result?.message || 'Action failed');
+        }
+
+        onSuccess?.(result?.message || fallbackMessage);
+        if (shouldRefresh) {
+          await fetchDebitNotes();
+        }
+        return result;
+      } catch (error) {
+        onError?.(error.message || 'Action failed');
+        throw error;
+      }
+    },
+    [fetchDebitNotes, onError, onSuccess]
+  );
+
+  const handleView = useCallback(
+    id => {
+      if (!id) return;
+      router.push(`/debitNotes/purchaseReturn-view/${id}`);
+    },
+    [router]
+  );
+
+  const handleEdit = useCallback(
+    id => {
+      if (!id) return;
+      router.push(`/debitNotes/purchaseReturn-edit/${id}`);
+    },
+    [router]
+  );
+
+  const handleDeleteClick = useCallback(debitNote => {
+    setSelectedDebitNote(debitNote);
+    setDeleteDialogOpen(true);
   }, []);
 
-  const openConvertDialog = useCallback(() => {
-    onSuccess('Convert functionality not implemented yet');
-  }, [onSuccess]);
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteDialogOpen(false);
+    setSelectedDebitNote(null);
+  }, []);
 
-  const fetchDebitNotes = useCallback(async (page = pagination.current, pageSize = pagination.pageSize, search = stateRef.current.searchTerm) => {
-    if (loadingRef.current) {
-      return;
-    }
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!selectedDebitNote?._id) return;
 
-    loadingRef.current = true;
     try {
-      setLoading(true);
-      const response = await getDebitNotesList(page, pageSize, search);
+      const response = await deleteDebitNote(selectedDebitNote._id);
+
       if (response.success) {
-        setDebitNotes(response.data || []);
-        setPagination({
-          current: page,
-          pageSize,
-          total: response.totalRecords || 0,
-        });
-        setSearchTerm(search);
-      } else {
-        onError(response.message || 'Failed to fetch debit notes');
+        onSuccess?.(response.message || 'Purchase return deleted successfully');
+        setDeleteDialogOpen(false);
+        setSelectedDebitNote(null);
+        await fetchDebitNotes();
+        return;
       }
+
+      throw new Error(response.message || 'Failed to delete purchase return');
     } catch (error) {
-      onError(error.message || 'Failed to fetch debit notes');
-    } finally {
-      setLoading(false);
-      loadingRef.current = false;
+      onError?.(error.message || 'Failed to delete purchase return');
     }
-  }, [onError, pagination.current, pagination.pageSize]);
+  }, [fetchDebitNotes, onError, onSuccess, selectedDebitNote]);
 
-  const handlePageChange = useCallback((pageZeroBased) => {
-    const nextPage = Number(pageZeroBased) + 1;
-    if (!Number.isFinite(nextPage)) {
-      return;
-    }
+  const handleClone = useCallback(
+    id => executeAction(() => cloneDebitNote(id), 'Purchase return cloned successfully'),
+    [executeAction]
+  );
 
-    setPagination((prev) => ({ ...prev, current: nextPage }));
-    fetchDebitNotes(nextPage, pagination.pageSize);
-  }, [fetchDebitNotes, pagination.pageSize]);
+  const handleSetAsPending = useCallback(
+    id => executeAction(() => setPurchaseReturnAsPending(id), 'Purchase return set to pending successfully'),
+    [executeAction]
+  );
 
-  const handlePageSizeChange = useCallback((pageSize) => {
-    const nextSize = Number(pageSize);
-    if (!Number.isFinite(nextSize)) {
-      return;
-    }
+  const handleProcessRefund = useCallback(
+    id => executeAction(() => processPurchaseReturnRefund(id), 'Purchase return processed successfully'),
+    [executeAction]
+  );
 
-    setPagination((prev) => ({ ...prev, pageSize: nextSize, current: 1 }));
-    fetchDebitNotes(1, nextSize);
-  }, [fetchDebitNotes]);
+  const handlePrintDownload = useCallback(
+    id => {
+      if (!id) return;
+      router.push(`/debitNotes/purchaseReturn-view/${id}`);
+    },
+    [router]
+  );
+
+  const handlePageChange = useCallback(
+    pageZeroBased => {
+      const nextPage = Number(pageZeroBased) + 1;
+      if (!Number.isFinite(nextPage)) return;
+      fetchDebitNotes(nextPage, stateRef.current.pagination.pageSize);
+    },
+    [fetchDebitNotes]
+  );
+
+  const handlePageSizeChange = useCallback(
+    pageSize => {
+      const nextSize = Number(pageSize);
+      if (!Number.isFinite(nextSize)) return;
+      fetchDebitNotes(1, nextSize);
+    },
+    [fetchDebitNotes]
+  );
 
   const handleSortRequest = useCallback((property, direction) => {
     setSortBy(property);
     setSortDirection(direction);
   }, []);
 
-  const handleSearchInputChange = useCallback((searchValue) => {
-    setSearchTerm(searchValue);
-    fetchDebitNotes(1, pagination.pageSize, searchValue);
-  }, [fetchDebitNotes, pagination.pageSize]);
+  const handleSearchInputChange = useCallback(
+    searchValue => {
+      const nextValue = String(searchValue ?? '');
+      if (nextValue === stateRef.current.searchTerm) return;
+
+      setSearchTerm(nextValue);
+      fetchDebitNotes(1, stateRef.current.pagination.pageSize, nextValue);
+    },
+    [fetchDebitNotes]
+  );
 
   return {
     debitNotes,
+    summary,
     loading,
     pagination,
     sortBy,
     sortDirection,
     searchTerm,
+    deleteDialogOpen,
+    selectedDebitNote,
     handleView,
     handleEdit,
-    handleDelete,
+    handleDeleteClick,
+    handleDeleteCancel,
+    handleDeleteConfirm,
     handleClone,
-    handleSend,
+    handleSetAsPending,
+    handleProcessRefund,
     handlePrintDownload,
-    openConvertDialog,
     handlePageChange,
     handlePageSizeChange,
     handleSortRequest,
@@ -205,6 +236,7 @@ function useDebitNoteListHandlers({
 export function usePurchaseReturnListHandler({
   initialDebitNotes = [],
   initialPagination = DEFAULT_PAGINATION,
+  initialSummary = {},
   initialErrorMessage = '',
 }) {
   const theme = useTheme();
@@ -222,52 +254,36 @@ export function usePurchaseReturnListHandler({
     severity: initialErrorMessage ? 'error' : 'success',
   });
 
-  const showError = (message) => {
-    setSnackbar({
-      open: true,
-      message,
-      severity: 'error',
-    });
-  };
+  const showError = useCallback(message => {
+    setSnackbar({ open: true, message, severity: 'error' });
+  }, []);
 
-  const showSuccess = (message) => {
-    setSnackbar({
-      open: true,
-      message,
-      severity: 'success',
-    });
-  };
+  const showSuccess = useCallback(message => {
+    setSnackbar({ open: true, message, severity: 'success' });
+  }, []);
 
   const handlers = useDebitNoteListHandlers({
     initialDebitNotes,
     initialPagination,
+    initialSummary,
     onError: showError,
     onSuccess: showSuccess,
   });
 
   const columns = useMemo(() => {
-    if (!theme) {
-      return [];
-    }
-
+    if (!theme) return [];
     return getDebitNoteColumns({ theme, permissions });
   }, [permissions, theme]);
 
   const [columnsState, setColumnsState] = useState(() => {
-    if (typeof window === 'undefined') {
-      return [];
-    }
-
+    if (typeof window === 'undefined') return [];
     const savedColumns = window.localStorage.getItem('debitNoteVisibleColumns');
-    if (!savedColumns) {
-      return [];
-    }
+    if (!savedColumns) return [];
 
     try {
       const parsedColumns = JSON.parse(savedColumns);
       return Array.isArray(parsedColumns) ? parsedColumns : [];
-    } catch (error) {
-      console.warn('Failed to parse saved debit note columns:', error);
+    } catch {
       return [];
     }
   });
@@ -281,53 +297,42 @@ export function usePurchaseReturnListHandler({
 
   const tableColumns = useMemo(() => {
     const cellHandlers = {
-      handleDelete: handlers.handleDelete,
+      handleDeleteClick: handlers.handleDeleteClick,
       handleView: handlers.handleView,
       handleEdit: handlers.handleEdit,
       handleClone: handlers.handleClone,
-      handleSend: handlers.handleSend,
+      handleSetAsPending: handlers.handleSetAsPending,
+      handleProcessRefund: handlers.handleProcessRefund,
       handlePrintDownload: handlers.handlePrintDownload,
-      openConvertDialog: handlers.openConvertDialog,
-      permissions,
-      pagination: handlers.pagination,
     };
 
     return columnsState
-      .filter((column) => column.visible)
-      .map((column) => ({
+      .filter(column => column.visible)
+      .map(column => ({
         ...column,
         renderCell: column.renderCell
           ? (row, index) => column.renderCell(row, cellHandlers, index)
           : undefined,
       }));
-  }, [columnsState, handlers, permissions]);
+  }, [columnsState, handlers]);
 
   const handleColumnCheckboxChange = (columnKey, checked) => {
-    setColumnsState((prev) =>
-      prev.map((column) =>
-        column.key === columnKey ? { ...column, visible: checked } : column
-      )
+    setColumnsState(prev =>
+      prev.map(column => (column.key === columnKey ? { ...column, visible: checked } : column))
     );
   };
 
   const handleSaveColumns = () => {
     setManageColumnsOpen(false);
-
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('debitNoteVisibleColumns', JSON.stringify(columnsState));
     }
   };
 
-  const closeSnackbar = (_, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-
-    setSnackbar((prev) => ({
-      ...prev,
-      open: false,
-    }));
-  };
+  const closeSnackbar = useCallback((_, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbar(prev => ({ ...prev, open: false }));
+  }, []);
 
   return {
     permissions,
@@ -335,17 +340,22 @@ export function usePurchaseReturnListHandler({
     manageColumnsOpen,
     columnsState,
     tableColumns,
+    summary: handlers.summary,
     debitNotes: handlers.debitNotes,
     loading: handlers.loading,
     pagination: handlers.pagination,
     sortBy: handlers.sortBy,
     sortDirection: handlers.sortDirection,
     searchTerm: handlers.searchTerm,
+    deleteDialogOpen: handlers.deleteDialogOpen,
+    selectedDebitNote: handlers.selectedDebitNote,
     handlePageChange: handlers.handlePageChange,
     handlePageSizeChange: handlers.handlePageSizeChange,
     handleSortRequest: handlers.handleSortRequest,
     handleSearchInputChange: handlers.handleSearchInputChange,
     handleView: handlers.handleView,
+    handleDeleteConfirm: handlers.handleDeleteConfirm,
+    handleDeleteCancel: handlers.handleDeleteCancel,
     openManageColumns: () => setManageColumnsOpen(true),
     closeManageColumns: () => setManageColumnsOpen(false),
     handleColumnCheckboxChange,

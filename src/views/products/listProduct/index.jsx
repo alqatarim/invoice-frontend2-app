@@ -7,6 +7,7 @@ import ProductList from "@/views/products/listProduct/ProductList";
 const ProductListIndex = ({
   initialProducts = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialSummary = {},
   initialErrorMessage = '',
 }) => {
   return (
@@ -14,6 +15,7 @@ const ProductListIndex = ({
       <ProductList
         initialProducts={initialProducts}
         initialPagination={initialPagination}
+        initialSummary={initialSummary}
         initialErrorMessage={initialErrorMessage}
       />
     </AppSnackbarProvider>

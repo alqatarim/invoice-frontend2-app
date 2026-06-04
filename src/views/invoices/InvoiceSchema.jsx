@@ -24,7 +24,8 @@ export const InvoiceSchema = yup.object().shape({
 
   payment_method: yup
     .string()
-    .required("Choose payment method"),
+    .nullable()
+    .optional(),
 
   branchId: yup
     .string()

@@ -1,8 +1,21 @@
 'use client';
 
 import { useCallback } from 'react';
+import { purchaseOrderStatusDefinitions } from '@/data/dataSets';
 import { formatDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/currencyUtils';
+
+export const getPurchaseOrderStatusOption = status => {
+  const normalized = String(status || '').trim().toUpperCase() || 'Draft';
+  return (
+    purchaseOrderStatusDefinitions.find(item => item.value === normalized) || {
+      value: normalized,
+      label: 'Unknown',
+      color: 'default',
+      icon: 'mdi:help-circle-outline',
+    }
+  );
+};
 
 export default function usePurchaseOrderViewHandlers({
   purchaseOrderData,

@@ -25,6 +25,7 @@ const SimpleDebitNoteList = ({
   sortBy = '',
   sortDirection = 'asc',
   searchTerm = '',
+  summary = {},
   permissions,
   tableColumns = [],
   manageColumnsOpen = false,
@@ -37,6 +38,10 @@ const SimpleDebitNoteList = ({
   onCloseManageColumns,
   onColumnCheckboxChange,
   onSaveColumns,
+  deleteDialogOpen = false,
+  selectedDebitNote = null,
+  onDeleteConfirm,
+  onDeleteCancel,
 }) => {
      const tablePagination = useMemo(() => ({
           page: pagination.current - 1,
@@ -46,10 +51,7 @@ const SimpleDebitNoteList = ({
 
      return (
           <div className='flex flex-col gap-5'>
-               <DebitNoteHead
-                    debitNoteListData={debitNotes}
-                    isLoading={loading}
-               />
+               <DebitNoteHead summary={summary} />
 
                <Grid container spacing={3}>
                     <Grid size={{ xs: 12 }}>
@@ -122,6 +124,22 @@ const SimpleDebitNoteList = ({
                          </Button>
                          <Button onClick={onSaveColumns} color="primary" variant="contained">
                               Save
+                         </Button>
+                    </DialogActions>
+               </Dialog>
+
+               <Dialog open={deleteDialogOpen} onClose={onDeleteCancel}>
+                    <DialogTitle>Delete Purchase Return</DialogTitle>
+                    <DialogContent>
+                         Are you sure you want to delete{' '}
+                         <strong>{selectedDebitNote?.debit_note_id || 'this purchase return'}</strong>?
+                    </DialogContent>
+                    <DialogActions>
+                         <Button onClick={onDeleteCancel} color="secondary">
+                              Cancel
+                         </Button>
+                         <Button onClick={onDeleteConfirm} color="error" variant="contained">
+                              Delete
                          </Button>
                     </DialogActions>
                </Dialog>

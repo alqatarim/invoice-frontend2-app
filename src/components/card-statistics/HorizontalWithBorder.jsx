@@ -89,15 +89,15 @@ const HorizontalWithBorder = props => {
                 </Typography>
               ) : null}
               {hasTrend ? (
-              <div className='flex items-center gap-1'>
-                {trendIcon ? <Icon icon={trendIcon} color={resolvedTrendColor} width='0.9rem' /> : null}
-                <Typography
-                  variant={trendNumberVariant || 'body2'}
-                  sx={trendColor ? { color: resolvedTrendColor } : undefined}
-                >
-                  {trendNumber}
-                </Typography>
-              </div>
+                <div className='flex items-center gap-1'>
+                  {trendIcon ? <Icon icon={trendIcon} color={resolvedTrendColor} width='0.9rem' /> : null}
+                  <Typography
+                    variant={trendNumberVariant || 'body2'}
+                    sx={trendColor ? { color: resolvedTrendColor } : undefined}
+                  >
+                    {trendNumber}
+                  </Typography>
+                </div>
               ) : null}
             </div>
           ) : null}

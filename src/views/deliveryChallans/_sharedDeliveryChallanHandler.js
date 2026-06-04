@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { notifyNotistackFormValidationErrors } from '@/utils/notifyNotistackFormValidationErrors';
 import { deliveryChallanSchema } from '@/views/deliveryChallans/deliveryChallansSchema';
 import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
@@ -117,6 +119,7 @@ function useDeliveryChallanItemsHandlers({
     append({
       productId: '',
       name: '',
+      sku: '',
       units: '',
       unit: '',
       quantity: 1,
@@ -189,7 +192,6 @@ function useBankHandlers({ initialBanks, enqueueSnackbar, closeSnackbar, setValu
         };
         setBanks((prevBanks) => [...prevBanks, newBankWithDetails]);
         setValue('bank', newBankWithDetails._id);
-        trigger('bank');
         setNewBank({ name: '', bankName: '', branch: '', accountNumber: '', IFSCCode: '' });
         enqueueSnackbar('Bank details added successfully', { variant: 'success' });
       }
@@ -206,36 +208,6 @@ function useBankHandlers({ initialBanks, enqueueSnackbar, closeSnackbar, setValu
     newBank,
     setNewBank,
     handleAddBank
-  };
-}
-
-function useSignatureHandlers({ employees, deliveryChallanData, trigger }) {
-  const [signOptions, setSignOptions] = useState(employees || []);
-  const [selectedSignature, setSelectedSignature] = useState(
-    deliveryChallanData?.sign_type === 'manualSignature' && deliveryChallanData?.employee?.employeeImage
-      ? deliveryChallanData.employee.employeeImage
-      : null
-  );
-
-  const handleSignatureSelection = (selectedOption, field) => {
-    if (selectedOption) {
-      field.onChange(selectedOption._id);
-      setSelectedSignature(selectedOption.employeeImage);
-      trigger('employee');
-      return;
-    }
-
-    field.onChange('');
-    setSelectedSignature(null);
-    trigger('employee');
-  };
-
-  return {
-    signOptions,
-    setSignOptions,
-    selectedSignature,
-    setSelectedSignature,
-    handleSignatureSelection
   };
 }
 
@@ -275,6 +247,10 @@ function useDialogHandlers({ getValues, setValue }) {
 
   const handleSaveAddress = () => {
     setValue('address', tempAddress);
+    setValue('deliveryAddress', {
+      ...(getValues('deliveryAddress') || {}),
+      addressLine1: tempAddress,
+    });
     setAddressDialogOpen(false);
   };
 
@@ -296,28 +272,76 @@ function useDialogHandlers({ getValues, setValue }) {
   };
 }
 
-function useDeliveryChallanFormSubmission({ trigger, closeSnackbar, enqueueSnackbar, onSave, getValues }) {
-  const handleFormSubmit = async (data, errors, handleError) => {
+const DELIVERY_CHALLAN_LIST_PATH = '/deliveryChallans/deliveryChallans-list';
+const REDIRECT_AFTER_SAVE_MS = 1500;
+
+function useDeliveryChallanFormSubmission({
+  closeSnackbar,
+  enqueueSnackbar,
+  onSave,
+  getValues,
+  customersData = [],
+  saveMode = 'add',
+}) {
+  const router = useRouter();
+
+  const extractId = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value._id) return value._id;
+    if (typeof value === 'object' && value.value) return value.value;
+    return '';
+  };
+
+  const buildDeliveryAddressPayload = (formData) => {
+    const customerId = extractId(formData.customerId);
+    const customer = (customersData || []).find((item) => item._id === customerId);
+    const savedDeliveryAddress = formData.deliveryAddress;
+    const addressText = String(formData.address || '').trim();
+
+    if (savedDeliveryAddress?.addressLine1) {
+      return {
+        name: savedDeliveryAddress.name || customer?.name || '',
+        addressLine1: savedDeliveryAddress.addressLine1,
+        addressLine2: savedDeliveryAddress.addressLine2 || '',
+        city: savedDeliveryAddress.city || '',
+        state: savedDeliveryAddress.state || '',
+        pincode: savedDeliveryAddress.pincode || '',
+        country: savedDeliveryAddress.country || '',
+      };
+    }
+
+    const shipping = customer?.shippingAddress;
+    if (shipping?.addressLine1) {
+      return {
+        name: customer?.name || shipping.name || '',
+        addressLine1: addressText || shipping.addressLine1,
+        addressLine2: shipping.addressLine2 || '',
+        city: shipping.city || '',
+        state: shipping.state || '',
+        pincode: shipping.pincode || '',
+        country: shipping.country || '',
+      };
+    }
+
+    return {
+      name: customer?.name || '',
+      addressLine1: addressText,
+      addressLine2: '',
+      city: '',
+      state: '',
+      pincode: '',
+      country: '',
+    };
+  };
+
+  const handleFormSubmit = async (currentFormData) => {
     try {
       closeSnackbar();
-      const isValid = await trigger();
-      if (!isValid) {
-        handleError(errors);
-        return;
-      }
 
-      const currentFormData = data;
       if (!currentFormData) {
-        return;
+        return { success: false, message: 'No form data to submit' };
       }
-
-      const extractId = (value) => {
-        if (!value) return '';
-        if (typeof value === 'string') return value;
-        if (typeof value === 'object' && value._id) return value._id;
-        if (typeof value === 'object' && value.value) return value.value;
-        return '';
-      };
 
       const updatedFormData = {
         customerId: extractId(currentFormData.customerId),
@@ -325,7 +349,7 @@ function useDeliveryChallanFormSubmission({ trigger, closeSnackbar, enqueueSnack
         referenceNo: currentFormData.referenceNo,
         dueDate: currentFormData.dueDate,
         deliveryChallanDate: currentFormData.deliveryChallanDate,
-        address: currentFormData.address,
+        deliveryAddress: buildDeliveryAddressPayload(currentFormData),
         taxableAmount: currentFormData.taxableAmount,
         vat: currentFormData.vat,
         roundOff: currentFormData.roundOff,
@@ -333,10 +357,12 @@ function useDeliveryChallanFormSubmission({ trigger, closeSnackbar, enqueueSnack
         TotalAmount: currentFormData.TotalAmount,
         notes: currentFormData.notes,
         bank: currentFormData.bank,
+        employee: currentFormData.employee || '',
         termsAndCondition: currentFormData.termsAndCondition,
         items: currentFormData.items.map((item) => ({
           productId: item.productId,
           name: item.name,
+          sku: item.sku,
           units: item.units,
           unit: item.unit,
           quantity: item.quantity,
@@ -353,22 +379,12 @@ function useDeliveryChallanFormSubmission({ trigger, closeSnackbar, enqueueSnack
           tax: item.tax,
           taxInfo: JSON.stringify(item.taxInfo),
         })),
-        sign_type: currentFormData.sign_type || 'manualSignature',
-        employeeName: currentFormData.employeeName,
-        employee: extractId(currentFormData.employee)
       };
 
-      const loadingKey = enqueueSnackbar('Processing delivery challan...', {
-        variant: 'info',
-        persist: true,
-        preventDuplicate: true
-      });
-
       const result = await onSave(updatedFormData);
-      closeSnackbar(loadingKey);
 
-      if (!result.success) {
-        const errorMessage = result.error?.message || result.message || 'Failed to process delivery challan';
+      if (!result?.success) {
+        const errorMessage = result?.error?.message || result?.message || 'Failed to process delivery challan';
         enqueueSnackbar(errorMessage, {
           variant: 'error',
           autoHideDuration: 5000,
@@ -377,91 +393,50 @@ function useDeliveryChallanFormSubmission({ trigger, closeSnackbar, enqueueSnack
         return { success: false, message: errorMessage };
       }
 
+      router.refresh();
+
+      setTimeout(() => {
+        router.push(`${DELIVERY_CHALLAN_LIST_PATH}?success=${saveMode}`);
+      }, REDIRECT_AFTER_SAVE_MS);
+
       return { success: true };
     } catch (error) {
       console.error('Error in form submission:', error);
       closeSnackbar();
       enqueueSnackbar(error.message || 'An error occurred during submission', {
         variant: 'error',
-        autoHideDuration: 5000
+        autoHideDuration: 5000,
       });
       return { success: false, message: error.message || 'An error occurred during submission' };
     }
   };
 
   const handleError = (errors) => {
-    closeSnackbar();
-    setTimeout(() => {
-      const errorCount = Object.keys(errors).length;
-      if (errorCount === 0) {
-        return;
-      }
-
-      const formValues = getValues();
-      Object.entries(errors).forEach(([key, error]) => {
-        if (key === 'items') {
-          if (error.message) {
-            enqueueSnackbar(error.message, {
-              variant: 'error',
-              preventDuplicate: true,
-              key: `error-items-${Date.now()}`,
-              anchorOrigin: {
-                vertical: 'top',
-                horizontal: 'right'
-              }
-            });
-          }
-
-          if (Array.isArray(error)) {
-            error.forEach((itemError, index) => {
-              if (itemError) {
-                const productName = formValues.items?.[index]?.name || `Item ${index + 1}`;
-                Object.entries(itemError).forEach(([fieldKey, fieldError]) => {
-                  if (fieldError && fieldError.message) {
-                    enqueueSnackbar(`${productName}: ${fieldError.message}`, {
-                      variant: 'error',
-                      preventDuplicate: true,
-                      key: `error-item-${index}-${fieldKey}-${Date.now()}`,
-                      anchorOrigin: {
-                        vertical: 'top',
-                        horizontal: 'right'
-                      }
-                    });
-                  }
-                });
-              }
-            });
-          }
-        } else if (error && error.message) {
-          enqueueSnackbar(error.message, {
-            variant: 'error',
-            preventDuplicate: true,
-            key: `error-${key}-${Date.now()}`,
-            anchorOrigin: {
-              vertical: 'top',
-              horizontal: 'right'
-            }
-          });
-        }
-      });
-    }, 200);
+    notifyNotistackFormValidationErrors({
+      errors,
+      closeSnackbar,
+      enqueueSnackbar,
+      getValues,
+    });
   };
 
   return {
     handleFormSubmit,
-    handleError
+    handleError,
   };
 }
 
 export default function useDeliveryChallanHandlers({
   deliveryChallanData,
+  customersData = [],
   productData,
   initialBanks,
-  employees,
+  employees = [],
   onSave,
   enqueueSnackbar,
   closeSnackbar,
-  addBank
+  addBank,
+  saveMode = 'add',
 }) {
   const {
     control,
@@ -482,6 +457,7 @@ export default function useDeliveryChallanHandlers({
       address: deliveryChallanData?.deliveryAddress
         ? `${deliveryChallanData.deliveryAddress.addressLine1 || ''}, ${deliveryChallanData.deliveryAddress.city || ''}, ${deliveryChallanData.deliveryAddress.state || ''} ${deliveryChallanData.deliveryAddress.pincode || ''}`.trim()
         : '',
+      deliveryAddress: deliveryChallanData?.deliveryAddress || null,
       taxableAmount: deliveryChallanData?.taxableAmount || 0,
       TotalAmount: Number(deliveryChallanData?.TotalAmount) || 0,
       notes: deliveryChallanData?.notes || '',
@@ -490,10 +466,8 @@ export default function useDeliveryChallanHandlers({
       roundOff: deliveryChallanData?.roundOff || false,
       termsAndCondition: deliveryChallanData?.termsAndCondition || '',
       bank: deliveryChallanData?.bank?._id || deliveryChallanData?.bank || '',
-      roundOffValue: deliveryChallanData?.roundOffValue || 0,
-      sign_type: deliveryChallanData?.sign_type || 'manualSignature',
-      employeeName: deliveryChallanData?.employeeName || '',
       employee: deliveryChallanData?.employee?._id || deliveryChallanData?.employee || '',
+      roundOffValue: deliveryChallanData?.roundOffValue || 0,
       items: deliveryChallanData?.items?.map((item) => {
         const product = productData?.find((productItem) => productItem._id === item.productId);
         const unitId = product?.units?._id || item.unit || '';
@@ -539,6 +513,7 @@ export default function useDeliveryChallanHandlers({
   const watchItems = useWatch({ control, name: 'items' });
   const watchRoundOff = useWatch({ control, name: 'roundOff' });
   const watchCustomer = useWatch({ control, name: 'customerId' });
+  const [signOptions] = useState(employees || []);
 
   const [productsCloneData, setProductsCloneData] = useState(() => {
     if (productData && deliveryChallanData) {
@@ -570,25 +545,25 @@ export default function useDeliveryChallanHandlers({
     addBank,
   });
 
-  const employeeHandlers = useSignatureHandlers({
-    employees,
-    deliveryChallanData,
-    setValue,
-    trigger,
-  });
-
   const dialogHandlers = useDialogHandlers({
     getValues,
     setValue,
   });
 
   const formSubmissionHandlers = useDeliveryChallanFormSubmission({
-    trigger,
     closeSnackbar,
     enqueueSnackbar,
     onSave,
     getValues,
+    customersData,
+    saveMode,
   });
+
+  const handleSignatureSelection = (selectedEmployee, field) => {
+    const employeeId = selectedEmployee?._id || '';
+    field.onChange(employeeId);
+    setValue('employee', employeeId, { shouldValidate: true, shouldDirty: true });
+  };
 
   return {
     control,
@@ -605,10 +580,12 @@ export default function useDeliveryChallanHandlers({
     watchRoundOff,
     watchCustomer,
     productsCloneData,
+    productData,
+    signOptions,
     setProductsCloneData,
+    handleSignatureSelection,
     ...itemsHandlers,
     ...bankHandlers,
-    ...employeeHandlers,
     ...dialogHandlers,
     ...formSubmissionHandlers,
   };

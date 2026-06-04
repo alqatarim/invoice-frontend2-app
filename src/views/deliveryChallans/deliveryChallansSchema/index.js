@@ -19,7 +19,7 @@ export const deliveryChallanSchema = yup.object().shape({
     .test(
       'not-future',
       'Date cannot be in the future',
-      function(value) {
+      function (value) {
         if (!value) return true;
         const today = dayjs().startOf('day');
         const selectedDate = dayjs(value).startOf('day');
@@ -34,7 +34,7 @@ export const deliveryChallanSchema = yup.object().shape({
     .test(
       'is-after-delivery-challan',
       'Due date must be on or after delivery challan date',
-      function(value) {
+      function (value) {
         const deliveryChallanDate = this.parent.deliveryChallanDate;
         if (!deliveryChallanDate || !value) return true;
 
@@ -52,40 +52,8 @@ export const deliveryChallanSchema = yup.object().shape({
 
   address: yup
     .string()
-    .required("Shipping Address is required")
+    .nullable()
     .trim(),
-
-  sign_type: yup
-    .string()
-    .required("Choose employee type")
-    .oneOf(['eSignature', 'manualSignature'], 'Invalid employee type'),
-
-  employeeName: yup
-    .string()
-    .when('sign_type', {
-      is: 'eSignature',
-      then: yup.string()
-        .required('Enter employee')
-        .min(2, 'Signature name must be at least 2 characters')
-        .trim(),
-      otherwise: yup.string().nullable()
-    }),
-
-  employeeImage: yup
-    .mixed()
-    .when('sign_type', {
-      is: 'eSignature',
-      then: yup.mixed().required('Draw your employee'),
-      otherwise: yup.mixed().nullable()
-    }),
-
-  employee: yup
-    .string()
-    .when('sign_type', {
-      is: 'manualSignature',
-      then: yup.string().required('Select a employee'),
-      otherwise: yup.string().nullable()
-    }),
 
   items: yup
     .array()
@@ -128,17 +96,14 @@ export const deliveryChallanSchema = yup.object().shape({
           otherwise: yup.string().nullable()
         }),
         taxInfo: yup.mixed().nullable(),
-        // Additional fields that are used in form submission
-        key: yup.mixed().nullable(),
-        isRateFormUpadted: yup.mixed().nullable(),
-        form_updated_rate: yup.mixed().nullable(),
-        form_updated_discount: yup.mixed().nullable(),
-        form_updated_discounttype: yup.mixed().nullable(),
-        form_updated_tax: yup.mixed().nullable()
       })
     ),
 
   bank: yup
+    .string()
+    .nullable(),
+
+  employee: yup
     .string()
     .nullable(),
 
@@ -152,8 +117,4 @@ export const deliveryChallanSchema = yup.object().shape({
     .nullable()
     .trim()
 
-}, [
-  ['employeeName', 'sign_type'],
-  ['employeeImage', 'sign_type'],
-  ['employee', 'sign_type']
-]);
+});

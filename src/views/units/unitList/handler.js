@@ -22,12 +22,14 @@ const DEFAULT_DIALOG_STATE = {
 export function useUnitListHandler({
   initialUnits = [],
   initialPagination = DEFAULT_PAGINATION,
+  initialSummary = {},
   onError,
   onInfo,
   onSuccess,
 }) {
   const [units, setUnits] = useState(initialUnits);
   const [pagination, setPagination] = useState(initialPagination);
+  const [summary, setSummary] = useState(initialSummary);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -77,6 +79,7 @@ export function useUnitListHandler({
 
       setUnits(result?.units || []);
       setPagination(result?.pagination || DEFAULT_PAGINATION);
+      setSummary(result?.summary || {});
       setFilters(nextFilters);
       setSortBy(nextSortBy);
       setSortDirection(nextSortDirection);
@@ -277,6 +280,7 @@ export function useUnitListHandler({
   return {
     units,
     pagination,
+    summary,
     loading,
     sortBy,
     sortDirection,

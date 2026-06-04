@@ -15,16 +15,23 @@ const ENDPOINTS = {
     VIEW: '/expense/viewExpense',
     UPDATE: '/expense/updateExpense',
     DELETE: '/expense/deleteExpense',
-    GET_NUMBER: '/expense/getExpenseNumber'
+    GET_NUMBER: '/expense/getExpenseNumber',
+    SET_AS_PENDING: '/expense/setAsPending',
+    SET_AS_PAID: '/expense/setAsPaid',
   }
 };
 
-export async function getExpensesList(page = 1, pageSize = 10) {
+export async function getExpensesList(page = 1, pageSize = 10, search = '') {
   try {
     const skipSize = page === 1 ? 0 : (page - 1) * pageSize;
+    const queryParams = [`limit=${pageSize}`, `skip=${skipSize}`];
+
+    if (search) {
+      queryParams.push(`search=${encodeURIComponent(search)}`);
+    }
 
     const response = await fetchWithAuth(
-      `${ENDPOINTS.EXPENSE.LIST}?limit=${pageSize}&skip=${skipSize}`
+      `${ENDPOINTS.EXPENSE.LIST}?${queryParams.join('&')}`
     );
 
     if (response.code !== 200) {
@@ -34,7 +41,8 @@ export async function getExpensesList(page = 1, pageSize = 10) {
     return {
       success: true,
       data: response.data || [],
-      totalRecords: response.totalRecords || 0
+      totalRecords: response.totalRecords || 0,
+      summary: response.summary || {},
     };
   } catch (error) {
     console.error('Error fetching expenses list:', error);
@@ -104,7 +112,7 @@ const formatExpenseData = (data) => {
 
   // Handle other fields
   if (data.expenseId) formData.append('expenseId', data.expenseId);
-  if (data.reference) formData.append('reference', data.reference);
+  if (data.reference !== undefined) formData.append('reference', data.reference || '');
   if (data.paymentMode) formData.append('paymentMode', data.paymentMode);
   if (data.status) formData.append('status', data.status);
 
@@ -151,6 +159,56 @@ export async function getExpenseDetails(id) {
   } catch (error) {
     console.error('Error fetching expense details:', error);
     throw error;
+  }
+}
+
+export async function setExpenseAsPending(id) {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.EXPENSE.SET_AS_PENDING}/${id}`, {
+      method: 'PATCH',
+      cache: 'no-store',
+    });
+
+    if (response.code === 200) {
+      return {
+        success: true,
+        message: response.data?.message || 'Expense set to pending successfully',
+      };
+    }
+
+    const message = Array.isArray(response.data?.message)
+      ? response.data.message.join(' ')
+      : response.data?.message || response.message;
+
+    throw new Error(message || 'Failed to set expense as pending');
+  } catch (error) {
+    console.error('Error setting expense as pending:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function setExpenseAsPaid(id) {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.EXPENSE.SET_AS_PAID}/${id}`, {
+      method: 'PATCH',
+      cache: 'no-store',
+    });
+
+    if (response.code === 200) {
+      return {
+        success: true,
+        message: response.data?.message || 'Expense set to paid successfully',
+      };
+    }
+
+    const message = Array.isArray(response.data?.message)
+      ? response.data.message.join(' ')
+      : response.data?.message;
+
+    throw new Error(message || response.message || 'Failed to set expense as paid');
+  } catch (error) {
+    console.error('Error setting expense as paid:', error);
+    return { success: false, message: error.message };
   }
 }
 

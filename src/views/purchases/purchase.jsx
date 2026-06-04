@@ -25,7 +25,7 @@ import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
 import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
 import InvoiceItemsTable from '@/components/custom-components/InvoiceItemsTable';
-import { Totals } from '@/components/totals';
+import { TotalsTwo } from '@/components/totals';
 import { useGlobalLocationScope } from '@/contexts/GlobalLocationContext';
 import VendorAutocomplete from '@/components/custom-components/VendorAutocomplete';
 import { calculatePurchaseInvoiceTotals } from '@/utils/purchaseTotals';
@@ -46,10 +46,11 @@ const Purchase = ({ mode = 'add', title = 'Add Purchase', documentNumber = '', r
     watchItems,
     watchRoundOff,
     productsCloneData,
+    productData,
     banks,
+    signOptions,
     newBank,
     setNewBank,
-    signOptions,
     paymentMethods,
     termsDialogOpen,
     tempTerms,
@@ -100,6 +101,7 @@ const Purchase = ({ mode = 'add', title = 'Add Purchase', documentNumber = '', r
     fields,
     watchItems,
     productsCloneData,
+    productData,
     taxRates,
     discountMenu,
     setDiscountMenu,
@@ -192,20 +194,31 @@ const Purchase = ({ mode = 'add', title = 'Add Purchase', documentNumber = '', r
                   <TextField {...field} label="Due Date" type="date" variant="outlined" fullWidth size="medium" error={!!errors.dueDate} inputProps={{ min: getValues('purchaseDate') }} InputLabelProps={{ shrink: true }} />
                 )} />
               </Grid>
-              <Grid size={{ xs: 12, md: 2.5 }}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Controller name="employee" control={control} render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.employee} variant="outlined">
+                  <FormControl fullWidth variant="outlined" error={!!errors.employee}>
                     <InputLabel>Employee</InputLabel>
-                    <Select label="Employee" size="medium" value={field.value || ''} onChange={event => {
-                      const selected = (signOptions || []).find(option => option._id === event.target.value);
-                      handleSignatureSelection(selected, field);
-                    }}>
-                      {(signOptions || []).length === 0 ? <MenuItem value="" disabled>No employees available</MenuItem> : (signOptions || []).map(option => <MenuItem key={option._id} value={option._id}>{option.employeeName || option.signatureName || option.label || option.fullName || option.email || 'Employee'}</MenuItem>)}
+                    <Select
+                      {...field}
+                      label="Employee"
+                      size="medium"
+                      value={field.value || ''}
+                      onChange={(event) => {
+                        const selected = (signOptions || []).find(employee => employee._id === event.target.value);
+                        handleSignatureSelection(selected, field);
+                      }}
+                    >
+                      <MenuItem value=""><em>None</em></MenuItem>
+                      {(signOptions || []).map(employee => (
+                        <MenuItem key={employee._id} value={employee._id}>
+                          {employee.employeeName || employee.signatureName || employee.fullName || employee.email || 'Employee'}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 )} />
               </Grid>
-              <Grid size={{ xs: 12, md: 0.5 }}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <IconButton color="secondary" onClick={() => setDrawerOpen(true)} aria-label="Open more options">
                   <Icon icon="mdi:unfold-more-vertical" />
                 </IconButton>
@@ -262,7 +275,7 @@ const Purchase = ({ mode = 'add', title = 'Add Purchase', documentNumber = '', r
               </Box>
             </CardContent>
           </Card>
-          <Totals
+          <TotalsTwo
             layout="floating"
             control={control}
             primaryActionLabel={mode === 'edit' ? 'Update' : 'Complete'}

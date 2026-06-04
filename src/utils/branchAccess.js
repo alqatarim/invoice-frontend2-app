@@ -1,7 +1,7 @@
 const normalizeBranchValue = value => String(value || '').trim();
 
 export const isStoreBranch = branch =>
-  normalizeBranchValue(branch?.branchType || branch?.kind).toLowerCase() === 'store';
+  normalizeBranchValue(branch?.branchType || branch?.type).toLowerCase() === 'store';
 
 export const getBranchIdentifiers = branch =>
   [branch?._id].map(normalizeBranchValue).filter(Boolean);

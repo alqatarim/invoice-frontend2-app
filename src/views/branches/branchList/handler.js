@@ -10,31 +10,50 @@ const DEFAULT_PAGINATION = {
   total: 0,
 };
 
+const normalizeInitialFilters = (filters = {}) => {
+  const normalizedFilters = {};
+
+  ['search_branch', 'branchType', 'province', 'city', 'status'].forEach(key => {
+    const value = filters?.[key];
+    if (value !== undefined && value !== null && value !== '') {
+      normalizedFilters[key] = String(value);
+    }
+  });
+
+  return normalizedFilters;
+};
+
+const getSearchTermFromFilters = filters => filters?.search_branch || '';
+
 export function useBranchListHandler({
   initialBranches = [],
   initialPagination = DEFAULT_PAGINATION,
+  initialSummary = {},
   onError,
   onSuccess,
   onEdit,
   onView,
+  initialFilters = {},
 }) {
   const router = useRouter();
+  const normalizedInitialFilters = normalizeInitialFilters(initialFilters);
 
   const [branches, setBranches] = useState(initialBranches);
   const [pagination, setPagination] = useState(initialPagination);
+  const [summary, setSummary] = useState(initialSummary);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
-  const [filters, setFilters] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState(normalizedInitialFilters);
+  const [searchTerm, setSearchTerm] = useState(getSearchTermFromFilters(normalizedInitialFilters));
 
   const loadingRef = useRef(false);
   const stateRef = useRef({
     pagination: initialPagination,
     sortBy: '',
     sortDirection: 'asc',
-    filters: {},
-    searchTerm: '',
+    filters: normalizedInitialFilters,
+    searchTerm: getSearchTermFromFilters(normalizedInitialFilters),
   });
 
   useEffect(() => {
@@ -74,6 +93,7 @@ export function useBranchListHandler({
 
         setBranches(result?.branches || []);
         setPagination(result?.pagination || DEFAULT_PAGINATION);
+        setSummary(result?.summary || {});
         setSortBy(nextSortBy);
         setSortDirection(nextSortDirection);
         setFilters(nextFilters);
@@ -88,6 +108,19 @@ export function useBranchListHandler({
       }
     },
     [onError]
+  );
+
+  const syncStoreFiltersToUrl = useCallback(
+    nextFilters => {
+      const searchParams = new URLSearchParams();
+
+      if (nextFilters.province) searchParams.set('province', nextFilters.province);
+      if (nextFilters.city) searchParams.set('city', nextFilters.city);
+
+      const query = searchParams.toString();
+      router.replace(query ? `/stores?${query}` : '/stores', { scroll: false });
+    },
+    [router]
   );
 
   const refreshData = useCallback(() => {
@@ -189,6 +222,55 @@ export function useBranchListHandler({
     [fetchBranches, onError]
   );
 
+  const handleProvinceFilterChange = useCallback(
+    async value => {
+      const nextFilters = { ...stateRef.current.filters };
+
+      if (value) {
+        nextFilters.province = value;
+      } else {
+        delete nextFilters.province;
+      }
+
+      delete nextFilters.city;
+      syncStoreFiltersToUrl(nextFilters);
+
+      try {
+        await fetchBranches({
+          page: 1,
+          filters: nextFilters,
+        });
+      } catch (error) {
+        onError?.(error.message || 'Province filter failed');
+      }
+    },
+    [fetchBranches, onError, syncStoreFiltersToUrl]
+  );
+
+  const handleCityFilterChange = useCallback(
+    async value => {
+      const nextFilters = { ...stateRef.current.filters };
+
+      if (value) {
+        nextFilters.city = value;
+      } else {
+        delete nextFilters.city;
+      }
+
+      syncStoreFiltersToUrl(nextFilters);
+
+      try {
+        await fetchBranches({
+          page: 1,
+          filters: nextFilters,
+        });
+      } catch (error) {
+        onError?.(error.message || 'City filter failed');
+      }
+    },
+    [fetchBranches, onError, syncStoreFiltersToUrl]
+  );
+
   const handleDelete = useCallback(
     async id => {
       try {
@@ -237,10 +319,12 @@ export function useBranchListHandler({
   return {
     branches,
     pagination,
+    summary,
     loading,
     sortBy,
     sortDirection,
     searchTerm,
+    filters,
     refreshData,
     handleDelete,
     handleEdit,
@@ -249,5 +333,7 @@ export function useBranchListHandler({
     handlePageSizeChange,
     handleSortRequest,
     handleSearchInputChange,
+    handleProvinceFilterChange,
+    handleCityFilterChange,
   };
 }

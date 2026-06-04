@@ -7,6 +7,7 @@ import UnitList from "@/views/units/unitList/UnitList";
 const UnitListIndex = ({
   initialUnits = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialSummary = {},
   initialErrorMessage = '',
 }) => {
   return (
@@ -14,6 +15,7 @@ const UnitListIndex = ({
       <UnitList
         initialUnits={initialUnits}
         initialPagination={initialPagination}
+        initialSummary={initialSummary}
         initialErrorMessage={initialErrorMessage}
       />
     </AppSnackbarProvider>

@@ -11,6 +11,8 @@ const ENDPOINTS = {
     VIEW: '/credit_note/viewCreditNote',
     UPDATE: '/credit_note/updateCreditNote',
     DELETE: '/credit_note/deleteCreditNote',
+    PROCESS_REFUND: '/credit_note/processRefund',
+    SET_AS_PENDING: '/credit_note/setAsPending',
     GET_NUMBER: '/credit_note/getCreditNoteNumber',
     FILTER: '/credit_note/filterCreditNote'
   },
@@ -72,6 +74,56 @@ export async function deleteSalesReturn(id) {
     throw new Error(response?.message || 'Failed to delete sales return');
   } catch (error) {
     console.error('Error deleting sales return:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function processSalesReturnRefund(id) {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.PROCESS_REFUND}/${id}`, {
+      method: 'PATCH',
+      cache: 'no-store'
+    });
+
+    if (response.code === 200) {
+      return {
+        success: true,
+        message: response.data?.message || 'Sales return refund processed successfully'
+      };
+    }
+
+    const message = Array.isArray(response.data?.message)
+      ? response.data.message.join(' ')
+      : response.data?.message || response.message;
+
+    throw new Error(message || 'Failed to process sales return refund');
+  } catch (error) {
+    console.error('Error processing sales return refund:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function setSalesReturnAsPending(id) {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.SET_AS_PENDING}/${id}`, {
+      method: 'PATCH',
+      cache: 'no-store'
+    });
+
+    if (response.code === 200) {
+      return {
+        success: true,
+        message: response.data?.message || 'Sales return set to pending successfully'
+      };
+    }
+
+    const message = Array.isArray(response.data?.message)
+      ? response.data.message.join(' ')
+      : response.data?.message || response.message;
+
+    throw new Error(message || 'Failed to set sales return as pending');
+  } catch (error) {
+    console.error('Error setting sales return as pending:', error);
     return { success: false, message: error.message };
   }
 }
@@ -147,7 +199,7 @@ export async function getSignatures() {
   }
 }
 
-export async function addSalesReturn(data, signatureURL) {
+export async function addSalesReturn(data) {
   try {
     const formData = new FormData();
 
@@ -196,12 +248,13 @@ export async function addSalesReturn(data, signatureURL) {
     formData.append('vat', Number(data.vat).toString());
     formData.append('totalDiscount', Number(data.totalDiscount).toString());
     formData.append('bank', data.bank || '');
+    formData.append('employee', data.employee || '');
     formData.append('notes', data.notes || '');
     formData.append('termsAndCondition', data.termsAndCondition || '');
-    formData.append('employee', data.employee || '');
-
     // Ensure required fields are present
     formData.append('roundOff', data.roundOff || false);
+    formData.append('status', data.status || 'Pending');
+    formData.append('paymentMode', data.payment_method || 'Cash');
 
     const response = await fetchWithAuth(ENDPOINTS.CREDIT_NOTE.ADD, {
       method: 'POST',
@@ -217,7 +270,7 @@ export async function addSalesReturn(data, signatureURL) {
     return {
       success: true,
       data: response.data,
-      message: response.message
+      message: response.data?.message || response.message
     };
   } catch (error) {
     console.error('Error adding sales return:', error);
@@ -233,7 +286,7 @@ export async function getSalesReturnDetails(id) {
     const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.VIEW}/${id}`, {
       cache: 'no-store'
     });
-    return response.data;
+    return response.data || null;
   } catch (error) {
     console.error('Error fetching sales return details:', error);
     throw error;
@@ -289,12 +342,12 @@ export async function updateSalesReturn(data) {
     formData.append("vat", data.vat);
     formData.append("totalDiscount", data.totalDiscount);
     formData.append("bank", data.bank || "");
+    formData.append("employee", data.employee || "");
     formData.append("notes", data.notes || '');
     formData.append("termsAndCondition", data.termsAndCondition || '');
     formData.append('customerId', data.customerId);
     formData.append('roundOff', data.roundOff || false);
-    formData.append('employee', data.employee || '');
-
+    formData.append('paymentMode', data.payment_method || 'Cash');
     const response = await fetchWithAuth(`${ENDPOINTS.CREDIT_NOTE.UPDATE}/${data.id}`, {
       method: 'PUT',
       body: formData,
@@ -309,7 +362,7 @@ export async function updateSalesReturn(data) {
     return {
       success: true,
       data: response.data,
-      message: response.message
+      message: response.data?.message || response.message
     };
   } catch (error) {
     console.error('Error updating sales return:', error);

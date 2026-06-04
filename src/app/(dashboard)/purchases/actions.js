@@ -30,7 +30,8 @@ export async function getPurchaseList(page = 1, pageSize = 10, searchTerm = '', 
           return {
                success: response.code === 200,
                data: response.data || [],
-               totalRecords: response.totalRecords
+               totalRecords: response.totalRecords,
+               summary: response.summary || {}
           };
      } catch (error) {
           console.error('Error fetching purchase list:', error);
@@ -63,7 +64,7 @@ export async function getPurchaseDetails(id) {
           const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE.VIEW}/${id}`);
           return {
                success: response.code === 200,
-               data: response.data
+               data: response.data || null
           };
      } catch (error) {
           console.error('Error fetching purchase details:', error);
@@ -71,7 +72,7 @@ export async function getPurchaseDetails(id) {
      }
 }
 
-export async function addPurchase(data, signatureURL) {
+export async function addPurchase(data) {
      try {
           // Convert data to FormData
           const formData = new FormData();
@@ -124,7 +125,6 @@ export async function addPurchase(data, signatureURL) {
           if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
           if (data.bank) formData.append('bank', data.bank);
           if (data.employee) formData.append('employee', data.employee);
-
           // Add total values with number conversion
           if (data.taxableAmount) formData.append('taxableAmount', Number(data.taxableAmount).toString());
           if (data.TotalAmount) formData.append('TotalAmount', Number(data.TotalAmount).toString());
@@ -150,7 +150,7 @@ export async function addPurchase(data, signatureURL) {
      }
 }
 
-export async function updatePurchase(id, data, signatureURL) {
+export async function updatePurchase(id, data) {
      try {
           // Convert data to FormData
           const formData = new FormData();
@@ -203,7 +203,6 @@ export async function updatePurchase(id, data, signatureURL) {
           if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
           if (data.bank) formData.append('bank', data.bank);
           if (data.employee) formData.append('employee', data.employee);
-
           // Add total values with number conversion
           if (data.taxableAmount) formData.append('taxableAmount', Number(data.taxableAmount).toString());
           if (data.TotalAmount) formData.append('TotalAmount', Number(data.TotalAmount).toString());

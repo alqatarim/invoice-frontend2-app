@@ -9,6 +9,7 @@ export const metadata = {
 async function PurchaseListPage() {
   let initialPurchases = []
   let initialPagination = { current: 1, pageSize: 10, total: 0 }
+  let initialSummary = {}
   let initialVendors = []
   let initialErrorMessage = ''
 
@@ -19,6 +20,7 @@ async function PurchaseListPage() {
     ]);
 
     initialPurchases = initialData?.data || []
+    initialSummary = initialData?.summary || {}
     initialPagination = {
       current: 1,
       pageSize: 10,
@@ -34,6 +36,7 @@ async function PurchaseListPage() {
     <PurchaseListIndex
       initialPurchases={initialPurchases}
       initialPagination={initialPagination}
+      initialSummary={initialSummary}
       initialVendors={initialVendors}
       initialErrorMessage={initialErrorMessage}
     />

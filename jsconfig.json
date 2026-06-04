@@ -54,7 +54,8 @@
     "postcss.config.js",
     "tailwind.config.js",
     "**/*.js",
-    "**/*.jsx"
+    "**/*.jsx",
+    "**/*.d.ts"
   ],
   "exclude": [
     "node_modules"

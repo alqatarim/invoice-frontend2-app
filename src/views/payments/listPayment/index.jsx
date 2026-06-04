@@ -1,113 +1,134 @@
 'use client';
 
-import { useEffect } from 'react';
-import PaymentList from './PaymentList';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useSnackbar, SnackbarProvider, closeSnackbar } from 'notistack';
-import { styled } from '@mui/material/styles';
-import { MaterialDesignContent } from 'notistack';
-import { alpha } from '@mui/material/styles';
+import React, { useCallback, useEffect } from 'react';
 import { IconButton } from '@mui/material';
 import { Icon } from '@iconify/react';
-
-const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) => ({
-  '&.notistack-MuiContent, &.notistack-MuiContent-success, &.notistack-MuiContent-error, &.notistack-MuiContent-warning, &.notistack-MuiContent-info': {
-    display: 'flex',
-    flexDirection: 'row-reverse',
-    justifyContent: 'start',
-    alignItems: 'center',
-    padding: '4px 4px 4px 0px',
-    minWidth: '350px',
-    maxWidth: '500px',
-    fontWeight: 600,
-    gap: '8px',
-
-    '& .go703367398': {
-      margin: '0px',
-      padding: '0px'
-    },
-
-    '& .notistack-MuiContent-message': {
-      padding: 0,
-      margin: 0,
-    },
-  },
-
-  '&.notistack-MuiContent-success': {
-    backgroundColor: alpha(theme.palette.success.main, 0.05),
-    backdropFilter: 'blur(10px)',
-    color: theme.palette.success.main,
-    boxShadow: `0 4px 12px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-  },
-
-  '&.notistack-MuiContent-error': {
-    backgroundColor: alpha(theme.palette.error.main, 0.05),
-    backdropFilter: 'blur(10px)',
-    color: theme.palette.error.main,
-    boxShadow: `0 4px 12px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-  },
-
-  '&.notistack-MuiContent-info': {
-    backgroundColor: alpha(theme.palette.info.main, 0.05),
-    backdropFilter: 'blur(10px)',
-    color: theme.palette.info.main,
-    boxShadow: `0 4px 12px 0 ${alpha(theme.palette.common.black, 0.1)}`,
-  },
-}));
-
-const DEFAULT_PAGINATION = { current: 1, pageSize: 10, total: 0 };
+import { SnackbarProvider, closeSnackbar as closeNotistackSnackbar, useSnackbar } from 'notistack';
+import PaymentDialog from '@/views/payments/payment';
+import PaymentList from './PaymentList';
+import { usePaymentListHandler } from './handler';
 
 const PaymentListContent = ({
   initialPayments = [],
-  initialPagination = DEFAULT_PAGINATION,
+  initialPagination,
+  initialSummary = {},
+  initialPaymentNumber = '',
   initialCustomerOptions = [],
+  initialErrorMessage = '',
 }) => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { enqueueSnackbar } = useSnackbar();
 
+  const onError = useCallback(
+    message => {
+      enqueueSnackbar(message, {
+        variant: 'error',
+        autoHideDuration: 5000,
+        preventDuplicate: true,
+      });
+    },
+    [enqueueSnackbar]
+  );
+
+  const onSuccess = useCallback(
+    message => {
+      enqueueSnackbar(message, {
+        variant: 'success',
+        autoHideDuration: 3000,
+      });
+    },
+    [enqueueSnackbar]
+  );
+
   useEffect(() => {
-    const success = searchParams.get('success');
-    if (success === 'add') {
-      enqueueSnackbar('Payment added successfully!', {
-        variant: 'success',
-        autoHideDuration: 5000
-      });
-      const newUrl = window.location.pathname;
-      router.replace(newUrl);
-    } else if (success === 'edit') {
-      enqueueSnackbar('Payment updated successfully!', {
-        variant: 'success',
-        autoHideDuration: 5000
-      });
-      const newUrl = window.location.pathname;
-      router.replace(newUrl);
+    if (initialErrorMessage) {
+      onError(initialErrorMessage);
     }
-  }, [searchParams, enqueueSnackbar, router]);
+  }, [initialErrorMessage, onError]);
+
+  const handler = usePaymentListHandler({
+    initialPayments,
+    initialPagination,
+    initialSummary,
+    initialPaymentNumber,
+    initialCustomerOptions,
+    initialErrorMessage,
+    onError,
+    onSuccess,
+  });
+
+  useEffect(() => {
+    if (!handler.snackbar.open || !handler.snackbar.message) return;
+
+    enqueueSnackbar(handler.snackbar.message, {
+      variant: handler.snackbar.severity || 'info',
+    });
+    handler.closeSnackbar();
+  }, [enqueueSnackbar, handler]);
 
   return (
-    <PaymentList
-      initialPayments={initialPayments}
-      initialPagination={initialPagination}
-      initialCustomerOptions={initialCustomerOptions}
-      onSuccess={(message) => enqueueSnackbar(message, { variant: 'success' })}
-      onError={(message) => enqueueSnackbar(message, { variant: 'error' })}
-    />
+    <>
+      <PaymentList
+        payments={handler.payments}
+        pagination={handler.pagination}
+        loading={handler.loading}
+        permissions={handler.permissions}
+        searchTerm={handler.searchTerm}
+        sortBy={handler.sortBy}
+        sortDirection={handler.sortDirection}
+        summary={handler.summary}
+        deleteDialogOpen={handler.dialogState.deleteOpen}
+        selectedPayment={handler.dialogState.selectedPayment}
+        onOpenAddDialog={handler.openAddDialog}
+        onPageChange={handler.handlePageChange}
+        onPageSizeChange={handler.handlePageSizeChange}
+        onSortRequest={handler.handleSortRequest}
+        onSearchChange={handler.handleSearchInputChange}
+        onDelete={handler.openDeleteDialog}
+        onView={handler.openViewDialog}
+        onEdit={handler.openEditDialog}
+        onSetAsSuccess={handler.handleSetAsSuccess}
+        onSetAsFailed={handler.handleSetAsFailed}
+        onDeleteDialogClose={handler.closeDeleteDialog}
+        onDeleteConfirm={handler.handleDeleteConfirm}
+      />
+
+      <PaymentDialog
+        mode="add"
+        open={handler.dialogState.addOpen}
+        onClose={handler.closeAddDialog}
+        onSave={handler.handleAddPayment}
+        paymentNumber={handler.paymentNumber}
+        customerOptions={handler.customerOptions}
+      />
+
+      <PaymentDialog
+        mode="edit"
+        open={handler.dialogState.editOpen}
+        paymentData={handler.dialogState.selectedPaymentData}
+        loading={handler.dialogState.detailsLoading}
+        error={handler.dialogState.detailsError}
+        onRetry={handler.retryDetailsFetch}
+        onClose={handler.closeEditDialog}
+        onSave={handler.handleUpdatePayment}
+        customerOptions={handler.customerOptions}
+      />
+
+      <PaymentDialog
+        mode="view"
+        open={handler.dialogState.viewOpen}
+        paymentData={handler.dialogState.selectedPaymentData}
+        loading={handler.dialogState.detailsLoading}
+        error={handler.dialogState.detailsError}
+        onRetry={handler.retryDetailsFetch}
+        onClose={handler.closeViewDialog}
+      />
+    </>
   );
 };
 
-const ListPaymentIndex = ({
-  initialPayments = [],
-  initialPagination = DEFAULT_PAGINATION,
-  initialCustomerOptions = [],
-}) => {
-  const snackbarAction = (snackbarId) => (
-    <IconButton
-      padding='14px'
-      aria-label="close"
-      color="inherit"
-      onClick={() => closeSnackbar(snackbarId)}
-    >
+const PaymentListIndex = props => {
+  const snackbarAction = snackbarId => (
+    <IconButton onClick={() => closeNotistackSnackbar(snackbarId)}>
       <Icon icon="mdi:close" width={25} />
     </IconButton>
   );
@@ -115,29 +136,14 @@ const ListPaymentIndex = ({
   return (
     <SnackbarProvider
       maxSnack={7}
-      autoHideDuration={10000}
+      autoHideDuration={5000}
       preventDuplicate
       action={snackbarAction}
-      hideIconVariant
-      Components={{
-        default: StyledMaterialDesignContent,
-        error: StyledMaterialDesignContent,
-        success: StyledMaterialDesignContent,
-        warning: StyledMaterialDesignContent,
-        info: StyledMaterialDesignContent
-      }}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right'
-      }}
+      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
     >
-      <PaymentListContent 
-        initialPayments={initialPayments}
-        initialPagination={initialPagination}
-        initialCustomerOptions={initialCustomerOptions}
-      />
+      <PaymentListContent {...props} />
     </SnackbarProvider>
   );
 };
 
-export default ListPaymentIndex;
+export default PaymentListIndex;

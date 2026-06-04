@@ -36,7 +36,10 @@ const AccessTab = ({ data = {} }) => {
     primaryBranchId: data?.primaryBranchId,
     primaryBranchName: data?.primaryBranchName,
   })
-  const orgRoleLabel = formatAccessLabel(data?.companyRole || data?.orgRole, '')
+  const orgRoleLabel = formatAccessLabel(
+    data?.organizationalRole || data?.orgRole,
+    ''
+  )
 
   const accessSummaryData = [
     { property: 'permission role', value: formatAccessLabel(data?.role, 'Not assigned') },

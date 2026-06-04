@@ -1,25 +1,37 @@
 'use client';
 
-import React from 'react';
-import { SnackbarProvider, closeSnackbar, useSnackbar } from 'notistack';
+import React, { useCallback, useEffect } from 'react';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
 import EditDeliveryChallan from './EditDeliveryChallan';
 import { updateDeliveryChallan } from '@/app/(dashboard)/deliveryChallans/actions';
-import { IconButton } from '@mui/material';
-import { Icon } from '@iconify/react';
 
-const EditDeliveryChallanContent = ({ 
+const EditDeliveryChallanContent = ({
   id,
-  initialDeliveryChallanData, 
-  initialCustomers, 
-  initialProducts, 
-  initialTaxRates, 
-  initialBanks, 
+  initialDeliveryChallanData,
+  initialCustomers,
+  initialProducts,
+  initialTaxRates,
+  initialBanks,
   initialSignatures,
-  addBank
+  addBank,
+  initialErrorMessage = '',
 }) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  const handleUpdate = async (formData, employeeURL) => {
+  useEffect(() => {
+    if (initialErrorMessage) {
+      enqueueSnackbar(initialErrorMessage, { variant: 'error' });
+    }
+  }, [enqueueSnackbar, initialErrorMessage]);
+
+  useEffect(() => {
+    if (String(initialDeliveryChallanData?.status || '').toUpperCase() === 'CONVERTED') {
+      enqueueSnackbar('Converted delivery challans cannot be edited.', { variant: 'error' });
+    }
+  }, [enqueueSnackbar, initialDeliveryChallanData?.status]);
+
+  const handleUpdate = useCallback(async (formData) => {
     try {
       const loadingKey = enqueueSnackbar('Updating delivery challan...', {
         variant: 'info',
@@ -27,11 +39,11 @@ const EditDeliveryChallanContent = ({
         preventDuplicate: true,
       });
 
-      const response = await updateDeliveryChallan(id, formData, employeeURL);
+      const response = await updateDeliveryChallan(id, formData);
       closeSnackbar(loadingKey);
 
       if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to update delivery challan';
+        const errorMessage = response.message || 'Failed to update delivery challan';
         enqueueSnackbar(errorMessage, {
           variant: 'error',
           autoHideDuration: 5000,
@@ -40,7 +52,7 @@ const EditDeliveryChallanContent = ({
         return { success: false, message: errorMessage };
       }
 
-      enqueueSnackbar('Delivery challan updated successfully!', {
+      enqueueSnackbar(response.message || 'Delivery challan updated successfully!', {
         variant: 'success',
         autoHideDuration: 3000,
       });
@@ -51,7 +63,9 @@ const EditDeliveryChallanContent = ({
       enqueueSnackbar(errorMessage, { variant: 'error' });
       return { success: false, message: errorMessage };
     }
-  };
+  }, [closeSnackbar, enqueueSnackbar, id]);
+
+  const isConverted = String(initialDeliveryChallanData?.status || '').toUpperCase() === 'CONVERTED';
 
   return (
     <EditDeliveryChallan
@@ -61,36 +75,20 @@ const EditDeliveryChallanContent = ({
       productData={initialProducts}
       taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      employees={initialSignatures}
+      initialSignatures={initialSignatures}
       onSave={handleUpdate}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}
       addBank={addBank}
+      disabled={isConverted}
     />
   );
 };
 
-const EditDeliveryChallanIndex = (props) => {
-  const snackbarAction = (snackbarId) => (
-    <IconButton onClick={() => closeSnackbar(snackbarId)}>
-      <Icon icon="mdi:close" width={25} />
-    </IconButton>
-  );
-
-  return (
-    <SnackbarProvider
-      maxSnack={7}
-      autoHideDuration={5000}
-      preventDuplicate
-      action={snackbarAction}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-    >
-      <EditDeliveryChallanContent {...props} />
-    </SnackbarProvider>
-  );
-};
+const EditDeliveryChallanIndex = (props) => (
+  <FormFeatureSnackbarProvider>
+    <EditDeliveryChallanContent {...props} />
+  </FormFeatureSnackbarProvider>
+);
 
 export default EditDeliveryChallanIndex;

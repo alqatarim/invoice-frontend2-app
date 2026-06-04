@@ -45,12 +45,20 @@ import { genderOptions } from '@/data/dataSets'
 
 // Utils imports
 import {
-  validateProfileImage
+  validateProfileImage,
+  resolveUserAvatarUrl,
 } from '@/utils'
 
 const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
-  const [imagePreview, setImagePreview] = useState(data?.image || null)
+  const [imagePreview, setImagePreview] = useState(
+    resolveUserAvatarUrl({
+      image: data?.image || '',
+      defaultAvatar: data?.defaultAvatar || '',
+      userId: data?._id || data?.id || '',
+    }) || null
+  )
   const [selectedFile, setSelectedFile] = useState(null)
+  const [imageRemoved, setImageRemoved] = useState(false)
   const [imageError, setImageError] = useState('')
   const theme = useTheme()
 
@@ -100,7 +108,15 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
   useEffect(() => {
     if (data) {
       // Set the gender ID directly instead of the object
-      setImagePreview(data.image)
+      setImagePreview(
+        resolveUserAvatarUrl({
+          image: data.image || '',
+          defaultAvatar: data.defaultAvatar || '',
+          userId: data._id || data.id || '',
+        }) || null
+      )
+      setImageRemoved(false)
+      setSelectedFile(null)
       setValue('firstName', data.firstName || '')
       setValue('lastName', data.lastName || '')
       setValue('email', data.email || '')
@@ -120,6 +136,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
     if (validation.isValid) {
       setImagePreview(validation.preview)
       setSelectedFile(file)
+      setImageRemoved(false)
       setImageError('')
     } else {
       setImageError(validation.error)
@@ -129,7 +146,13 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
   }
 
   const handleImageError = () => {
-    setImagePreview(null)
+    setImagePreview(
+      resolveUserAvatarUrl({
+        image: '',
+        defaultAvatar: data?.defaultAvatar || '',
+        userId: data?._id || data?.id || '',
+      })
+    )
     setImageError('')
   }
 
@@ -162,7 +185,11 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
     submitFormData.append('mobileNumber', formData?.mobileNumber)
     submitFormData.append('gender', formData?.gender || '')
     submitFormData.append('DOB', formData?.DOB ? dayjs(formData?.DOB).toDate() : '')
-    submitFormData.append('image', selectedFile ? selectedFile : '')
+    if (selectedFile) {
+      submitFormData.append('image', selectedFile)
+    } else if (imageRemoved) {
+      submitFormData.append('image', 'remove')
+    }
 
     const result = await onUpdate(submitFormData)
     if (result?.success) {
@@ -322,8 +349,15 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         color="error"
                         disabled={!canUpdate}
                         onClick={() => {
-                          setImagePreview(null)
+                          setImagePreview(
+                            resolveUserAvatarUrl({
+                              image: '',
+                              defaultAvatar: data?.defaultAvatar || '',
+                              userId: data?._id || data?.id || '',
+                            })
+                          )
                           setSelectedFile(null)
+                          setImageRemoved(true)
                           setImageError('')
                         }}
                       >

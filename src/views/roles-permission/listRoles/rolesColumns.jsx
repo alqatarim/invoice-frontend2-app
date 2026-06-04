@@ -10,8 +10,8 @@ import { ROLE_ICONS } from '@/data/dataSets'
 import OptionMenu from '@core/components/option-menu'
 import { MoreVert as MoreVertIcon } from '@mui/icons-material'
 
-const rolesColumns = ({ 
-  handleViewPermissions, 
+const rolesColumns = ({
+  handleViewPermissions,
   canEdit,
   // Inline editing props
   editingRoleId,
@@ -19,6 +19,7 @@ const rolesColumns = ({
   editingIcon,
   editingMode,
   inlineLoading,
+  inlineLoadingRoleId,
   handleStartNameEdit,
   handleInlineEditChange,
   handleIconChange,
@@ -27,17 +28,22 @@ const rolesColumns = ({
 }) => {
   // State for Menu anchor
   const [iconMenuAnchor, setIconMenuAnchor] = React.useState(null)
+  const [iconMenuRole, setIconMenuRole] = React.useState(null)
 
-  const handleIconMenuOpen = (event) => {
+  const handleIconMenuOpen = (event, row) => {
     setIconMenuAnchor(event.currentTarget)
+    setIconMenuRole(row)
   }
 
   const handleIconMenuClose = () => {
     setIconMenuAnchor(null)
+    setIconMenuRole(null)
   }
 
   const handleIconSelect = (iconValue) => {
-    handleIconChange(iconValue)
+    if (iconMenuRole) {
+      handleIconChange(iconMenuRole, iconValue)
+    }
     handleIconMenuClose()
   }
 
@@ -60,10 +66,13 @@ const rolesColumns = ({
       visible: true,
       sortable: true,
       align: 'center',
+      width: 400,
+      minWidth: 250,
       renderCell: (row) => {
         const isEditingName = editingRoleId === row._id && editingMode === 'name'
         const isSuperAdmin = row?.roleName === 'Super Admin'
         const canEditRole = canEdit && !isSuperAdmin
+        const isRowLoading = inlineLoadingRoleId === row._id
 
         // Name editing mode - simple text field with auto-save
         if (isEditingName) {
@@ -76,8 +85,8 @@ const rolesColumns = ({
                 className="cursor-default"
                 disabled
               >
-                <Icon 
-                  icon={row?.roleIcon || 'mdi:user-circle-outline'} 
+                <Icon
+                  icon={row?.roleIcon || 'mdi:user-circle-outline'}
                   width={23}
                 />
               </CustomOriginalIconButton>
@@ -96,7 +105,7 @@ const rolesColumns = ({
                   }
                 }}
                 onBlur={() => handleSaveNameEdit(true)}
-                disabled={inlineLoading}
+                disabled={isRowLoading}
                 placeholder="Role name"
                 autoFocus
                 sx={{
@@ -108,10 +117,10 @@ const rolesColumns = ({
               />
 
               {/* Loading indicator */}
-              {inlineLoading && (
+              {isRowLoading && (
                 <CircularProgress size={20} />
               )}
-              
+
               {/* Placeholder space */}
               <Box className="min-w-[80px]" />
             </Box>
@@ -125,21 +134,21 @@ const rolesColumns = ({
               <CustomOriginalIconButton
                 color="primary"
                 size="medium"
-                onClick={canEditRole ? handleIconMenuOpen : undefined}
+                onClick={canEditRole ? event => handleIconMenuOpen(event, row) : undefined}
                 className={canEditRole ? "cursor-pointer" : "cursor-default"}
                 title={canEditRole ? 'Click to change role icon' : undefined}
                 disabled={inlineLoading}
               >
-                <Icon 
-                  icon={row?.roleIcon || 'mdi:user-circle-outline'} 
+                <Icon
+                  icon={row?.roleIcon || 'mdi:user-circle-outline'}
                   width={23}
                 />
               </CustomOriginalIconButton>
-              
+
               {/* Immediate Icon Selection Menu */}
               <Menu
                 anchorEl={iconMenuAnchor}
-                open={Boolean(iconMenuAnchor)}
+                open={Boolean(iconMenuAnchor) && iconMenuRole?._id === row._id}
                 onClose={handleIconMenuClose}
               >
                 <Grid container spacing={1} className='max-w-[300px] p-3'>
@@ -148,10 +157,7 @@ const rolesColumns = ({
                       <CustomOriginalIconButton
                         size="large"
                         color='primary'
-                        onClick={() => {
-                          handleIconChange(row, iconOption.value)
-                          handleIconMenuClose()
-                        }}
+                        onClick={() => handleIconSelect(iconOption.value)}
                         title={iconOption.label}
                         disabled={inlineLoading}
                       >
@@ -197,7 +203,7 @@ const rolesColumns = ({
 
             {/* Loading indicator or placeholder space */}
             <Box className="min-w-[80px] flex justify-center">
-              {inlineLoading && (
+              {isRowLoading && (
                 <CircularProgress size={20} />
               )}
             </Box>

@@ -3,6 +3,9 @@
 // React Imports
 import { useEffect, useRef } from 'react'
 
+// Next Imports
+import Link from 'next/link'
+
 // MUI Imports
 import { styled, useColorScheme, useTheme } from '@mui/material/styles'
 
@@ -10,7 +13,7 @@ import { styled, useColorScheme, useTheme } from '@mui/material/styles'
 import VerticalNav, { NavHeader, NavCollapseIcons } from '@menu/vertical-menu'
 import VerticalMenu from './VerticalMenu'
 import Logo from '@core/svg/Logo'
-import { Typography, Box } from '@mui/material'
+import { Typography } from '@mui/material'
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
@@ -100,12 +103,12 @@ const Navigation = props => {
     >
       {/* Nav Header including Logo & nav toggle icons  */}
       <NavHeader>
-        <Box className='flex items-center gap-2'>
+        <Link href="/dashboard" aria-label="Go to dashboard" className='flex items-center gap-2 text-inherit no-underline'>
           <Logo className='text-primary' width={36} height={36} />
           {!(isCollapsed && !isHovered) && (
             <Typography variant='h5' className='font-semibold tracking-[0.2px]'>Invoices</Typography>
           )}
-        </Box>
+        </Link>
         {!(isCollapsed && !isHovered) && (
           <NavCollapseIcons
             lockedIcon={<i className='ri-radio-button-line text-xl' />}

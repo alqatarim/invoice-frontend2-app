@@ -42,6 +42,7 @@ function useFormHandler({ purchaseData }) {
     purchaseDate: purchaseData?.purchaseDate ? new Date(purchaseData.purchaseDate).toISOString().split('T')[0] : today,
     dueDate: purchaseData?.dueDate ? new Date(purchaseData.dueDate).toISOString().split('T')[0] : today,
     vendorId: purchaseData?.vendorId || '',
+    employee: purchaseData?.employee?._id || purchaseData?.employee || '',
     bank: purchaseData?.bank || '',
     payment_method: paymentMethod,
     paymentMode: paymentMethod,
@@ -53,10 +54,6 @@ function useFormHandler({ purchaseData }) {
     totalDiscount: purchaseData?.totalDiscount || 0,
     roundOff: purchaseData?.roundOff || false,
     roundOffValue: purchaseData?.roundOffValue || 0,
-    sign_type: purchaseData?.sign_type || 'manualSignature',
-    employeeName: purchaseData?.employeeName || '',
-    employee: purchaseData?.employee || '',
-    employeeImage: purchaseData?.employeeImage || '',
     notes: purchaseData?.notes || '',
     termsAndCondition: purchaseData?.termsAndCondition || '',
     items: mapPurchaseItems(purchaseData?.items),
@@ -120,6 +117,7 @@ function useItemsHandler({ setValue, getValues, append, remove, productData, pro
     setValue(`items.${index}.productId`, productId);
     setValue(`items.${index}.name`, product.name);
     setValue(`items.${index}.units`, product.units?.name || '');
+    setValue(`items.${index}.unit`, product.units?._id || '');
     setValue(`items.${index}.rate`, product.purchasePrice || product.sellingPrice || 0);
     setValue(`items.${index}.form_updated_rate`, product.purchasePrice || product.sellingPrice || 0);
     setValue(`items.${index}.discountType`, product.discountType || 3);
@@ -253,29 +251,6 @@ function useBankHandler({ initialBanks, addBank }) {
   };
 }
 
-function useSignatureHandler({ employees, setValue }) {
-  const [signOptions] = useState(employees || []);
-
-  const handleSignatureSelection = (selected, field) => {
-    if (selected) {
-      field.onChange(selected._id);
-      setValue('employeeName', selected.employeeName);
-      setValue('employeeImage', selected.employeeImage);
-      setValue('sign_type', 'manualSignature');
-      return;
-    }
-
-    field.onChange('');
-    setValue('employeeName', '');
-    setValue('employeeImage', '');
-  };
-
-  return {
-    signOptions,
-    handleSignatureSelection,
-  };
-}
-
 function useDialogHandler({ setValue, getValues }) {
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [termsDialogOpen, setTermsDialogOpen] = useState(false);
@@ -336,10 +311,7 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, getValu
         totalDiscount: Number(data.totalDiscount),
         roundOff: data.roundOff || false,
         roundOffValue: Number(data.roundOffValue) || 0,
-        sign_type: data.sign_type || 'manualSignature',
-        employeeName: data.employeeName || '',
         employee: data.employee || '',
-        employeeImage: data.employeeImage || '',
         notes: data.notes || '',
         termsAndCondition: data.termsAndCondition || '',
         items: (data.items || []).map(item => ({
@@ -347,6 +319,7 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, getValu
           name: item.name,
           quantity: Number(item.quantity),
           units: item.units,
+          unit: item.unit,
           rate: Number(item.rate),
           discount: Number(item.discount),
           discountType: Number(item.discountType),
@@ -361,8 +334,7 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, getValu
         })),
       };
 
-      const employeeURL = data.sign_type === 'eSignature' && data.employeeImage ? data.employeeImage : null;
-      const result = await onSave(purchasePayload, employeeURL);
+      const result = await onSave(purchasePayload);
 
       if (result.success) {
         setTimeout(() => {
@@ -397,14 +369,15 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, getValu
 export default function useEditPurchaseHandlers({
   purchaseData,
   productData,
+  employees = [],
   initialBanks,
-  employees,
   onSave,
   enqueueSnackbar,
   closeSnackbar,
   addBank,
 }) {
   const [productsCloneData, setProductsCloneData] = useState(productData || []);
+  const [signOptions] = useState(employees || []);
 
   const { control, handleSubmit, setValue, getValues, trigger, errors, fields, append, remove, watchItems, watchRoundOff } =
     useFormHandler({ purchaseData });
@@ -424,11 +397,6 @@ export default function useEditPurchaseHandlers({
     addBank,
   });
 
-  const employeeHandler = useSignatureHandler({
-    employees,
-    setValue,
-  });
-
   const dialogHandler = useDialogHandler({
     setValue,
     getValues,
@@ -442,6 +410,12 @@ export default function useEditPurchaseHandlers({
     onSave,
   });
 
+  const handleSignatureSelection = (selectedEmployee, field) => {
+    const employeeId = selectedEmployee?._id || '';
+    field.onChange(employeeId);
+    setValue('employee', employeeId, { shouldValidate: true, shouldDirty: true });
+  };
+
   return {
     control,
     handleSubmit,
@@ -452,12 +426,13 @@ export default function useEditPurchaseHandlers({
     watchItems,
     watchRoundOff,
     productsCloneData,
+    productData,
+    signOptions,
     banks: bankHandler.banks,
     newBank: bankHandler.newBank,
     setNewBank: bankHandler.setNewBank,
     handleAddBank: bankHandler.handleAddBank,
-    signOptions: employeeHandler.signOptions,
-    handleSignatureSelection: employeeHandler.handleSignatureSelection,
+    handleSignatureSelection,
     paymentMethods,
     notesExpanded: dialogHandler.notesExpanded,
     termsDialogOpen: dialogHandler.termsDialogOpen,

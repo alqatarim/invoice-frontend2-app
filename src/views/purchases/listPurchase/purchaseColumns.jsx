@@ -89,6 +89,27 @@ export const getPurchaseColumns = ({ theme = {}, permissions = {} } = {}) => [
     ),
   },
   {
+    key: 'purchaseOrderNo',
+    visible: true,
+    label: 'PO Number',
+    sortable: true,
+    renderCell: (row) => {
+      const purchaseOrder = row.purchaseOrderInfo;
+
+      if (!purchaseOrder?._id || !purchaseOrder?.purchaseOrderId) {
+        return null;
+      }
+
+      return (
+        <Link href={`/purchase-orders/order-view/${purchaseOrder._id}`} passHref>
+          <Typography className="cursor-pointer text-primary hover:underline" align="center">
+            {purchaseOrder.purchaseOrderId}
+          </Typography>
+        </Link>
+      );
+    },
+  },
+  {
     key: 'vendor',
     visible: true,
     label: 'Vendor',

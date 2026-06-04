@@ -103,7 +103,7 @@ const HorizontalWithoutBorder = ({
 						<Typography
 							variant='overline'
 							color='text.secondary'
-							className='tracking-[0.4px] uppercaseleading-0 font-semibold text-[0.8rem]'
+							className='tracking-[0.4px] uppercaseleading-0 font-semibold text-[0.8rem] '
 						>
 							{title}
 						</Typography>
@@ -137,10 +137,7 @@ const HorizontalWithoutBorder = ({
 								variant='h6'
 								color='text.secondary'
 								lineHeight={0.8}
-								className='tracking-[0.2px] text-[0.8rem] ml-0.5'
-								sx={{
-									fontVariantNumeric: 'tabular-nums',
-								}}
+								className='tracking-[0.2px] text-[0.8rem] ml-0.5 tabular-nums'
 							>
 								{subtitle}
 							</Typography>

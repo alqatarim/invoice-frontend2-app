@@ -1,46 +1,24 @@
 'use client';
 
 import React, { useRef } from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Divider,
-  Box,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  CircularProgress,
-  Paper,
-  TableContainer,
-  Chip,
-} from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import { Print, Download, Edit } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { Icon } from '@iconify/react';
-import dayjs from 'dayjs';
+import DocumentViewPreview, { compactDocumentLines, toDocumentAmount } from '@/components/shared/DocumentViewPreview';
 import { formatCurrency } from '@/utils/currencyUtils';
-import { useTheme } from '@mui/material/styles';
+import { formatDate } from '@/utils/dateUtils';
 import { usePermission } from '@/Auth/usePermission';
-import { deliveryChallanStatusOptions } from '@/data/dataSets';
+import { getDeliveryChallanStatusOption } from '@/data/dataSets';
 
-const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
+const getAddress = (...parts) => parts.filter(Boolean).join(', ');
+
+const ViewDeliveryChallan = ({ deliveryChallanData, viewHandler }) => {
   const contentRef = useRef(null);
   const router = useRouter();
-  const theme = useTheme();
   const canEdit = usePermission('deliveryChallan', 'update');
-
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const canUpdate = usePermission('deliveryChallan', 'update');
+  const isConverted = viewHandler?.isConverted;
 
   if (!deliveryChallanData) {
     return (
@@ -52,27 +30,33 @@ const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
     );
   }
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => viewHandler?.handlePrint?.();
+  const handleEdit = () => viewHandler?.handleEdit?.();
+  const handleConvert = () => viewHandler?.handleConvert?.();
+  const handleDownloadPDF = () => viewHandler?.handleDownloadPDF?.();
 
-  const handleEdit = () => {
-    router.push(`/deliveryChallans/deliveryChallans-edit/${deliveryChallanData._id}`);
-  };
-
-  const handleDownloadPDF = () => {
-    // PDF download functionality
-    console.log('Download PDF');
-  };
-
-  const getStatusColor = (status) =>
-    deliveryChallanStatusOptions.find(
-      option => option.value === String(status || '').toUpperCase()
-    )?.color || 'default';
+  const statusOption = getDeliveryChallanStatusOption(deliveryChallanData?.status);
 
   const actionButtons = (
-    <Box className='flex flex-row gap-2'>
-      {canEdit && (
+    <Box className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <Box>
+        <Typography variant="h5" className="font-semibold text-primary">
+          Delivery Challan Details
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Delivery Challan: #{deliveryChallanData?.deliveryChallanNumber || 'N/A'}
+        </Typography>
+      </Box>
+
+      <Box className="flex flex-row flex-wrap gap-2">
+        <Button
+          variant="outlined"
+          onClick={() => router.back()}
+          startIcon={<Icon icon="tabler:arrow-left" />}
+        >
+          Back to List
+        </Button>
+      {canEdit && !isConverted && (
         <Button
           variant="contained"
           color="primary"
@@ -80,6 +64,16 @@ const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
           onClick={handleEdit}
         >
           Edit
+        </Button>
+      )}
+      {canUpdate && !isConverted && (
+        <Button
+          variant="contained"
+          color="secondary"
+          startIcon={<Icon icon="tabler:arrow-right" />}
+          onClick={handleConvert}
+        >
+          Convert to Invoice
         </Button>
       )}
       <Button
@@ -96,254 +90,80 @@ const ViewDeliveryChallan = ({ deliveryChallanData, isLoading }) => {
       >
         Download
       </Button>
+      </Box>
     </Box>
   );
 
+  const customer = deliveryChallanData?.customerId || {};
+  const deliveryAddress = deliveryChallanData?.deliveryAddress || {};
+
+  const itemColumns = [
+    { key: 'index', label: '#' },
+    { key: 'item', label: 'Item' },
+    { key: 'quantity', label: 'Qty' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'price', label: 'Price' },
+    { key: 'discount', label: 'Discount' },
+    { key: 'tax', label: 'VAT' },
+    { key: 'total', label: 'Total' },
+  ];
+
+  const itemRows = Array.isArray(deliveryChallanData?.items)
+    ? deliveryChallanData.items.map((item, index) => ({
+      key: item._id || `${deliveryChallanData?.deliveryChallanNumber || 'delivery-challan'}-${index}`,
+      cells: [
+        index + 1,
+        item.name || 'Item',
+        Number(item.quantity || 0),
+        item.units || 'N/A',
+        formatCurrency(item.rate || 0),
+        item.discountType === 2 ? `${toDocumentAmount(item.discount)}%` : formatCurrency(item.discount || 0),
+        `${toDocumentAmount(item.tax)}%`,
+        formatCurrency(item.amount || 0),
+      ],
+    }))
+    : [];
+
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Card>
-          <CardContent>
-            <Box className='flex flex-row justify-between items-start mb-6'>
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
-                  Delivery Challan
-                </Typography>
-                <Typography variant="h6" color="primary.main">
-                  #{deliveryChallanData?.deliveryChallanNumber}
-                </Typography>
-              </Box>
-              {actionButtons}
-            </Box>
-
-            {/* Delivery Challan Details */}
-            <Grid container spacing={4}>
-              {/* Left Column - Challan Info */}
-              <Grid item xs={12} md={6}>
-                <Box className='mb-6'>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                    Delivery Challan Details
-                  </Typography>
-
-                  <Box className='space-y-2'>
-                    <Box className='flex justify-between'>
-                      <Typography variant="body2" color="text.secondary">Challan Date:</Typography>
-                      <Typography variant="body2">{dayjs(deliveryChallanData?.deliveryChallanDate).format('DD MMM YYYY')}</Typography>
-                    </Box>
-
-                    <Box className='flex justify-between'>
-                      <Typography variant="body2" color="text.secondary">Due Date:</Typography>
-                      <Typography variant="body2">{deliveryChallanData?.dueDate ? dayjs(deliveryChallanData?.dueDate).format('DD MMM YYYY') : 'N/A'}</Typography>
-                    </Box>
-
-                    <Box className='flex justify-between'>
-                      <Typography variant="body2" color="text.secondary">Reference No:</Typography>
-                      <Typography variant="body2">{deliveryChallanData?.referenceNo || 'N/A'}</Typography>
-                    </Box>
-
-                    <Box className='flex justify-between'>
-                      <Typography variant="body2" color="text.secondary">Status:</Typography>
-                      <Chip
-                        label={deliveryChallanData?.status || 'Active'}
-                        color={getStatusColor(deliveryChallanData?.status)}
-                        size="small"
-                      />
-                    </Box>
-                  </Box>
-                </Box>
-              </Grid>
-
-              {/* Right Column - Customer Info */}
-              <Grid item xs={12} md={6}>
-                <Box className='mb-6'>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                    Delivery Information
-                  </Typography>
-
-                  <Box className='space-y-2'>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {deliveryChallanData?.customerId?.name || 'N/A'}
-                    </Typography>
-
-                    <Typography variant="body2" color="text.secondary">
-                      {deliveryChallanData?.customerId?.email || ''}
-                    </Typography>
-
-                    <Typography variant="body2" color="text.secondary">
-                      {deliveryChallanData?.customerId?.phone || ''}
-                    </Typography>
-
-                    {deliveryChallanData?.deliveryAddress && (
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          {deliveryChallanData.deliveryAddress.addressLine1 || ''}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {deliveryChallanData.deliveryAddress.city || ''} {deliveryChallanData.deliveryAddress.state || ''}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {deliveryChallanData.deliveryAddress.pincode || ''}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ my: 4 }} />
-
-            {/* Items Table */}
-            <Box className='mb-6'>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
-                Items
-              </Typography>
-
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead sx={{ backgroundColor: theme.palette.grey[50] }}>
-                    <TableRow>
-                      <TableCell>Item & Description</TableCell>
-                      <TableCell align="center">Quantity</TableCell>
-                      <TableCell align="center">Unit</TableCell>
-                      <TableCell align="right">Rate</TableCell>
-                      <TableCell align="right">Discount</TableCell>
-                      <TableCell align="right">Tax</TableCell>
-                      <TableCell align="right">Amount</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {deliveryChallanData?.items?.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {item.name}
-                          </Typography>
-                          {item.description && (
-                            <Typography variant="caption" color="text.secondary">
-                              {item.description}
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell align="center">{item.quantity}</TableCell>
-                        <TableCell align="center">{item.units || 'N/A'}</TableCell>
-                        <TableCell align="right">{formatCurrency(item.rate)}</TableCell>
-                        <TableCell align="right">
-                          {item.discountType === 2 ?
-                            `${item.discount}%` :
-                            formatCurrency(item.discount)
-                          }
-                        </TableCell>
-                        <TableCell align="right">{formatCurrency(item.tax)}</TableCell>
-                        <TableCell align="right">{formatCurrency(item.amount)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Box>
-
-            {/* Totals Section */}
-            <Box className='flex justify-end mb-6'>
-              <Box className='w-80'>
-                <Box className='flex justify-between py-2'>
-                  <Typography variant="body2">Subtotal:</Typography>
-                  <Typography variant="body2">{formatCurrency(deliveryChallanData?.taxableAmount || 0)}</Typography>
-                </Box>
-
-                <Box className='flex justify-between py-2'>
-                  <Typography variant="body2">Discount:</Typography>
-                  <Typography variant="body2">-{formatCurrency(deliveryChallanData?.totalDiscount || 0)}</Typography>
-                </Box>
-
-                <Box className='flex justify-between py-2'>
-                  <Typography variant="body2">Tax:</Typography>
-                  <Typography variant="body2">{formatCurrency(deliveryChallanData?.vat || 0)}</Typography>
-                </Box>
-
-                <Divider sx={{ my: 1 }} />
-
-                <Box className='flex justify-between py-2'>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Total:</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    {formatCurrency(deliveryChallanData?.TotalAmount || 0)}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-
-            {/* Notes and Terms */}
-            {(deliveryChallanData?.notes || deliveryChallanData?.termsAndCondition) && (
-              <>
-                <Divider sx={{ my: 4 }} />
-
-                <Grid container spacing={4}>
-                  {deliveryChallanData?.notes && (
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Notes
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {deliveryChallanData.notes}
-                      </Typography>
-                    </Grid>
-                  )}
-
-                  {deliveryChallanData?.termsAndCondition && (
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Terms & Conditions
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {deliveryChallanData.termsAndCondition}
-                      </Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              </>
-            )}
-
-            {/* Signature */}
-            {deliveryChallanData?.employeeImage && (
-              <>
-                <Divider sx={{ my: 4 }} />
-
-                <Box className='text-right'>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                    Authorized Signature
-                  </Typography>
-
-                  <Box className='mb-2'>
-                    <img
-                      src={deliveryChallanData.employeeImage}
-                      alt="Signature"
-                      style={{ maxHeight: '80px', maxWidth: '200px' }}
-                    />
-                  </Box>
-
-                  {deliveryChallanData?.employeeName && (
-                    <Typography variant="body2" color="text.secondary">
-                      {deliveryChallanData.employeeName}
-                    </Typography>
-                  )}
-                </Box>
-              </>
-            )}
-
-            {/* Back Button */}
-            <Box className='flex justify-start mt-6'>
-              <Button
-                variant="outlined"
-                onClick={() => router.back()}
-                startIcon={<Icon icon="tabler:arrow-left" />}
-              >
-                Back to List
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+    <DocumentViewPreview
+      actionBar={actionButtons}
+      contentRef={contentRef}
+      pageClassName="delivery-challan-page"
+      documentTitle="DELIVERY CHALLAN"
+      documentNumber={deliveryChallanData?.deliveryChallanNumber}
+      metaRows={[
+        { label: 'Challan Date', value: formatDate(deliveryChallanData?.deliveryChallanDate) },
+        { label: 'Due Date', value: formatDate(deliveryChallanData?.dueDate) },
+        { label: 'Reference No', value: deliveryChallanData?.referenceNo },
+        { label: 'Status', value: statusOption.label },
+      ]}
+      leftSectionTitle="Customer:"
+      leftLines={compactDocumentLines([
+        customer?.name,
+        customer?.email,
+        customer?.phone,
+      ])}
+      rightSectionTitle="Deliver To:"
+      rightLines={compactDocumentLines([
+        getAddress(
+          deliveryAddress.addressLine1,
+          deliveryAddress.addressLine2,
+          deliveryAddress.city,
+          deliveryAddress.state,
+          deliveryAddress.pincode
+        ),
+      ])}
+      itemColumns={itemColumns}
+      itemRows={itemRows}
+      terms={deliveryChallanData?.termsAndCondition}
+      notes={deliveryChallanData?.notes}
+      summaryRows={[
+        { label: 'Subtotal:', value: deliveryChallanData?.taxableAmount },
+        { label: 'Discount:', value: deliveryChallanData?.totalDiscount },
+        { label: 'VAT:', value: deliveryChallanData?.vat },
+      ]}
+      totalRow={{ label: 'Total:', value: deliveryChallanData?.TotalAmount }}
+    />
   );
 };
 

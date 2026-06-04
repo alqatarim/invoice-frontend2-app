@@ -93,7 +93,11 @@ export const moduleDefinitions = Object.freeze([
       all: true
     }
   },
-  { module: 'companySettings', label: 'Company Settings' },
+  {
+    module: 'company',
+    label: 'Company Profile',
+    aliases: ['companySettings']
+  },
   { module: 'invoiceSettings', label: 'Invoice Settings' },
   {
     module: 'invoiceTemplate',
@@ -271,7 +275,6 @@ export const allnames = moduleDefinitions.map((definition, index) => ({
 
 export const settingsModules = [
   'accountSettings',
-  'companySettings',
   'invoiceSettings',
   'invoiceTemplate',
   'signature',

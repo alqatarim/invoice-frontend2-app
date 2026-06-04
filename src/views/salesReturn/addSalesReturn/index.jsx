@@ -16,15 +16,17 @@ const AddSalesReturnContent = ({
 }) => {
   const { enqueueSnackbar, closeSnackbar: dismissSnackbar } = useSnackbar();
 
-  const handleSave = useCallback(async (salesReturnData, employeeURL) => {
+  const handleSave = useCallback(async (salesReturnData, options = {}) => {
+    const isDraft = Boolean(options.isDraft);
+
     try {
-      const loadingKey = enqueueSnackbar('Creating sales return...', {
+      const loadingKey = enqueueSnackbar(isDraft ? 'Saving sales return draft...' : 'Creating sales return...', {
         variant: 'info',
         persist: true,
         preventDuplicate: true,
       });
 
-      const response = await addSalesReturn(salesReturnData, employeeURL);
+      const response = await addSalesReturn(salesReturnData);
       dismissSnackbar(loadingKey);
 
       if (!response.success) {
@@ -37,10 +39,13 @@ const AddSalesReturnContent = ({
         return { success: false, message: errorMessage };
       }
 
-      enqueueSnackbar('Sales return created successfully!', {
-        variant: 'success',
-        autoHideDuration: 3000,
-      });
+      enqueueSnackbar(
+        response.message || (isDraft ? 'Sales return saved as draft successfully' : 'Sales return created successfully!'),
+        {
+          variant: 'success',
+          autoHideDuration: 3000,
+        }
+      );
 
       return response;
     } catch (error) {

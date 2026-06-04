@@ -1,245 +1,133 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useMemo } from 'react';
 import { Icon } from '@iconify/react';
 import {
-  Box,
-  Typography,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Grid,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
-import { usePermission } from '@/Auth/usePermission';
-import { usePaymentListHandlers } from './handler';
+import PaymentHead from '@/views/payments/listPayment/paymentHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import { paymentColumns } from './paymentColumns';
-import AddPaymentDialog from '@/views/payments/addPayment/AddPaymentDialog';
-import EditPaymentDialog from '@/views/payments/editPayment/EditPaymentDialog';
-import ViewPaymentDialog from '@/views/payments/viewPayment/ViewPaymentDialog';
-import { addPayment, updatePayment } from '@/app/(dashboard)/payments/actions';
+import { getPaymentColumns } from './paymentColumns';
 
 const PaymentList = ({
-  initialPayments = [],
-  initialPagination = { current: 1, pageSize: 10, total: 0 },
-  initialCustomerOptions = [],
-  onSuccess: notifySuccess,
-  onError: notifyError,
+  payments = [],
+  pagination = { current: 1, pageSize: 10, total: 0 },
+  loading = false,
+  permissions = {},
+  searchTerm = '',
+  sortBy = '',
+  sortDirection = 'asc',
+  summary = {},
+  deleteDialogOpen = false,
+  selectedPayment = null,
+  onOpenAddDialog,
+  onPageChange,
+  onPageSizeChange,
+  onSortRequest,
+  onSearchChange,
+  onDelete,
+  onView,
+  onEdit,
+  onSetAsSuccess,
+  onSetAsFailed,
+  onDeleteDialogClose,
+  onDeleteConfirm,
 }) => {
   const theme = useTheme();
-  const { data: session } = useSession();
 
-  // Permissions
-  const permissions = {
-    canCreate: usePermission('payment', 'create'),
-    canUpdate: usePermission('payment', 'update'),
-    canView: usePermission('payment', 'view'),
-    canDelete: usePermission('payment', 'delete'),
-  };
+  const tableColumns = useMemo(
+    () =>
+      getPaymentColumns({
+        theme,
+        permissions,
+        onDelete,
+        onView,
+        onEdit,
+        onSetAsSuccess,
+        onSetAsFailed,
+      }),
+    [theme, permissions, onDelete, onView, onEdit, onSetAsSuccess, onSetAsFailed]
+  );
 
-  // Dialog states
-  const [dialogStates, setDialogStates] = useState({
-    add: false,
-    edit: false,
-    view: false,
-    editPaymentId: null,
-    viewPaymentId: null,
-  });
-
-  // Notification handlers
-  const onError = useCallback(msg => {
-    notifyError?.(msg);
-  }, [notifyError]);
-
-  const onSuccess = useCallback(msg => {
-    notifySuccess?.(msg);
-  }, [notifySuccess]);
-
-  // Dialog handlers
-  const handleOpenAddDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, add: true }));
-  }, []);
-
-  const handleCloseAddDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, add: false }));
-  }, []);
-
-  const handleOpenEditDialog = useCallback((paymentId) => {
-    setDialogStates(prev => ({ ...prev, edit: true, editPaymentId: paymentId }));
-  }, []);
-
-  const handleCloseEditDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, edit: false, editPaymentId: null }));
-  }, []);
-
-  const handleOpenViewDialog = useCallback((paymentId) => {
-    setDialogStates(prev => ({ ...prev, view: true, viewPaymentId: paymentId }));
-  }, []);
-
-  const handleCloseViewDialog = useCallback(() => {
-    setDialogStates(prev => ({ ...prev, view: false, viewPaymentId: null }));
-  }, []);
-
-  // CRUD operation handlers
-  const handleAddPayment = useCallback(async (formData) => {
-    try {
-      onSuccess('Adding payment...');
-
-      const response = await addPayment(formData);
-
-      if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to add payment';
-        onError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      onSuccess('Payment added successfully!');
-      // Refresh the list to show the new payment
-      try {
-        await handlers.refreshData();
-      } catch (refreshError) {
-        console.warn('Failed to refresh payment list after add:', refreshError);
-        // Continue anyway - the operation was successful
-      }
-      return response;
-    } catch (error) {
-      const errorMessage = error.message || 'Failed to add payment';
-      onError(errorMessage);
-      return { success: false, message: errorMessage };
-    }
-  }, [onSuccess, onError]);
-
-  const handleUpdatePayment = useCallback(async (paymentId, formData) => {
-    try {
-      onSuccess('Updating payment...');
-
-      const response = await updatePayment(paymentId, formData);
-
-      if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to update payment';
-        onError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      onSuccess('Payment updated successfully!');
-      // Refresh the list to show the updated payment
-      try {
-        await handlers.refreshData();
-      } catch (refreshError) {
-        console.warn('Failed to refresh payment list after update:', refreshError);
-        // Continue anyway - the operation was successful
-      }
-      return response;
-    } catch (error) {
-      const errorMessage = error.message || 'Failed to update payment';
-      onError(errorMessage);
-      return { success: false, message: errorMessage };
-    }
-  }, [onSuccess, onError]);
-
-  const handlers = usePaymentListHandlers({
-    initialPayments,
-    initialPagination,
-    initialCustomerOptions,
-    onSuccess,
-    onError,
-    // Pass dialog handlers for actions
-    onView: handleOpenViewDialog,
-    onEdit: handleOpenEditDialog,
-  });
-
-  const tableColumns = useMemo(() => {
-    const columns = paymentColumns({
-      handleView: handlers.handleView,
-      handleEdit: handlers.handleEdit,
-      handleDelete: handlers.handleDelete,
-    });
-
-    // Create cell handlers for table columns
-    const cellHandlers = {
-      handleDelete: handlers.handleDelete,
-      handleView: handlers.handleView,
-      handleEdit: handlers.handleEdit,
-      permissions: permissions,
-      pagination: handlers.pagination,
-    };
-
-    return columns.map(col => ({
-      ...col,
-      renderCell: col.renderCell ? (row, index) => col.renderCell(row, cellHandlers, index) : undefined
-    }));
-  }, [handlers, permissions]);
+  const tablePagination = useMemo(
+    () => ({
+      page: Math.max(0, pagination.current - 1),
+      pageSize: pagination.pageSize,
+      total: pagination.total,
+    }),
+    [pagination.current, pagination.pageSize, pagination.total]
+  );
 
   return (
-    <Box className="flex flex-col gap-4 p-4">
-      <CustomListTable
-        title="Payments"
-        addRowButton={
-          permissions.canCreate && (
-            <Button
-              onClick={handleOpenAddDialog}
-              variant="contained"
-              startIcon={<Icon icon="tabler:plus" />}
-            >
-              Add Payment
-            </Button>
-          )
-        }
-        columns={tableColumns}
-        rows={handlers.payments || []}
-        loading={handlers.loading}
-        pagination={{
-          page: handlers.pagination.current - 1, // Zero-indexed for MUI
-          pageSize: handlers.pagination.pageSize,
-          total: handlers.pagination.total,
-        }}
-        onPageChange={handlers.handlePageChange}
-        onRowsPerPageChange={handlers.handlePageSizeChange}
-        onSort={handlers.handleSortRequest}
-        sortBy={handlers.sortBy}
-        sortDirection={handlers.sortDirection}
-        rowKey={(row, index) => row?._id || row?.id || `payment-${index}`}
-        noDataText="No payments found"
-        showSearch
-        searchValue={handlers.searchTerm || ''}
-        onSearchChange={handlers.handleSearchInputChange}
-        searchPlaceholder="Search payments..."
-        onRowClick={
-          permissions.canView
-            ? (row) => handlers.handleView(row._id)
-            : undefined
-        }
-        enableHover
-      />
+    <div className="flex flex-col gap-5">
+      <PaymentHead summary={summary} />
 
-      {/* Add Payment Dialog */}
-      <AddPaymentDialog
-        open={dialogStates.add}
-        onClose={handleCloseAddDialog}
-        onSave={handleAddPayment}
-        paymentNumber={"PAY-" + Date.now()} // Generate payment number
-        customerOptions={handlers.customerOptions || []}
-      />
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12 }}>
+          <CustomListTable
+            addRowButton={
+              permissions.canCreate ? (
+                <Button
+                  onClick={onOpenAddDialog}
+                  variant="contained"
+                  startIcon={<Icon icon="tabler:plus" />}
+                >
+                  Add Payment
+                </Button>
+              ) : null
+            }
+            columns={tableColumns}
+            rows={payments}
+            loading={loading}
+            pagination={tablePagination}
+            onPageChange={onPageChange}
+            onRowsPerPageChange={onPageSizeChange}
+            onSort={onSortRequest}
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            noDataText="No payments found"
+            rowKey={row => row._id || row.id}
+            showSearch
+            searchValue={searchTerm}
+            onSearchChange={onSearchChange}
+            searchPlaceholder="Search payments..."
+            onRowClick={permissions.canView ? row => onView(row._id) : undefined}
+            enableHover
+          />
+        </Grid>
+      </Grid>
 
-      {/* Edit Payment Dialog */}
-      <EditPaymentDialog
-        open={dialogStates.edit}
-        paymentId={dialogStates.editPaymentId}
-        onClose={handleCloseEditDialog}
-        onSave={handleUpdatePayment}
-        customerOptions={handlers.customerOptions || []}
-      />
-
-      {/* View Payment Dialog */}
-      <ViewPaymentDialog
-        open={dialogStates.view}
-        paymentId={dialogStates.viewPaymentId}
-        onClose={handleCloseViewDialog}
-        onEdit={handleOpenEditDialog}
-        onError={onError}
-        onSuccess={onSuccess}
-      />
-
-    </Box>
+      <Dialog open={deleteDialogOpen} onClose={onDeleteDialogClose}>
+        <DialogTitle>Delete Payment</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete{' '}
+            <strong>{selectedPayment?.payment_number || 'this payment'}</strong>? This action cannot
+            be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onDeleteDialogClose} color="secondary">
+            Cancel
+          </Button>
+          <Button
+            onClick={onDeleteConfirm}
+            color="error"
+            variant="contained"
+            startIcon={<Icon icon="tabler:trash" />}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </div>
   );
 };
 

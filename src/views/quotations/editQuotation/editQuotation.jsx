@@ -1,10 +1,17 @@
+'use client';
+
 import React from 'react';
 import Quotation from '@/views/quotations/quotation';
 
-const EditQuotation = (props) => (
+const EditQuotation = ({
+  controller,
+  customersData = [],
+  productData = [],
+}) => (
   <Quotation
-    mode="edit"
-    {...props}
+    controller={controller}
+    customersData={customersData}
+    productData={productData}
   />
 );
 

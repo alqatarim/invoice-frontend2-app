@@ -4,85 +4,51 @@ import React, { useMemo } from 'react';
 import { Grid } from '@mui/material';
 import PageIconHeader from '@components/headers/PageIconHeader';
 import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
+import { expenseStatusDefinitions } from '@/data/dataSets';
 
-/**
- * ExpenseHead Component - Displays expense statistics header
- */
-const ExpenseHead = ({ expenseListData }) => {
-  const expenseStats = useMemo(() => {
-    if (!expenseListData?.length) {
-      return {
-        totalExpenses: 0,
-        totalAmount: 0,
-        paidExpenses: 0,
-        pendingExpenses: 0,
-      };
-    }
+const formatCountSubtitle = count => `${count} ${count === 1 ? 'expense' : 'expenses'}`;
 
-    return expenseListData.reduce(
-      (accumulator, expense) => {
-        accumulator.totalExpenses += 1;
-        accumulator.totalAmount += Number(expense.amount) || 0;
-
-        if (expense.status?.toLowerCase() === 'paid') {
-          accumulator.paidExpenses += 1;
-        } else if (expense.status?.toLowerCase() === 'pending') {
-          accumulator.pendingExpenses += 1;
-        }
-
-        return accumulator;
-      },
-      {
-        totalExpenses: 0,
-        totalAmount: 0,
-        paidExpenses: 0,
-        pendingExpenses: 0,
-      }
-    );
-  }, [expenseListData]);
+const ExpenseHead = ({ summary = {} }) => {
+  const cardCounts = useMemo(
+    () => ({
+      totalAmount: Number(summary.totalAmount || 0),
+      totalCount: Number(summary.totalCount || 0),
+      paid: summary.paid || { amount: 0, count: 0 },
+      pending: summary.pending || { amount: 0, count: 0 },
+      cancelled: summary.cancelled || { amount: 0, count: 0 },
+    }),
+    [summary]
+  );
 
   const statCards = useMemo(
     () => [
       {
-        title: 'Total Expenses',
-        value: expenseStats.totalExpenses,
-        subtitle: `${expenseStats.paidExpenses} paid`,
-        icon: 'tabler:receipt',
+        title: 'Total',
+        value: cardCounts.totalAmount,
+        subtitle: formatCountSubtitle(cardCounts.totalCount),
+        icon: 'tdesign:money',
         color: 'primary',
-      },
-      {
-        title: 'Paid Expenses',
-        value: expenseStats.paidExpenses,
-        subtitle: `${Math.round((expenseStats.paidExpenses / Math.max(expenseStats.totalExpenses, 1)) * 100)}%`,
-        icon: 'mdi:check-circle-outline',
-        color: 'success',
-      },
-      {
-        title: 'Pending Expenses',
-        value: expenseStats.pendingExpenses,
-        subtitle: `${Math.round((expenseStats.pendingExpenses / Math.max(expenseStats.totalExpenses, 1)) * 100)}%`,
-        icon: 'mdi:clock-outline',
-        color: 'warning',
-      },
-      {
-        title: 'Total Amount',
-        value: expenseStats.totalAmount,
-        subtitle: 'All Expenses',
-        icon: 'hugeicons:saudi-riyal',
-        color: 'info',
         isCurrency: true,
       },
+      ...expenseStatusDefinitions.map(status => ({
+        title: status.label,
+        value: cardCounts[status.summaryKey]?.amount || 0,
+        subtitle: formatCountSubtitle(cardCounts[status.summaryKey]?.count || 0),
+        icon: status.icon,
+        color: status.color,
+        isCurrency: true,
+      })),
     ],
-    [expenseStats]
+    [cardCounts]
   );
 
   return (
     <>
-      <PageIconHeader title='Expenses' icon='tabler:receipt' />
+      <PageIconHeader title="Expenses" icon="tdesign:money" />
 
       <div className="mb-2">
-        <Grid container className='flex flex-wrap justify-between gap-0'>
-          {statCards.map((card) => (
+        <Grid container className="flex flex-wrap justify-between gap-0">
+          {statCards.map(card => (
             <Grid key={card.title}>
               <HorizontalWithoutBorder {...card} />
             </Grid>

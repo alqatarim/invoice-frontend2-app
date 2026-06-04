@@ -2,7 +2,7 @@ import React from 'react';
 
 import InvoiceView from '@/views/invoices/viewInvoice';
 import {
-  getCompanySettings,
+  getCompanyProfile,
   getInvoiceById,
   getInvoiceSettings,
 } from './actions';
@@ -12,7 +12,7 @@ const InvoiceViewPage = async ({ params }) => {
   const { id } = params;
   const invoiceData = await getInvoiceById(id);
   const companyId = invoiceData?.companyId?._id || invoiceData?.companyId || '';
-  const companyData = companyId ? await getCompanySettings(companyId) : null;
+  const companyData = companyId ? await getCompanyProfile(companyId) : null;
   const invoiceSettings = await getInvoiceSettings();
 
   return (

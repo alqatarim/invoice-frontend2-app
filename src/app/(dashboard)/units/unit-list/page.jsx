@@ -12,12 +12,14 @@ export const metadata = {
 const UnitsPage = async () => {
   let initialUnits = [];
   let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialSummary = {};
   let initialErrorMessage = '';
 
   try {
     const initialData = await getInitialUnitData();
     initialUnits = initialData?.units || [];
     initialPagination = initialData?.pagination || initialPagination;
+    initialSummary = initialData?.summary || {};
   } catch (error) {
     console.error('UnitsPage: Error fetching data:', error);
     initialErrorMessage = error?.message || 'Failed to load unit data.';
@@ -27,6 +29,7 @@ const UnitsPage = async () => {
     <UnitListIndex
       initialUnits={initialUnits}
       initialPagination={initialPagination}
+      initialSummary={initialSummary}
       initialErrorMessage={initialErrorMessage}
     />
   );

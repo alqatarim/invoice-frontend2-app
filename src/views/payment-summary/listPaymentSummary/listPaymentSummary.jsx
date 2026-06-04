@@ -3,8 +3,8 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
-  Button,
-  Grid,
+     Button,
+     Grid,
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import CustomListTable from '@/components/custom-components/CustomListTable';
@@ -26,27 +26,16 @@ const ListPaymentSummary = ({
 }) => {
      const theme = useTheme();
 
-     const columns = useMemo(
+     const tableColumns = useMemo(
           () =>
                getPaymentSummaryColumns({
                     theme,
                     permissions,
-                    onView: (row) => onView(row?._id),
+                    onView,
                     onExport,
                     onPrint: () => window.print(),
                }),
           [onExport, onView, permissions, theme]
-     );
-
-     const tableColumns = useMemo(
-          () =>
-               columns.map((column) => ({
-                    ...column,
-                    renderCell: column.renderCell
-                         ? (row, index) => column.renderCell(row, { permissions }, index)
-                         : undefined,
-               })),
-          [columns, permissions]
      );
 
      const tablePagination = useMemo(
@@ -66,9 +55,9 @@ const ListPaymentSummary = ({
                     <Grid container className='flex flex-wrap justify-between gap-0'>
                          {[
                               {
-                                   title: 'Total Payments',
+                                   title: 'Total',
                                    value: cardCounts.totalPayments?.total_sum || 0,
-                                   subtitle: `${cardCounts.totalPayments?.count || 0} payments`,
+                                   // subtitle: `${cardCounts.totalPayments?.count || 0} payments`,
                                    icon: 'tabler:credit-card',
                                    color: 'primary',
                                    isCurrency: true,
@@ -76,7 +65,7 @@ const ListPaymentSummary = ({
                               {
                                    title: 'Successful',
                                    value: cardCounts.totalPaid?.total_sum || 0,
-                                   subtitle: `${cardCounts.totalPaid?.count || 0} successful`,
+                                   // subtitle: `${cardCounts.totalPaid?.count || 0} successful`,
                                    icon: 'mdi:check-circle-outline',
                                    color: 'success',
                                    isCurrency: true,
@@ -84,7 +73,7 @@ const ListPaymentSummary = ({
                               {
                                    title: 'Refunds',
                                    value: cardCounts.totalRefund?.total_sum || 0,
-                                   subtitle: `${cardCounts.totalRefund?.count || 0} refunds`,
+                                   // subtitle: `${cardCounts.totalRefund?.count || 0} refunds`,
                                    icon: 'mdi:arrow-left-circle-outline',
                                    color: 'warning',
                                    isCurrency: true,
@@ -92,7 +81,7 @@ const ListPaymentSummary = ({
                               {
                                    title: 'Failed',
                                    value: cardCounts.totalFailed?.total_sum || 0,
-                                   subtitle: `${cardCounts.totalFailed?.count || 0} failed`,
+                                   // subtitle: `${cardCounts.totalFailed?.count || 0} failed`,
                                    icon: 'mdi:close-circle-outline',
                                    color: 'error',
                                    isCurrency: true,

@@ -1,8 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import { useSnackbar } from 'notistack';
 import {
-     Card,
      Button,
      Dialog,
      DialogTitle,
@@ -14,36 +13,32 @@ import {
      Grid,
 } from '@mui/material';
 
-import { useTheme } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
-import { useSearchParams } from 'next/navigation';
 
 import UsersHead from './UsersHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import UserDialog from '@/components/dialogs/user-dialog';
-import UserViewDialog from '@/components/dialogs/user-view-dialog';
+import AddUserDialog from '@/views/users/addUser';
+import EditUserDialog from '@/views/users/editUser';
+import ViewUserDialog from '@/views/users/viewUser';
 import { useUsersListHandlers } from './handler';
-import { userTabs, userTableColumns } from '@/data/dataSets';
-import AppSnackbar from '@/components/shared/AppSnackbar';
+import { userTableColumns } from '@/data/dataSets';
 
 /**
  * UsersList Component
  */
 const UsersList = ({
      initialUsers = [],
-     pagination: initialPagination = { current: 1, pageSize: 10, total: 0 },
+     initialPagination = { current: 1, pageSize: 10, total: 0 },
      initialRoles = [],
      initialBranches = [],
+     initialCardCounts = {},
      initialErrorMessage = '',
      tab: initialTab = 'ALL',
      filters: initialFilters = {},
      sortBy: initialSortBy = '',
      sortDirection: initialSortDirection = 'asc',
 }) => {
-     const theme = useTheme();
-     const { data: session } = useSession();
-     const searchParams = useSearchParams();
+     const { enqueueSnackbar } = useSnackbar();
 
      // Permissions
      const permissions = {
@@ -53,24 +48,20 @@ const UsersList = ({
           canDelete: usePermission('user', 'delete'),
      };
 
-     // Snackbar state
-     const [snackbar, setSnackbar] = useState({
-          open: Boolean(initialErrorMessage),
-          message: initialErrorMessage || '',
-          severity: initialErrorMessage ? 'error' : 'success',
-     });
-
-     const handleSnackbarClose = (event, reason) => {
-          if (reason === 'clickaway') return;
-          setSnackbar(prev => ({ ...prev, open: false }));
-     };
-
      // Notification handlers
-     const onError = msg => setSnackbar({ open: true, message: msg, severity: 'error' });
-     const onSuccess = msg => setSnackbar({ open: true, message: msg, severity: 'success' });
+     const onError = useCallback(
+          msg => enqueueSnackbar(msg, { variant: 'error', autoHideDuration: 5000, preventDuplicate: true }),
+          [enqueueSnackbar]
+     );
+     const onSuccess = useCallback(
+          msg => enqueueSnackbar(msg, { variant: 'success', autoHideDuration: 3000, preventDuplicate: true }),
+          [enqueueSnackbar]
+     );
 
-     // Initialize handlers with column definitions
-     const columns = useMemo(() => userTableColumns, []);
+     useEffect(() => {
+          if (!initialErrorMessage) return;
+          onError(initialErrorMessage);
+     }, [initialErrorMessage, onError]);
 
      const handlers = useUsersListHandlers({
           initialUsers,
@@ -80,6 +71,7 @@ const UsersList = ({
           initialSortBy,
           initialSortDirection,
           initialRoles,
+          initialCardCounts,
           initialColumns: userTableColumns,
           onError,
           onSuccess,
@@ -88,8 +80,7 @@ const UsersList = ({
      // Show loading when actively fetching data (handler manages this state)
      const showLoading = handlers.loading;
 
-     // Column state management - use handlers.columns which have proper renderCell functions
-     const [columnsState, setColumns] = useState(handlers.columns);
+     const [, setColumns] = useState(handlers.columns);
 
      // Column actions
      const columnActions = {
@@ -104,13 +95,13 @@ const UsersList = ({
      return (
           <div className='flex flex-col gap-5'>
                {/* Header and Stats */}
-               <UsersHead users={handlers.users} />
+               <UsersHead userListData={initialCardCounts} />
 
                <Grid container spacing={3}>
                     {/* Users Table */}
                     <Grid size={{ xs: 12 }}>
                          <CustomListTable
-                              title="Team Members"
+                              // title="Team Members"
                               addRowButton={
                                    permissions.canCreate && (
                                         <Button
@@ -118,7 +109,7 @@ const UsersList = ({
                                              variant="contained"
                                              startIcon={<Icon icon="tabler:plus" />}
                                         >
-                                             Invite Team Member
+                                             Add Member
                                         </Button>
                                    )
                               }
@@ -178,14 +169,6 @@ const UsersList = ({
                     </DialogActions>
                </Dialog>
 
-               <AppSnackbar
-                    open={snackbar.open}
-                    message={snackbar.message}
-                    severity={snackbar.severity}
-                    onClose={handleSnackbarClose}
-                    autoHideDuration={6000}
-               />
-
                {/* Delete Confirmation Dialog */}
                <Dialog
                     open={handlers.deleteDialogOpen}
@@ -206,23 +189,39 @@ const UsersList = ({
                     </DialogActions>
                </Dialog>
 
-               {/* User Dialog (Add/Edit) */}
-               <UserDialog
-                    open={handlers.userDialogOpen}
-                    onClose={handlers.handleCloseUserDialog}
-                    data={handlers.userDialogData}
-                    onSubmit={handlers.handleSubmitUser}
-                    loading={handlers.userDialogLoading}
-                    roles={handlers.roles}
-                    branches={initialBranches}
-               />
+               {handlers.userDialogOpen && !handlers.userDialogData ? (
+                    <AddUserDialog
+                         open
+                         onClose={handlers.handleCloseUserDialog}
+                         onSave={handlers.handleSubmitUser}
+                         loading={handlers.userDialogLoading}
+                         roles={handlers.roles}
+                         branches={initialBranches}
+                    />
+               ) : null}
 
-               {/* User View Dialog */}
-               <UserViewDialog
-                    open={handlers.viewDialogOpen}
-                    onClose={handlers.handleCloseViewDialog}
-                    userId={handlers.selectedUserId}
-               />
+               {handlers.userDialogOpen && handlers.userDialogData ? (
+                    <EditUserDialog
+                         open
+                         onClose={handlers.handleCloseUserDialog}
+                         onSave={handlers.handleSubmitUser}
+                         loading={handlers.userDialogLoading}
+                         userId={handlers.userDialogData?._id}
+                         initialUserData={handlers.userDialogData}
+                         roles={handlers.roles}
+                         branches={initialBranches}
+                    />
+               ) : null}
+
+               {handlers.viewDialogOpen && handlers.selectedUserId ? (
+                    <ViewUserDialog
+                         open
+                         onClose={handlers.handleCloseViewDialog}
+                         userId={handlers.selectedUserId}
+                         roles={handlers.roles}
+                         branches={initialBranches}
+                    />
+               ) : null}
           </div>
      );
 };

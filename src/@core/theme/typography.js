@@ -17,6 +17,13 @@ const typography = fontFamily => ({
         ].join(',')
       : fontFamily,
   fontSize: 13.125,
+  fontWeightLight: 300,
+  fontWeightRegular: 400,
+  fontWeight450: 450,
+  fontWeightMedium: 500,
+  fontWeight550: 550,
+  fontWeightBold: 700,
+  fontWeight650: 650,
   h1: {
     fontSize: '2.875rem',
     fontWeight: 500,
@@ -47,8 +54,17 @@ const typography = fontFamily => ({
     fontWeight: 500,
     lineHeight: 1.46667
   },
+  h7: {
+    fontSize: '14px',
+    fontWeight: 500,
+    lineHeight: 1.5
+  },
   subtitle1: {
     fontSize: '0.9375rem',
+    lineHeight: 1.46667
+  },
+  'subtitle1.5': {
+    fontSize: '14px',
     lineHeight: 1.46667
   },
   subtitle2: {
@@ -58,6 +74,10 @@ const typography = fontFamily => ({
   },
   body1: {
     fontSize: '0.9375rem',
+    lineHeight: 1.46667
+  },
+  'body1.5': {
+    fontSize: '14px',
     lineHeight: 1.46667
   },
   body2: {

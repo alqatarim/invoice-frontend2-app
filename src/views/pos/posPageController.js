@@ -598,27 +598,27 @@ export default function usePosPageController({
     const current = getValues();
     const validItems = Array.isArray(current.items)
       ? current.items
-          .filter(item => item?.productId)
-          .map(item => {
-            const product = productLookup.get(String(item.productId));
+        .filter(item => item?.productId)
+        .map(item => {
+          const product = productLookup.get(String(item.productId));
 
-            return {
-              ...item,
-              name: item.name || product?.name || '',
-              sku: item.sku || product?.sku || '',
-              barcode: item.barcode || product?.barcode || '',
-              units: item.units || product?.units?.name || '',
-              unit: item.unit || product?.units?._id || '',
-              taxInfo: item.taxInfo || product?.tax || null,
-            };
-          })
+          return {
+            ...item,
+            name: item.name || product?.name || '',
+            sku: item.sku || product?.sku || '',
+            barcode: item.barcode || product?.barcode || '',
+            units: item.units || product?.units?.name || '',
+            unit: item.unit || product?.units?._id || '',
+            taxInfo: item.taxInfo || product?.tax || null,
+          };
+        })
       : [];
 
     return {
       ...current,
       branchId: activeBranchId,
       branchName: activeBranch?.name || '',
-      branchType: activeBranch?.branchType || activeBranch?.kind || '',
+      branchType: activeBranch?.branchType || activeBranch?.type || '',
       cashierId: current.cashierId || selectedCashier?._id || '',
       cashierName: current.cashierName || selectedCashier?.label || '',
       posMode: true,
@@ -632,7 +632,7 @@ export default function usePosPageController({
     };
   }, [
     activeBranch?.branchType,
-    activeBranch?.kind,
+    activeBranch?.type,
     activeBranch?.name,
     activeBranchId,
     changeAmount,

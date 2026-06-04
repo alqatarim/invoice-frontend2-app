@@ -133,18 +133,19 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
   const canViewBalanceSheet = usePermission('balanceSheetReport', 'view')
   const canViewIncomeStatement = usePermission('incomeStatementReport', 'view')
   const canViewGeneralLedger = usePermission('generalLedgerReport', 'view')
-  const canViewAccountSettings = usePermission('accountSettings', 'view')
-  const canViewCompanySettings = usePermission('companySettings', 'view')
-  const canViewInvoiceSettings = usePermission('invoiceSettings', 'view')
-  const canViewInvoiceTemplates = usePermission('invoiceTemplate', 'view')
-  const canViewSignatures = usePermission('signature', 'view')
-  const canViewPaymentSettings = usePermission('paymentSettings', 'view')
-  const canViewBankSettings = usePermission('bankSettings', 'view')
-  const canViewTaxSettings = usePermission('taxSettings', 'view')
-  const canViewEmailSettings = usePermission('emailSettings', 'view')
-  const canViewPreferenceSettings = usePermission('preferenceSettings', 'view')
-  const canViewNotificationSettings = usePermission('notificationSettings', 'view')
-  const canUpdatePassword = usePermission('changePassword', 'update')
+  // Keep commented so System Settings can be restored to the vertical menu later if needed.
+  // const canViewAccountSettings = usePermission('accountSettings', 'view')
+  const canViewCompany = usePermission('company', 'view')
+  // const canViewInvoiceSettings = usePermission('invoiceSettings', 'view')
+  // const canViewInvoiceTemplates = usePermission('invoiceTemplate', 'view')
+  // const canViewSignatures = usePermission('signature', 'view')
+  // const canViewPaymentSettings = usePermission('paymentSettings', 'view')
+  // const canViewBankSettings = usePermission('bankSettings', 'view')
+  // const canViewTaxSettings = usePermission('taxSettings', 'view')
+  // const canViewEmailSettings = usePermission('emailSettings', 'view')
+  // const canViewPreferenceSettings = usePermission('preferenceSettings', 'view')
+  // const canViewNotificationSettings = usePermission('notificationSettings', 'view')
+  // const canUpdatePassword = usePermission('changePassword', 'update')
   const canViewBranches = usePermission('branch', 'view')
   const canCreateBranches = usePermission('branch', 'create')
   const canUpdateBranches = usePermission('branch', 'update')
@@ -154,19 +155,6 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
   const canViewRoles = usePermission('role', 'view')
   const canCreateRoles = usePermission('role', 'create')
   const canUpdateRoles = usePermission('role', 'update')
-  const canViewSystemSettings =
-    canViewAccountSettings ||
-    canViewCompanySettings ||
-    canViewInvoiceSettings ||
-    canViewInvoiceTemplates ||
-    canViewSignatures ||
-    canViewPaymentSettings ||
-    canViewBankSettings ||
-    canViewTaxSettings ||
-    canViewEmailSettings ||
-    canViewPreferenceSettings ||
-    canViewNotificationSettings ||
-    canUpdatePassword
   const canViewCustomersSection =
     Object.values(customerPermissions).some(Boolean) || Object.values(vendorPermissions).some(Boolean)
   const canViewInventorySection =
@@ -197,6 +185,18 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
   const canViewStores = canViewBranches || canCreateBranches || canUpdateBranches
   const canViewTeam = canViewUsers || canCreateUsers || canUpdateUsers
   const canViewAccessControl = canViewRoles || canCreateRoles || canUpdateRoles
+  // const canViewSystemSettings =
+  //   canViewAccountSettings ||
+  //   canViewInvoiceSettings ||
+  //   canViewInvoiceTemplates ||
+  //   canViewSignatures ||
+  //   canViewPaymentSettings ||
+  //   canViewBankSettings ||
+  //   canViewTaxSettings ||
+  //   canViewEmailSettings ||
+  //   canViewPreferenceSettings ||
+  //   canViewNotificationSettings ||
+  //   canUpdatePassword
 
   // Vars
   const { transitionDuration } = verticalNavOptions
@@ -246,20 +246,20 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
             {Object.values(productPermissions).some(Boolean) ||
             Object.values(categoryPermissions).some(Boolean) ||
             Object.values(unitPermissions).some(Boolean) ? (
-              <SubMenu label="Product / Services">
+              <SubMenu icon={<i className='ri-apps-2-line' />} label="Product / Services">
                 {Object.values(productPermissions).some(Boolean) ? (
-                  <MenuItem href="/products/product-list">Products</MenuItem>
+                  <MenuItem icon={<i className='ri-box-3-line' />} href="/products/product-list">Products</MenuItem>
                 ) : null}
                 {Object.values(categoryPermissions).some(Boolean) ? (
-                  <MenuItem href="/categories/category-list">Categories</MenuItem>
+                  <MenuItem icon={<i className='ri-price-tag-3-line' />} href="/categories/category-list">Categories</MenuItem>
                 ) : null}
                 {Object.values(unitPermissions).some(Boolean) ? (
-                  <MenuItem href="/units/unit-list">Units</MenuItem>
+                  <MenuItem icon={<i className='ri-ruler-line' />} href="/units/unit-list">Units</MenuItem>
                 ) : null}
               </SubMenu>
             ) : null}
             {Object.values(inventoryPermissions).some(Boolean) ? (
-              <MenuItem href="/inventory">Inventory</MenuItem>
+              <MenuItem icon={<i className='ri-archive-stack-line' />} href="/inventory">Inventory</MenuItem>
             ) : null}
           </MenuSection>
         ) : null}
@@ -269,104 +269,105 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
             <MenuItem icon={<i className='ri-store-2-line' />} href="/pos">POS</MenuItem>
           ) : null}
           {canViewInvoice || canCreateInvoice ? (
-            <MenuItem href="/invoices/invoice-list">Invoices</MenuItem>
+            <MenuItem icon={<i className='ri-file-list-3-line' />} href="/invoices/invoice-list">Invoices</MenuItem>
           ) : null}
           {Object.values(salesReturnPermissions).some(Boolean) ? (
-            <MenuItem href="/sales-return/sales-return-list">Sales Return</MenuItem>
+            <MenuItem icon={<i className='ri-refund-2-line' />} href="/sales-return/sales-return-list">Sales Return</MenuItem>
           ) : null}
         </MenuSection>
         ) : null}
         {canViewPurchasesSection ? (
           <MenuSection label="Purchases">
             {Object.values(purchaseOrderPermissions).some(Boolean) ? (
-              <MenuItem href="/purchase-orders/order-list">Purchase Orders</MenuItem>
+              <MenuItem icon={<i className='ri-shopping-cart-2-line' />} href="/purchase-orders/order-list">Purchase Orders</MenuItem>
             ) : null}
             {Object.values(purchasePermissions).some(Boolean) ? (
-              <MenuItem href="/purchases/purchase-list">Purchases</MenuItem>
+              <MenuItem icon={<i className='ri-shopping-bag-3-line' />} href="/purchases/purchase-list">Purchases</MenuItem>
             ) : null}
             {Object.values(debitNotePermissions).some(Boolean) ? (
-              <MenuItem href="/debitNotes/purchaseReturn-list">Purchase Return</MenuItem>
+              <MenuItem icon={<i className='ri-arrow-go-back-line' />} href="/debitNotes/purchaseReturn-list">Purchase Return</MenuItem>
             ) : null}
           </MenuSection>
         ) : null}
         {canViewFinanceSection ? (
           <MenuSection label="Finance & Accounts">
           {Object.values(expensePermissions).some(Boolean) ? (
-            <MenuItem href="/expenses/expense-list">Expenses</MenuItem>
+            <MenuItem icon={<i className='ri-wallet-3-line' />} href="/expenses/expense-list">Expenses</MenuItem>
           ) : null}
           {Object.values(paymentPermissions).some(Boolean) ? (
-            <MenuItem href="/payments/payment-list">Payments</MenuItem>
+            <MenuItem icon={<i className='ri-bank-card-line' />} href="/payments/payment-list">Payments</MenuItem>
           ) : null}
           {canViewChartOfAccounts ? (
-            <MenuItem href="/chart-of-accounts">Chart Of Accounts</MenuItem>
+            <MenuItem icon={<i className='ri-node-tree' />} href="/chart-of-accounts">Chart Of Accounts</MenuItem>
           ) : null}
           {canViewJournalEntry ? (
-            <MenuItem href="/journals">Journals</MenuItem>
+            <MenuItem icon={<i className='ri-book-open-line' />} href="/journals">Journals</MenuItem>
           ) : null}
           {canViewVoucher ? (
-            <MenuItem href="/vouchers">Vouchers</MenuItem>
+            <MenuItem icon={<i className='ri-coupon-3-line' />} href="/vouchers">Vouchers</MenuItem>
           ) : null}
         </MenuSection>
         ) : null}
         {canViewQuotationSection ? (
           <MenuSection label="Quotations">
             {Object.values(quotationPermissions).some(Boolean) ? (
-              <MenuItem href="/quotations/quotation-list">Quotations</MenuItem>
+              <MenuItem icon={<i className='ri-file-paper-2-line' />} href="/quotations/quotation-list">Quotations</MenuItem>
             ) : null}
             {Object.values(deliveryChallanPermissions).some(Boolean) ? (
-              <MenuItem href="/deliveryChallans/deliveryChallans-list">Delivery Challans</MenuItem>
+              <MenuItem icon={<i className='ri-truck-line' />} href="/deliveryChallans/deliveryChallans-list">Delivery Challans</MenuItem>
             ) : null}
           </MenuSection>
         ) : null}
         {canViewReportsSection ? (
           <MenuSection label="Reports">
           {canViewPaymentSummary ? (
-            <MenuItem href="/payment-summary/payment-summary-list">Payment Summary</MenuItem>
+            <MenuItem icon={<i className='ri-file-chart-line' />} href="/payment-summary/payment-summary-list">Payment Summary</MenuItem>
           ) : null}
           {canViewTrialBalance ? (
-            <MenuItem href="/trial-balance">Trial Balance</MenuItem>
+            <MenuItem icon={<i className='ri-scales-3-line' />} href="/trial-balance">Trial Balance</MenuItem>
           ) : null}
           {canViewBalanceSheet ? (
-            <MenuItem href="/balance-sheet">Balance Sheet</MenuItem>
+            <MenuItem icon={<i className='ri-file-list-2-line' />} href="/balance-sheet">Balance Sheet</MenuItem>
           ) : null}
           {canViewIncomeStatement ? (
-            <MenuItem href="/income-statement">Income Statement</MenuItem>
+            <MenuItem icon={<i className='ri-line-chart-line' />} href="/income-statement">Income Statement</MenuItem>
           ) : null}
           {canViewGeneralLedger ? (
-            <MenuItem href="/general-ledger">General Ledger</MenuItem>
+            <MenuItem icon={<i className='ri-book-2-line' />} href="/general-ledger">General Ledger</MenuItem>
           ) : null}
         </MenuSection>
         ) : null}
-        {canViewCompanySettings || canViewStores || canViewTeam || canViewAccessControl ? (
+        {canViewCompany || canViewBranches || canViewUsers || canViewRoles ? (
           <MenuSection label="Organization">
-            {canViewCompanySettings ? (
-              <MenuItem icon={<i className='ri-building-line' />} href="/organization/company">
+            {canViewCompany ? (
+              <MenuItem icon={<i className='ri-building-line' />} href="/company">
                 Company Profile
               </MenuItem>
             ) : null}
             {canViewStores ? (
-              <MenuItem icon={<i className='ri-store-2-line' />} href="/organization/stores">
+              <MenuItem icon={<i className='ri-store-2-line' />} href="/stores">
                 Stores
               </MenuItem>
             ) : null}
             {canViewTeam ? (
-              <MenuItem icon={<i className='ri-team-line' />} href="/organization/team">
+              <MenuItem icon={<i className='ri-team-line' />} href="/team">
                 Team
               </MenuItem>
             ) : null}
             {canViewAccessControl ? (
-              <MenuItem icon={<i className='ri-shield-user-line' />} href="/organization/access-control">
+              <MenuItem icon={<i className='ri-shield-user-line' />} href="/access-control">
                 Access Control
               </MenuItem>
             ) : null}
           </MenuSection>
         ) : null}
+        {/*
         {canViewSystemSettings ? (
           <MenuSection label="Settings">
             <MenuItem href="/settings">System Settings</MenuItem>
           </MenuSection>
         ) : null}
-
+        */}
       </Menu>
     </ScrollWrapper>
   )

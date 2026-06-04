@@ -145,43 +145,55 @@ const ShortcutsDropdown = ({ shortcuts }) => {
 									<Divider />
 									<ScrollWrapper hidden={hidden}>
 										<Grid container>
-											{shortcuts.map((shortcut, index) => (
-												<Grid
-													item
-													xs={6}
-													key={index}
-													onClick={handleClose}
-													className="[&:not(:last-of-type):not(:nth-last-of-type(2))]:border-be odd:border-ie"
-												>
-													<Link
-														href={getLocalizedUrl(shortcut.url, locale)}
-														className="flex items-center flex-col p-6 gap-3 bs-full hover:bg-actionHover"
-													>
-														<CustomAvatar
-															size={50}
-															className="bg-actionSelected text-textPrimary"
+											{shortcuts.map((shortcut, index) =>
+												shortcut.type === "section" ? (
+													<Grid item xs={12} key={`section-${index}`}>
+														{index > 0 ? <Divider className="mbs-2" /> : null}
+														<Typography
+															variant="caption"
+															className="block pli-4 pbs-4 pbe-2 text-textSecondary uppercase tracking-wide"
 														>
-															<i
-																className={classnames(
-																	"text-[1.625rem]",
-																	shortcut.icon
-																)}
-															/>
-														</CustomAvatar>
-														<div className="flex flex-col items-center text-center">
-															<Typography
-																className="font-medium"
-																color="text.primary"
+															{shortcut.label}
+														</Typography>
+													</Grid>
+												) : (
+													<Grid
+														item
+														xs={6}
+														key={index}
+														onClick={handleClose}
+														className="[&:not(:last-of-type):not(:nth-last-of-type(2))]:border-be odd:border-ie"
+													>
+														<Link
+															href={getLocalizedUrl(shortcut.url, locale)}
+															className="flex items-center flex-col p-6 gap-3 bs-full hover:bg-actionHover"
+														>
+															<CustomAvatar
+																size={50}
+																className="bg-actionSelected text-textPrimary"
 															>
-																{shortcut.title}
-															</Typography>
-															<Typography variant="body2">
-																{shortcut.subtitle}
-															</Typography>
-														</div>
-													</Link>
-												</Grid>
-											))}
+																<i
+																	className={classnames(
+																		"text-[1.625rem]",
+																		shortcut.icon
+																	)}
+																/>
+															</CustomAvatar>
+															<div className="flex flex-col items-center text-center">
+																<Typography
+																	className="font-medium"
+																	color="text.primary"
+																>
+																	{shortcut.title}
+																</Typography>
+																<Typography variant="body2">
+																	{shortcut.subtitle}
+																</Typography>
+															</div>
+														</Link>
+													</Grid>
+												)
+											)}
 										</Grid>
 									</ScrollWrapper>
 								</div>

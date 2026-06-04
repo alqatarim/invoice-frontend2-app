@@ -250,7 +250,7 @@ export const UnifiedTopList = ({
 	tabs = [],
 	onProductsTabChange = () => { },
 	onCustomersTabChange = () => { },
-	panelHeight = 295,
+	panelMinHeight = 295,
 	delay = 0,
 }) => {
 	const theme = useTheme();
@@ -334,7 +334,9 @@ export const UnifiedTopList = ({
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.55, ease: dashboardEasing, delay }}
 			sx={{
-				height: panelHeight,
+				width: '100%',
+				height: '100%',
+				minHeight: panelMinHeight,
 				position: 'relative',
 				overflow: 'hidden',
 				display: 'flex',

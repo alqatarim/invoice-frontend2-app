@@ -1,155 +1,134 @@
-'use client'
+'use client';
 
-// ** React Imports
-import { useState, useEffect } from 'react'
+import React, { useCallback, useEffect } from 'react';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
+import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
+import EditQuotation from './EditQuotation';
+import useEditQuotationFeatureHandler from './handler';
+import { updateQuotation } from '@/app/(dashboard)/quotations/actions';
 
-// ** Next Imports
-import { useRouter } from 'next/navigation'
-
-// ** MUI Imports
-import Typography from '@mui/material/Typography'
-import CircularProgress from '@mui/material/CircularProgress'
-import Box from '@mui/material/Box'
-
-// ** Custom Components Imports
-import EditQuotation from './EditQuotation'
-import CustomHelmet from '@/components/CustomHelment'
-
-// ** Third Party Imports
-import { useSnackbar, closeSnackbar } from 'notistack'
-import { formatISO } from 'date-fns'
-
-// ** Actions Import
-import { updateQuotation } from 'src/app/(dashboard)/quotations/actions'
-
-const EditQuotationIndex = ({
+const EditQuotationContent = ({
   initialQuotationData = null,
   initialCustomers = [],
   initialProducts = [],
   initialTaxRates = [],
   initialBanks = [],
   initialSignatures = [],
-  initialUnits = [],
-  initialErrorMessage = ''
+  initialErrorMessage = '',
+  addBank = null,
 }) => {
-  // ** Hooks
-  const router = useRouter()
-  const { enqueueSnackbar } = useSnackbar()
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  // ** States
-  const [quotation, setQuotation] = useState(initialQuotationData)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isLoading, setIsLoading] = useState(!initialQuotationData)
-
-  // Process initial data if available
   useEffect(() => {
-    if (initialQuotationData) {
-      setQuotation(initialQuotationData)
-      setIsLoading(false)
+    if (initialErrorMessage) {
+      enqueueSnackbar(initialErrorMessage, { variant: 'error' });
     }
-  }, [initialQuotationData])
+  }, [enqueueSnackbar, initialErrorMessage]);
 
-
-
-  // Handle form submission
-  const handleSubmit = async (formData) => {
-    if (!quotation?._id) {
-      enqueueSnackbar('Invalid quotation ID', { variant: 'error' })
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      const loadingKey = enqueueSnackbar('Updating quotation...', {
-        variant: 'info',
-        persist: true,
-        preventDuplicate: true,
-      })
-
-      // Format dates for API and map fields
-      const formattedData = {
-        quotationNumber: formData.quotationNumber,
-        customerId: formData.customerId,
-        date: formData.quotationDate ? formatISO(new Date(formData.quotationDate)) : formatISO(new Date()),
-        expiryDate: formData.expiryDate ? formatISO(new Date(formData.expiryDate)) : formatISO(new Date()),
-        payment_method: formData.payment_method,
-        bank: formData.bank,
-        referenceNo: formData.referenceNo,
-        employee: formData.employee,
-        notes: formData.notes,
-        termsAndConditions: formData.termsAndConditions,
-        items: formData.items,
-        subTotal: formData.taxableAmount,
-        totalAmount: formData.TotalAmount,
-        totalDiscount: formData.totalDiscount,
-        totalTax: formData.vat,
-        status: 'DRAFTED'
+  const handleSave = useCallback(
+    async (quotationData, options = {}) => {
+      if (!initialQuotationData?._id) {
+        enqueueSnackbar('Invalid quotation ID', { variant: 'error' });
+        return { success: false, message: 'Invalid quotation ID' };
       }
 
-      // Update quotation
-      const response = await updateQuotation(quotation._id, formattedData)
-      closeSnackbar && closeSnackbar(loadingKey)
+      const isDraft = Boolean(options.isDraft);
 
-      if (response?.success) {
-        enqueueSnackbar('Quotation updated successfully', { variant: 'success' })
-        router.push(`/quotations/quotation-view/${quotation._id}`)
-      } else {
-        enqueueSnackbar(response?.message || 'Failed to update quotation', { variant: 'error' })
+      try {
+        const loadingKey = enqueueSnackbar(
+          isDraft ? 'Saving quotation draft...' : 'Updating quotation...',
+          {
+            variant: 'info',
+            persist: true,
+            preventDuplicate: true,
+          }
+        );
+
+        const response = await updateQuotation(initialQuotationData._id, quotationData);
+        closeSnackbar(loadingKey);
+
+        if (!response.success) {
+          enqueueSnackbar(response.message || 'Failed to update quotation', {
+            variant: 'error',
+            autoHideDuration: 5000,
+            preventDuplicate: true,
+          });
+          return { success: false, message: response.message };
+        }
+
+        enqueueSnackbar(
+          response.message || (isDraft ? 'Quotation saved as draft successfully' : 'Quotation updated successfully'),
+          {
+            variant: 'success',
+            autoHideDuration: 3000,
+          }
+        );
+
+        return response;
+      } catch (error) {
+        closeSnackbar();
+        const errorMessage = error.message || 'An unexpected error occurred';
+        enqueueSnackbar(errorMessage, { variant: 'error' });
+        return { success: false, message: errorMessage };
       }
-    } catch (error) {
-      console.error("Error updating quotation:", error)
-      closeSnackbar && closeSnackbar()
-      enqueueSnackbar('An error occurred while updating the quotation', { variant: 'error' })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+    },
+    [closeSnackbar, enqueueSnackbar, initialQuotationData?._id]
+  );
 
-  // Handle reset form data
-  const handleResetData = () => {
-    // Reset data is handled by the component itself
-    if (initialQuotationData) {
-      setQuotation(initialQuotationData)
-    }
-  }
+  const controller = useEditQuotationFeatureHandler({
+    initialQuotationData,
+    customersData: initialCustomers,
+    productData: initialProducts,
+    taxRates: initialTaxRates,
+    initialBanks,
+    employees: initialSignatures,
+    onSave: handleSave,
+    addBank,
+    enqueueSnackbar,
+    closeSnackbar,
+  });
 
-  // Show loading state
-  if (isLoading) {
+  if (!initialQuotationData) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
         <CircularProgress />
       </Box>
-    )
+    );
   }
 
-  // Show error state if quotation not found
-  if (!quotation) {
+  if (!initialQuotationData._id) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
         <Typography variant="h6">Quotation not found</Typography>
       </Box>
-    )
+    );
   }
 
   return (
     <>
-      <CustomHelmet title="Edit Quotation" />
-
       <EditQuotation
-        quotation={quotation}
-        customers={initialCustomers}
+        controller={controller}
+        customersData={initialCustomers}
         productData={initialProducts}
-        taxRates={initialTaxRates}
-        initialBanks={initialBanks}
-        employees={initialSignatures}
-        isSubmitting={isSubmitting}
-        onSubmit={handleSubmit}
-        resetData={handleResetData}
-        enqueueSnackbar={enqueueSnackbar}
-        closeSnackbar={closeSnackbar}
+      />
+
+      <BankDetailsDialog
+        open={controller.openBankModal}
+        onClose={() => controller.setOpenBankModal(false)}
+        newBank={controller.newBank}
+        setNewBank={controller.setNewBank}
+        handleAddBank={controller.handleAddBank}
       />
     </>
-  )
-}
+  );
+};
 
-export default EditQuotationIndex
+const EditQuotationIndex = props => (
+  <FormFeatureSnackbarProvider>
+    <EditQuotationContent {...props} />
+  </FormFeatureSnackbarProvider>
+);
+
+export default EditQuotationIndex;

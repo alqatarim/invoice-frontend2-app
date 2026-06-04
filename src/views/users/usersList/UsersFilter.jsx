@@ -214,6 +214,7 @@ const UsersFilter = ({
      onApply,
      onReset,
      roleOptions = [],
+     organizationalRoleOptions = [],
      statusOptions = [],
      values = {},
      tab = [],
@@ -224,6 +225,7 @@ const UsersFilter = ({
      const [open, setOpen] = useState(false);
      const [localFilters, setLocalFilters] = useState({
           role: values.role || [],
+          organizationalRole: values.organizationalRole || [],
           search: values.search || '',
           startDate: values.fromDate ? dayjs(values.fromDate) : null,
           endDate: values.toDate ? dayjs(values.toDate) : null,
@@ -233,6 +235,7 @@ const UsersFilter = ({
      useEffect(() => {
           setLocalFilters({
                role: values.role || [],
+               organizationalRole: values.organizationalRole || [],
                search: values.search || '',
                startDate: values.fromDate ? dayjs(values.fromDate) : null,
                endDate: values.toDate ? dayjs(values.toDate) : null,
@@ -263,6 +266,7 @@ const UsersFilter = ({
      const applyFilters = () => {
           const currentFilterValues = {
                role: localFilters.role,
+               organizationalRole: localFilters.organizationalRole,
                search: localFilters.search,
                fromDate: localFilters.startDate ? dayjs(localFilters.startDate).format('YYYY-MM-DD') : '',
                toDate: localFilters.endDate ? dayjs(localFilters.endDate).format('YYYY-MM-DD') : '',
@@ -274,6 +278,7 @@ const UsersFilter = ({
      const resetFilters = () => {
           setLocalFilters({
                role: [],
+               organizationalRole: [],
                search: '',
                startDate: null,
                endDate: null,
@@ -285,6 +290,7 @@ const UsersFilter = ({
      const activeFilterCount = useMemo(() => {
           let count = 0;
           if (localFilters.role.length > 0) count++;
+          if (localFilters.organizationalRole.length > 0) count++;
           if (localFilters.search.length > 0) count++;
           if (localFilters.startDate) count++;
           if (localFilters.endDate) count++;
@@ -350,11 +356,22 @@ const UsersFilter = ({
 
                               <Grid container spacing={4}>
 
-                                   {/* Role Filter */}
+                                   {/* Organizational role filter */}
+                                   <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                                        <AutocompleteMultiSelect
+                                             id="org-role-select"
+                                             label="Organizational roles"
+                                             value={localFilters.organizationalRole}
+                                             onChange={handleSelectChange('organizationalRole')}
+                                             options={organizationalRoleOptions}
+                                        />
+                                   </Grid>
+
+                                   {/* Permission profile filter */}
                                    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                                         <AutocompleteMultiSelect
                                              id="role-select"
-                                             label="Roles"
+                                             label="Permission profiles"
                                              value={localFilters.role}
                                              onChange={handleSelectChange('role')}
                                              options={roleOptions}

@@ -10,6 +10,8 @@ import {
   addBank,
 } from '../../actions';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Edit Delivery Challan | Kanakku',
 };

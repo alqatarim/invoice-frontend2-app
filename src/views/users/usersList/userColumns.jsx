@@ -2,30 +2,20 @@ import { Icon } from '@iconify/react';
 import { Typography, Avatar, Chip, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
-import { userStatusOptions, actionButtons } from '@/data/dataSets';
+import { orgRoleOptions, userStatusOptions, actionButtons } from '@/data/dataSets';
 import OptionMenu from '@core/components/option-menu';
+import { CustomChip } from '@/components/chips';
 
-const formatRoleLabel = (value = '') =>
-     value
-          ? value
-               .toString()
-               .replace(/_/g, ' ')
-               .toLowerCase()
-               .replace(/\b\w/g, char => char.toUpperCase())
-          : '';
+/** Chip colors for platform / auto-provisioned permission names only (not company-custom roles). */
+const getPermissionRoleChipColor = (roleName = '') => {
+     const normalized = String(roleName).trim().toLowerCase();
+     if (normalized === 'super admin') return 'primary';
+     if (normalized === 'admin') return 'info';
+     return 'default';
+};
 
-const getOrgRoleColor = role => {
-     switch (role) {
-          case 'OWNER':
-               return 'success';
-          case 'COMPANY_ADMIN':
-               return 'primary';
-          case 'COMPANY_MEMBER':
-               return 'secondary';
-          default:
-               return 'default';
-     }
-}
+
+
 
 /**
  * User table column definitions
@@ -45,10 +35,11 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
                          <Avatar
                               src={row.image}
                               alt={displayName}
+                              data-user-id={row._id}
                               onError={handleImageError}
                               sx={{
-                                   width: 40,
-                                   height: 40,
+                                   width: 36,
+                                   height: 36,
                                    backgroundColor: theme.palette.primary.main,
                                    color: theme.palette.primary.contrastText,
                               }}
@@ -63,26 +54,26 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
                               >
                                    {displayName}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              {/* <Typography variant="caption" color="text.secondary">
                                    {row.email || 'N/A'}
-                              </Typography>
+                              </Typography> */}
                          </Box>
                     </Box>
                );
           },
      },
-     {
-          key: 'email',
-          visible: true,
-          label: 'Email',
-          sortable: true,
-          align: 'left',
-          renderCell: (row) => (
-               <Typography variant="body2" color="text.primary">
-                    {row.email || 'N/A'}
-               </Typography>
-          ),
-     },
+     // {
+     //      key: 'email',
+     //      visible: true,
+     //      label: 'Email',
+     //      sortable: true,
+     //      align: 'left',
+     //      renderCell: (row) => (
+     //           <Typography variant="body2" color="text.primary">
+     //                {row.email || 'N/A'}
+     //           </Typography>
+     //      ),
+     // },
      {
           key: 'phone',
           visible: true,
@@ -90,45 +81,30 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
           sortable: false,
           align: 'left',
           renderCell: (row) => (
-               <Typography variant="body2" color="text.secondary">
-                    {row.mobileNumber || 'N/A'}
+               <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
+                    {row.mobileNumber || ''}
                </Typography>
           ),
      },
+
      {
-          key: 'role',
-          visible: true,
-          label: 'Permission Role',
-          sortable: true,
-          align: 'center',
-          renderCell: (row) => (
-               <Chip
-                    size="small"
-                    variant="tonal"
-                    color="primary"
-                    label={row.role || 'N/A'}
-                    sx={{
-                         textTransform: 'capitalize',
-                         fontSize: '0.75rem',
-                    }}
-               />
-          ),
-     },
-     {
-          key: 'companyRole',
+          key: 'organizationalRole',
           visible: true,
           label: 'Org Role',
           sortable: true,
           align: 'center',
           renderCell: (row) => {
-               const orgRole = row.companyRole || row.orgRole || 'COMPANY_MEMBER';
-
+               const orgRole = row.organizationalRole || row.orgRole || '';
                return (
-                    <Chip
+                    <CustomChip
                          size="small"
                          variant="tonal"
-                         color={getOrgRoleColor(orgRole)}
-                         label={formatRoleLabel(orgRole) || 'Company Member'}
+                         corners="corner"
+                         skin='lighter'
+                         fontSkin='dark'
+                         color={orgRoleOptions.find(opt => opt.value === orgRole)?.color || 'default'}
+                         label={orgRoleOptions.find(opt => opt.value === orgRole)?.label || ''}
+                         icon={<Icon icon={orgRoleOptions.find(opt => opt.value === orgRole)?.icon || ''} />}
                          sx={{
                               textTransform: 'capitalize',
                               fontSize: '0.75rem',
@@ -138,51 +114,72 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
           },
      },
      {
+          key: 'permissionRole',
+          visible: true,
+          label: 'Permission',
+          sortable: true,
+          align: 'center',
+          renderCell: (row) => (
+               <CustomChip
+                    size="small"
+                    variant="outlined"
+                    color={getPermissionRoleChipColor(row.role)}
+                    corners="corner"
+                    label={row.role || 'N/A'}
+                    sx={{
+                         textTransform: 'capitalize',
+                         fontSize: '0.75rem',
+                    }}
+               />
+          ),
+     },
+
+     {
           key: 'primaryBranchName',
           visible: true,
           label: 'Primary Store',
           sortable: false,
           align: 'left',
           renderCell: (row) => (
-               <Typography variant="body2" color="text.secondary">
+               <Typography variant="body1.5" color="text.primary">
                     {row.primaryBranchName || 'Company-wide'}
                </Typography>
           ),
      },
-     {
-          key: 'assignedBranches',
-          visible: true,
-          label: 'Stores',
-          sortable: false,
-          align: 'left',
-          renderCell: (row) => {
-               const assignedBranches = Array.isArray(row.assignedBranches) ? row.assignedBranches : [];
-               const storeNames = assignedBranches.map(branch => branch.name).filter(Boolean);
+     // {
+     //      key: 'assignedBranches',
+     //      visible: true,
+     //      label: 'Stores',
+     //      sortable: false,
+     //      align: 'left',
+     //      renderCell: (row) => {
+     //           const assignedBranches = Array.isArray(row.assignedBranches) ? row.assignedBranches : [];
+     //           const storeNames = assignedBranches.map(branch => branch.name).filter(Boolean);
 
-               if (!storeNames.length) {
-                    return (
-                         <Typography variant="body2" color="text.secondary">
-                              Company-wide access
-                         </Typography>
-                    );
-               }
+     //           if (!storeNames.length) {
+     //                return (
+     //                     <Typography variant="body2" color="text.secondary">
+     //                          Company-wide access
+     //                     </Typography>
+     //                );
+     //           }
 
-               const previewLabel = storeNames.slice(0, 2).join(', ');
-               const overflowCount = storeNames.length - 2;
+     //           const previewLabel = storeNames.slice(0, 2).join(', ');
+     //           const overflowCount = storeNames.length - 2;
 
-               return (
-                    <Box className="flex flex-col gap-1">
-                         <Typography variant="body2" color="text.primary">
-                              {previewLabel}
-                              {overflowCount > 0 ? ` +${overflowCount}` : ''}
-                         </Typography>
-                         <Typography variant="caption" color="text.secondary">
-                              {storeNames.length} assigned store{storeNames.length > 1 ? 's' : ''}
-                         </Typography>
-                    </Box>
-               );
-          },
-     },
+     //           return (
+     //                <Box className="flex flex-col gap-1">
+     //                     <Typography variant="body2" color="text.primary">
+     //                          {previewLabel}
+     //                          {overflowCount > 0 ? ` +${overflowCount}` : ''}
+     //                     </Typography>
+     //                     <Typography variant="caption" color="text.secondary">
+     //                          {storeNames.length} assigned store{storeNames.length > 1 ? 's' : ''}
+     //                     </Typography>
+     //                </Box>
+     //           );
+     //      },
+     // },
      {
           key: 'status',
           visible: true,
@@ -204,18 +201,18 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
                );
           },
      },
-     {
-          key: 'createdAt',
-          visible: false,
-          label: 'Created Date',
-          sortable: true,
-          align: 'center',
-          renderCell: (row) => (
-               <Typography variant="body2" color="text.secondary">
-                    {row.createdAt ? moment(row.createdAt).format('DD MMM YYYY') : 'N/A'}
-               </Typography>
-          ),
-     },
+     // {
+     //      key: 'createdAt',
+     //      visible: false,
+     //      label: 'Created Date',
+     //      sortable: true,
+     //      align: 'center',
+     //      renderCell: (row) => (
+     //           <Typography variant="body2" color="text.secondary">
+     //                {row.createdAt ? moment(row.createdAt).format('DD MMM YYYY') : 'N/A'}
+     //           </Typography>
+     //      ),
+     // },
      {
           key: 'actions',
           visible: true,
@@ -253,7 +250,7 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
                if (
                     permissions.canDelete &&
                     row.role !== 'Super Admin' &&
-                    row.companyRole !== 'OWNER'
+                    (row.organizationalRole || row.orgRole) !== 'OWNER'
                ) {
                     menuOptions.push({
                          text: 'Delete',

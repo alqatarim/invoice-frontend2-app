@@ -142,9 +142,19 @@ export async function addRole(formData) {
       body: JSON.stringify(requestBody)
     })
 
+    const rolesResult = await fetchWithAuth(rolesApi.Get, {
+      method: 'GET',
+      cache: 'no-store'
+    })
+    const roles = validateRoleData(rolesResult).filter(role => !role.isDeleted)
+    const matchingRoles = roles
+      .filter(role => role.roleName?.toLowerCase() === roleName.toLowerCase())
+    const createdRole = matchingRoles[matchingRoles.length - 1]
+
     return {
       success: true,
-      message: result.data?.message || result.message || 'Role added successfully'
+      message: result.data?.message || result.message || 'Role added successfully',
+      role: createdRole || null
     }
   } catch (error) {
     console.error('Error adding role:', error)

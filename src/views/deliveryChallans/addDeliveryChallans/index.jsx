@@ -1,11 +1,10 @@
 'use client';
 
-import React from 'react';
-import { SnackbarProvider, closeSnackbar, useSnackbar } from 'notistack';
+import React, { useCallback } from 'react';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
 import AddDeliveryChallan from './AddDeliveryChallan';
-import { addDeliveryChallan } from '@/app/(dashboard)/deliveryChallans/actions';
-import { IconButton } from '@mui/material';
-import { Icon } from '@iconify/react';
+import { addDeliveryChallan, addBank } from '@/app/(dashboard)/deliveryChallans/actions';
 
 const AddDeliveryChallanContent = ({
   initialCustomers,
@@ -17,7 +16,7 @@ const AddDeliveryChallanContent = ({
 }) => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  const handleAdd = async (formData, employeeURL) => {
+  const handleAdd = useCallback(async (formData) => {
     try {
       const loadingKey = enqueueSnackbar('Adding delivery challan...', {
         variant: 'info',
@@ -25,11 +24,11 @@ const AddDeliveryChallanContent = ({
         preventDuplicate: true,
       });
 
-      const response = await addDeliveryChallan(formData, employeeURL);
+      const response = await addDeliveryChallan(formData);
       closeSnackbar(loadingKey);
 
       if (!response.success) {
-        const errorMessage = response.error?.message || response.message || 'Failed to add delivery challan';
+        const errorMessage = response.message || 'Failed to add delivery challan';
         enqueueSnackbar(errorMessage, {
           variant: 'error',
           autoHideDuration: 5000,
@@ -38,7 +37,7 @@ const AddDeliveryChallanContent = ({
         return { success: false, message: errorMessage };
       }
 
-      enqueueSnackbar('Delivery challan added successfully!', {
+      enqueueSnackbar(response.message || 'Delivery challan added successfully!', {
         variant: 'success',
         autoHideDuration: 3000,
       });
@@ -49,7 +48,7 @@ const AddDeliveryChallanContent = ({
       enqueueSnackbar(errorMessage, { variant: 'error' });
       return { success: false, message: errorMessage };
     }
-  };
+  }, [closeSnackbar, enqueueSnackbar]);
 
   return (
     <AddDeliveryChallan
@@ -57,36 +56,20 @@ const AddDeliveryChallanContent = ({
       productData={initialProducts}
       taxRates={initialTaxRates}
       initialBanks={initialBanks}
-      employees={initialSignatures}
+      initialSignatures={initialSignatures}
       onSave={handleAdd}
       enqueueSnackbar={enqueueSnackbar}
       closeSnackbar={closeSnackbar}
+      addBank={addBank}
       deliveryChallanNumber={initialDeliveryChallanNumber}
     />
   );
 };
 
-const AddDeliveryChallanIndex = (props) => {
-  const snackbarAction = (snackbarId) => (
-    <IconButton onClick={() => closeSnackbar(snackbarId)}>
-      <Icon icon="mdi:close" width={25} />
-    </IconButton>
-  );
-
-  return (
-    <SnackbarProvider
-      maxSnack={7}
-      autoHideDuration={5000}
-      preventDuplicate
-      action={snackbarAction}
-      anchorOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-    >
-      <AddDeliveryChallanContent {...props} />
-    </SnackbarProvider>
-  );
-};
+const AddDeliveryChallanIndex = (props) => (
+  <FormFeatureSnackbarProvider>
+    <AddDeliveryChallanContent {...props} />
+  </FormFeatureSnackbarProvider>
+);
 
 export default AddDeliveryChallanIndex;

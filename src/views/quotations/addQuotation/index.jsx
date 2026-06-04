@@ -1,98 +1,112 @@
-'use client'
+'use client';
 
-// ** React Imports
-import { useEffect, useState } from 'react'
+import React, { useCallback, useEffect } from 'react';
+import { useSnackbar } from 'notistack';
+import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
+import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
+import AddQuotation from './AddQuotation';
+import useAddQuotationFeatureHandler from './handler';
+import { createQuotation } from '@/app/(dashboard)/quotations/actions';
 
-// ** Next Imports
-import { useRouter } from 'next/navigation'
-
-// ** MUI Imports
-import Spinner from '@/components/Spinner'
-import { useSnackbar } from 'notistack'
-
-// ** Component Imports
-import AddQuotation from '@/views/quotations/addQuotation/AddQuotation'
-
-// ** API Import
-import { createQuotation } from 'src/app/(dashboard)/quotations/actions'
-
-const AddQuotationIndex = ({
+const AddQuotationContent = ({
   initialCustomers = [],
   initialProducts = [],
   initialTaxRates = [],
   initialBanks = [],
   initialSignatures = [],
   initialQuotationNumber = '',
-  initialErrorMessage = ''
+  initialErrorMessage = '',
+  addBank = null,
 }) => {
-  // ** Hooks
-  const router = useRouter()
-  const { enqueueSnackbar, closeSnackbar } = useSnackbar()
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
   useEffect(() => {
     if (initialErrorMessage) {
-      enqueueSnackbar(initialErrorMessage, { variant: 'error' })
+      enqueueSnackbar(initialErrorMessage, { variant: 'error' });
     }
-  }, [enqueueSnackbar, initialErrorMessage])
+  }, [enqueueSnackbar, initialErrorMessage]);
 
-  // ** Form submission handler
-  const handleFormSubmit = async formData => {
-    try {
-      const loadingKey = enqueueSnackbar('Creating quotation...', {
-        variant: 'info',
-        persist: true,
-        preventDuplicate: true,
-      })
+  const handleSave = useCallback(
+    async (quotationData, options = {}) => {
+      const isDraft = Boolean(options.isDraft);
 
-      // Format data to match API expectations
-      const formattedData = {
-        quotationNumber: formData.quotationNumber,
-        customerId: formData.customerId,
-        date: formData.quotationDate,
-        expiryDate: formData.expiryDate,
-        payment_method: formData.payment_method,
-        bank: formData.bank,
-        referenceNo: formData.referenceNo,
-        employee: formData.employee,
-        notes: formData.notes,
-        termsAndConditions: formData.termsAndConditions,
-        items: formData.items,
-        subTotal: formData.taxableAmount,
-        totalAmount: formData.TotalAmount,
-        totalDiscount: formData.totalDiscount,
-        totalTax: formData.vat,
-        status: 'DRAFTED'
+      try {
+        const loadingKey = enqueueSnackbar(
+          isDraft ? 'Saving quotation draft...' : 'Creating quotation...',
+          {
+            variant: 'info',
+            persist: true,
+            preventDuplicate: true,
+          }
+        );
+
+        const response = await createQuotation(quotationData);
+        closeSnackbar(loadingKey);
+
+        if (!response.success) {
+          enqueueSnackbar(response.message || 'Failed to create quotation', {
+            variant: 'error',
+            autoHideDuration: 5000,
+            preventDuplicate: true,
+          });
+          return { success: false, message: response.message };
+        }
+
+        enqueueSnackbar(
+          response.message || (isDraft ? 'Quotation saved as draft successfully' : 'Quotation created successfully'),
+          {
+            variant: 'success',
+            autoHideDuration: 3000,
+          }
+        );
+
+        return response;
+      } catch (error) {
+        closeSnackbar();
+        const errorMessage = error.message || 'An unexpected error occurred';
+        enqueueSnackbar(errorMessage, { variant: 'error' });
+        return { success: false, message: errorMessage };
       }
+    },
+    [closeSnackbar, enqueueSnackbar]
+  );
 
-      const response = await createQuotation(formattedData)
-      closeSnackbar(loadingKey)
-
-      if (response?.success) {
-        enqueueSnackbar('Quotation created successfully', { variant: 'success' })
-        router.push('/quotations/quotation-list')
-      } else {
-        enqueueSnackbar(response?.message || 'Failed to create quotation', { variant: 'error' })
-      }
-    } catch (error) {
-      console.error('Error creating quotation:', error)
-      closeSnackbar()
-      enqueueSnackbar('An unexpected error occurred', { variant: 'error' })
-    }
-  }
+  const controller = useAddQuotationFeatureHandler({
+    initialQuotationNumber,
+    customersData: initialCustomers,
+    productData: initialProducts,
+    taxRates: initialTaxRates,
+    initialBanks,
+    employees: initialSignatures,
+    onSave: handleSave,
+    addBank,
+    enqueueSnackbar,
+    closeSnackbar,
+  });
 
   return (
-    <AddQuotation
-      customersData={initialCustomers}
-      productData={initialProducts}
-      taxRates={initialTaxRates}
-      initialBanks={initialBanks}
-      employees={initialSignatures}
-      onSave={handleFormSubmit}
-      enqueueSnackbar={enqueueSnackbar}
-      closeSnackbar={closeSnackbar}
-      quotationNumber={initialQuotationNumber}
-    />
-  )
-}
+    <>
+      <AddQuotation
+        controller={controller}
+        customersData={initialCustomers}
+        productData={initialProducts}
+      />
 
-export default AddQuotationIndex
+      <BankDetailsDialog
+        open={controller.openBankModal}
+        onClose={() => controller.setOpenBankModal(false)}
+        newBank={controller.newBank}
+        setNewBank={controller.setNewBank}
+        handleAddBank={controller.handleAddBank}
+      />
+    </>
+  );
+};
+
+const AddQuotationIndex = props => (
+  <FormFeatureSnackbarProvider>
+    <AddQuotationContent {...props} />
+  </FormFeatureSnackbarProvider>
+);
+
+export default AddQuotationIndex;

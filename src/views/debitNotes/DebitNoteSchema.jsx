@@ -55,38 +55,6 @@ export const DebitNoteSchema = yup.object().shape({
     .nullable()
     .trim(),
 
-  sign_type: yup
-    .string()
-    .required("Choose employee type")
-    .oneOf(['eSignature', 'manualSignature'], 'Invalid employee type'),
-
-  employeeName: yup
-    .string()
-    .when('sign_type', {
-      is: 'eSignature',
-      then: yup.string()
-        .required('Enter employee')
-        .min(2, 'Signature name must be at least 2 characters')
-        .trim(),
-      otherwise: yup.string().nullable()
-    }),
-
-  employeeImage: yup
-    .mixed()
-    .when('sign_type', {
-      is: 'eSignature',
-      then: yup.mixed().required('Draw your employee'),
-      otherwise: yup.mixed().nullable()
-    }),
-
-  employee: yup
-    .mixed()
-    .when('sign_type', {
-      is: 'manualSignature',
-      then: yup.string().required('Select a employee'),
-      otherwise: yup.mixed().nullable()
-    }),
-
   items: yup
     .array()
     .required('At least one item is required')
@@ -131,6 +99,10 @@ export const DebitNoteSchema = yup.object().shape({
     .string()
     .nullable(),
 
+  employee: yup
+    .string()
+    .nullable(),
+
   notes: yup
     .string()
     .nullable()
@@ -141,8 +113,4 @@ export const DebitNoteSchema = yup.object().shape({
     .nullable()
     .trim()
 
-}, [
-  ['employeeName', 'sign_type'],
-  ['employeeImage', 'sign_type'],
-  ['employee', 'sign_type']
-]);
+});

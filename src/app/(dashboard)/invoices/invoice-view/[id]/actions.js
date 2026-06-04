@@ -4,7 +4,7 @@ import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 
 const ENDPOINTS = {
   invoiceView: '/invoice',
-  companySettingsView: '/companySettings/viewCompanySetting',
+  companyProfileView: '/company',
   invoiceSettingsView: '/invoiceSettings/viewInvoiceSetting',
 };
 
@@ -26,14 +26,14 @@ export async function getInvoiceById(id) {
   }
 }
 
-export async function getCompanySettings(companyId) {
+export async function getCompanyProfile(companyId) {
   if (!companyId) {
     return null;
   }
 
   try {
     const query = `?companyId=${encodeURIComponent(companyId)}`;
-    const response = await fetchWithAuth(`${ENDPOINTS.companySettingsView}${query}`, {
+    const response = await fetchWithAuth(`${ENDPOINTS.companyProfileView}${query}`, {
       method: 'GET',
       cache: 'no-store',
     });

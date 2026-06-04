@@ -52,7 +52,7 @@ export function useInvoiceViewHandler({
         company.city,
         company.state,
         company.country,
-        company.pincode,
+        company.postalCode || company.pincode,
       ]
         .filter(Boolean)
         .join(', ') || 'N/A';

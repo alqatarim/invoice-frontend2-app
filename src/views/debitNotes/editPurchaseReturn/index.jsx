@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Box } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
@@ -28,40 +28,43 @@ function EditPurchaseReturnContent({
     );
   }
 
-  const handleUpdate = async (formData) => {
-    try {
-      const loadingKey = enqueueSnackbar('Updating debit note...', {
-        variant: 'info',
-        persist: true,
-        preventDuplicate: true,
-      });
-
-      const response = await updateDebitNote(formData);
-      closeSnackbar(loadingKey);
-
-      if (!response?.success) {
-        const errorMessage = response?.error?.message || response?.message || 'Failed to update debit note';
-        enqueueSnackbar(errorMessage, {
-          variant: 'error',
-          autoHideDuration: 5000,
+  const handleUpdate = useCallback(
+    async formData => {
+      try {
+        const loadingKey = enqueueSnackbar('Updating purchase return...', {
+          variant: 'info',
+          persist: true,
           preventDuplicate: true,
         });
+
+        const response = await updateDebitNote(formData);
+        closeSnackbar(loadingKey);
+
+        if (!response?.success) {
+          const errorMessage = response?.error?.message || response?.message || 'Failed to update debit note';
+          enqueueSnackbar(errorMessage, {
+            variant: 'error',
+            autoHideDuration: 5000,
+            preventDuplicate: true,
+          });
+          return { success: false, message: errorMessage };
+        }
+
+        enqueueSnackbar(response.message || 'Purchase return updated successfully!', {
+          variant: 'success',
+          autoHideDuration: 3000,
+        });
+
+        return response;
+      } catch (error) {
+        closeSnackbar();
+        const errorMessage = error?.message || 'An unexpected error occurred';
+        enqueueSnackbar(errorMessage, { variant: 'error' });
         return { success: false, message: errorMessage };
       }
-
-      enqueueSnackbar('Debit note updated successfully!', {
-        variant: 'success',
-        autoHideDuration: 3000,
-      });
-
-      return response;
-    } catch (error) {
-      closeSnackbar();
-      const errorMessage = error?.message || 'An unexpected error occurred';
-      enqueueSnackbar(errorMessage, { variant: 'error' });
-      return { success: false, message: errorMessage };
-    }
-  };
+    },
+    [closeSnackbar, enqueueSnackbar]
+  );
 
   return (
     <EditPurchaseReturn

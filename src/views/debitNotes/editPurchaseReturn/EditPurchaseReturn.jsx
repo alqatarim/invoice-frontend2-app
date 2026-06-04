@@ -1,14 +1,15 @@
 import React from 'react';
 import DebitNote from '@/views/debitNotes/debitNote';
-import { useEditDebitNoteHandlers } from '@/views/debitNotes/handler';
-import { getEditDebitNoteColumns } from './EditDebitNoteColumns';
+import useDebitNoteFormHandler from '@/views/debitNotes/useDebitNoteFormHandler';
+import { getDebitNoteFormColumns } from '@/views/debitNotes/debitNoteFormColumns';
 
 const EditPurchaseReturn = ({ vendorsData, productData, taxRates, initialBanks, employees, onSave, enqueueSnackbar, closeSnackbar, debitNoteData }) => {
-  const handlers = useEditDebitNoteHandlers({
+  const handlers = useDebitNoteFormHandler({
+    mode: 'edit',
     debitNoteData,
     productData,
-    initialBanks,
     employees,
+    initialBanks,
     onSave,
     enqueueSnackbar,
     closeSnackbar,
@@ -19,12 +20,12 @@ const EditPurchaseReturn = ({ vendorsData, productData, taxRates, initialBanks, 
     <DebitNote
       mode="edit"
       title="Edit Debit Note"
-      documentNumber={debitNoteData?.debitNoteId}
+      documentNumber={debitNoteData?.debit_note_id}
       recordId={debitNoteData?._id}
       vendorsData={vendorsData}
       taxRates={taxRates}
       handlers={handlers}
-      columnsFactory={getEditDebitNoteColumns}
+      columnsFactory={getDebitNoteFormColumns}
     />
   );
 };

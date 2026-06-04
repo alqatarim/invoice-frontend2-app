@@ -25,12 +25,14 @@ const DEFAULT_DIALOG_STATE = {
 export function useCategoryListHandler({
   initialCategories = [],
   initialPagination = DEFAULT_PAGINATION,
+  initialSummary = {},
   onError,
   onInfo,
   onSuccess,
 }) {
   const [categories, setCategories] = useState(initialCategories);
   const [pagination, setPagination] = useState(initialPagination);
+  const [summary, setSummary] = useState(initialSummary);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -84,6 +86,7 @@ export function useCategoryListHandler({
 
         setCategories(result?.categories || []);
         setPagination(result?.pagination || DEFAULT_PAGINATION);
+        setSummary(result?.summary || {});
         setSortBy(nextSortBy);
         setSortDirection(nextSortDirection);
         setFilters(nextFilters);
@@ -328,6 +331,7 @@ export function useCategoryListHandler({
   return {
     categories,
     pagination,
+    summary,
     loading,
     sortBy,
     sortDirection,

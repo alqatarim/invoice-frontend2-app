@@ -7,6 +7,7 @@ import CategoryList from './CategoryList';
 const CategoryListIndex = ({
   initialCategories = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialSummary = {},
   initialErrorMessage = '',
 }) => {
   return (
@@ -14,6 +15,7 @@ const CategoryListIndex = ({
       <CategoryList
         initialCategories={initialCategories}
         initialPagination={initialPagination}
+        initialSummary={initialSummary}
         initialErrorMessage={initialErrorMessage}
       />
     </AppSnackbarProvider>

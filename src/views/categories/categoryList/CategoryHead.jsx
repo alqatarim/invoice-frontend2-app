@@ -8,28 +8,14 @@ import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWitho
 /**
  * CategoryHead Component - Displays category statistics header
  */
-const CategoryHead = ({ categoryListData }) => {
+const CategoryHead = ({ summary = {} }) => {
   const categoryStats = useMemo(
-    () =>
-      (categoryListData || []).reduce(
-        (acc, category) => {
-          acc.totalCategories += 1;
-
-          if (category.status !== false) {
-            acc.activeCategories += 1;
-          } else {
-            acc.inactiveCategories += 1;
-          }
-
-          return acc;
-        },
-        {
-          totalCategories: 0,
-          activeCategories: 0,
-          inactiveCategories: 0,
-        }
-      ),
-    [categoryListData]
+    () => ({
+      totalCategories: Number(summary.totalCategories || 0),
+      activeCategories: Number(summary.activeCategories || 0),
+      inactiveCategories: Number(summary.inactiveCategories || 0),
+    }),
+    [summary]
   );
 
   const statCards = useMemo(

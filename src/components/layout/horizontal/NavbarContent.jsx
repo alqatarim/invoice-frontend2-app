@@ -9,7 +9,7 @@ import Logo from '@components/layout/shared/Logo'
 import NavSearch from '@components/layout/shared/search'
 import LanguageDropdown from '@components/layout/shared/LanguageDropdown'
 import ModeDropdown from '@components/layout/shared/ModeDropdown'
-import ShortcutsDropdown from '@components/layout/shared/ShortcutsDropdown'
+// import ShortcutsDropdown from '@components/layout/shared/ShortcutsDropdown'
 import NotificationsDropdown from '@components/layout/shared/NotificationsDropdown'
 import UserDropdown from '@components/layout/shared/UserDropdown'
 import LocationChip from '@components/layout/shared/LocationChip'
@@ -20,58 +20,57 @@ import useHorizontalNav from '@menu/hooks/useHorizontalNav'
 // Util Imports
 import { horizontalLayoutClasses } from '@layouts/utils/layoutClasses'
 
-// Vars
-const shortcuts = [
-  {
-    url: '/apps/calendar',
-    icon: 'ri-calendar-line',
-    title: 'Calendar',
-    subtitle: 'Appointments'
-  },
-  {
-    url: '/apps/invoice/list',
-    icon: 'ri-file-list-3-line',
-    title: 'Invoice App',
-    subtitle: 'Manage Accounts'
-  },
-  {
-    url: '/apps/invoice/listx',
-    icon: 'ri-file-list-3-line',
-    title: 'Mohammed',
-    subtitle: 'Mohammed'
-  },
-  {
-    url: '/apps/invoice/customers/list',
-    icon: 'ri-user-3-line',
-    title: 'Invoice Customers App',
-    subtitle: 'Manage Customers'
-  },
-  {
-    url: '/apps/user/list',
-    icon: 'ri-user-3-line',
-    title: 'Users',
-    subtitle: 'Manage Users'
-  },
-  {
-    url: '/apps/roles',
-    icon: 'ri-computer-line',
-    title: 'Role Management',
-    subtitle: 'Permissions'
-  },
-  {
-    url: '/dashboards/crm',
-    icon: 'ri-pie-chart-2-line',
-    title: 'Dashboard',
-    subtitle: 'User Dashboard'
-  },
-  {
-    url: '/pages/account-settings',
-    icon: 'ri-settings-4-line',
-    title: 'Settings',
-    subtitle: 'Account Settings'
-  }
-]
-
+// Keep commented so the top-bar star shortcuts can be restored later if needed.
+// const shortcuts = [
+//   {
+//     url: '/apps/calendar',
+//     icon: 'ri-calendar-line',
+//     title: 'Calendar',
+//     subtitle: 'Appointments'
+//   },
+//   {
+//     url: '/apps/invoice/list',
+//     icon: 'ri-file-list-3-line',
+//     title: 'Invoice App',
+//     subtitle: 'Manage Accounts'
+//   },
+//   {
+//     url: '/apps/invoice/listx',
+//     icon: 'ri-file-list-3-line',
+//     title: 'Mohammed',
+//     subtitle: 'Mohammed'
+//   },
+//   {
+//     url: '/apps/invoice/customers/list',
+//     icon: 'ri-user-3-line',
+//     title: 'Invoice Customers App',
+//     subtitle: 'Manage Customers'
+//   },
+//   {
+//     url: '/apps/user/list',
+//     icon: 'ri-user-3-line',
+//     title: 'Users',
+//     subtitle: 'Manage Users'
+//   },
+//   {
+//     url: '/apps/roles',
+//     icon: 'ri-computer-line',
+//     title: 'Role Management',
+//     subtitle: 'Permissions'
+//   },
+//   {
+//     url: '/dashboards/crm',
+//     icon: 'ri-pie-chart-2-line',
+//     title: 'Dashboard',
+//     subtitle: 'User Dashboard'
+//   },
+//   {
+//     url: '/pages/account-settings',
+//     icon: 'ri-settings-4-line',
+//     title: 'Settings',
+//     subtitle: 'Account Settings'
+//   }
+// ]
 
 const NavbarContent = () => {
   // Hooks
@@ -92,7 +91,7 @@ const NavbarContent = () => {
         <LanguageDropdown />
         <LocationChip />
         <ModeDropdown />
-        <ShortcutsDropdown shortcuts={shortcuts} />
+        {/* <ShortcutsDropdown shortcuts={shortcuts} /> */}
         <NotificationsDropdown />
         <UserDropdown />
         {/* Language Dropdown, Notification Dropdown, quick access menu dropdown, user dropdown will be placed here */}

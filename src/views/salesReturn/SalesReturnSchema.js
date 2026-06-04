@@ -31,7 +31,8 @@ export const salesReturnSchema = yup.object().shape({
     .min(yup.ref('salesReturnDate'), 'Due date cannot be before sales return date')
     .required('Due date is required'),
   customerId: yup.string().required('Customer is required'),
-  bank: yup.string().required('Bank is required'),
+  employee: yup.string().nullable(),
+  bank: yup.string().nullable(),
   payment_method: yup.string().required('Payment method is required'),
   referenceNo: yup.string(),
   taxableAmount: yup.number()
@@ -44,15 +45,6 @@ export const salesReturnSchema = yup.object().shape({
     .min(0, 'Total discount cannot be negative'),
   roundOff: yup.boolean(),
   roundOffValue: yup.number(),
-  sign_type: yup.string().oneOf(['eSignature', 'manualSignature']),
-  employeeName: yup.string(),
-  employee: yup.string()
-    .when('sign_type', {
-      is: 'manualSignature',
-      then: (schema) => schema.required('Signature is required'),
-      otherwise: (schema) => schema
-    }),
-  employeeImage: yup.string(),
   notes: yup.string(),
   termsAndCondition: yup.string(),
   items: yup.array()

@@ -1,9 +1,30 @@
 export const paymentMethods = [
-	{ value: "Cash", label: "Cash" },
-	{ value: "Card", label: "Card" },
-	{ value: "Cheque", label: "Cheque" },
-	{ value: "Bank", label: "Bank Transfer" },
-	{ value: "Online", label: "Online" },
+	{ value: "Cash", label: "Cash", icon: "mdi:cash-multiple" },
+	{ value: "Card", label: "Card", icon: "mdi:credit-card" },
+	{ value: "Cheque", label: "Cheque", icon: "mdi:checkbook" },
+	{ value: "Bank", label: "Bank Transfer", icon: "mdi:bank" },
+	{ value: "Online", label: "Online", icon: "mdi:web" },
+];
+
+export const orgRoleOptions = [
+	{ value: "ALL", label: "All", color: "primary", icon: "mdi:users-group-outline" },
+	{ value: "OWNER", label: "Owner", color: "primary", icon: "mdi:crown-outline" },
+	{ value: "COMPANY_ADMIN", label: "Company Admin", color: "info", icon: "mdi:administrator-outline" },
+	{ value: "STORE_ADMIN", label: "Store Admin", color: "warning", icon: "mdi:administrator" },
+	{ value: "STORE_MEMBER", label: "Store Member", color: "success", icon: "mdi:account-outline" },
+];
+
+// export const permissionRoleOptions = [
+// 	{ value: "Super Admin", label: "Super Admin", color: "primary", icon: "mdi:shield-account-outline" },
+// 	{ value: "Admin", label: "Admin", color: "info", icon: "mdi:shield-account-outline" },
+// 	{ value: "User", label: "User", color: "success", icon: "mdi:store-cog-outline" },
+// ];
+
+export const branchesOptions = [
+	{ value: "Locations", label: "Locations", color: "primary", icon: "mdi:location-multiple-outline" },
+	{ value: "Location", label: "Location", color: "primary", icon: "mdi:map-marker-outline" },
+	{ value: "Store", label: "Store", color: "success", icon: "mdi:storefront-outline" },
+	{ value: "Warehouse", label: "Warehouse", color: "info", icon: "mdi:warehouse" }
 ];
 
 export const paymentRecordModes = [
@@ -94,7 +115,7 @@ export const invoiceStatusFallbackColors = {
 	PARTIALLY_PAID: "warning",
 	SENT: "info",
 	UNPAID: "warning",
-	REFUND: "secondary",
+	REFUND: "primary",
 };
 
 export const expensePaymentModeOptions = [
@@ -103,10 +124,76 @@ export const expensePaymentModeOptions = [
 ];
 
 export const expenseStatusOptions = [
-	{ label: "Paid", value: "Paid", color: "success" },
+	{ label: "Draft", value: "Draft", color: "secondary" },
 	{ label: "Pending", value: "Pending", color: "warning" },
-	{ label: "Cancelled", value: "Cancelled", color: "error" },
+	{ label: "Paid", value: "Paid", color: "success" },
 ];
+
+export const paymentStatusDefinitions = [
+	{
+		value: "Pending",
+		label: "Pending",
+		color: "warning",
+		icon: "mdi:progress-helper",
+		summaryKey: "pending",
+	},
+	{
+		value: "Success",
+		label: "Success",
+		color: "success",
+		icon: "mdi:check-circle-outline",
+		summaryKey: "success",
+	},
+	{
+		value: "Failed",
+		label: "Failed",
+		color: "error",
+		icon: "mdi:close-circle-outline",
+		summaryKey: "failed",
+	},
+];
+
+export const getPaymentStatusOption = (status) => {
+	const normalized = String(status || "").trim();
+	return paymentStatusDefinitions.find((item) => item.value === normalized) || {
+		value: normalized || "Pending",
+		label: normalized || "Pending",
+		color: "default",
+	};
+};
+
+export const expenseStatusDefinitions = [
+
+	{
+		value: "Pending",
+		label: "Pending",
+		color: "warning",
+		icon: "mdi:progress-helper",
+		summaryKey: "pending",
+	},
+	{
+		value: "Paid",
+		label: "Paid",
+		color: "success",
+		icon: "mdi:check-circle-outline",
+		summaryKey: "paid",
+	}, {
+		value: "Draft",
+		label: "Draft",
+		color: "secondary",
+		icon: "mdi:file-document-edit-outline",
+		summaryKey: "draft",
+	}
+];
+
+export const getExpenseStatusOption = (status) => {
+	const normalized = String(status || "").trim();
+	return expenseStatusDefinitions.find((item) => item.value === normalized) || {
+		value: normalized || "Pending",
+		label: normalized || "Pending",
+		color: "default",
+	};
+};
 
 const createStatusOption = ({ value, label, color, icon }) => ({
 	value,
@@ -116,13 +203,14 @@ const createStatusOption = ({ value, label, color, icon }) => ({
 });
 
 const invoiceStatusDefinitions = [
-	{ value: "REFUND", label: "Refund", color: "secondary", icon: "refund" },
+	{ value: "REFUND", label: "Refund", color: "primary", icon: "refund" },
 	{ value: "SENT", label: "Sent", color: "info", icon: "sent" },
 	{ value: "UNPAID", label: "Unpaid", color: "warning", icon: "unpaid" },
 	{ value: "PARTIALLY_PAID", label: "Partial Paid", color: "warning", icon: "partiallyPaid" },
 	{ value: "PARTIALLY PAID", label: "Partial Paid", color: "warning", icon: "partiallyPaid" },
 	{ value: "CANCELLED", label: "Cancelled", color: "secondary", icon: "cancelled" },
 	{ value: "OVERDUE", label: "Overdue", color: "error", icon: "overdue" },
+	{ value: "Pending", label: "Pending", color: "info", icon: "pending" },
 	{ value: "PAID", label: "Paid", color: "success", icon: "paid" },
 	{ value: "DRAFTED", label: "Drafted", color: "secondary", icon: "drafted" },
 	{ value: "Active", label: "Active", color: "info", icon: "active" },
@@ -135,7 +223,68 @@ const invoiceTabDefinitions = [
 	{ value: "PARTIALLY_PAID", label: "Partially Paid" },
 	{ value: "DRAFTED", label: "Draft" },
 	{ value: "CANCELLED", label: "Cancelled" },
+	{ value: "REFUND", label: "Refund" },
 ];
+
+export const nonConvertibleToSalesReturnStatuses = ["DRAFTED", "CANCELLED", "REFUND"];
+
+export const salesReturnStatuses = [
+
+	{
+		value: "Pending",
+		label: "Pending",
+		color: "info",
+		icon: "mdi:progress-helper",
+		summaryKey: "pending",
+	},
+	{
+		value: "Paid",
+		label: "Paid",
+		color: "success",
+		icon: "mdi:check-circle-outline",
+		summaryKey: "paid",
+	},
+	{
+		value: "Draft",
+		label: "Draft",
+		color: "secondary",
+		icon: "mdi:file-document-edit-outline",
+		summaryKey: "draft",
+	}
+];
+
+export const purchaseReturnStatuses = [
+	{
+		value: "Pending",
+		label: "Pending",
+		color: "info",
+		icon: "mdi:progress-helper",
+		summaryKey: "pending",
+	},
+	{
+		value: "Paid",
+		label: "Paid",
+		color: "success",
+		icon: "mdi:check-circle-outline",
+		summaryKey: "paid",
+	},
+	{
+		value: "Draft",
+		label: "Draft",
+		color: "secondary",
+		icon: "mdi:file-document-edit-outline",
+		summaryKey: "draft",
+	},
+];
+
+export const getPurchaseReturnStatusOption = (status) => {
+	const normalized = String(status || "").trim();
+	return purchaseReturnStatuses.find((item) => item.value === normalized) || {
+		value: normalized || "Draft",
+		label: normalized || "Draft",
+		color: "default",
+	};
+};
 
 // Customer related constants
 export const customerStatusOptions = [
@@ -172,13 +321,13 @@ export const paymentSummaryStatus = [
 
 export const invoiceTabs = invoiceTabDefinitions.map((tab) => ({ ...tab }));
 
-export const purchaseOrderTabs = [
-	{ value: "ALL", label: "All" },
-	{ value: "PENDING", label: "Pending" },
-	{ value: "APPROVED", label: "Approved" },
-	{ value: "REJECTED", label: "Rejected" },
-	{ value: "DRAFTED", label: "Draft" },
-	{ value: "CONVERTED", label: "Converted" },
+export const purchaseOrderStatusDefinitions = [
+	{ value: "DRAFT", label: "Draft", color: "secondary", icon: "mdi:paper-edit-outline" },
+	{ value: "PENDING_APPROVAL", label: "Pending Approval", color: "warning", icon: "mdi:progress-helper", summaryKey: "pending" },
+	{ value: "APPROVED", label: "Approved", color: "success", icon: "mdi:check-circle-outline", summaryKey: "approved" },
+	{ value: "REJECTED", label: "Rejected", color: "error", icon: "mdi:close-circle-outline", summaryKey: "rejected" },
+	{ value: "CONVERTED", label: "Converted", color: "info", icon: "mdi:swap-horizontal" },
+	{ value: "CANCELLED", label: "Cancelled", color: "error", icon: "mdi:cancel" },
 ];
 
 export const debitNoteTabs = invoiceTabDefinitions.map((tab) => ({ ...tab }));
@@ -306,7 +455,6 @@ export const settingsTabs = [
 		label: "Account Settings",
 		icon: "ri-user-settings-line",
 	},
-	{ value: "company", label: "Company Settings", icon: "ri-building-line" },
 	{
 		value: "changePassword",
 		label: "Change Password",
@@ -343,6 +491,7 @@ export const settingsTabs = [
 // Quotation tabs for filtering
 export const quotationTabs = [
 	{ value: "ALL", label: "All" },
+	{ value: "Open", label: "Open" },
 	{ value: "ACCEPTED", label: "Accepted" },
 	{ value: "DRAFTED", label: "Draft" },
 	{ value: "SENT", label: "Sent" },
@@ -351,46 +500,100 @@ export const quotationTabs = [
 	{ value: "CONVERTED", label: "Converted" },
 ];
 
-// Quotation status options
-export const quotationStatusOptions = [
+// Quotation status values
+export const quotationStatusValues = {
+	OPEN: "Open",
+	DRAFTED: "DRAFTED",
+	SENT: "SENT",
+	ACCEPTED: "ACCEPTED",
+	EXPIRED: "EXPIRED",
+	REJECTED: "REJECTED",
+	CONVERTED: "CONVERTED",
+};
+
+export const quotationStatusDefinitions = [
 	{
-		value: "ACCEPTED",
+		value: quotationStatusValues.OPEN,
+		label: "Open",
+		color: "info",
+		icon: "mdi:file-document-outline",
+		summaryKey: "open",
+	},
+	{
+		value: quotationStatusValues.CONVERTED,
+		label: "Converted",
+		color: "success",
+		icon: "mdi:check-circle-outline",
+		summaryKey: "converted",
+	},
+	{
+		value: quotationStatusValues.EXPIRED,
+		label: "Expired",
+		color: "error",
+		icon: "mdi:clock-alert-outline",
+		summaryKey: "expired",
+	},
+	{
+		value: quotationStatusValues.ACCEPTED,
 		label: "Accepted",
 		color: "success",
-		get icon() { return getFormIcon("accepted"); },
+		icon: "ri:check-double-line",
 	},
 	{
-		value: "DRAFTED",
+		value: quotationStatusValues.DRAFTED,
 		label: "Draft",
 		color: "secondary",
-		get icon() { return getFormIcon("drafted"); },
-	},
-	{ value: "SENT", label: "Sent", color: "info", get icon() { return getFormIcon("sent"); } },
-	{
-		value: "EXPIRED",
-		label: "Expired",
-		color: "warning",
-		get icon() { return getFormIcon("expired"); },
+		icon: "mdi:invoice-text-edit-outline",
 	},
 	{
-		value: "REJECTED",
+		value: quotationStatusValues.SENT,
+		label: "Sent",
+		color: "info",
+		icon: "ri:send-plane-line",
+	},
+	{
+		value: quotationStatusValues.REJECTED,
 		label: "Rejected",
 		color: "error",
-		get icon() { return getFormIcon("rejected"); },
-	},
-	{
-		value: "CONVERTED",
-		label: "Converted",
-		color: "primary",
-		get icon() { return getFormIcon("converted"); },
+		icon: "ri:close-circle-line",
 	},
 ];
 
-export const deliveryChallanTabs = [
-	{ value: "ALL", label: "All" },
-	{ value: "ACTIVE", label: "Active" },
-	{ value: "CONVERTED", label: "Converted" },
-	{ value: "CANCELLED", label: "Cancelled" },
+export const quotationStatusOptions = quotationStatusDefinitions.map(
+	({ value, label, color, icon }) => ({
+		value,
+		label,
+		color,
+		icon,
+	})
+);
+
+export const getQuotationStatusOption = (status) => {
+	const normalized = String(status || "").trim();
+	return (
+		quotationStatusOptions.find(
+			(option) => option.value.toUpperCase() === normalized.toUpperCase()
+		) || {
+			value: normalized || quotationStatusValues.OPEN,
+			label: normalized || "Open",
+			color: "default",
+			icon: "mdi:file-document-outline",
+		}
+	);
+};
+
+export const normalizeQuotationStatus = (status) => {
+	const normalized = String(status || "").trim();
+	if (!normalized) return quotationStatusValues.OPEN;
+	if (normalized === "Pending") return quotationStatusValues.OPEN;
+	return normalized;
+};
+
+export const quotationConvertAllowedStatuses = [
+	quotationStatusValues.OPEN,
+	quotationStatusValues.SENT,
+	quotationStatusValues.ACCEPTED,
+	quotationStatusValues.DRAFTED,
 ];
 
 // Delivery Challan status options
@@ -399,21 +602,29 @@ export const deliveryChallanStatusOptions = [
 		value: "ACTIVE",
 		label: "Active",
 		color: "success",
-		get icon() { return getFormIcon("active"); },
+		summaryKey: "active",
+		icon: "ri:check-double-line",
 	},
 	{
 		value: "CONVERTED",
 		label: "Converted",
 		color: "info",
-		get icon() { return getFormIcon("converted"); },
+		summaryKey: "converted",
+		icon: "mdi:invoice-text-check-outline",
 	},
 	{
 		value: "CANCELLED",
 		label: "Cancelled",
 		color: "error",
-		get icon() { return getFormIcon("cancelled"); },
+		summaryKey: "cancelled",
+		icon: "ri:close-circle-line",
 	},
 ];
+
+export const getDeliveryChallanStatusOption = (status) =>
+	deliveryChallanStatusOptions.find(
+		(option) => option.value === String(status || "ACTIVE").trim().toUpperCase()
+	) || deliveryChallanStatusOptions[0];
 
 // Available icons for role selection
 export const ROLE_ICONS = [
@@ -580,6 +791,7 @@ export const taxTypes = [
 ];
 
 export const formIcons = [
+	{ value: "imageUpload", label: "imageUpload", icon: "mdi:file-image-outline" },
 	{ value: "category", label: "category", icon: "mdi:category-outline" },
 	{ value: "unit", label: "Unit", icon: "uil:ruler" },
 	{ value: "service", label: "service", icon: "mdi:room-service-outline" },
@@ -607,6 +819,7 @@ export const formIcons = [
 	{ value: "overdue", label: "overdue", icon: "mdi:invoice-text-clock-outline" },
 	{ value: "paid", label: "paid", icon: "mdi:invoice-text-check-outline" },
 	{ value: "drafted", label: "drafted", icon: "mdi:invoice-text-edit-outline" },
+	{ value: "pendingApproval", label: "pendingApproval", icon: "ri:time-line" },
 	{ value: "active", label: "active", icon: "ri:check-double-line" },
 	{ value: "accepted", label: "accepted", icon: "ri:check-double-line" },
 	{ value: "expired", label: "expired", icon: "ri:time-line" },
@@ -733,7 +946,7 @@ export const userTableColumns = [
 	{ id: "email", label: "Email", sortable: true, visible: true },
 	{ id: "phone", label: "Phone", sortable: false, visible: true },
 	{ id: "role", label: "Permission Role", sortable: true, visible: true },
-	{ id: "companyRole", label: "Org Role", sortable: true, visible: true },
+	{ id: "organizationalRole", label: "Org Role", sortable: true, visible: true },
 	{ id: "primaryBranchName", label: "Primary Store", sortable: false, visible: true },
 	{ id: "assignedBranches", label: "Stores", sortable: false, visible: true },
 	{ id: "status", label: "Status", sortable: true, visible: true },
@@ -741,23 +954,7 @@ export const userTableColumns = [
 	{ id: "actions", label: "Actions", sortable: false, visible: true },
 ];
 
-// User filter options
-export const userFilterOptions = {
-	roles: [
-		{ value: "Adminss", label: "Admin" },
-		{ value: "Super Admin", label: "Super Admin" },
-		{ value: "admin", label: "Admin" },
-		{ value: "manager", label: "Manager" },
-		{ value: "user", label: "User" },
-		{ value: "accountant", label: "Accountant" },
-		{ value: "developer", label: "Developer" },
-		{ value: "guest", label: "Guest" },
-	],
-	statuses: [
-		{ value: "Active", label: "Active" },
-		{ value: "Inactive", label: "Inactive" },
-	],
-};
+
 
 // User form validation constants
 export const userValidationRules = {

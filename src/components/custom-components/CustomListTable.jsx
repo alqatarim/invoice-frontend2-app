@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Card,
@@ -44,13 +44,17 @@ import tableStyles from '@core/styles/table.module.css';
 
 const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }) => {
   const [value, setValue] = useState(initialValue);
+  const lastEmittedValueRef = useRef(initialValue);
 
   useEffect(() => {
+    lastEmittedValueRef.current = initialValue;
     setValue(initialValue);
   }, [initialValue]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
+      if (value === lastEmittedValueRef.current) return;
+      lastEmittedValueRef.current = value;
       onChange(value);
     }, debounce);
 
@@ -89,6 +93,7 @@ function CustomListTable({
   searchValue = '',
   onSearchChange,
   searchPlaceholder = 'Search...',
+  searchControls,
   headerActions,
   title,
   onRowClick,
@@ -144,13 +149,14 @@ function CustomListTable({
               </Typography>
             )}
             {showSearch && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap max-sm:flex-col max-sm:items-stretch max-sm:is-full">
                 <DebouncedInput
                   value={searchValue ?? ''}
                   onChange={value => onSearchChange && onSearchChange(String(value))}
                   placeholder={searchPlaceholder}
                   className='max-sm:is-full'
                 />
+                {searchControls}
                 {loading && (
                   <CircularProgress
                     size={20}

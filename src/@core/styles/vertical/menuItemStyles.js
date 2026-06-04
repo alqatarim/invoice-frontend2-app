@@ -71,7 +71,10 @@ const menuItemStyles = (verticalNavOptions, theme, settings) => {
       })
     }),
     icon: ({ level }) => ({
-      transition: `margin-inline-end ${transitionDuration}ms ease-in-out`,
+      flexShrink: 0,
+      opacity: 1,
+      visibility: 'visible',
+      transition: `margin-inline-end ${transitionDuration}ms ease-in-out, color ${transitionDuration}ms ease-in-out`,
       ...(level === 0 && {
         fontSize: '1.375rem'
       }),
@@ -109,6 +112,7 @@ const menuItemStyles = (verticalNavOptions, theme, settings) => {
     label: ({ level }) => ({
       ...((!isPopoutWhenCollapsed || popoutExpanded || (popoutCollapsed && level === 0)) && {
         transition: `opacity ${transitionDuration}ms ease-in-out`,
+        minInlineSize: 0,
         ...(collapsedNotHovered && {
           opacity: 0
         })

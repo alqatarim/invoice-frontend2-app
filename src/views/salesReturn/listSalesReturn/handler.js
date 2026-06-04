@@ -1,12 +1,13 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSalesReturnList, deleteSalesReturn } from '@/app/(dashboard)/sales-return/actions';
+import { getSalesReturnList, deleteSalesReturn, processSalesReturnRefund, setSalesReturnAsPending } from '@/app/(dashboard)/sales-return/actions';
 
 function useDataHandler({
   initialSalesReturns,
   initialPagination,
   initialSortBy,
   initialSortDirection,
+  initialCardCounts,
   onError
 }) {
   const [salesReturns, setSalesReturns] = useState(initialSalesReturns || []);
@@ -22,13 +23,19 @@ function useDataHandler({
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searching, setSearching] = useState(false);
+  const [cardCounts, setCardCounts] = useState(initialCardCounts || null);
   const loadingRef = useRef(false);
+  const onErrorRef = useRef(onError);
   const stateRef = useRef({
     searchTerm,
     pagination,
     sortBy,
     sortDirection
   });
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   useEffect(() => {
     stateRef.current = {
@@ -56,6 +63,7 @@ function useDataHandler({
 
       if (response?.success) {
         setSalesReturns(response.data || []);
+        setCardCounts(response.cardCounts || null);
         setPagination((prev) => ({
           current: params.page || prev.current,
           pageSize: params.limit || prev.pageSize,
@@ -70,13 +78,13 @@ function useDataHandler({
       throw new Error(response.message || 'Failed to fetch sales returns');
     } catch (error) {
       console.error('Error fetching sales returns:', error);
-      onError(error.message || 'Failed to fetch sales returns');
+      onErrorRef.current?.(error.message || 'Failed to fetch sales returns');
       return { success: false, error: error.message };
     } finally {
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [onError]);
+  }, []);
 
   const handlePageChange = useCallback((newPageZeroBased) => {
     const nextPage = Number(newPageZeroBased) + 1;
@@ -84,11 +92,8 @@ function useDataHandler({
       return;
     }
 
-    setPagination((prev) => ({ ...prev, current: nextPage }));
-    if (nextPage > 1 || searchTerm) {
-      fetchSalesReturns({ page: nextPage });
-    }
-  }, [fetchSalesReturns, searchTerm]);
+    fetchSalesReturns({ page: nextPage });
+  }, [fetchSalesReturns]);
 
   const handlePageSizeChange = useCallback((newSize) => {
     setPagination((prev) => ({ ...prev, pageSize: newSize, current: 1 }));
@@ -101,22 +106,23 @@ function useDataHandler({
   }, []);
 
   const handleSearchInputChange = useCallback(async (value) => {
-    if (value === stateRef.current.searchTerm) {
+    const nextValue = String(value ?? '');
+    if (nextValue === stateRef.current.searchTerm) {
       return;
     }
 
     setSearching(true);
-    setSearchTerm(value);
+    setSearchTerm(nextValue);
 
     try {
-      await fetchSalesReturns({ search: value, page: 1 });
+      await fetchSalesReturns({ search: nextValue, page: 1 });
     } catch (error) {
       console.error('Error searching sales returns:', error);
-      onError(error.message || 'Search failed');
+      onErrorRef.current?.(error.message || 'Search failed');
     } finally {
       setSearching(false);
     }
-  }, [fetchSalesReturns, onError]);
+  }, [fetchSalesReturns]);
 
   const handleSearchSubmit = useCallback(async (event) => {
     event.preventDefault();
@@ -126,11 +132,11 @@ function useDataHandler({
       await fetchSalesReturns({ search: searchTerm, page: 1 });
     } catch (error) {
       console.error('Error submitting search:', error);
-      onError(error.message || 'Search failed');
+      onErrorRef.current?.(error.message || 'Search failed');
     } finally {
       setSearching(false);
     }
-  }, [fetchSalesReturns, onError, searchTerm]);
+  }, [fetchSalesReturns, searchTerm]);
 
   const handleSearchClear = useCallback(async () => {
     setSearchTerm('');
@@ -145,11 +151,11 @@ function useDataHandler({
       }));
     } catch (error) {
       console.error('Error clearing search:', error);
-      onError(error.message || 'Failed to clear search');
+      onErrorRef.current?.(error.message || 'Failed to clear search');
     } finally {
       setSearching(false);
     }
-  }, [initialSalesReturns, onError]);
+  }, [initialSalesReturns]);
 
   const handleSearchFocus = useCallback(() => {}, []);
   const handleSearchBlur = useCallback(() => {}, []);
@@ -162,6 +168,7 @@ function useDataHandler({
     loading,
     searchTerm,
     searching,
+    cardCounts,
     setSalesReturns,
     setPagination,
     setSortBy,
@@ -236,14 +243,49 @@ function useActionsHandler({ onError, onSuccess, fetchSalesReturns }) {
     window.open(`/sales-return/sales-return-view/${salesReturnId}?print=true`, '_blank');
   }, [onError]);
 
-  const handleProcessRefund = useCallback((salesReturnId) => {
+  const handleProcessRefund = useCallback(async (salesReturnId) => {
     if (!salesReturnId) {
       onError('Invalid sales return selected');
       return;
     }
 
-    router.push(`/sales-return/sales-return-view/${salesReturnId}`);
-  }, [onError, router]);
+    try {
+      const response = await processSalesReturnRefund(salesReturnId);
+
+      if (response.success) {
+        onSuccess(response.message || 'Sales return refund processed successfully');
+        fetchSalesReturns();
+        return;
+      }
+
+      throw new Error(response.message || 'Failed to process sales return refund');
+    } catch (error) {
+      console.error('Error processing sales return refund:', error);
+      onError(error.message || 'Failed to process sales return refund');
+    }
+  }, [fetchSalesReturns, onError, onSuccess]);
+
+  const handleSetAsPending = useCallback(async (salesReturnId) => {
+    if (!salesReturnId) {
+      onError('Invalid sales return selected');
+      return;
+    }
+
+    try {
+      const response = await setSalesReturnAsPending(salesReturnId);
+
+      if (response.success) {
+        onSuccess(response.message || 'Sales return set to pending successfully');
+        fetchSalesReturns();
+        return;
+      }
+
+      throw new Error(response.message || 'Failed to set sales return as pending');
+    } catch (error) {
+      console.error('Error setting sales return as pending:', error);
+      onError(error.message || 'Failed to set sales return as pending');
+    }
+  }, [fetchSalesReturns, onError, onSuccess]);
 
   return {
     selectedSalesReturn,
@@ -254,7 +296,8 @@ function useActionsHandler({ onError, onSuccess, fetchSalesReturns }) {
     handleDeleteConfirm,
     handleDeleteCancel,
     handlePrintDownload,
-    handleProcessRefund
+    handleProcessRefund,
+    handleSetAsPending
   };
 }
 
@@ -332,6 +375,7 @@ export function useSalesReturnListHandlers({
   initialSortBy,
   initialSortDirection,
   initialColumns,
+  initialCardCounts,
   onError,
   onSuccess
 }) {
@@ -340,6 +384,7 @@ export function useSalesReturnListHandlers({
     initialPagination,
     initialSortBy,
     initialSortDirection,
+    initialCardCounts,
     onError,
     onSuccess
   });
@@ -399,6 +444,8 @@ export function useSalesReturnListHandlers({
     handleDeleteCancel: actionsHandler.handleDeleteCancel,
     handlePrintDownload: actionsHandler.handlePrintDownload,
     handleProcessRefund: actionsHandler.handleProcessRefund,
+    handleSetAsPending: actionsHandler.handleSetAsPending,
+    cardCounts: dataHandler.cardCounts,
     manageColumnsOpen: columnsHandler.manageColumnsOpen,
     tempColumns: columnsHandler.tempColumns,
     handleManageColumnsOpen: columnsHandler.handleManageColumnsOpen,

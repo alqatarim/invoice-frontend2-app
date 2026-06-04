@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePermission } from '@/Auth/usePermission';
 import {
   addExpense,
@@ -8,6 +8,8 @@ import {
   getExpenseDetails,
   getExpenseNumber,
   getExpensesList,
+  setExpenseAsPaid,
+  setExpenseAsPending,
   updateExpense,
 } from '@/app/(dashboard)/expenses/actions';
 
@@ -15,19 +17,6 @@ const DEFAULT_PAGINATION = {
   current: 1,
   pageSize: 10,
   total: 0,
-};
-
-const matchesExpenseSearch = (expense, query) => {
-  const normalizedQuery = String(query || '').trim().toLowerCase();
-  if (!normalizedQuery) return true;
-
-  return [
-    expense?.expenseId,
-    expense?.reference,
-    expense?.paymentMode,
-    expense?.description,
-    expense?.status,
-  ].some((value) => String(value || '').toLowerCase().includes(normalizedQuery));
 };
 
 const getSortableValue = (expense, key) => {
@@ -44,8 +33,11 @@ const getSortableValue = (expense, key) => {
 export function useExpenseListHandler({
   initialExpenses = [],
   initialPagination = DEFAULT_PAGINATION,
+  initialSummary = {},
   initialExpenseNumber = '',
   initialErrorMessage = '',
+  onError,
+  onSuccess,
 }) {
   const permissions = {
     canCreate: usePermission('expense', 'create'),
@@ -54,7 +46,8 @@ export function useExpenseListHandler({
     canDelete: usePermission('expense', 'delete'),
   };
 
-  const [sourceExpenses, setSourceExpenses] = useState(initialExpenses);
+  const [expenses, setExpenses] = useState(initialExpenses);
+  const [summary, setSummary] = useState(initialSummary || {});
   const [pagination, setPagination] = useState(initialPagination || DEFAULT_PAGINATION);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('');
@@ -70,22 +63,34 @@ export function useExpenseListHandler({
     addOpen: false,
     editOpen: false,
     viewOpen: false,
+    deleteOpen: false,
     selectedExpenseId: '',
+    selectedExpense: null,
     selectedExpenseData: null,
     detailsLoading: false,
     detailsError: '',
   });
 
-  const expenses = useMemo(() => {
-    const filteredExpenses = sourceExpenses.filter((expense) =>
-      matchesExpenseSearch(expense, searchTerm)
-    );
+  const loadingRef = useRef(false);
+  const onErrorRef = useRef(onError);
+  const onSuccessRef = useRef(onSuccess);
+  const stateRef = useRef({ searchTerm: '', pagination });
 
+  useEffect(() => {
+    onErrorRef.current = onError;
+    onSuccessRef.current = onSuccess;
+  }, [onError, onSuccess]);
+
+  useEffect(() => {
+    stateRef.current = { searchTerm, pagination };
+  }, [searchTerm, pagination]);
+
+  const sortedExpenses = useMemo(() => {
     if (!sortBy) {
-      return filteredExpenses;
+      return expenses;
     }
 
-    return [...filteredExpenses].sort((firstExpense, secondExpense) => {
+    return [...expenses].sort((firstExpense, secondExpense) => {
       const firstValue = getSortableValue(firstExpense, sortBy);
       const secondValue = getSortableValue(secondExpense, sortBy);
 
@@ -99,44 +104,54 @@ export function useExpenseListHandler({
 
       return 0;
     });
-  }, [searchTerm, sortBy, sortDirection, sourceExpenses]);
+  }, [expenses, sortBy, sortDirection]);
 
-  const showSnackbar = (message, severity = 'success') => {
+  const showSnackbar = useCallback((message, severity = 'success') => {
     setSnackbar({
       open: true,
       message,
       severity,
     });
-  };
+  }, []);
 
-  const refreshExpenses = async ({
-    page = pagination.current,
-    pageSize = pagination.pageSize,
-  } = {}) => {
-    setLoading(true);
+  const fetchExpenses = useCallback(
+    async (
+      page = stateRef.current.pagination.current,
+      pageSize = stateRef.current.pagination.pageSize,
+      search = stateRef.current.searchTerm
+    ) => {
+      if (loadingRef.current) return null;
 
-    try {
-      const response = await getExpensesList(page, pageSize);
+      loadingRef.current = true;
+      setLoading(true);
 
-      if (!response?.success) {
-        throw new Error(response?.message || 'Failed to fetch expenses');
+      try {
+        const response = await getExpensesList(page, pageSize, search);
+
+        if (!response?.success) {
+          throw new Error(response?.message || 'Failed to fetch expenses');
+        }
+
+        setExpenses(response.data || []);
+        setSummary(response.summary || {});
+        setSearchTerm(search);
+        setPagination({
+          current: page,
+          pageSize,
+          total: response.totalRecords || 0,
+        });
+
+        return response;
+      } catch (error) {
+        onErrorRef.current?.(error?.message || 'Failed to fetch expenses');
+        return null;
+      } finally {
+        setLoading(false);
+        loadingRef.current = false;
       }
-
-      setSourceExpenses(response.data || []);
-      setPagination({
-        current: page,
-        pageSize,
-        total: response.totalRecords || 0,
-      });
-
-      return response;
-    } catch (error) {
-      showSnackbar(error?.message || 'Failed to fetch expenses', 'error');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    []
+  );
 
   const refreshExpenseNumber = async () => {
     try {
@@ -159,21 +174,21 @@ export function useExpenseListHandler({
       await refreshExpenseNumber();
     }
 
-    setDialogState((prev) => ({
+    setDialogState(prev => ({
       ...prev,
       addOpen: true,
     }));
   };
 
   const closeAddDialog = () => {
-    setDialogState((prev) => ({
+    setDialogState(prev => ({
       ...prev,
       addOpen: false,
     }));
   };
 
   const loadExpenseDetails = async (expenseId, mode) => {
-    setDialogState((prev) => ({
+    setDialogState(prev => ({
       ...prev,
       selectedExpenseId: expenseId,
       selectedExpenseData: null,
@@ -186,7 +201,7 @@ export function useExpenseListHandler({
     try {
       const expenseData = await getExpenseDetails(expenseId);
 
-      setDialogState((prev) => ({
+      setDialogState(prev => ({
         ...prev,
         selectedExpenseData: expenseData,
         detailsLoading: false,
@@ -194,7 +209,7 @@ export function useExpenseListHandler({
     } catch (error) {
       const nextMessage = error?.message || 'Failed to load expense details.';
 
-      setDialogState((prev) => ({
+      setDialogState(prev => ({
         ...prev,
         detailsLoading: false,
         detailsError: nextMessage,
@@ -204,7 +219,7 @@ export function useExpenseListHandler({
     }
   };
 
-  const openViewDialog = async (expenseId) => {
+  const openViewDialog = async expenseId => {
     await loadExpenseDetails(expenseId, 'view');
   };
 
@@ -214,7 +229,7 @@ export function useExpenseListHandler({
       dialogState.selectedExpenseId === expenseId &&
       dialogState.selectedExpenseData
     ) {
-      setDialogState((prev) => ({
+      setDialogState(prev => ({
         ...prev,
         viewOpen: false,
         editOpen: true,
@@ -227,7 +242,7 @@ export function useExpenseListHandler({
   };
 
   const closeViewDialog = () => {
-    setDialogState((prev) => ({
+    setDialogState(prev => ({
       ...prev,
       viewOpen: false,
       selectedExpenseId: '',
@@ -238,7 +253,7 @@ export function useExpenseListHandler({
   };
 
   const closeEditDialog = () => {
-    setDialogState((prev) => ({
+    setDialogState(prev => ({
       ...prev,
       editOpen: false,
       selectedExpenseId: '',
@@ -247,6 +262,22 @@ export function useExpenseListHandler({
       detailsError: '',
     }));
   };
+
+  const openDeleteDialog = useCallback(expense => {
+    setDialogState(prev => ({
+      ...prev,
+      deleteOpen: true,
+      selectedExpense: expense,
+    }));
+  }, []);
+
+  const closeDeleteDialog = useCallback(() => {
+    setDialogState(prev => ({
+      ...prev,
+      deleteOpen: false,
+      selectedExpense: null,
+    }));
+  }, []);
 
   const retryDetailsFetch = async () => {
     if (!dialogState.selectedExpenseId) return;
@@ -271,8 +302,8 @@ export function useExpenseListHandler({
       };
     }
 
-    showSnackbar('Expense added successfully!');
-    await refreshExpenses();
+    onSuccessRef.current?.('Expense added successfully!');
+    await fetchExpenses();
     await refreshExpenseNumber();
 
     return response;
@@ -300,42 +331,82 @@ export function useExpenseListHandler({
       };
     }
 
-    showSnackbar('Expense updated successfully!');
-    await refreshExpenses();
+    onSuccessRef.current?.('Expense updated successfully!');
+    await fetchExpenses();
     return response;
   };
 
-  const handleDelete = async (expenseId) => {
-    const response = await deleteExpense(expenseId);
+  const executeAction = useCallback(
+    async (action, fallbackMessage) => {
+      try {
+        const result = await action();
 
-    if (!response?.success) {
-      showSnackbar(response?.message || 'Failed to delete expense', 'error');
+        if (result?.success === false) {
+          throw new Error(result?.message || 'Action failed');
+        }
+
+        onSuccessRef.current?.(result?.message || fallbackMessage);
+        await fetchExpenses();
+        return result;
+      } catch (error) {
+        onErrorRef.current?.(error.message || 'Action failed');
+        return null;
+      }
+    },
+    [fetchExpenses]
+  );
+
+  const handleSetAsPending = useCallback(
+    id => executeAction(() => setExpenseAsPending(id), 'Expense set to pending successfully'),
+    [executeAction]
+  );
+
+  const handleSetAsPaid = useCallback(
+    id => executeAction(() => setExpenseAsPaid(id), 'Expense set to paid successfully'),
+    [executeAction]
+  );
+
+  const handleDeleteConfirm = useCallback(async () => {
+    const expenseId = dialogState.selectedExpense?._id;
+
+    if (!expenseId) {
       return;
     }
 
-    showSnackbar('Expense deleted successfully!');
-    await refreshExpenses();
-  };
+    try {
+      const response = await deleteExpense(expenseId);
 
-  const handlePageChange = async (eventOrPage, maybePage) => {
-    const nextPage = typeof maybePage === 'number' ? maybePage : eventOrPage;
-    if (typeof nextPage !== 'number') return;
+      if (!response?.success) {
+        throw new Error(response?.message || 'Failed to delete expense');
+      }
 
-    await refreshExpenses({ page: nextPage + 1 });
-  };
+      onSuccessRef.current?.('Expense deleted successfully!');
+      closeDeleteDialog();
+      await fetchExpenses();
+    } catch (error) {
+      onErrorRef.current?.(error?.message || 'Failed to delete expense');
+    }
+  }, [closeDeleteDialog, dialogState.selectedExpense, fetchExpenses]);
 
-  const handlePageSizeChange = async (eventOrSize) => {
-    const nextPageSize =
-      typeof eventOrSize === 'number'
-        ? eventOrSize
-        : Number(eventOrSize?.target?.value);
+  const handlePageChange = useCallback(
+    pageZeroBased => {
+      const nextPage = Number(pageZeroBased) + 1;
+      if (!Number.isFinite(nextPage)) return;
+      fetchExpenses(nextPage, stateRef.current.pagination.pageSize);
+    },
+    [fetchExpenses]
+  );
 
-    if (!Number.isFinite(nextPageSize)) return;
+  const handlePageSizeChange = useCallback(
+    pageSize => {
+      const nextSize = Number(pageSize);
+      if (!Number.isFinite(nextSize)) return;
+      fetchExpenses(1, nextSize);
+    },
+    [fetchExpenses]
+  );
 
-    await refreshExpenses({ page: 1, pageSize: nextPageSize });
-  };
-
-  const handleSortRequest = (columnKey, direction) => {
+  const handleSortRequest = useCallback((columnKey, direction) => {
     const nextDirection =
       direction || (sortBy === columnKey && sortDirection === 'asc' ? 'desc' : 'asc');
 
@@ -346,23 +417,30 @@ export function useExpenseListHandler({
       sortBy: columnKey,
       sortDirection: nextDirection,
     };
-  };
+  }, [sortBy, sortDirection]);
+
+  const handleSearchInputChange = useCallback(
+    searchValue => {
+      const nextValue = String(searchValue ?? '');
+      if (nextValue === stateRef.current.searchTerm) return;
+
+      setSearchTerm(nextValue);
+      fetchExpenses(1, stateRef.current.pagination.pageSize, nextValue);
+    },
+    [fetchExpenses]
+  );
 
   const closeSnackbar = () => {
-    setSnackbar((prev) => ({
+    setSnackbar(prev => ({
       ...prev,
       open: false,
     }));
   };
 
-  const openEditFromView = () => {
-    if (!dialogState.selectedExpenseId) return;
-    openEditDialog(dialogState.selectedExpenseId, true);
-  };
-
   return {
     permissions,
-    expenses,
+    expenses: sortedExpenses,
+    summary,
     pagination,
     loading,
     searchTerm,
@@ -371,21 +449,24 @@ export function useExpenseListHandler({
     expenseNumber,
     dialogState,
     snackbar,
-    setSearchTerm,
     openAddDialog,
     closeAddDialog,
     openViewDialog,
     closeViewDialog,
     openEditDialog,
     closeEditDialog,
-    openEditFromView,
+    openDeleteDialog,
+    closeDeleteDialog,
+    handleDeleteConfirm,
     retryDetailsFetch,
     handleAddExpense,
     handleUpdateExpense,
-    handleDelete,
     handlePageChange,
     handlePageSizeChange,
     handleSortRequest,
+    handleSearchInputChange,
+    handleSetAsPending,
+    handleSetAsPaid,
     closeSnackbar,
   };
 }

@@ -8,28 +8,14 @@ import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWitho
 /**
  * UnitHead Component - Displays unit statistics header
  */
-const UnitHead = ({ unitListData }) => {
+const UnitHead = ({ summary = {} }) => {
   const unitStats = useMemo(
-    () =>
-      (unitListData || []).reduce(
-        (acc, unit) => {
-          acc.totalUnits += 1;
-
-          if (unit.status !== false) {
-            acc.activeUnits += 1;
-          } else {
-            acc.inactiveUnits += 1;
-          }
-
-          return acc;
-        },
-        {
-          totalUnits: 0,
-          activeUnits: 0,
-          inactiveUnits: 0,
-        }
-      ),
-    [unitListData]
+    () => ({
+      totalUnits: Number(summary.totalUnits || 0),
+      activeUnits: Number(summary.activeUnits || 0),
+      inactiveUnits: Number(summary.inactiveUnits || 0),
+    }),
+    [summary]
   );
 
   const statCards = useMemo(

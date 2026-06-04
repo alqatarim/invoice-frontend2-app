@@ -57,6 +57,7 @@ export async function getInitialCategoryData() {
           pageSize: 10,
           total: response.totalRecords || 0,
         },
+        summary: response.summary || {},
       };
 
       return result;
@@ -104,6 +105,7 @@ export async function getFilteredCategories(page, pageSize, filters = {}, sortBy
           pageSize,
           total: response.totalRecords || 0,
         },
+        summary: response.summary || {},
       };
     } else {
       console.error('Failed to fetch filtered categories:', response.message);

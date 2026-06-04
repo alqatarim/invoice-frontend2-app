@@ -18,6 +18,7 @@ import { useCategoryListHandler } from './handler';
 const CategoryList = ({
   initialCategories = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialSummary = {},
   initialErrorMessage = '',
 }) => {
   const theme = useTheme();
@@ -75,6 +76,7 @@ const CategoryList = ({
   const handlers = useCategoryListHandler({
     initialCategories,
     initialPagination,
+    initialSummary,
     onError,
     onInfo,
     onSuccess,
@@ -111,7 +113,7 @@ const CategoryList = ({
 
   return (
     <div className='flex flex-col gap-0'>
-      <CategoryHead categoryListData={handlers.categories} isLoading={handlers.loading} />
+      <CategoryHead summary={handlers.summary} isLoading={handlers.loading} />
 
       <ProductNavigationButtons activeTab='categories' />
 

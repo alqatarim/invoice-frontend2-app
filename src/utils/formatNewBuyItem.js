@@ -52,7 +52,10 @@ export function formatNewBuyItem() {
   return {
     productId: '',
     name: '',
+    sku: '',
+    category: null,
     units: '',
+    unit: '',
     quantity: 1,
     purchasePrice: 0,
     rate: 0,

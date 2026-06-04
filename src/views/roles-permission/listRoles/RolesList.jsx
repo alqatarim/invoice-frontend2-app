@@ -73,8 +73,8 @@ const RolesList = ({
 
   // Handle column checkbox changes
   const handleColumnCheckboxChange = (columnKey, checked) => {
-    setColumns(prev => 
-      prev.map(col => 
+    setColumns(prev =>
+      prev.map(col =>
         col.key === columnKey ? { ...col, visible: checked } : col
       )
     )
@@ -97,6 +97,7 @@ const RolesList = ({
     editingIcon: handlers.editingIcon,
     editingMode: handlers.editingMode,
     inlineLoading: handlers.inlineLoading,
+    inlineLoadingRoleId: handlers.inlineLoadingRoleId,
     handleStartNameEdit: handlers.handleStartNameEdit,
     handleInlineEditChange: handlers.handleInlineEditChange,
     handleIconChange: handlers.handleIconChange,
@@ -106,7 +107,7 @@ const RolesList = ({
 
   // Build table columns with visible filter
   const tableColumns = useMemo(() =>
-    columnDefs.filter(col => 
+    columnDefs.filter(col =>
       columnsState.some(vc => vc.key === col.key && vc.visible)
     ),
     [columnDefs, columnsState]
@@ -119,18 +120,6 @@ const RolesList = ({
     toDate: '',
   }
 
-  // Filter handlers
-  const handleFilterValueChange = (field, value) => {
-    // Handle filter value changes
-  }
-
-  const handleFilterApply = (values) => {
-    // Handle filter apply
-  }
-
-  const handleFilterReset = () => {
-    // Handle filter reset
-  }
 
   return (
     <div className='flex flex-col gap-5'>

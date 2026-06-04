@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_noStore as noStore } from 'next/cache';
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 
 const ENDPOINTS = {
@@ -11,15 +12,30 @@ const ENDPOINTS = {
     DELETE: '/branches'
   },
   PROVINCES_CITIES: '/provincesCities',
-  USER_LIST: '/manage_users/listUsers'
+  USER_LIST: '/manage_users/listUsers',
 };
 
 const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
 const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
 
-export async function getInitialBranchData() {
+const appendBranchFilters = (url, filters = {}) => {
+  const searchParams = new URLSearchParams(url.split('?')[1] || '');
+
+  if (filters.search_branch) searchParams.set('search_branch', filters.search_branch);
+  if (filters.branchType) searchParams.set('branchType', filters.branchType);
+  if (filters.province) searchParams.set('province', filters.province);
+  if (filters.city) searchParams.set('city', filters.city);
+  if (filters.status !== undefined && filters.status !== '') searchParams.set('status', filters.status);
+
+  return `${url.split('?')[0]}?${searchParams.toString()}`;
+};
+
+export async function getInitialBranchData(filters = {}) {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.LIST}?skip=0&limit=10`, CACHE_STABLE_LIST);
+    const response = await fetchWithAuth(
+      appendBranchFilters(`${ENDPOINTS.BRANCH.LIST}?skip=0&limit=10`, filters),
+      CACHE_STABLE_LIST
+    );
 
     if (response?.error) {
       throw new Error(response.error);
@@ -33,6 +49,7 @@ export async function getInitialBranchData() {
           pageSize: 10,
           total: response.totalRecords || 0,
         },
+        summary: response.summary || {},
       };
     }
 
@@ -40,6 +57,36 @@ export async function getInitialBranchData() {
   } catch (error) {
     console.error('Error in getInitialBranchData:', error);
     throw new Error(error.message || 'Failed to fetch initial branch data');
+  }
+}
+
+export async function getBranchById(id) {
+  noStore();
+  const branchId = String(id || '').trim();
+  if (!branchId) {
+    return { success: false, message: 'Invalid branch ID' };
+  }
+
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.VIEW}/${branchId}`, {
+      cache: 'no-store',
+    });
+
+    if (response.code === 200) {
+      const data = response.data;
+      const branch = data && !Array.isArray(data) ? data : null;
+
+      if (branch && (branch._id || branch.id)) {
+        return { success: true, data: branch };
+      }
+
+      return { success: false, message: 'Store not found.' };
+    }
+
+    throw new Error(response.message || 'Failed to fetch branch');
+  } catch (error) {
+    console.error('Error fetching branch:', error);
+    return { success: false, message: error.message || 'Failed to fetch branch' };
   }
 }
 
@@ -60,6 +107,12 @@ export async function getFilteredBranches(
     if (filters.branchType) {
       url += `&branchType=${encodeURIComponent(filters.branchType)}`;
     }
+    if (filters.province) {
+      url += `&province=${encodeURIComponent(filters.province)}`;
+    }
+    if (filters.city) {
+      url += `&city=${encodeURIComponent(filters.city)}`;
+    }
     if (filters.status !== undefined && filters.status !== '') {
       url += `&status=${encodeURIComponent(filters.status)}`;
     }
@@ -77,6 +130,7 @@ export async function getFilteredBranches(
           pageSize,
           total: response.totalRecords || 0,
         },
+        summary: response.summary || {},
       };
     }
 
@@ -154,12 +208,13 @@ export async function addBranch(branchData) {
 }
 
 export async function updateBranch(id, branchData) {
-  if (!id || typeof id !== 'string') {
-    throw new Error('Invalid branch ID');
+  const branchId = String(id || '').trim();
+  if (!branchId) {
+    return { success: false, message: 'Invalid branch ID' };
   }
 
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.UPDATE}/${id}`, {
+    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.UPDATE}/${branchId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(branchData)
@@ -177,12 +232,13 @@ export async function updateBranch(id, branchData) {
 }
 
 export async function deleteBranch(id) {
-  if (!id || typeof id !== 'string') {
-    throw new Error('Invalid branch ID');
+  const branchId = String(id || '').trim();
+  if (!branchId) {
+    return { success: false, message: 'Invalid branch ID' };
   }
 
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.DELETE}/${id}`, {
+    const response = await fetchWithAuth(`${ENDPOINTS.BRANCH.DELETE}/${branchId}`, {
       method: 'PATCH',
     });
 

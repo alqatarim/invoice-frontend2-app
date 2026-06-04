@@ -58,6 +58,7 @@ export async function getInitialProductData() {
           pageSize: 10,
           total: response.totalRecords || 0,
         },
+        summary: response.summary || {},
       };
 
       return result;
@@ -109,6 +110,7 @@ export async function getFilteredProducts(page, pageSize, filters = {}, sortBy =
           pageSize,
           total: response.totalRecords || 0,
         },
+        summary: response.summary || {},
       };
     } else {
       console.error('Failed to fetch filtered products:', response.message);

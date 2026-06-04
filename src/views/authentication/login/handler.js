@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
@@ -35,7 +35,6 @@ const getAuthErrorMessage = errorCode => {
 }
 
 export function useLoginHandler({ initialMode }) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { lang: locale } = useParams()
 
@@ -48,16 +47,6 @@ export function useLoginHandler({ initialMode }) {
     const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
     return getLocalizedUrl(redirectURL, locale)
   }
-
-  // Warm the post-login route so the actual navigation is near-instant
-  useEffect(() => {
-    try {
-      router.prefetch(resolveRedirectURL())
-    } catch (_) {
-      // prefetch is best-effort
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const {
     control,
@@ -96,7 +85,7 @@ export function useLoginHandler({ initialMode }) {
   }
 
   const navigateToRedirect = () => {
-    router.replace(resolveRedirectURL())
+    window.location.assign(resolveRedirectURL())
   }
 
   const handleCredentialsSubmit = async data => {
@@ -107,14 +96,6 @@ export function useLoginHandler({ initialMode }) {
     setIsLoginProcessing(true)
     setSnackbar({ open: true, message: 'Logging In...', status: 'loading' })
     setErrorState(null)
-
-    // Re-prefetch right when the user commits, so the route is hot by the
-    // time the success animation finishes.
-    try {
-      router.prefetch(resolveRedirectURL())
-    } catch (_) {
-      // prefetch is best-effort
-    }
 
     try {
       const res = await signIn('credentials', {

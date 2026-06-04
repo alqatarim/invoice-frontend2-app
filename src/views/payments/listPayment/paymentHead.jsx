@@ -1,41 +1,61 @@
 'use client';
 
-import { Box, Button, IconButton, Chip } from '@mui/material';
-import { Icon } from '@iconify/react';
+import React, { useMemo } from 'react';
+import { Grid } from '@mui/material';
+import PageIconHeader from '@components/headers/PageIconHeader';
+import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
+import { paymentStatusDefinitions } from '@/data/dataSets';
 
-const PaymentHead = ({
-  onFilterToggle,
-  isFilterApplied,
-  filterCount,
-  onFilterReset,
-}) => {
+const formatCountSubtitle = count => `${count} ${count === 1 ? 'payment' : 'payments'}`;
+
+const PaymentHead = ({ summary = {} }) => {
+  const cardCounts = useMemo(
+    () => ({
+      totalAmount: Number(summary.totalAmount || 0),
+      totalCount: Number(summary.totalCount || 0),
+      pending: summary.pending || { amount: 0, count: 0 },
+      success: summary.success || { amount: 0, count: 0 },
+      failed: summary.failed || { amount: 0, count: 0 },
+    }),
+    [summary]
+  );
+
+  const statCards = useMemo(
+    () => [
+      {
+        title: 'Total',
+        value: cardCounts.totalAmount,
+        subtitle: formatCountSubtitle(cardCounts.totalCount),
+        icon: 'ri-bank-card-line',
+        color: 'primary',
+        isCurrency: true,
+      },
+      ...paymentStatusDefinitions.map(status => ({
+        title: status.label,
+        value: cardCounts[status.summaryKey]?.amount || 0,
+        subtitle: formatCountSubtitle(cardCounts[status.summaryKey]?.count || 0),
+        icon: status.icon,
+        color: status.color,
+        isCurrency: true,
+      })),
+    ],
+    [cardCounts]
+  );
+
   return (
-    <Box className="flex justify-end items-center gap-2">
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <IconButton
-          color="primary"
-          variant="outlined"
-          size="medium"
-          onClick={isFilterApplied ? onFilterReset : onFilterToggle}
-        >
-          <Icon
-            height="25px"
-            icon={isFilterApplied ? "line-md:filter-remove-twotone" : "line-md:filter-twotone"}
-          />
-        </IconButton>
+    <>
+      <PageIconHeader title="Payments" icon="ri-bank-card-line" />
 
-        {isFilterApplied && filterCount > 0 && (
-          <Chip
-            label={`${filterCount} filter${filterCount > 1 ? 's' : ''} applied`}
-            size="small"
-            color="primary"
-            variant="outlined"
-            onDelete={onFilterReset}
-          />
-        )}
-      </Box>
-
-    </Box>
+      <div className="mb-2">
+        <Grid container className="flex flex-wrap justify-between gap-0">
+          {statCards.map(card => (
+            <Grid key={card.title}>
+              <HorizontalWithoutBorder {...card} />
+            </Grid>
+          ))}
+        </Grid>
+      </div>
+    </>
   );
 };
 

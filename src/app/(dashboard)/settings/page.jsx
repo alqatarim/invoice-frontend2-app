@@ -1,5 +1,4 @@
 import {
-  getCompanySettings,
   getAccountSettings,
   getInvoiceSettings,
   getPaymentSettings,
@@ -15,9 +14,7 @@ import {
 import UnifiedSettingsIndex from '@/views/settings/index'
 
 export default async function SettingsPage() {
-  // Fetch all settings data in parallel for better performance
   const [
-    companyResult,
     accountResult,
     invoiceResult,
     paymentResult,
@@ -30,7 +27,6 @@ export default async function SettingsPage() {
     signaturesResult,
     templateResult
   ] = await Promise.allSettled([
-    getCompanySettings(),
     getAccountSettings(),
     getInvoiceSettings(),
     getPaymentSettings(),
@@ -44,7 +40,6 @@ export default async function SettingsPage() {
     getDefaultInvoiceTemplate()
   ])
 
-  // Helper function to extract data safely
   const extractData = (result) => {
     if (result.status === 'fulfilled' && result.value?.success) {
       return result.value.data
@@ -54,7 +49,6 @@ export default async function SettingsPage() {
 
   return (
     <UnifiedSettingsIndex
-      initialCompanySettings={extractData(companyResult) || {}}
       initialAccountSettings={extractData(accountResult) || {}}
       initialInvoiceSettings={extractData(invoiceResult) || {}}
       initialPaymentSettings={extractData(paymentResult) || {}}

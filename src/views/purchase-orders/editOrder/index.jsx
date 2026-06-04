@@ -24,7 +24,7 @@ const EditPurchaseOrderContent = ({
     }
   }, [enqueueSnackbar, initialErrorMessage]);
 
-  const handleSave = useCallback(async (orderData, employeeURL) => {
+  const handleSave = useCallback(async (orderData) => {
     try {
       const loadingKey = enqueueSnackbar('Updating purchase order...', {
         variant: 'info',
@@ -32,7 +32,7 @@ const EditPurchaseOrderContent = ({
         preventDuplicate: true,
       });
 
-      const response = await updatePurchaseOrder(orderId, orderData, employeeURL);
+      const response = await updatePurchaseOrder(orderId, orderData);
       closeSnackbar(loadingKey);
 
       if (!response.success) {

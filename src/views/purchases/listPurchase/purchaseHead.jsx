@@ -8,59 +8,25 @@ import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWitho
 /**
  * PurchaseHead Component - Displays purchase statistics header
  */
-const PurchaseHead = ({ purchaseListData }) => {
+const PurchaseHead = ({ summary = {} }) => {
   const purchaseStats = useMemo(() => {
-    const stats = (purchaseListData || []).reduce(
-      (accumulator, purchase) => {
-        accumulator.totalPurchases += 1;
-        accumulator.totalAmount += Number(purchase.TotalAmount) || 0;
-        accumulator.activePurchases += 1;
-
-        return accumulator;
-      },
-      {
-        totalPurchases: 0,
-        totalAmount: 0,
-        activePurchases: 0,
-      }
-    );
+    const totalPurchases = Number(summary.totalPurchases || 0);
+    const totalAmount = Number(summary.totalPurchaseAmount || 0);
 
     return {
-      ...stats,
-      avgPurchaseValue: stats.totalPurchases > 0 ? stats.totalAmount / stats.totalPurchases : 0,
+      totalPurchases,
+      totalAmount,
     };
-  }, [purchaseListData]);
+  }, [summary]);
 
   const statCards = useMemo(
     () => [
       {
         title: 'Total Purchases',
-        value: purchaseStats.totalPurchases,
-        subtitle: `${purchaseStats.activePurchases} active`,
+        value: purchaseStats.totalAmount,
+        subtitle: `${purchaseStats.totalPurchases} ${purchaseStats.totalPurchases === 1 ? 'purchase' : 'purchases'}`,
         icon: 'tabler:shopping-cart',
         color: 'primary',
-      },
-      {
-        title: 'Active Purchases',
-        value: purchaseStats.activePurchases,
-        subtitle: `${Math.round((purchaseStats.activePurchases / Math.max(purchaseStats.totalPurchases, 1)) * 100)}%`,
-        icon: 'mdi:check-circle-outline',
-        color: 'success',
-      },
-      {
-        title: 'Total Amount',
-        value: purchaseStats.totalAmount,
-        subtitle: 'Total Value',
-        icon: 'hugeicons:saudi-riyal',
-        color: 'info',
-        isCurrency: true,
-      },
-      {
-        title: 'Average Value',
-        value: purchaseStats.avgPurchaseValue,
-        subtitle: 'Avg Purchase',
-        icon: 'mdi:chart-line',
-        color: 'warning',
         isCurrency: true,
       },
     ],

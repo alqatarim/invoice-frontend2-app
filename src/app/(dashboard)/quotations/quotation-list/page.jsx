@@ -9,6 +9,7 @@ export const metadata = {
 async function QuotationListPage() {
   let initialQuotations = []
   let initialPagination = { current: 1, pageSize: 10, total: 0 }
+  let initialSummary = {}
   let initialCustomers = []
   let initialErrorMessage = ''
 
@@ -19,6 +20,7 @@ async function QuotationListPage() {
     ]);
 
     initialQuotations = initialData?.data || []
+    initialSummary = initialData?.summary || {}
     initialPagination = {
       current: 1,
       pageSize: 10,
@@ -34,6 +36,7 @@ async function QuotationListPage() {
     <QuotationListIndex
       initialQuotations={initialQuotations}
       initialPagination={initialPagination}
+      initialSummary={initialSummary}
       initialCustomers={initialCustomers}
       initialErrorMessage={initialErrorMessage}
     />

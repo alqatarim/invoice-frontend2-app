@@ -832,7 +832,7 @@ export const BusinessPulse = ({
 											borderRadius: 1.8,
 											width: 40,
 											height: 40,
-											backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.6 : 1),
+											// backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.6 : 1),
 											backdropFilter: 'blur(6px)',
 											'&:hover': {
 												borderColor: alpha(theme.palette.primary.main, 0.5),

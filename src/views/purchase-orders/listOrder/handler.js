@@ -3,21 +3,43 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  addPurchaseOrder,
   clonePurchaseOrder,
   convertToPurchase,
+  deletePurchaseOrder,
   getFilteredPurchaseOrders,
+  getPurchaseOrderStats,
   printDownloadPurchaseOrder,
+  updatePurchaseOrderStatus,
 } from '@/app/(dashboard)/purchase-orders/actions';
+import { purchaseOrderStatusDefinitions } from '@/data/dataSets';
+
+export const normalizePurchaseOrderStatus = (status = '') => {
+  const normalized = String(status || '').trim().toUpperCase();
+  return normalized || 'Draft';
+};
+
+export const getPurchaseOrderStatusOption = status => {
+  const normalized = normalizePurchaseOrderStatus(status);
+  return (
+    purchaseOrderStatusDefinitions.find(item => item.value === normalized) || {
+      value: normalized,
+      label: 'Unknown',
+      color: 'default',
+      icon: 'mdi:help-circle-outline',
+    }
+  );
+};
 
 function usePurchaseOrderListData({
   initialPurchaseOrders = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialCardCounts = {},
   initialSortBy = '',
   initialSortDirection = 'asc',
   onError,
 }) {
   const [purchaseOrders, setPurchaseOrders] = useState(initialPurchaseOrders);
+  const [cardCounts, setCardCounts] = useState(initialCardCounts);
   const [pagination, setPagination] = useState(() => {
     const basePagination = initialPagination || { current: 1, pageSize: 10, total: 0 };
     if (initialPurchaseOrders.length > 0 && basePagination.total === 0) {
@@ -34,13 +56,24 @@ function usePurchaseOrderListData({
   const [searching, setSearching] = useState(false);
   const [fullDataset, setFullDataset] = useState(initialPurchaseOrders);
   const loadingRef = useRef(false);
+  const onErrorRef = useRef(onError);
   const stateRef = useRef({
     searchTerm: '',
+    pagination,
+    sorting,
   });
 
   useEffect(() => {
-    stateRef.current.searchTerm = searchTerm;
-  }, [searchTerm]);
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
+    stateRef.current = {
+      searchTerm,
+      pagination,
+      sorting,
+    };
+  }, [searchTerm, pagination, sorting]);
 
   const fetchData = useCallback(
     async (params = {}) => {
@@ -48,10 +81,10 @@ function usePurchaseOrderListData({
       loadingRef.current = true;
 
       const {
-        page = pagination.current,
-        pageSize = pagination.pageSize,
-        sortBy = sorting.sortBy,
-        sortDirection = sorting.sortDirection,
+        page = stateRef.current.pagination.current,
+        pageSize = stateRef.current.pagination.pageSize,
+        sortBy = stateRef.current.sorting.sortBy,
+        sortDirection = stateRef.current.sorting.sortDirection,
         search = stateRef.current.searchTerm,
       } = params;
 
@@ -68,14 +101,14 @@ function usePurchaseOrderListData({
         return result;
       } catch (error) {
         console.error('fetchData error:', error);
-        onError?.(error.message || 'Failed to fetch purchase orders');
+        onErrorRef.current?.(error.message || 'Failed to fetch purchase orders');
         throw error;
       } finally {
         setLoading(false);
         loadingRef.current = false;
       }
     },
-    [onError, pagination.current, pagination.pageSize, sorting.sortBy, sorting.sortDirection]
+    []
   );
 
   const handlePageChange = useCallback(
@@ -99,38 +132,51 @@ function usePurchaseOrderListData({
 
   const handleSortRequest = useCallback(
     (columnKey, direction) => {
+      const { sorting: currentSorting } = stateRef.current;
       const nextDirection =
-        direction || (sorting.sortBy === columnKey && sorting.sortDirection === 'asc' ? 'desc' : 'asc');
+        direction || (currentSorting.sortBy === columnKey && currentSorting.sortDirection === 'asc' ? 'desc' : 'asc');
 
       setSorting({ sortBy: columnKey, sortDirection: nextDirection });
       fetchData({ page: 1, sortBy: columnKey, sortDirection: nextDirection });
 
       return { sortBy: columnKey, sortDirection: nextDirection };
     },
-    [sorting.sortBy, sorting.sortDirection, fetchData]
+    [fetchData]
   );
 
   const handleSearchInputChange = useCallback(
     async value => {
-      if (value === stateRef.current.searchTerm) return;
+      const nextValue = String(value ?? '');
+      if (nextValue === stateRef.current.searchTerm) return;
 
       setSearching(true);
-      setSearchTerm(value);
+      setSearchTerm(nextValue);
 
       try {
-        await fetchData({ page: 1, search: value });
+        await fetchData({ page: 1, search: nextValue });
       } catch (error) {
         console.error('Error searching purchase orders:', error);
-        onError?.(error.message || 'Search failed');
+        onErrorRef.current?.(error.message || 'Search failed');
       } finally {
         setSearching(false);
       }
     },
-    [fetchData, onError]
+    [fetchData]
   );
+
+  const refreshCardCounts = useCallback(async () => {
+    const response = await getPurchaseOrderStats();
+
+    if (response?.success) {
+      setCardCounts(response.data || {});
+    }
+
+    return response;
+  }, []);
 
   return {
     purchaseOrders,
+    cardCounts,
     pagination,
     loading,
     sortBy: sorting.sortBy,
@@ -142,10 +188,11 @@ function usePurchaseOrderListData({
     handlePageSizeChange,
     handleSortRequest,
     handleSearchInputChange,
+    refreshCardCounts,
   };
 }
 
-function useConvertDialog({ handleConvertToPurchase, onError, onSuccess }) {
+function useConvertDialog({ handleConvertToPurchase, onError }) {
   const [dialogState, setDialogState] = useState({
     open: false,
     purchaseOrder: null,
@@ -166,11 +213,10 @@ function useConvertDialog({ handleConvertToPurchase, onError, onSuccess }) {
     try {
       await handleConvertToPurchase(purchaseOrder.id || purchaseOrder._id);
       closeConvertDialog();
-      onSuccess?.('Purchase order converted to purchase successfully.');
     } catch (error) {
       onError?.(error.message || 'Failed to convert purchase order to purchase.');
     }
-  }, [closeConvertDialog, dialogState, handleConvertToPurchase, onError, onSuccess]);
+  }, [closeConvertDialog, dialogState, handleConvertToPurchase, onError]);
 
   return {
     convertDialogOpen: dialogState.open,
@@ -180,8 +226,10 @@ function useConvertDialog({ handleConvertToPurchase, onError, onSuccess }) {
   };
 }
 
-function usePurchaseOrderListActions({ onSuccess, onError, fetchData, pagination }) {
+function usePurchaseOrderListActions({ onSuccess, onError, fetchData, refreshCardCounts, pagination }) {
   const router = useRouter();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedPurchaseOrder, setSelectedPurchaseOrder] = useState(null);
 
   const handleView = useCallback(
     id => {
@@ -200,12 +248,18 @@ function usePurchaseOrderListActions({ onSuccess, onError, fetchData, pagination
   );
 
   const executeAction = useCallback(
-    async (action, successMessage, shouldRefresh = false) => {
+    async (action, fallbackMessage, shouldRefresh = false) => {
       try {
         const result = await action();
-        onSuccess?.(successMessage);
+
+        if (result?.success === false) {
+          throw new Error(result?.message || 'Action failed');
+        }
+
+        onSuccess?.(result?.message || fallbackMessage);
         if (shouldRefresh) {
           await fetchData({ page: pagination?.current });
+          await refreshCardCounts?.();
         }
         return result;
       } catch (error) {
@@ -213,7 +267,7 @@ function usePurchaseOrderListActions({ onSuccess, onError, fetchData, pagination
         throw error;
       }
     },
-    [fetchData, onError, onSuccess, pagination?.current]
+    [fetchData, onError, onSuccess, pagination?.current, refreshCardCounts]
   );
 
   const handleClone = useCallback(
@@ -222,16 +276,78 @@ function usePurchaseOrderListActions({ onSuccess, onError, fetchData, pagination
     [executeAction]
   );
 
-  const handleSend = useCallback(
-    id => executeAction(() => addPurchaseOrder(id), 'Purchase order sent successfully!'),
+  const handleConvertToPurchase = useCallback(
+    id =>
+      executeAction(
+        () => convertToPurchase(id),
+        'Purchase order converted to purchase successfully!',
+        true
+      ),
     [executeAction]
   );
 
-  const handleConvertToPurchase = useCallback(
-    id =>
-      executeAction(() => convertToPurchase(id), 'Purchase order converted to purchase successfully!', true),
+  const handleStatusChange = useCallback(
+    (id, status) =>
+      executeAction(
+        async () => {
+          const result = await updatePurchaseOrderStatus(id, status);
+          if (!result?.success) {
+            throw new Error(result?.message || 'Failed to update purchase order status.');
+          }
+          return result;
+        },
+        'Purchase order status updated successfully.',
+        true
+      ),
     [executeAction]
   );
+
+  const handleSubmitForApproval = useCallback(
+    id =>
+      executeAction(
+        async () => {
+          const result = await updatePurchaseOrderStatus(id, 'PENDING_APPROVAL');
+          if (!result?.success) {
+            throw new Error(result?.message || 'Failed to submit purchase order for approval.');
+          }
+          return result;
+        },
+        'Purchase order submitted for approval successfully.',
+        true
+      ),
+    [executeAction]
+  );
+
+  const handleDeleteClick = useCallback(purchaseOrder => {
+    setSelectedPurchaseOrder(purchaseOrder);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteDialogOpen(false);
+    setSelectedPurchaseOrder(null);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!selectedPurchaseOrder?._id) return;
+
+    try {
+      const response = await deletePurchaseOrder(selectedPurchaseOrder._id);
+
+      if (response.success) {
+        onSuccess?.(response.message || 'Purchase order deleted successfully');
+        setDeleteDialogOpen(false);
+        setSelectedPurchaseOrder(null);
+        await fetchData({ page: pagination?.current });
+        await refreshCardCounts?.();
+        return;
+      }
+
+      throw new Error(response.message || 'Failed to delete purchase order');
+    } catch (error) {
+      onError?.(error.message || 'Failed to delete purchase order');
+    }
+  }, [fetchData, onError, onSuccess, pagination?.current, refreshCardCounts, selectedPurchaseOrder]);
 
   const handlePrintDownload = useCallback(
     async id => {
@@ -250,8 +366,14 @@ function usePurchaseOrderListActions({ onSuccess, onError, fetchData, pagination
     handleView,
     handleEdit,
     handleClone,
-    handleSend,
     handleConvertToPurchase,
+    handleStatusChange,
+    handleSubmitForApproval,
+    handleDeleteClick,
+    handleDeleteCancel,
+    handleDeleteConfirm,
+    deleteDialogOpen,
+    selectedPurchaseOrder,
     handlePrintDownload,
   };
 }
@@ -262,12 +384,12 @@ export function usePurchaseOrderListHandlers(options = {}) {
     onSuccess: options.onSuccess,
     onError: options.onError,
     fetchData: data.fetchData,
+    refreshCardCounts: data.refreshCardCounts,
     pagination: data.pagination,
   });
   const convertDialog = useConvertDialog({
     handleConvertToPurchase: actions.handleConvertToPurchase,
     onError: options.onError,
-    onSuccess: options.onSuccess,
   });
 
   return useMemo(

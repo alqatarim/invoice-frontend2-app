@@ -86,8 +86,21 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const generateRequestId = () => Math.random().toString(36).slice(2, 9);
 
+const formatLogObject = (value) => {
+  try {
+    return JSON.stringify(
+      value,
+      (_key, nestedValue) => (typeof nestedValue === 'bigint' ? nestedValue.toString() : nestedValue),
+      2
+    );
+  } catch (_error) {
+    return value;
+  }
+};
+
 const summarizeRequestBody = (body) => {
   if (body === undefined) return undefined;
+
   if (typeof body === 'string') {
     try {
       return JSON.parse(body);
@@ -95,10 +108,62 @@ const summarizeRequestBody = (body) => {
       return body;
     }
   }
+
   if (typeof FormData !== 'undefined' && body instanceof FormData) {
-    return { formData: Object.fromEntries(body.entries()) };
+    return Object.fromEntries(body.entries());
   }
+
   return body;
+};
+
+const unwrapLogPayload = (value, seen = new WeakSet()) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => unwrapLogPayload(item, seen));
+  }
+
+  if (!value || Object.prototype.toString.call(value) !== '[object Object]') {
+    return value;
+  }
+
+  if (seen.has(value)) {
+    return '[Circular]';
+  }
+
+  seen.add(value);
+
+  const payloadKey = ['data', 'result', 'results', 'payload', 'body', 'response'].find((key) =>
+    Object.prototype.hasOwnProperty.call(value, key)
+  );
+
+  if (payloadKey) {
+    const keys = Object.keys(value);
+    const metadataKeys = [
+      'program',
+      'version',
+      'release',
+      'datetime',
+      'timestamp',
+      'status',
+      'code',
+      'success',
+      'error',
+      'errors',
+      'message',
+      'totalRecords',
+      'summary',
+    ];
+
+    if (keys.length === 1 || keys.every((key) => key === payloadKey || metadataKeys.includes(key))) {
+      return unwrapLogPayload(value[payloadKey], seen);
+    }
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nestedValue]) => [
+      key,
+      unwrapLogPayload(nestedValue, seen),
+    ])
+  );
 };
 
 export async function fetchWithAuth(endpoint, options = {}) {
@@ -117,12 +182,12 @@ export async function fetchWithAuth(endpoint, options = {}) {
   const requestId = generateRequestId();
 
   if (isDev) {
-    console.log(`=== Request to ${endpoint} [${requestId}] ===`, {
+    console.log(`=== Request to ${endpoint} [${requestId}] ===`, formatLogObject({
       requestId,
       endpoint,
       method: options.method || 'GET',
       body: summarizeRequestBody(options.body),
-    });
+    }));
   }
 
   let response;
@@ -146,11 +211,11 @@ export async function fetchWithAuth(endpoint, options = {}) {
   }
 
   if (isDev) {
-    console.log(`=== Response from ${endpoint} [${requestId}] ${response.status} ===`, {
+    console.log(`=== Response from ${endpoint} [${requestId}] ${response.status} ===`, formatLogObject({
       requestId,
       status: response.status,
-      data: body,
-    });
+      data: unwrapLogPayload(body),
+    }));
   }
 
   if (response.ok) {

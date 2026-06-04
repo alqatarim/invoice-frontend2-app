@@ -30,6 +30,7 @@ import ViewUnitDialog from '@/views/units/viewUnit';
 const UnitList = ({
   initialUnits,
   initialPagination,
+  initialSummary = {},
   initialErrorMessage = ''
 }) => {
   const theme = useTheme();
@@ -77,6 +78,7 @@ const UnitList = ({
   const handlers = useUnitListHandler({
     initialUnits,
     initialPagination,
+    initialSummary,
     onError,
     onInfo,
     onSuccess,
@@ -158,7 +160,7 @@ const UnitList = ({
   return (
     <div className='flex flex-col gap-0'>
       <UnitHead
-        unitListData={handlers.units}
+        summary={handlers.summary}
         isLoading={handlers.loading}
       />
 

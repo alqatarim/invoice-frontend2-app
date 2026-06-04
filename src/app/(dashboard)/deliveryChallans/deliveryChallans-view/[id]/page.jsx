@@ -2,6 +2,8 @@ import React from 'react';
 import DeliveryChallanView from '@/views/deliveryChallans/viewDeliveryChallans/index';
 import { getDeliveryChallanById } from '../../actions';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * DeliveryChallanViewPage Component
  * Server-side component to fetch delivery challan data and render the ViewDeliveryChallan client component.

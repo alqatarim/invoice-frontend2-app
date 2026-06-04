@@ -44,7 +44,7 @@ const HealthBar = ({ label, value, color, delay = 0 }) => (
 	</Stack>
 );
 
-const CustomerHealthCardImpl = ({ data = {}, delay = 0, panelHeight = 295 }) => {
+const CustomerHealthCardImpl = ({ data = {}, delay = 0, panelMinHeight = 295 }) => {
 	const theme = useTheme();
 	const repeatRate = Number(data?.repeatRate || 0);
 	const activeRate = Number(data?.activeRate || 0);
@@ -62,7 +62,9 @@ const CustomerHealthCardImpl = ({ data = {}, delay = 0, panelHeight = 295 }) => 
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.55, ease: dashboardEasing, delay }}
 			sx={{
-				height: panelHeight,
+				width: '100%',
+				height: '100%',
+				minHeight: panelMinHeight,
 				display: 'flex',
 				flexDirection: 'column',
 			}}
@@ -163,7 +165,7 @@ export const CustomerHealthCard = memo(CustomerHealthCardImpl, (prev, next) => {
 
 	return (
 		prev.delay === next.delay &&
-		prev.panelHeight === next.panelHeight &&
+		prev.panelMinHeight === next.panelMinHeight &&
 		previousData.repeatRate === nextData.repeatRate &&
 		previousData.activeRate === nextData.activeRate &&
 		previousData.total === nextData.total &&

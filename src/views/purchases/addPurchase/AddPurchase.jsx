@@ -7,8 +7,8 @@ const AddPurchase = ({ vendorsData, productData, taxRates, initialBanks, employe
   const handlers = useAddPurchaseHandlers({
     purchaseId: purchaseNumber,
     productData,
-    initialBanks,
     employees,
+    initialBanks,
     onSave,
     enqueueSnackbar,
     closeSnackbar,

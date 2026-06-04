@@ -14,6 +14,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
+import DocumentProductAutocompleteCell from '@/components/shared/DocumentProductAutocompleteCell';
 
 
 export const getEditPurchaseColumns = ({
@@ -22,6 +23,7 @@ export const getEditPurchaseColumns = ({
      fields,
      watchItems,
      productsCloneData,
+     productData = [],
      taxRates,
      setValue,
      getValues,
@@ -44,56 +46,16 @@ export const getEditPurchaseColumns = ({
                key: 'product',
                label: 'Product/Service',
                width: '24%',
-               align: 'center',
+               align: 'left',
                renderCell: (item, index) => (
-                    <Controller
-                         name={`items.${index}.productId`}
+                    <DocumentProductAutocompleteCell
                          control={control}
-                         render={({ field }) => (
-                              <FormControl fullWidth size="small" error={!!errors.items?.[index]?.productId}>
-                                   <Select
-                                        className={`py-0.5 min-h-[0] [&_.MuiOutlinedInput-notchedOutline]:border-secondaryLight [&:hover_.MuiOutlinedInput-notchedOutline]:border-secondary [&:focus-within_.MuiOutlinedInput-notchedOutline]:border-primary [&.MuiOutlinedInput-input]:py-0.3 px-2.5`}
-                                        size='small'
-                                        sx={{ '& .MuiOutlinedInput-input': { py: 0.3, pl: 2.5 } }}
-                                        {...field}
-                                        displayEmpty
-                                        value={field.value || ''}
-                                        onChange={(e) => {
-                                             const productId = e.target.value;
-                                             const previousProductId = field.value;
-                                             handleUpdateItemProduct(index, productId, previousProductId);
-                                        }}
-                                        renderValue={(selected) => {
-                                             if (!selected) {
-                                                  return (
-                                                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                                            Select Product
-                                                       </Typography>
-                                                  );
-                                             }
-                                             return (
-                                                  <Box className='flex flex-col gap-0' sx={{ overflow: 'hidden' }}>
-                                                       <Typography variant="body1" color="text.primary" className='whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px]'>
-                                                            {watchItems[index]?.name}
-                                                       </Typography>
-                                                       <Typography variant="caption" fontSize={12} color='text.secondary'>
-                                                            Unit: {watchItems[index]?.units}
-                                                       </Typography>
-                                                  </Box>
-                                             );
-                                        }}
-                                   >
-                                        <MenuItem value="" disabled>
-                                             Select Product
-                                        </MenuItem>
-                                        {productsCloneData.map((product) => (
-                                             <MenuItem key={product._id} value={product._id}>
-                                                  {product.name}
-                                             </MenuItem>
-                                        ))}
-                                   </Select>
-                              </FormControl>
-                         )}
+                         errors={errors}
+                         index={index}
+                         productData={productData}
+                         products={productsCloneData}
+                         watchItems={watchItems}
+                         handleUpdateItemProduct={handleUpdateItemProduct}
                     />
                )
           },

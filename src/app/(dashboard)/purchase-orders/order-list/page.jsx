@@ -1,6 +1,6 @@
 import React from 'react';
 import PurchaseOrderListIndex from '@/views/purchase-orders/listOrder/index';
-import { getPurchaseOrderList } from '@/app/(dashboard)/purchase-orders/actions';
+import { getPurchaseOrderList, getPurchaseOrderStats } from '@/app/(dashboard)/purchase-orders/actions';
 
 /**
  * PurchaseOrderListPage Component
@@ -11,16 +11,22 @@ import { getPurchaseOrderList } from '@/app/(dashboard)/purchase-orders/actions'
 const PurchaseOrderListPage = async () => {
   let initialPurchaseOrders = [];
   let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialCardCounts = {};
   let initialErrorMessage = '';
 
   try {
-    const initialData = await getPurchaseOrderList(1, 10);
+    const [initialData, statsData] = await Promise.all([
+      getPurchaseOrderList(1, 10),
+      getPurchaseOrderStats(),
+    ]);
+
     initialPurchaseOrders = initialData?.data || [];
     initialPagination = {
       current: 1,
       pageSize: 10,
       total: initialData?.totalRecords || 0
     };
+    initialCardCounts = statsData?.data || {};
   } catch (error) {
     console.error('Failed to fetch initial purchase order data:', error);
     initialErrorMessage = error?.message || 'Failed to load purchase orders.';
@@ -30,6 +36,7 @@ const PurchaseOrderListPage = async () => {
     <PurchaseOrderListIndex
       initialPurchaseOrders={initialPurchaseOrders}
       initialPagination={initialPagination}
+      initialCardCounts={initialCardCounts}
       initialErrorMessage={initialErrorMessage}
     />
   );

@@ -15,7 +15,9 @@ const ENDPOINTS = {
     UPDATE: '/debit_note',
     DELETE: '/debit_note',
     GET_NUMBER: '/debit_note/getDebitNoteNumber',
-    CLONE: '/debit_note'
+    CLONE: '/debit_note',
+    PROCESS_REFUND: '/debit_note/processRefund',
+    SET_AS_PENDING: '/debit_note/setAsPending',
   },
   DROPDOWN: {
     VENDOR: '/drop_down/vendor',
@@ -47,7 +49,8 @@ export async function getDebitNotesList(page = 1, pageSize = 10, search = '') {
     return {
       success: true,
       data: response.data || [],
-      totalRecords: response.totalRecords || 0
+      totalRecords: response.totalRecords || 0,
+      summary: response.summary || {}
     };
   } catch (error) {
     console.error('Error fetching debit notes list:', error);
@@ -64,11 +67,11 @@ export async function deleteDebitNote(id) {
     if (response.code === 200) {
       return {
         success: true,
-        message: 'Debit Notes Deleted successfully'
+        message: response.data?.message || 'Purchase return deleted successfully',
       };
     }
 
-    throw new Error(response?.message || 'Failed to delete debit note');
+    throw new Error(response.data?.message || response?.message || 'Failed to delete purchase return');
   } catch (error) {
     console.error('Error deleting debit note:', error);
     return { success: false, message: error.message };
@@ -144,7 +147,7 @@ export async function getSignatures() {
   }
 }
 
-export async function addDebitNote(data, signatureURL) {
+export async function addDebitNote(data) {
   try {
 
 
@@ -179,13 +182,14 @@ export async function addDebitNote(data, signatureURL) {
       }
     });
 
-    formData.delete('signatureId');
-    formData.delete('signatureName');
-    formData.delete('signatureImage');
-
     // Ensure required fields are present
     formData.append('roundOff', data.roundOff || false);
-    formData.append('employee', data.employee || '');
+    const paymentMode = data.paymentMode || data.payment_method || 'Cash';
+    formData.append('paymentMode', paymentMode);
+    formData.append('payment_method', paymentMode);
+    if (data.status) {
+      formData.append('status', data.status);
+    }
 
     const response = await fetchWithAuth(ENDPOINTS.DEBIT_NOTE.ADD, {
       method: 'POST',
@@ -194,16 +198,16 @@ export async function addDebitNote(data, signatureURL) {
 
     if (!response || response.code !== 200) {
       console.error('Server response:', response);
-      throw new Error(response?.message || 'Failed to add debit note');
+      throw new Error(response.data?.message || response?.message || 'Failed to add purchase return');
     }
 
     return {
       success: true,
       data: response.data,
-      message: response.message
+      message: response.data?.message || 'Purchase return created successfully',
     };
   } catch (error) {
-    console.error('Error adding debit note:', error);
+    console.error('Error adding purchase return:', error);
     return {
       success: false,
       message: error.message || 'Failed to add debit note'
@@ -221,7 +225,7 @@ export async function getDebitNoteDetails(id) {
 
     return {
       success: true,
-      data: response.data
+      data: response.data || null
     };
   } catch (error) {
     console.error('Error fetching debit note details:', error);
@@ -273,14 +277,20 @@ export async function updateDebitNote(data) {
     formData.append("TotalAmount", data.TotalAmount);
     formData.append("vat", data.vat);
     formData.append("totalDiscount", data.totalDiscount);
-    formData.append("bank", data.bank?._id || "");
-    formData.append("notes", data.notes);
-    formData.append("termsAndCondition", data.termsAndCondition);
-    formData.append('purchaseOrderDate', data.purchaseOrderDate);
-    formData.append('vendorId', data.vendorId);
-    formData.append('roundOff', data.roundOff || false);
+    const bankValue = data.bank?._id || data.bank || '';
+    formData.append('bank', bankValue);
     formData.append('employee', data.employee || '');
-
+    formData.append('notes', data.notes || '');
+    formData.append('termsAndCondition', data.termsAndCondition || '');
+    formData.append('purchaseOrderDate', data.purchaseOrderDate || '');
+    formData.append('vendorId', data.vendorId || '');
+    formData.append('roundOff', data.roundOff || false);
+    const paymentMode = data.paymentMode || data.payment_method || 'Cash';
+    formData.append('paymentMode', paymentMode);
+    formData.append('payment_method', paymentMode);
+    if (data.status) {
+      formData.append('status', data.status);
+    }
     const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.UPDATE}/${data.id}`, {
       method: 'PUT',
       body: formData
@@ -288,16 +298,16 @@ export async function updateDebitNote(data) {
 
     if (!response || response.code !== 200) {
       console.error('Server response:', response);
-      throw new Error(response?.message || 'Failed to update debit note');
+      throw new Error(response.data?.message || response?.message || 'Failed to update purchase return');
     }
 
     return {
       success: true,
       data: response.data,
-      message: response.message
+      message: response.data?.message || 'Purchase return updated successfully',
     };
   } catch (error) {
-    console.error('Error updating debit note:', error);
+    console.error('Error updating purchase return:', error);
     return {
       success: false,
       message: error.message || 'Failed to update debit note'
@@ -326,37 +336,80 @@ export async function addBank(bankData) {
   }
 }
 
-export async function cloneDebitNote(id) {
-
+export async function processPurchaseReturnRefund(id) {
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.CLONE}/${id}/clone`, {
-      method: 'POST',
-      body: {}
+    const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.PROCESS_REFUND}/${id}`, {
+      method: 'PATCH',
+      cache: 'no-store',
     });
 
-    // Check if we received an error response
-    if (response.code && response.code !== 200) {
-      // Handle validation or other errors
-      const errorMessage = response.data?.message?.[0] || response.message || 'Failed to clone debit note';
-      throw new Error(errorMessage);
+    if (response.code === 200) {
+      return {
+        success: true,
+        message: response.data?.message || 'Purchase return processed successfully',
+      };
     }
 
-    // If successful, response will contain clonedDebitNote
-    if (!response.clonedDebitNote) {
-      throw new Error('No cloned data received');
-    }
+    const message = Array.isArray(response.data?.message)
+      ? response.data.message.join(' ')
+      : response.data?.message || response.message;
 
-    return {
-      success: true,
-      data: response.clonedDebitNote,
-      message: 'Debit note cloned successfully'
-    };
+    throw new Error(message || 'Failed to process purchase return');
   } catch (error) {
-    console.error('Error cloning debit note:', error);
-    return {
-      success: false,
-      message: error.message || 'Failed to clone debit note'
-    };
+    console.error('Error processing purchase return:', error);
+    return { success: false, message: error.message };
   }
 }
 
+export async function setPurchaseReturnAsPending(id) {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.SET_AS_PENDING}/${id}`, {
+      method: 'PATCH',
+      cache: 'no-store',
+    });
+
+    if (response.code === 200) {
+      return {
+        success: true,
+        message: response.data?.message || 'Purchase return set to pending successfully',
+      };
+    }
+
+    const message = Array.isArray(response.data?.message)
+      ? response.data.message.join(' ')
+      : response.data?.message || response.message;
+
+    throw new Error(message || 'Failed to set purchase return as pending');
+  } catch (error) {
+    console.error('Error setting purchase return as pending:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function cloneDebitNote(id) {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.DEBIT_NOTE.CLONE}/${id}/clone`, {
+      method: 'POST',
+      body: {},
+    });
+
+    if (response.code && response.code !== 200) {
+      const errorMessage = response.data?.message?.[0] || response.data?.message || response.message || 'Failed to clone purchase return';
+      throw new Error(errorMessage);
+    }
+
+    const cloned = response.data?.debit_note || response.data?.clonedDebitNote || response.data;
+
+    return {
+      success: true,
+      data: cloned,
+      message: response.data?.message || 'Purchase return cloned successfully',
+    };
+  } catch (error) {
+    console.error('Error cloning purchase return:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to clone purchase return',
+    };
+  }
+}

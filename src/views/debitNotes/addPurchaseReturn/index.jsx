@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useSnackbar } from 'notistack';
 import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
 import AddDebitNote from '@/views/debitNotes/addPurchaseReturn/AddDebitNote';
@@ -16,40 +16,52 @@ function AddPurchaseReturnContent({
 }) {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-  const handleAdd = async (formData, employeeURL) => {
-    try {
-      const loadingKey = enqueueSnackbar('Adding debit note...', {
-        variant: 'info',
-        persist: true,
-        preventDuplicate: true,
-      });
+  const handleAdd = useCallback(
+    async (formData, options = {}) => {
+      const isDraft = Boolean(options.isDraft);
 
-      const response = await addDebitNote(formData, employeeURL);
-      closeSnackbar(loadingKey);
+      try {
+        const loadingKey = enqueueSnackbar(
+          isDraft ? 'Saving purchase return draft...' : 'Adding purchase return...',
+          {
+            variant: 'info',
+            persist: true,
+            preventDuplicate: true,
+          }
+        );
 
-      if (!response?.success) {
-        const errorMessage = response?.error?.message || response?.message || 'Failed to add debit note';
-        enqueueSnackbar(errorMessage, {
-          variant: 'error',
-          autoHideDuration: 5000,
-          preventDuplicate: true,
-        });
+        const response = await addDebitNote(formData);
+        closeSnackbar(loadingKey);
+
+        if (!response?.success) {
+          const errorMessage = response?.error?.message || response?.message || 'Failed to add debit note';
+          enqueueSnackbar(errorMessage, {
+            variant: 'error',
+            autoHideDuration: 5000,
+            preventDuplicate: true,
+          });
+          return { success: false, message: errorMessage };
+        }
+
+        enqueueSnackbar(
+          response.message ||
+            (isDraft ? 'Purchase return saved as draft successfully' : 'Purchase return created successfully'),
+          {
+            variant: 'success',
+            autoHideDuration: 3000,
+          }
+        );
+
+        return response;
+      } catch (error) {
+        closeSnackbar();
+        const errorMessage = error?.message || 'An unexpected error occurred';
+        enqueueSnackbar(errorMessage, { variant: 'error' });
         return { success: false, message: errorMessage };
       }
-
-      enqueueSnackbar('Debit note added successfully!', {
-        variant: 'success',
-        autoHideDuration: 3000,
-      });
-
-      return response;
-    } catch (error) {
-      closeSnackbar();
-      const errorMessage = error?.message || 'An unexpected error occurred';
-      enqueueSnackbar(errorMessage, { variant: 'error' });
-      return { success: false, message: errorMessage };
-    }
-  };
+    },
+    [closeSnackbar, enqueueSnackbar]
+  );
 
   return (
     <AddDebitNote

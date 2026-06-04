@@ -49,10 +49,9 @@ settings/
 ├── accountSettings/
 │   ├── index.jsx                 # Page wrapper
 │   └── AccountSettingsForm.jsx   # Tab-based form component
-├── companySettings/
-│   ├── index.jsx                 # Page wrapper
-│   └── CompanySettingsForm.jsx   # Simple company form
 ```
+
+Company profile lives under `views/company/` at `/company`, not in settings.
 
 ### Key Components
 
@@ -67,11 +66,6 @@ settings/
 - Standard form layout
 - Avatar upload with simple preview
 - Form validation with react-hook-form
-
-**CompanySettingsForm.jsx**
-- Logo and favicon upload sections
-- Organized form sections
-- Standard MUI components throughout
 
 ## 🎨 **Styling Approach**
 

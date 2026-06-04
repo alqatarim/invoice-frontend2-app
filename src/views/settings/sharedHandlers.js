@@ -18,14 +18,6 @@ const normalizeRecord = data =>
     ? data.updatedData
     : data
 
-const normalizeCompanySettings = data => {
-  if (!data || typeof data !== 'object') {
-    return {}
-  }
-
-  return normalizeRecord(data) || {}
-}
-
 const normalizeCollectionData = data => {
   const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
   const totalCount = typeof data?.totalCount === 'number' ? data.totalCount : items.length
@@ -231,27 +223,6 @@ export const useAccountSettingsHandlers = (initialAccountSettings = null) => {
     getAccountSettings,
     updateAccountSettings,
     clearError: () => setError(null)
-  }
-}
-
-export const useCompanySettingsHandlers = (initialData = {}) => {
-  const entity = useSettingsEntity({
-    initialValue: initialData.companySettings,
-    getAction: settingsActions.getCompanySettings,
-    updateAction: settingsActions.updateCompanySettings,
-    fetchErrorMessage: 'Failed to fetch company settings',
-    updateErrorMessage: 'Failed to update company settings',
-    normalizeData: normalizeCompanySettings
-  })
-
-  return {
-    companySettings: entity.value,
-    loading: entity.loading,
-    updating: entity.updating,
-    error: entity.error,
-    getCompanySettings: entity.load,
-    updateCompanySettings: entity.update,
-    clearError: entity.clearError
   }
 }
 

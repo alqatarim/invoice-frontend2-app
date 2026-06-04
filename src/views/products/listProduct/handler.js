@@ -14,6 +14,7 @@ const DEFAULT_PAGINATION = { current: 1, pageSize: 10, total: 0 };
 export function useProductListHandler({
   initialProducts = [],
   initialPagination = DEFAULT_PAGINATION,
+  initialSummary = {},
   initialSortBy = '',
   initialSortDirection = 'asc',
   onError,
@@ -31,6 +32,7 @@ export function useProductListHandler({
 
   const [products, setProducts] = useState(initialProducts || []);
   const [pagination, setPagination] = useState(initialPagination);
+  const [summary, setSummary] = useState(initialSummary);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState(initialSortBy);
   const [sortDirection, setSortDirection] = useState(initialSortDirection);
@@ -79,6 +81,7 @@ export function useProductListHandler({
 
       setProducts(result?.products || []);
       setPagination(result?.pagination || DEFAULT_PAGINATION);
+      setSummary(result?.summary || {});
       setFilters(nextFilters);
       setSortBy(nextSortBy);
       setSortDirection(nextSortDirection);
@@ -274,6 +277,7 @@ export function useProductListHandler({
   return {
     products: productsWithIndex,
     pagination,
+    summary,
     loading,
     searchTerm,
     sortBy,

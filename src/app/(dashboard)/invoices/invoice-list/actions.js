@@ -258,8 +258,11 @@ export async function convertTosalesReturn(id) {
       return response;
     }
     if (response.message) {
-      console.error('Error converting invoice to sales return:', response.message);
-      throw new Error(response.message);
+      const message = Array.isArray(response.message)
+        ? response.message.join(' ')
+        : response.message;
+      console.error('Error converting invoice to sales return:', message);
+      throw new Error(message);
     }
     console.error('Failed to convert invoice to sales return due to an unknown error.');
     throw new Error('Failed to convert invoice to sales return');

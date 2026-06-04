@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useSnackbar } from 'notistack'
 
 import { addRole, getFilteredRoles, updateRole } from '@/app/(dashboard)/roles-permission/actions'
@@ -10,7 +9,6 @@ export const useRolesListHandlers = ({
   initialRoles = [],
   initialCardCounts = {}
 } = {}) => {
-  const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
 
   const cardCounts = initialCardCounts
@@ -32,6 +30,7 @@ export const useRolesListHandlers = ({
   const [editingValue, setEditingValue] = useState('')
   const [editingIcon, setEditingIcon] = useState('')
   const [inlineLoading, setInlineLoading] = useState(false)
+  const [inlineLoadingRoleId, setInlineLoadingRoleId] = useState(null)
   const [editingMode, setEditingMode] = useState(null)
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
   const [selectedRoleForPermissions, setSelectedRoleForPermissions] = useState(null)
@@ -42,22 +41,28 @@ export const useRolesListHandlers = ({
     { key: 'action', label: 'Actions', visible: true }
   ])
 
-  const loadRoles = useCallback(async () => {
+  const loadRoles = useCallback(async (overrides = {}) => {
     setLoading(true)
     try {
+      const nextSearchQuery = overrides.searchQuery ?? searchQuery
+      const nextPage = overrides.page ?? paginationModel.page
+      const nextPageSize = overrides.pageSize ?? paginationModel.pageSize
+
       const result = await getFilteredRoles(
-        searchQuery,
-        paginationModel.page + 1,
-        paginationModel.pageSize
+        nextSearchQuery,
+        nextPage + 1,
+        nextPageSize
       )
 
       setRoles(result.roles || [])
       setTotalCount(result.totalCount || 0)
+      return result
     } catch (error) {
       console.error('Error loading roles:', error)
       enqueueSnackbar('Error loading roles', { variant: 'error' })
       setRoles([])
       setTotalCount(0)
+      return { roles: [], totalCount: 0 }
     } finally {
       setLoading(false)
     }
@@ -68,7 +73,7 @@ export const useRolesListHandlers = ({
     setPaginationModel(prev => ({ ...prev, page: 0 }))
     setTimeout(() => {
       if (value || searchQuery) {
-        loadRoles()
+        loadRoles({ searchQuery: value, page: 0 })
       }
     }, 300)
   }, [loadRoles, searchQuery])
@@ -77,7 +82,7 @@ export const useRolesListHandlers = ({
     setSearchQuery('')
     setPaginationModel(prev => ({ ...prev, page: 0 }))
     if (searchQuery) {
-      loadRoles()
+      loadRoles({ searchQuery: '', page: 0 })
     }
   }, [loadRoles, searchQuery])
 
@@ -92,7 +97,7 @@ export const useRolesListHandlers = ({
     setFilterValues(values)
     setPaginationModel(prev => ({ ...prev, page: 0 }))
     console.log('Applying filters:', values)
-    loadRoles()
+    loadRoles({ page: 0 })
   }, [loadRoles])
 
   const handleFilterReset = useCallback(() => {
@@ -104,20 +109,20 @@ export const useRolesListHandlers = ({
     setFilterValues(resetValues)
     setSearchQuery('')
     setPaginationModel(prev => ({ ...prev, page: 0 }))
-    loadRoles()
+    loadRoles({ searchQuery: '', page: 0 })
   }, [loadRoles])
 
   const handlePageChange = useCallback((newPage) => {
     setPaginationModel(prev => ({ ...prev, page: newPage }))
     if (searchQuery || newPage > 0) {
-      loadRoles()
+      loadRoles({ page: newPage })
     }
   }, [loadRoles, searchQuery])
 
   const handlePageSizeChange = useCallback((newPageSize) => {
     setPaginationModel({ page: 0, pageSize: newPageSize })
     if (searchQuery) {
-      loadRoles()
+      loadRoles({ page: 0, pageSize: newPageSize })
     }
   }, [loadRoles, searchQuery])
 
@@ -146,6 +151,7 @@ export const useRolesListHandlers = ({
     }
 
     setInlineLoading(true)
+    setInlineLoadingRoleId(role._id)
     try {
       const formData = new FormData()
       formData.append('_id', role._id)
@@ -170,6 +176,7 @@ export const useRolesListHandlers = ({
       enqueueSnackbar('An error occurred while updating role icon', { variant: 'error' })
     } finally {
       setInlineLoading(false)
+      setInlineLoadingRoleId(null)
     }
   }, [enqueueSnackbar, roles])
 
@@ -196,6 +203,7 @@ export const useRolesListHandlers = ({
     }
 
     setInlineLoading(true)
+    setInlineLoadingRoleId(editingRoleId)
     try {
       const formData = new FormData()
       formData.append('_id', editingRoleId)
@@ -223,6 +231,7 @@ export const useRolesListHandlers = ({
       enqueueSnackbar('An error occurred while updating role name', { variant: 'error' })
     } finally {
       setInlineLoading(false)
+      setInlineLoadingRoleId(null)
     }
   }, [editingRoleId, editingValue, enqueueSnackbar, roles])
 
@@ -264,6 +273,7 @@ export const useRolesListHandlers = ({
   const handleSubmit = useCallback(async (formData) => {
     setDialogLoading(true)
     try {
+      const isEditing = Boolean(editData)
       const result = editData
         ? await updateRole(formData)
         : await addRole(formData)
@@ -271,7 +281,23 @@ export const useRolesListHandlers = ({
       if (result.success) {
         enqueueSnackbar(result.message, { variant: 'success' })
         handleCloseDialog()
-        router.refresh()
+
+        if (isEditing) {
+          await loadRoles()
+        } else {
+          setSearchQuery('')
+          setPaginationModel(prev => ({ ...prev, page: 0 }))
+          const refreshed = await loadRoles({ searchQuery: '', page: 0 })
+
+          if (result.role && !(refreshed.roles || []).some(role => role._id === result.role._id)) {
+            setRoles([
+              result.role,
+              ...(refreshed.roles || []).filter(role => role._id !== result.role._id)
+            ].slice(0, paginationModel.pageSize))
+            setTotalCount(refreshed.totalCount || 1)
+          }
+        }
+
         return true
       }
 
@@ -284,7 +310,7 @@ export const useRolesListHandlers = ({
     } finally {
       setDialogLoading(false)
     }
-  }, [editData, enqueueSnackbar, handleCloseDialog, router])
+  }, [editData, enqueueSnackbar, handleCloseDialog, loadRoles, paginationModel.pageSize])
 
   return {
     roles,
@@ -313,6 +339,7 @@ export const useRolesListHandlers = ({
     editingIcon,
     editingMode,
     inlineLoading,
+    inlineLoadingRoleId,
     handleStartNameEdit,
     handleInlineEditChange,
     handleIconChange,

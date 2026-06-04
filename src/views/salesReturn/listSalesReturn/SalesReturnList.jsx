@@ -62,6 +62,7 @@ const SalesReturnList = ({
     initialSortBy: 'createdAt',
     initialSortDirection: 'desc',
     initialColumns: columns,
+    initialCardCounts,
     onError,
     onSuccess,
   })
@@ -79,19 +80,20 @@ const SalesReturnList = ({
               handleEdit: handlers.handleEdit,
               handlePrintDownload: handlers.handlePrintDownload,
               handleProcessRefund: handlers.handleProcessRefund,
+              handleSetAsPending: handlers.handleSetAsPending,
               permissions,
               pagination: handlers.pagination,
             })
           : undefined,
       })),
     [columns, handlers.handleDeleteClick, handlers.handleView, handlers.handleEdit,
-      handlers.handlePrintDownload, handlers.handleProcessRefund, handlers.pagination, permissions]
+      handlers.handlePrintDownload, handlers.handleProcessRefund, handlers.handleSetAsPending, handlers.pagination, permissions]
   )
 
   return (
     <Box className='flex flex-col gap-5'>
       {/* Header Section */}
-      <SalesReturnHead salesReturnListData={initialCardCounts} />
+      <SalesReturnHead salesReturnListData={handlers.cardCounts || initialCardCounts} />
 
       {/* Main Sales Return Table - Properly connected to handlers */}
       <CustomListTable

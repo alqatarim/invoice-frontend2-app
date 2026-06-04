@@ -12,12 +12,14 @@ export const metadata = {
 const CategoriesPage = async () => {
   let initialCategories = [];
   let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialSummary = {};
   let initialErrorMessage = '';
 
   try {
     const initialCategoryData = await getInitialCategoryData();
     initialCategories = initialCategoryData?.categories || [];
     initialPagination = initialCategoryData?.pagination || initialPagination;
+    initialSummary = initialCategoryData?.summary || {};
   } catch (error) {
     console.error('CategoriesPage: Error fetching data:', error);
     initialErrorMessage = error?.message || 'Failed to load category data.';
@@ -27,6 +29,7 @@ const CategoriesPage = async () => {
     <CategoryListIndex
       initialCategories={initialCategories}
       initialPagination={initialPagination}
+      initialSummary={initialSummary}
       initialErrorMessage={initialErrorMessage}
     />
   );

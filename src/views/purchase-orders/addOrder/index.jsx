@@ -23,15 +23,20 @@ const AddPurchaseOrderContent = ({
     }
   }, [enqueueSnackbar, initialErrorMessage]);
 
-  const handleSave = useCallback(async (orderData, employeeURL) => {
-    try {
-      const loadingKey = enqueueSnackbar('Creating purchase order...', {
-        variant: 'info',
-        persist: true,
-        preventDuplicate: true,
-      });
+  const handleSave = useCallback(async (orderData, options = {}) => {
+    const isDraft = Boolean(options.isDraft);
 
-      const response = await addPurchaseOrder(orderData, employeeURL);
+    try {
+      const loadingKey = enqueueSnackbar(
+        isDraft ? 'Saving purchase order draft...' : 'Creating purchase order...',
+        {
+          variant: 'info',
+          persist: true,
+          preventDuplicate: true,
+        }
+      );
+
+      const response = await addPurchaseOrder(orderData);
       closeSnackbar(loadingKey);
 
       if (!response.success) {
@@ -43,21 +48,26 @@ const AddPurchaseOrderContent = ({
           autoHideDuration: 5000,
           preventDuplicate: true,
         });
-      } else {
-        enqueueSnackbar('Purchase order created successfully!', {
+        return { success: false, message: errorMessage };
+      }
+
+      enqueueSnackbar(
+        response.message || (isDraft ? 'Purchase order saved as draft successfully' : 'Purchase order submitted for approval successfully'),
+        {
           variant: 'success',
           autoHideDuration: 3000,
-        });
-      }
+        }
+      );
 
       return response;
     } catch (error) {
       console.error('Error creating purchase order:', error);
       closeSnackbar();
-      enqueueSnackbar(error.message || 'An unexpected error occurred', { variant: 'error' });
+      const errorMessage = error.message || 'An unexpected error occurred';
+      enqueueSnackbar(errorMessage, { variant: 'error' });
       return {
         success: false,
-        message: error.message || 'Failed to create purchase order'
+        message: errorMessage,
       };
     }
   }, [closeSnackbar, enqueueSnackbar]);

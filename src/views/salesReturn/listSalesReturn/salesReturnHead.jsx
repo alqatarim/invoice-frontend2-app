@@ -4,48 +4,45 @@ import React, { useMemo } from 'react';
 import { Grid } from '@mui/material';
 import PageIconHeader from '@components/headers/PageIconHeader';
 import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
+import { salesReturnStatuses } from '@/data/dataSets';
 
 const SalesReturnHead = ({ salesReturnListData }) => {
   const cardCounts = useMemo(
     () => ({
-      totalSalesReturns: salesReturnListData?.totalSalesReturns || 0,
       totalRefundAmount: salesReturnListData?.totalRefundAmount || 0,
-      totalVat: salesReturnListData?.totalVat || 0,
-      totalDiscount: salesReturnListData?.totalDiscount || 0,
+      pending: salesReturnListData?.pending || { amount: 0, count: 0 },
+      paid: salesReturnListData?.paid || { amount: 0, count: 0 },
+      draft: salesReturnListData?.draft || { amount: 0, count: 0 },
     }),
     [salesReturnListData]
   );
 
   const statCards = useMemo(
-    () => [
-      {
-        title: 'Total Refunded',
-        value: cardCounts.totalRefundAmount,
-        icon: 'mdi:cash-refund',
-        color: 'error',
-        isCurrency: true,
-      },
-      {
-        title: 'Sales Returns',
-        value: cardCounts.totalSalesReturns,
-        icon: 'mdi:invoice-export-outline',
-        color: 'primary',
-      },
-      {
-        title: 'VAT',
-        value: cardCounts.totalVat,
-        icon: 'mdi:receipt-text-outline',
-        color: 'warning',
-        isCurrency: true,
-      },
-      {
-        title: 'Discounts',
-        value: cardCounts.totalDiscount,
-        icon: 'mdi:tag-minus-outline',
-        color: 'info',
-        isCurrency: true,
-      },
-    ],
+    () => {
+      const totalReturns =
+        (cardCounts.pending?.count || 0)
+        + (cardCounts.paid?.count || 0)
+        + (cardCounts.draft?.count || 0);
+
+      return [
+        {
+          title: 'Total Refunds',
+          value: cardCounts.totalRefundAmount,
+          subtitle: `${totalReturns} ${totalReturns === 1 ? 'return' : 'returns'}`,
+          icon: 'mdi:cash-refund',
+          color: 'primary',
+          isCurrency: true,
+        },
+        ...salesReturnStatuses.map((status) => ({
+          title: status.label,
+          value: cardCounts[status.summaryKey]?.amount || 0,
+          subtitle: `${cardCounts[status.summaryKey]?.count || 0} returns`,
+          icon: status.icon,
+          color: status.color,
+          isCurrency: true,
+        })),
+      ];
+    },
     [cardCounts]
   );
 

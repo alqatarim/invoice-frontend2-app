@@ -1,7 +1,5 @@
-import React from 'react';
 import { Controller } from 'react-hook-form';
 import {
-  Autocomplete,
   Box,
   FormControl,
   IconButton,
@@ -13,14 +11,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
-
-const OPTION_GRID_COLUMNS = 'minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 0.75fr)';
-
-const getProductCategoryLabel = product => {
-  if (!product) return '-';
-  if (typeof product.category === 'string') return product.category;
-  return product.category?.name || product.category?.title || '-';
-};
+import DocumentProductAutocompleteCell from '@/components/shared/DocumentProductAutocompleteCell';
 
 const normalizeQuantityInput = value => {
   const parsed = Number(String(value ?? '').replace(/,/g, '.'));
@@ -44,60 +35,6 @@ const normalizeDiscountInput = ({ value, isPercentage = false }) => {
   return isPercentage ? Math.min(100, amount) : amount;
 };
 
-const preventAutocompleteInputBlur = event => {
-  event.preventDefault();
-};
-
-const ProductOptionsListbox = React.forwardRef(function ProductOptionsListbox(listboxProps, ref) {
-  const theme = useTheme();
-  const { children, sx, onMouseDown, ...other } = listboxProps;
-
-  return (
-    <Box
-      component="ul"
-      ref={ref}
-      {...other}
-      onMouseDown={event => {
-        preventAutocompleteInputBlur(event);
-        onMouseDown?.(event);
-      }}
-      sx={[
-        { m: 0, p: 0, listStyle: 'none' },
-        sx,
-      ]}
-    >
-      <Box
-        component="li"
-        role="presentation"
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: OPTION_GRID_COLUMNS,
-          columnGap: 2,
-          alignItems: 'center',
-          px: 6,
-          py: 2.5,
-          position: 'sticky',
-          top: 0,
-          zIndex: 2,
-          bgcolor: theme.palette.background.default,
-          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-        }}
-      >
-        <Typography variant="overline" sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}>
-          Name
-        </Typography>
-        <Typography variant="overline" sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}>
-          Category
-        </Typography>
-        <Typography variant="overline" sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}>
-          SKU
-        </Typography>
-      </Box>
-      {children}
-    </Box>
-  );
-});
-
 const currencyIconColor = theme => theme.vars?.palette?.text?.secondary || theme.palette.text.secondary;
 
 export const getSalesReturnColumns = ({
@@ -107,6 +44,7 @@ export const getSalesReturnColumns = ({
   fields,
   watchItems,
   productsCloneData,
+  productData = [],
   taxRates,
   discountMenu,
   setDiscountMenu,
@@ -123,13 +61,7 @@ export const getSalesReturnColumns = ({
   handleTaxMenuItemClick,
   disabled = false,
 }) => {
-  const availableProducts = Array.isArray(productsCloneData) ? productsCloneData : [];
   const taxOptions = Array.isArray(taxRates) ? taxRates : [];
-
-  const resolveAvailableProductById = productId => {
-    if (!productId) return null;
-    return availableProducts.find(product => product._id === productId) || null;
-  };
 
   return [
     {
@@ -138,174 +70,15 @@ export const getSalesReturnColumns = ({
       width: '28%',
       align: 'left',
       renderCell: (item, index) => (
-        <Controller
-          name={`items.${index}.productId`}
+        <DocumentProductAutocompleteCell
           control={control}
-          render={({ field }) => {
-            const watched = watchItems?.[index] || {};
-            const selectedProduct =
-              resolveAvailableProductById(field.value) ||
-              (watched.productId
-                ? {
-                  _id: watched.productId,
-                  name: watched.name || '',
-                  sku: watched.sku || '',
-                  category: watched.category || null,
-                }
-                : null);
-            const options = selectedProduct
-              ? [selectedProduct, ...availableProducts.filter(product => product._id !== selectedProduct._id)]
-              : availableProducts;
-
-            return (
-              <Autocomplete
-                fullWidth
-                disabled={disabled}
-                options={options}
-                value={selectedProduct}
-                getOptionLabel={option => option?.name || ''}
-                filterOptions={(options, { inputValue }) => {
-                  const search = inputValue.trim().toLowerCase();
-                  if (!search) return options;
-
-                  return options.filter(option => {
-                    const values = [
-                      option?.name,
-                      option?.sku,
-                      getProductCategoryLabel(option),
-                    ].filter(Boolean);
-
-                    return values.some(value => String(value).toLowerCase().includes(search));
-                  });
-                }}
-                onChange={(_, newValue) => {
-                  if (!newValue?._id) {
-                    field.onChange('');
-                    return;
-                  }
-
-                  field.onChange(newValue._id);
-                  handleUpdateItemProduct(index, newValue._id, field.value);
-                }}
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    size="small"
-                    placeholder="Select Product"
-                    error={!!errors.items?.[index]?.productId}
-                    inputProps={{
-                      ...params.inputProps,
-                      className: `${params.inputProps?.className ?? ''} text-[0.85rem]`,
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'secondary.light',
-                      },
-                      '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'secondary.main',
-                      },
-                      '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'primary.main',
-                      },
-                    }}
-                  />
-                )}
-                renderOption={(props, option, { index: optionIndex }) => {
-                  const { key, onMouseDown, ...optionProps } = props;
-                  const zebraBg = optionIndex % 2 ? alpha(theme.palette.primary.main, 0.015) : 'transparent';
-
-                  return (
-                    <Box
-                      key={key}
-                      component="li"
-                      {...optionProps}
-                      onMouseDown={event => {
-                        preventAutocompleteInputBlur(event);
-                        onMouseDown?.(event);
-                      }}
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: OPTION_GRID_COLUMNS,
-                        columnGap: 2,
-                        alignItems: 'center',
-                        px: 6,
-                        py: 0.9,
-                        minHeight: 38,
-                        backgroundColor: zebraBg,
-                        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                        transition: 'background-color 120ms ease',
-                        '&:last-of-type': { borderBottom: 'none' },
-                        '&:hover': {
-                          backgroundColor: theme.palette.secondary.lightestOpacity,
-                        },
-                        '&[data-focus="true"]': {
-                          backgroundColor: theme.palette.primary.main,
-                        },
-                        '&[aria-selected="true"]': {
-                          backgroundColor: theme.palette.primary.lightOpacity,
-                        },
-                        '&[aria-selected="true"][data-focus="true"]': {
-                          backgroundColor: theme.palette.primary.main,
-                        },
-                      }}
-                    >
-                      <Typography variant="h6" noWrap sx={{ minWidth: 0, fontSize: '0.8rem' }}>
-                        {option.name}
-                      </Typography>
-                      <Typography variant="h6" noWrap sx={{ minWidth: 0, fontSize: '0.8rem' }}>
-                        {getProductCategoryLabel(option)}
-                      </Typography>
-                      <Typography variant="h6" noWrap sx={{ minWidth: 0, fontSize: '0.8rem' }}>
-                        {option.sku || '-'}
-                      </Typography>
-                    </Box>
-                  );
-                }}
-                noOptionsText={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2, px: 1 }}>
-                    <Icon icon="mdi:package-variant-closed" width={22} color={theme.palette.text.secondary} />
-                    <Typography variant="body2" color="text.secondary">
-                      No products found
-                    </Typography>
-                  </Box>
-                }
-                slots={{ listbox: ProductOptionsListbox }}
-                PaperProps={{
-                  sx: {
-                    borderRadius: '12px',
-                    boxShadow: theme.shadows[8],
-                    border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
-                    mt: 1,
-                    overflow: 'hidden',
-                  },
-                }}
-                slotProps={{
-                  htmlInput: {
-                    className: 'text-[0.85rem]',
-                  },
-                  popper: {
-                    placement: 'bottom-start',
-                    sx: {
-                      width: 'auto !important',
-                      minWidth: 520,
-                      maxWidth: 'min(760px, calc(100vw - 32px))',
-                    },
-                  },
-                  listbox: {
-                    onMouseDown: preventAutocompleteInputBlur,
-                    sx: {
-                      maxHeight: 320,
-                      py: 0,
-                    },
-                  },
-                }}
-                isOptionEqualToValue={(option, value) => option._id === value._id}
-                disableClearable
-                autoHighlight
-                openOnFocus
-              />
-            );
-          }}
+          errors={errors}
+          index={index}
+          productData={productData}
+          products={productsCloneData}
+          watchItems={watchItems}
+          handleUpdateItemProduct={handleUpdateItemProduct}
+          disabled={disabled}
         />
       ),
     },

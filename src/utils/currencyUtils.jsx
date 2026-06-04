@@ -1,6 +1,6 @@
 import { Icon } from '@iconify/react'
 import { Typography } from '@mui/material'
-
+import { useTheme } from '@mui/material/styles'
 export const RIYAL_SYMBOL = '﷼'
 
 export const RiyalIcon = ({ width = '1rem', color = '#6D6D6D' }) => (
@@ -9,13 +9,17 @@ export const RiyalIcon = ({ width = '1rem', color = '#6D6D6D' }) => (
 )
 
 export const formatCurrency = (amount, color = 'text.primary') => {
+
+  const theme = useTheme()
+
   return (
-    <span className="inline-flex items-center gap-0.5 min-w-[48px] justify-start">
-      <RiyalIcon />
+    <span className="inline-flex items-end gap-0.1 min-w-[48px] justify-start">
+      <RiyalIcon width='0.65rem' color='text.secondary' />
       <Typography
         component='span'
-        color={color || 'text.primary'}
+        color={color || theme.vars.palette.text.secondary}
         className='text-[0.9rem] font-medium'
+        lineHeight={0.8}
       >
         {Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
       </Typography>

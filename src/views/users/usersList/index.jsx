@@ -2,27 +2,34 @@
 
 import React from 'react';
 import UsersList from './UsersList';
+import AppSnackbarProvider from '@/components/shared/AppSnackbarProvider';
 
 const UsersListIndex = ({
-     initialUsers = [],
-     initialPagination = {
-          current: 1,
-          pageSize: 10,
-          total: 0,
-     },
-     initialRoles = [],
-     initialBranches = [],
-     initialErrorMessage = '',
+  initialListData,
+  initialRoles = [],
+  initialBranches = [],
+  initialErrorMessage = '',
 }) => {
-     return (
-          <UsersList
-               initialUsers={initialUsers}
-               pagination={initialPagination}
-               initialRoles={initialRoles}
-               initialBranches={initialBranches}
-               initialErrorMessage={initialErrorMessage}
-          />
-     );
+  const initialUsers = initialListData?.users || [];
+  const pagination = initialListData?.pagination || {
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  };
+  const cardCounts = initialListData?.cardCounts || {};
+
+  return (
+    <AppSnackbarProvider maxSnack={7}>
+      <UsersList
+        initialUsers={initialUsers}
+        initialPagination={pagination}
+        initialCardCounts={cardCounts}
+        initialRoles={initialRoles}
+        initialBranches={initialBranches}
+        initialErrorMessage={initialErrorMessage}
+      />
+    </AppSnackbarProvider>
+  );
 };
 
 export default UsersListIndex;

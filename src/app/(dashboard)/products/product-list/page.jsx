@@ -12,12 +12,14 @@ export const metadata = {
 const ProductsPage = async () => {
   let initialProducts = [];
   let initialPagination = { current: 1, pageSize: 10, total: 0 };
+  let initialSummary = {};
   let initialErrorMessage = '';
 
   try {
     const initialData = await getInitialProductData();
     initialProducts = initialData?.products || [];
     initialPagination = initialData?.pagination || initialPagination;
+    initialSummary = initialData?.summary || {};
   } catch (error) {
     console.error('ProductsPage: Error fetching data:', error);
     initialErrorMessage = error?.message || 'Failed to load product data.';
@@ -27,6 +29,7 @@ const ProductsPage = async () => {
     <ProductListIndex
       initialProducts={initialProducts}
       initialPagination={initialPagination}
+      initialSummary={initialSummary}
       initialErrorMessage={initialErrorMessage}
     />
   );

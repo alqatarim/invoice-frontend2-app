@@ -27,8 +27,8 @@ export const TaxRateAPI = {
   View: "/tax/viewTax",
 };
 
-export const CompanysettingView = `/companySettings/viewCompanySetting`;
-export const CompanysettingUpdate = `/CompanySettings/updateCompanySetting`;
+export const CompanyProfileView = `/company`;
+export const CompanyProfileUpdate = `/company`;
 
 export const AccountSettingsview = `/users/profile`;
 export const AccountSettingsupdate = `/users/updateProfile`;

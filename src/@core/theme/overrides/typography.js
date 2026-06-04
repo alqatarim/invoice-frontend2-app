@@ -28,7 +28,15 @@ const typography = {
             style: { color: 'var(--mui-palette-text-primary)' }
           },
           {
+            props: { variant: 'h7' },
+            style: { color: 'var(--mui-palette-text-primary)' }
+          },
+          {
             props: { variant: 'subtitle1' },
+            style: { color: 'rgb(var(--mui-palette-text-primaryChannel) / 0.55)' }
+          },
+          {
+            props: { variant: 'subtitle1.5' },
             style: { color: 'rgb(var(--mui-palette-text-primaryChannel) / 0.55)' }
           },
           {
@@ -37,6 +45,10 @@ const typography = {
           },
           {
             props: { variant: 'body1' },
+            style: { color: 'var(--mui-palette-text-secondary)' }
+          },
+          {
+            props: { variant: 'body1.5' },
             style: { color: 'var(--mui-palette-text-secondary)' }
           },
           {

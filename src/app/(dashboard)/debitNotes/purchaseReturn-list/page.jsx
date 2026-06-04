@@ -13,11 +13,13 @@ async function DebitNoteListPage() {
     pageSize: 10,
     total: 0,
   };
+  let initialSummary = {};
   let initialErrorMessage = '';
 
   try {
     const initialData = await getDebitNotesList();
     initialDebitNotes = initialData?.data || [];
+    initialSummary = initialData?.summary || {};
     initialPagination = {
       current: 1,
       pageSize: 10,
@@ -32,6 +34,7 @@ async function DebitNoteListPage() {
     <PurchaseReturnListIndex
       initialDebitNotes={initialDebitNotes}
       initialPagination={initialPagination}
+      initialSummary={initialSummary}
       initialErrorMessage={initialErrorMessage}
     />
   );

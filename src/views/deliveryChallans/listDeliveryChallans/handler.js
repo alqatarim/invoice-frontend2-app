@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTheme } from '@mui/material/styles';
 import { usePermission } from '@/Auth/usePermission';
 import {
   convertToInvoice,
   deleteDeliveryChallan,
   getFilteredDeliveryChallans,
 } from '@/app/(dashboard)/deliveryChallans/actions';
+import { getDeliveryChallanColumns } from './deliveryChallanColumns';
 
 const DEFAULT_PAGINATION = {
   current: 1,
@@ -25,56 +27,75 @@ const SUCCESS_MESSAGES = {
 export function useDeliveryChallanListHandler({
   initialDeliveryChallans = [],
   initialPagination = DEFAULT_PAGINATION,
+  initialSummary = {},
   initialErrorMessage = '',
+  onError,
+  onSuccess,
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const theme = useTheme();
 
-  const permissions = {
-    canCreate: usePermission('deliveryChallan', 'create'),
-    canUpdate: usePermission('deliveryChallan', 'update'),
-    canView: usePermission('deliveryChallan', 'view'),
-    canDelete: usePermission('deliveryChallan', 'delete'),
-  };
+  const canCreate = usePermission('deliveryChallan', 'create');
+  const canUpdate = usePermission('deliveryChallan', 'update');
+  const canView = usePermission('deliveryChallan', 'view');
+  const canDelete = usePermission('deliveryChallan', 'delete');
+
+  const permissions = useMemo(
+    () => ({
+      canCreate,
+      canUpdate,
+      canView,
+      canDelete,
+    }),
+    [canCreate, canUpdate, canView, canDelete]
+  );
 
   const [deliveryChallans, setDeliveryChallans] = useState(initialDeliveryChallans);
+  const [summary, setSummary] = useState(initialSummary || {});
   const [pagination, setPagination] = useState(initialPagination || DEFAULT_PAGINATION);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
   const [selectedDeliveryChallan, setSelectedDeliveryChallan] = useState(null);
-  const [dialogState, setDialogState] = useState({
-    deleteOpen: false,
-    convertOpen: false,
-  });
-  const [snackbar, setSnackbar] = useState({
-    open: Boolean(initialErrorMessage),
-    message: initialErrorMessage || '',
-    severity: initialErrorMessage ? 'error' : 'success',
-  });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
 
-  const showSnackbar = useCallback((message, severity = 'success') => {
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-    });
-  }, []);
+  const loadingRef = useRef(false);
+  const onErrorRef = useRef(onError);
+  const onSuccessRef = useRef(onSuccess);
+  const stateRef = useRef({ pagination, searchTerm });
 
   useEffect(() => {
-    const successParam = searchParams.get('success');
+    onErrorRef.current = onError;
+    onSuccessRef.current = onSuccess;
+  }, [onError, onSuccess]);
 
-    if (!successParam || !SUCCESS_MESSAGES[successParam]) {
-      return;
+  useEffect(() => {
+    stateRef.current = { pagination, searchTerm };
+  }, [pagination, searchTerm]);
+
+  useEffect(() => {
+    setDeliveryChallans(initialDeliveryChallans);
+    setSummary(initialSummary || {});
+    setPagination(initialPagination || DEFAULT_PAGINATION);
+  }, [initialDeliveryChallans, initialPagination, initialSummary]);
+
+  useEffect(() => {
+    if (initialErrorMessage) {
+      onErrorRef.current?.(initialErrorMessage);
     }
-
-    showSnackbar(SUCCESS_MESSAGES[successParam]);
-    router.replace(pathname);
-  }, [pathname, router, searchParams, showSnackbar]);
+  }, [initialErrorMessage]);
 
   const refreshDeliveryChallans = useCallback(
-    async ({ page = pagination.current, pageSize = pagination.pageSize, search = searchTerm } = {}) => {
+    async ({
+      page = stateRef.current.pagination.current,
+      pageSize = stateRef.current.pagination.pageSize,
+      search = stateRef.current.searchTerm,
+    } = {}) => {
+      if (loadingRef.current) return null;
+      loadingRef.current = true;
       setLoading(true);
 
       try {
@@ -82,6 +103,7 @@ export function useDeliveryChallanListHandler({
         const nextDeliveryChallans = response?.deliveryChallans || [];
 
         setDeliveryChallans(nextDeliveryChallans);
+        setSummary(response?.summary || {});
         setSearchTerm(search);
         setPagination(
           response?.pagination || {
@@ -93,46 +115,34 @@ export function useDeliveryChallanListHandler({
 
         return response;
       } catch (error) {
-        showSnackbar(error?.message || 'Failed to load delivery challans', 'error');
+        onErrorRef.current?.(error?.message || 'Failed to load delivery challans');
         return null;
       } finally {
         setLoading(false);
+        loadingRef.current = false;
       }
     },
-    [pagination.current, pagination.pageSize, searchTerm, showSnackbar]
+    []
   );
 
-  const filteredDeliveryChallans = deliveryChallans;
+  useEffect(() => {
+    const successParam = searchParams.get('success');
 
-  const cardCounts = useMemo(
-    () => ({
-      totalActive: {
-        count: deliveryChallans.filter((challan) => challan.status === 'ACTIVE').length,
-        total_sum: deliveryChallans
-          .filter((challan) => challan.status === 'ACTIVE')
-          .reduce((sum, challan) => sum + (Number(challan.TotalAmount) || 0), 0),
-      },
-      totalConverted: {
-        count: deliveryChallans.filter((challan) => challan.status === 'CONVERTED').length,
-        total_sum: deliveryChallans
-          .filter((challan) => challan.status === 'CONVERTED')
-          .reduce((sum, challan) => sum + (Number(challan.TotalAmount) || 0), 0),
-      },
-      totalCancelled: {
-        count: deliveryChallans.filter((challan) => challan.status === 'CANCELLED').length,
-        total_sum: deliveryChallans
-          .filter((challan) => challan.status === 'CANCELLED')
-          .reduce((sum, challan) => sum + (Number(challan.TotalAmount) || 0), 0),
-      },
-      totalDeliveryChallans: {
-        count: deliveryChallans.length,
-        total_sum: deliveryChallans.reduce(
-          (sum, challan) => sum + (Number(challan.TotalAmount) || 0),
-          0
-        ),
-      },
-    }),
-    [deliveryChallans]
+    if (successParam) {
+      refreshDeliveryChallans();
+    }
+
+    if (!successParam || !SUCCESS_MESSAGES[successParam]) {
+      return;
+    }
+
+    onSuccessRef.current?.(SUCCESS_MESSAGES[successParam]);
+    router.replace(pathname);
+  }, [pathname, refreshDeliveryChallans, router, searchParams]);
+
+  const columns = useMemo(
+    () => getDeliveryChallanColumns({ theme, permissions }),
+    [theme, permissions]
   );
 
   const handleView = useCallback(
@@ -149,23 +159,23 @@ export function useDeliveryChallanListHandler({
     [router]
   );
 
-  const openDeleteDialog = useCallback((deliveryChallan) => {
+  const handleDeleteClick = useCallback((deliveryChallan) => {
     setSelectedDeliveryChallan(deliveryChallan);
-    setDialogState((prev) => ({ ...prev, deleteOpen: true }));
+    setDeleteDialogOpen(true);
   }, []);
 
-  const closeDeleteDialog = useCallback(() => {
-    setDialogState((prev) => ({ ...prev, deleteOpen: false }));
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteDialogOpen(false);
     setSelectedDeliveryChallan(null);
   }, []);
 
-  const openConvertDialog = useCallback((deliveryChallan) => {
+  const handleConvertClick = useCallback((deliveryChallan) => {
     setSelectedDeliveryChallan(deliveryChallan);
-    setDialogState((prev) => ({ ...prev, convertOpen: true }));
+    setConvertDialogOpen(true);
   }, []);
 
   const closeConvertDialog = useCallback(() => {
-    setDialogState((prev) => ({ ...prev, convertOpen: false }));
+    setConvertDialogOpen(false);
     setSelectedDeliveryChallan(null);
   }, []);
 
@@ -183,24 +193,17 @@ export function useDeliveryChallanListHandler({
         throw new Error(response?.message || 'Failed to delete delivery challan');
       }
 
-      setDeliveryChallans((prev) =>
-        prev.filter((challan) => challan._id !== selectedDeliveryChallan._id)
-      );
-      setPagination((prev) => ({
-        ...prev,
-        total: Math.max(0, prev.total - 1),
-      }));
-      showSnackbar('Delivery challan deleted successfully!');
-      closeDeleteDialog();
+      onSuccessRef.current?.(response.message || 'Delivery challan deleted successfully!');
+      handleDeleteCancel();
+      await refreshDeliveryChallans();
     } catch (error) {
-      showSnackbar(
-        `Failed to delete delivery challan: ${error?.message || 'Unknown error'}`,
-        'error'
+      onErrorRef.current?.(
+        error?.message || 'Failed to delete delivery challan'
       );
     } finally {
       setLoadingAction(false);
     }
-  }, [closeDeleteDialog, selectedDeliveryChallan, showSnackbar]);
+  }, [handleDeleteCancel, refreshDeliveryChallans, selectedDeliveryChallan]);
 
   const handleConvertConfirm = useCallback(async () => {
     if (!selectedDeliveryChallan?._id) {
@@ -216,24 +219,19 @@ export function useDeliveryChallanListHandler({
         throw new Error(response?.message || 'Failed to convert delivery challan to invoice');
       }
 
-      setDeliveryChallans((prev) =>
-        prev.map((challan) =>
-          challan._id === selectedDeliveryChallan._id
-            ? { ...challan, status: 'CONVERTED' }
-            : challan
-        )
+      onSuccessRef.current?.(
+        response.message || 'Delivery challan converted to invoice successfully!'
       );
-      showSnackbar('Delivery challan converted to invoice successfully!');
       closeConvertDialog();
+      await refreshDeliveryChallans();
     } catch (error) {
-      showSnackbar(
-        `Failed to convert delivery challan: ${error?.message || 'Unknown error'}`,
-        'error'
+      onErrorRef.current?.(
+        error?.message || 'Failed to convert delivery challan'
       );
     } finally {
       setLoadingAction(false);
     }
-  }, [closeConvertDialog, selectedDeliveryChallan, showSnackbar]);
+  }, [closeConvertDialog, refreshDeliveryChallans, selectedDeliveryChallan]);
 
   const handlePageChange = useCallback(
     async (page) => {
@@ -259,43 +257,53 @@ export function useDeliveryChallanListHandler({
 
   const handleSearchInputChange = useCallback(
     (value) => {
-      refreshDeliveryChallans({ page: 1, search: value });
+      const nextValue = String(value ?? '');
+      if (nextValue === stateRef.current.searchTerm) return;
+
+      refreshDeliveryChallans({ page: 1, search: nextValue });
     },
     [refreshDeliveryChallans]
   );
 
-  const closeSnackbar = useCallback((_, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
+  const tableColumns = useMemo(() => {
+    const cellHandlers = {
+      handleDeleteClick,
+      handleView,
+      handleEdit,
+      handleConvertClick,
+      permissions,
+    };
 
-    setSnackbar((prev) => ({
-      ...prev,
-      open: false,
+    return columns.map((col) => ({
+      ...col,
+      renderCell: col.renderCell
+        ? (row, index) => col.renderCell(row, cellHandlers, index)
+        : undefined,
     }));
-  }, []);
+  }, [columns, handleConvertClick, handleDeleteClick, handleEdit, handleView, permissions]);
 
   return {
     permissions,
-    deliveryChallans: filteredDeliveryChallans,
+    deliveryChallans,
+    summary,
     pagination,
     loading,
     loadingAction,
     searchTerm,
-    snackbar,
-    dialogState,
-    cardCounts,
+    deleteDialogOpen,
+    convertDialogOpen,
+    selectedDeliveryChallan,
+    tableColumns,
     handleSearchInputChange,
     handlePageChange,
     handlePageSizeChange,
     handleView,
     handleEdit,
-    openDeleteDialog,
-    closeDeleteDialog,
+    handleDeleteClick,
+    handleDeleteCancel,
     handleDeleteConfirm,
-    openConvertDialog,
+    handleConvertClick,
     closeConvertDialog,
     handleConvertConfirm,
-    closeSnackbar,
   };
 }

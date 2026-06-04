@@ -16,9 +16,14 @@ import AnimatedDynamicCover from '@/components/AnimatedDynamicCover'
 import { useDynamicBackground } from '@/hooks'
 
 import { roleOptions } from '@/data/dataSets'
+import { resolveUserAvatarUrl } from '@/utils/defaultUserAvatar'
 
 const UserProfileHeader = ({ data }) => {
-  const avatarSrc = data?.image || '/images/avatars/1.png'
+  const avatarSrc = resolveUserAvatarUrl({
+    image: data?.image || '',
+    defaultAvatar: data?.defaultAvatar || '',
+    userId: data?._id || data?.id || '',
+  })
   const fullName = data?.firstName && data?.lastName
     ? `${data.firstName} ${data.lastName}`
     : data?.fullname || 'User Profile'

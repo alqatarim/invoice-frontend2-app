@@ -108,7 +108,7 @@ const LocationChip = () => {
                   </Typography>
                   <Box className='flex flex-col gap-1.5'>
                     {assignedBranches.map((branch, idx) => {
-                      const branchType = String(branch?.branchType || branch?.kind || '').trim()
+                      const branchType = String(branch?.branchType || branch?.type || '').trim()
                       const isPrimary =
                         branch?.isDefault ||
                         [String(branch?._id || ''), String(branch?.branchId || '')].includes(

@@ -104,16 +104,18 @@ const OptionMenu = forwardRef((props, ref) => {
                     } else if ('divider' in option) {
                       return option.divider && <Divider key={index} {...option.dividerProps} />
                     } else {
+                      const { onClick: itemOnClick, ...menuItemProps } = option.menuItemProps || {}
+
                       return (
                         <MenuItem
                           key={index}
-                          {...option.menuItemProps}
+                          {...menuItemProps}
                           {...(option.href && { className: 'p-0' })}
                           onClick={e => {
+                            e.preventDefault()
+                            e.stopPropagation()
                             handleClose(e)
-                            option.menuItemProps && option.menuItemProps.onClick
-                              ? option.menuItemProps.onClick(e)
-                              : null
+                            itemOnClick?.(e)
                           }}
                         >
                           <MenuItemWrapper option={option}>

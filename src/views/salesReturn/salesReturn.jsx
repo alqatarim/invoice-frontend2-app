@@ -46,10 +46,11 @@ const SalesReturn = ({ mode = 'add', title = 'Add Sales Return', documentNumber 
     watchItems,
     watchRoundOff,
     productsCloneData,
+    productData,
     banks,
+    signOptions,
     newBank,
     setNewBank,
-    signOptions,
     paymentMethods,
     termsDialogOpen,
     tempTerms,
@@ -65,6 +66,7 @@ const SalesReturn = ({ mode = 'add', title = 'Add Sales Return', documentNumber 
     handleAddBank,
     handleSignatureSelection,
     handleFormSubmit: originalHandleFormSubmit,
+    handleDraftSubmit: originalHandleDraftSubmit,
     handleError,
     handleMenuItemClick,
     handleTaxClick,
@@ -85,6 +87,11 @@ const SalesReturn = ({ mode = 'add', title = 'Add Sales Return', documentNumber 
     return originalHandleFormSubmit(data);
   };
 
+  const handleDraftSubmit = data => {
+    if (!data.salesReturnNumber) data.salesReturnNumber = documentNumber;
+    return originalHandleDraftSubmit?.(data);
+  };
+
   useEffect(() => {
     if (!watchItems) return;
     const { taxableAmount, totalDiscount, vat, TotalAmount, roundOffValue } = calculateInvoiceTotals(watchItems, watchRoundOff);
@@ -102,6 +109,7 @@ const SalesReturn = ({ mode = 'add', title = 'Add Sales Return', documentNumber 
     fields,
     watchItems,
     productsCloneData,
+    productData,
     taxRates,
     discountMenu,
     setDiscountMenu,
@@ -195,20 +203,31 @@ const SalesReturn = ({ mode = 'add', title = 'Add Sales Return', documentNumber 
                   <TextField {...field} label="Due Date" type="date" variant="outlined" fullWidth size="medium" error={!!errors.dueDate} inputProps={{ min: getValues('salesReturnDate') }} InputLabelProps={{ shrink: true }} />
                 )} />
               </Grid>
-              <Grid size={{ xs: 12, md: 2.5 }}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Controller name="employee" control={control} render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.employee} variant="outlined">
+                  <FormControl fullWidth variant="outlined" error={!!errors.employee}>
                     <InputLabel>Employee</InputLabel>
-                    <Select label="Employee" size="medium" value={field.value || ''} onChange={event => {
-                      const selected = (signOptions || []).find(option => option._id === event.target.value);
-                      handleSignatureSelection(selected, field);
-                    }}>
-                      {(signOptions || []).length === 0 ? <MenuItem value="" disabled>No employees available</MenuItem> : (signOptions || []).map(option => <MenuItem key={option._id} value={option._id}>{option.employeeName || option.signatureName || option.label || option.fullName || option.email || 'Employee'}</MenuItem>)}
+                    <Select
+                      {...field}
+                      label="Employee"
+                      size="medium"
+                      value={field.value || ''}
+                      onChange={(event) => {
+                        const selected = (signOptions || []).find(employee => employee._id === event.target.value);
+                        handleSignatureSelection(selected, field);
+                      }}
+                    >
+                      <MenuItem value=""><em>None</em></MenuItem>
+                      {(signOptions || []).map(employee => (
+                        <MenuItem key={employee._id} value={employee._id}>
+                          {employee.employeeName || employee.signatureName || employee.fullName || employee.email || 'Employee'}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 )} />
               </Grid>
-              <Grid size={{ xs: 12, md: 0.5 }}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <IconButton color="secondary" onClick={() => setDrawerOpen(true)} aria-label="Open more options">
                   <Icon icon="mdi:unfold-more-vertical" />
                 </IconButton>
@@ -270,6 +289,8 @@ const SalesReturn = ({ mode = 'add', title = 'Add Sales Return', documentNumber 
             control={control}
             primaryActionLabel={mode === 'edit' ? 'Update' : 'Complete'}
             onPrimaryAction={handleSubmit(handleFormSubmit, handleError)}
+            secondaryActionLabel={mode === 'add' ? 'Save as Draft' : undefined}
+            onSecondaryAction={mode === 'add' ? handleSubmit(handleDraftSubmit, handleError) : undefined}
           />
         </Box>
       </Grid>

@@ -12,7 +12,9 @@ const ENDPOINTS = {
     UPDATE: '/payment/updatePayment',
     DELETE: '/payment/deletePayment',
     GET_PAYMENT_NUMBER: '/payment/getPaymentNumber',
-    UPDATE_STATUS: '/payment/update_status'
+    UPDATE_STATUS: '/payment/update_status',
+    SET_AS_SUCCESS: '/payment/setAsSuccess',
+    SET_AS_FAILED: '/payment/setAsFailed',
   },
   DROPDOWN: {
     // CUSTOMER_LIST: '/drop_down/customer',
@@ -73,6 +75,7 @@ export async function getInitialPaymentData() {
     if (response.code === 200) {
       const result = {
         payments: response.data || [],
+        summary: response.summary || {},
         pagination: {
           current: 1,
           pageSize: 10,
@@ -143,11 +146,15 @@ export async function getFilteredPayments(page, pageSize, filters = {}, sortBy =
   }
 }
 
-export async function getPaymentsList(page = 1, pageSize = 10, filters = {}) {
+export async function getPaymentsList(page = 1, pageSize = 10, search = '', filters = {}) {
   try {
-    revalidatePath('/payments')
+    revalidatePath('/payments');
     const skipSize = page === 1 ? 0 : (page - 1) * pageSize;
     const queryParams = [`limit=${pageSize}`, `skip=${skipSize}`];
+
+    if (search) {
+      queryParams.push(`search=${encodeURIComponent(search)}`);
+    }
 
     if (filters.customer && filters.customer.length > 0) {
       queryParams.push(`customer=${filters.customer.join(',')}`);
@@ -164,7 +171,8 @@ export async function getPaymentsList(page = 1, pageSize = 10, filters = {}) {
     return {
       success: true,
       data: response.data || [],
-      totalRecords: response.totalRecords || 0
+      totalRecords: response.totalRecords || 0,
+      summary: response.summary || {},
     };
   } catch (error) {
     console.error('Error fetching payments list:', error);
@@ -209,7 +217,6 @@ export async function getPaymentDetails(id) {
       throw new Error(response?.message || 'Failed to fetch payment details');
     }
 
-    // Transform the data to include all necessary fields
     const paymentDetails = response.data?.payment_details;
 
     if (!paymentDetails) {
@@ -218,13 +225,14 @@ export async function getPaymentDetails(id) {
 
     return {
       success: true,
-      data: paymentDetails
+      data: paymentDetails,
+      paymentDetails,
     };
   } catch (error) {
     console.error('Error fetching payment details:', error);
     return {
       success: false,
-      message: error.message || 'Failed to fetch payment details'
+      message: error.message || 'Failed to fetch payment details',
     };
   }
 }
@@ -243,12 +251,13 @@ export async function addPayment(data) {
       },
       body: JSON.stringify({
         invoiceId: data.invoiceId,
+        customerId: data.customerId,
         payment_number: data.paymentNumber,
-        payment_method: data.paymentMethod, // Map from form field name
+        payment_method: data.paymentMethod,
         amount: parseFloat(data.amount),
-        received_on: formattedDate, // Map from form's date field
-        notes: data.description || '' // Map from form's description field
-        // Note: status is auto-determined by backend based on payment_method
+        received_on: formattedDate,
+        referenceNo: data.reference || '',
+        notes: data.description || '',
       })
     });
 
@@ -277,6 +286,7 @@ export async function updatePayment(id, data = {}) {
     const payload = {
       payment_number: data.payment_number || data.paymentNumber,
       invoiceId: data.invoiceId,
+      customerId: data.customerId,
       payment_method: data.payment_method || data.paymentMethod || data.paymentMode?.value || data.paymentMode,
       amount: data.amount !== undefined ? Number(data.amount) : undefined,
       received_on: data.received_on || (data.date ? dayjs(data.date).toISOString() : undefined),
@@ -338,12 +348,64 @@ export async function getInvoicesByCustomer(customerId) {
 
 export async function getPaymentNumber() {
   try {
-    revalidatePath('/payments/payment-add')
+    revalidatePath('/payments');
     const response = await fetchWithAuth(ENDPOINTS.PAYMENT.GET_PAYMENT_NUMBER);
-    return response.data;
+
+    if (response.code !== 200) {
+      throw new Error(response?.message || 'Failed to fetch payment number');
+    }
+
+    return {
+      success: true,
+      data: response.data,
+    };
   } catch (error) {
     console.error('Error fetching payment number:', error);
-    throw error;
+    return { success: false, message: error.message };
+  }
+}
+
+export async function setPaymentAsSuccess(id) {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.PAYMENT.SET_AS_SUCCESS}/${id}`, {
+      method: 'PATCH',
+      cache: 'no-store',
+    });
+
+    if (response.code === 200) {
+      revalidatePath('/payments');
+      return {
+        success: true,
+        message: response.data?.message || 'Payment set to success successfully',
+      };
+    }
+
+    throw new Error(response?.message || 'Failed to set payment as success');
+  } catch (error) {
+    console.error('Error setting payment as success:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+export async function setPaymentAsFailed(id) {
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.PAYMENT.SET_AS_FAILED}/${id}`, {
+      method: 'PATCH',
+      cache: 'no-store',
+    });
+
+    if (response.code === 200) {
+      revalidatePath('/payments');
+      return {
+        success: true,
+        message: response.data?.message || 'Payment set to failed successfully',
+      };
+    }
+
+    throw new Error(response?.message || 'Failed to set payment as failed');
+  } catch (error) {
+    console.error('Error setting payment as failed:', error);
+    return { success: false, message: error.message };
   }
 }
 

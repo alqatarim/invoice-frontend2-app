@@ -23,7 +23,6 @@ import AppSnackbar from '@/components/shared/AppSnackbar'
 
 // Settings Components
 import AccountSettingsTab from './accountSettings/AccountSettingsTab'
-import CompanySettingsTab from './companySettings/CompanySettingsTab'
 import ChangePasswordTab from './changePassword/ChangePasswordTab'
 import NotificationSettingsTab from './notificationSettings/NotificationSettingsTab'
 import InvoiceTemplatesTab from './invoiceTemplates/InvoiceTemplatesTab'
@@ -39,7 +38,6 @@ import PreferenceSettingsTab from './preferenceSettings/PreferenceSettingsTab'
 import { usePermission } from '@/Auth/usePermission'
 
 const UnifiedSettingsIndex = ({
-     initialCompanySettings = {},
      initialAccountSettings = {},
      initialInvoiceSettings = {},
      initialPaymentSettings = {},
@@ -58,9 +56,6 @@ const UnifiedSettingsIndex = ({
      const accountTabInitialData = useMemo(() => ({
           accountSettings: initialAccountSettings
      }), [initialAccountSettings])
-     const companyTabInitialData = useMemo(() => ({
-          companySettings: initialCompanySettings
-     }), [initialCompanySettings])
      const notificationTabInitialData = useMemo(() => ({
           notificationSettings: initialNotificationSettings
      }), [initialNotificationSettings])
@@ -93,7 +88,6 @@ const UnifiedSettingsIndex = ({
 
      // Permission checks
      const hasAccountSettings = usePermission('accountSettings', 'view')
-     const hasCompanySettings = usePermission('companySettings', 'view')
      const hasChangePassword = usePermission('changePassword', 'update')
      const hasInvoiceTemplateSettings = usePermission('invoiceTemplate', 'view')
      const hasSignatureSettings = usePermission('signature', 'view')
@@ -108,7 +102,7 @@ const UnifiedSettingsIndex = ({
      // Determine active tab from URL search params
      const getActiveTabFromUrl = () => {
           const tab = searchParams.get('tab')
-          return tab || 'company'
+          return tab || 'account'
      }
 
      const [activeTab, setActiveTab] = useState(getActiveTabFromUrl)
@@ -126,8 +120,6 @@ const UnifiedSettingsIndex = ({
           switch (tab.value) {
                case 'account':
                     return hasAccountSettings
-               case 'company':
-                    return hasCompanySettings
                case 'changePassword':
                     return hasChangePassword
                case 'invoiceTemplates':
@@ -218,13 +210,6 @@ const UnifiedSettingsIndex = ({
                     <TabPanel value="account" className="!p-0">
                          <AccountSettingsTab
                               initialData={accountTabInitialData}
-                              enqueueSnackbar={enqueueSnackbar}
-                         />
-                    </TabPanel>
-
-                    <TabPanel value="company" className="!p-0">
-                         <CompanySettingsTab
-                              initialData={companyTabInitialData}
                               enqueueSnackbar={enqueueSnackbar}
                          />
                     </TabPanel>

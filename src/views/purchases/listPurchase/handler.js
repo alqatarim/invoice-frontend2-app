@@ -7,11 +7,13 @@ import { deletePurchase, getPurchaseList } from '@/app/(dashboard)/purchases/act
 function usePurchaseListData({
   initialPurchases = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialSummary = {},
   initialSortBy = '',
   initialSortDirection = 'asc',
   onError,
 }) {
   const [purchases, setPurchases] = useState(initialPurchases);
+  const [summary, setSummary] = useState(initialSummary || {});
   const [pagination, setPagination] = useState(() => {
     const basePagination = initialPagination || { current: 1, pageSize: 10, total: 0 };
     if (initialPurchases.length > 0 && basePagination.total === 0) {
@@ -28,13 +30,24 @@ function usePurchaseListData({
   const [searching, setSearching] = useState(false);
   const [fullDataset, setFullDataset] = useState(initialPurchases);
   const loadingRef = useRef(false);
+  const onErrorRef = useRef(onError);
   const stateRef = useRef({
     searchTerm: '',
+    pagination,
+    sorting,
   });
 
   useEffect(() => {
-    stateRef.current.searchTerm = searchTerm;
-  }, [searchTerm]);
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
+    stateRef.current = {
+      searchTerm,
+      pagination,
+      sorting,
+    };
+  }, [searchTerm, pagination, sorting]);
 
   const fetchData = useCallback(
     async (params = {}) => {
@@ -42,8 +55,8 @@ function usePurchaseListData({
       loadingRef.current = true;
 
       const {
-        page = pagination.current,
-        pageSize = pagination.pageSize,
+        page = stateRef.current.pagination.current,
+        pageSize = stateRef.current.pagination.pageSize,
         search = stateRef.current.searchTerm,
       } = params;
 
@@ -52,7 +65,7 @@ function usePurchaseListData({
         const response = await getPurchaseList(page, pageSize, search, {});
 
         if (!response.success) {
-          throw new Error(response.message);
+          throw new Error(response.message || 'Failed to fetch purchases');
         }
 
         setPurchases(response.data);
@@ -62,6 +75,7 @@ function usePurchaseListData({
           total: response.totalRecords,
         });
         setFullDataset(response.data);
+        setSummary(response.summary || {});
         setSearchTerm(search);
 
         return {
@@ -70,14 +84,14 @@ function usePurchaseListData({
         };
       } catch (error) {
         console.error('fetchData error:', error);
-        onError?.(error.message || 'Failed to fetch purchases');
+        onErrorRef.current?.(error.message || 'Failed to fetch purchases');
         throw error;
       } finally {
         setLoading(false);
         loadingRef.current = false;
       }
     },
-    [pagination.current, pagination.pageSize, onError]
+    []
   );
 
   const handlePageChange = useCallback(
@@ -101,38 +115,41 @@ function usePurchaseListData({
 
   const handleSortRequest = useCallback(
     (columnKey, direction) => {
+      const { sorting: currentSorting } = stateRef.current;
       const nextDirection =
-        direction || (sorting.sortBy === columnKey && sorting.sortDirection === 'asc' ? 'desc' : 'asc');
+        direction || (currentSorting.sortBy === columnKey && currentSorting.sortDirection === 'asc' ? 'desc' : 'asc');
 
       setSorting({ sortBy: columnKey, sortDirection: nextDirection });
       fetchData({ page: 1, sortBy: columnKey, sortDirection: nextDirection });
 
       return { sortBy: columnKey, sortDirection: nextDirection };
     },
-    [sorting.sortBy, sorting.sortDirection, fetchData]
+    [fetchData]
   );
 
   const handleSearchInputChange = useCallback(
     async value => {
-      if (value === stateRef.current.searchTerm) return;
+      const nextValue = String(value ?? '');
+      if (nextValue === stateRef.current.searchTerm) return;
 
       setSearching(true);
-      setSearchTerm(value);
+      setSearchTerm(nextValue);
 
       try {
-        await fetchData({ page: 1, search: value });
+        await fetchData({ page: 1, search: nextValue });
       } catch (error) {
         console.error('Error searching purchases:', error);
-        onError?.(error.message || 'Search failed');
+        onErrorRef.current?.(error.message || 'Search failed');
       } finally {
         setSearching(false);
       }
     },
-    [fetchData, onError]
+    [fetchData]
   );
 
   return {
     purchases,
+    summary,
     pagination,
     loading,
     sortBy: sorting.sortBy,

@@ -9,6 +9,8 @@ import {
   getDeliveryChallanNumber,
 } from '../actions';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Add Delivery Challan | Kanakku',
 };

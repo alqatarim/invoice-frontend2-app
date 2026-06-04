@@ -3,7 +3,7 @@ import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useRouter } from 'next/navigation';
 import { salesReturnSchema, editSalesReturnSchema } from '@/views/salesReturn/SalesReturnSchema';
-import { paymentMethods } from '@/data/dataSets';
+import { paymentMethods, salesReturnStatuses } from '@/data/dataSets';
 import { calculateItemValues } from '@/utils/salesItemsCalc';
 import { formatInvoiceItem } from '@/utils/formatNewSellItem';
 import { formatDateForInput } from '@/utils/dateUtils';
@@ -88,6 +88,7 @@ const buildAddDefaultValues = salesReturnNumber => ({
   salesReturnDate: new Date().toISOString().split('T')[0],
   dueDate: new Date().toISOString().split('T')[0],
   customerId: '',
+  employee: '',
   bank: '',
   payment_method: '',
   referenceNo: '',
@@ -97,10 +98,6 @@ const buildAddDefaultValues = salesReturnNumber => ({
   totalDiscount: 0,
   roundOff: false,
   roundOffValue: 0,
-  sign_type: 'manualSignature',
-  employeeName: '',
-  employee: '',
-  employeeImage: '',
   notes: '',
   termsAndCondition: '',
   items: [],
@@ -113,8 +110,9 @@ const buildEditDefaultValues = salesReturnData => ({
   salesReturnDate: formatDateForInput(salesReturnData?.credit_note_date) || formatDateForInput(new Date()),
   dueDate: formatDateForInput(salesReturnData?.due_date) || formatDateForInput(new Date()),
   customerId: salesReturnData?.customerId?._id || salesReturnData?.customerId || '',
+  employee: salesReturnData?.employee?._id || salesReturnData?.employee || '',
   bank: salesReturnData?.bank?._id || salesReturnData?.bank || '',
-  payment_method: salesReturnData?.payment_method || 'Cash',
+  payment_method: salesReturnData?.payment_method || salesReturnData?.paymentMode || 'Cash',
   referenceNo: salesReturnData?.reference_no || '',
   taxableAmount: salesReturnData?.taxableAmount || 0,
   TotalAmount: salesReturnData?.TotalAmount || 0,
@@ -122,10 +120,6 @@ const buildEditDefaultValues = salesReturnData => ({
   totalDiscount: salesReturnData?.totalDiscount || 0,
   roundOff: salesReturnData?.roundOff || false,
   roundOffValue: salesReturnData?.roundOffValue || 0,
-  sign_type: salesReturnData?.sign_type || 'manualSignature',
-  employeeName: salesReturnData?.employeeName || '',
-  employee: salesReturnData?.employee?._id || salesReturnData?.employee || '',
-  employeeImage: salesReturnData?.employeeImage || '',
   notes: salesReturnData?.notes || '',
   termsAndCondition: salesReturnData?.termsAndCondition || '',
   items: salesReturnData?.items?.map(normalizeEditItem) || [],
@@ -152,12 +146,14 @@ const mapPayloadItems = items => (items || []).map(item => ({
   images: item.images || null,
 }));
 
-const buildAddPayload = data => ({
+const buildAddPayload = (data, status = salesReturnStatuses.find((item) => item.summaryKey === 'pending')?.value) => ({
   ...data,
+  status,
   salesReturnNumber: data.salesReturnNumber,
   salesReturnDate: data.salesReturnDate,
   dueDate: data.dueDate,
   customerId: data.customerId,
+  employee: data.employee || '',
   bank: data.bank,
   payment_method: data.payment_method,
   referenceNo: data.referenceNo || '',
@@ -167,9 +163,6 @@ const buildAddPayload = data => ({
   totalDiscount: Number(data.totalDiscount),
   roundOff: data.roundOff || false,
   roundOffValue: Number(data.roundOffValue) || 0,
-  sign_type: data.sign_type || 'manualSignature',
-  employeeName: data.employeeName || '',
-  employee: data.employee || '',
   notes: data.notes || '',
   termsAndCondition: data.termsAndCondition || '',
   items: mapPayloadItems(data.items),
@@ -177,6 +170,7 @@ const buildAddPayload = data => ({
 
 const buildEditPayload = data => ({
   customerId: data.customerId,
+  employee: data.employee || '',
   payment_method: data.payment_method,
   taxableAmount: data.taxableAmount,
   vat: data.vat,
@@ -192,9 +186,6 @@ const buildEditPayload = data => ({
   bank: data.bank || '',
   termsAndCondition: data.termsAndCondition || '',
   items: mapPayloadItems(data.items),
-  sign_type: data.sign_type || 'manualSignature',
-  employee: data.employee || '',
-  employeeImage: data.employeeImage || null,
 });
 
 const getUsedProductIds = salesReturnData => (
@@ -206,8 +197,8 @@ export default function useSalesReturnHandler({
   salesReturnNumber,
   salesReturnData,
   productData = [],
+  employees = [],
   initialBanks,
-  employees,
   onSave,
   enqueueSnackbar,
   closeSnackbar,
@@ -217,7 +208,7 @@ export default function useSalesReturnHandler({
   const isEdit = mode === 'edit';
   const [productsCloneData, setProductsCloneData] = useState([]);
   const [banks, setBanks] = useState(initialBanks || []);
-  const [signOptions, setSignOptions] = useState(employees || []);
+  const [signOptions] = useState(employees || []);
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [termsDialogOpen, setTermsDialogOpen] = useState(false);
   const [tempTerms, setTempTerms] = useState('');
@@ -263,20 +254,6 @@ export default function useSalesReturnHandler({
     const usedProductIds = getUsedProductIds(salesReturnData);
     setProductsCloneData((productData || []).filter(product => !usedProductIds.includes(product._id)));
   }, [isEdit, productData, salesReturnData]);
-
-  useEffect(() => {
-    if (isEdit) {
-      setSignOptions(employees || []);
-      return;
-    }
-
-    const mappedEmployees = (employees || []).map(item => ({
-      value: item?._id,
-      label: item?.employeeName,
-      ...item,
-    }));
-    setSignOptions(mappedEmployees);
-  }, [employees, isEdit]);
 
   const updateCalculatedFields = (index, values) => {
     const computed = calculateItemValues(values);
@@ -395,18 +372,10 @@ export default function useSalesReturnHandler({
     }
   };
 
-  const handleSignatureSelection = (selected, field) => {
-    if (selected) {
-      field.onChange(selected._id);
-      setValue('employeeName', selected.employeeName || '');
-      setValue('employeeImage', selected.employeeImage || '');
-      setValue('sign_type', 'manualSignature');
-      return;
-    }
-
-    field.onChange('');
-    setValue('employeeName', '');
-    setValue('employeeImage', '');
+  const handleSignatureSelection = (selectedEmployee, field) => {
+    const employeeId = selectedEmployee?._id || '';
+    field.onChange(employeeId);
+    setValue('employee', employeeId, { shouldValidate: true, shouldDirty: true });
   };
 
   const handleToggleNotes = () => {
@@ -432,11 +401,10 @@ export default function useSalesReturnHandler({
     try {
       closeSnackbar?.();
 
-      const payload = isEdit ? buildEditPayload(data) : buildAddPayload(data);
-      const employeeURL = !isEdit && data.sign_type === 'eSignature' && data.employeeImage
-        ? data.employeeImage
-        : null;
-      const result = isEdit ? await onSave(payload) : await onSave(payload, employeeURL);
+      const payload = isEdit
+        ? buildEditPayload(data)
+        : buildAddPayload(data, salesReturnStatuses.find((item) => item.summaryKey === 'pending')?.value);
+      const result = await onSave(payload);
 
       if (result.success) {
         setTimeout(() => {
@@ -446,6 +414,32 @@ export default function useSalesReturnHandler({
     } catch (error) {
       console.error('Error submitting form:', error);
       enqueueSnackbar?.(`Failed to ${isEdit ? 'update' : 'create'} sales return: ${error.message}`, {
+        variant: 'error',
+        autoHideDuration: 5000,
+        preventDuplicate: false,
+      });
+    }
+  };
+
+  const handleDraftSubmit = async data => {
+    if (isEdit) {
+      return;
+    }
+
+    try {
+      closeSnackbar?.();
+
+      const payload = buildAddPayload(data, salesReturnStatuses.find((item) => item.summaryKey === 'draft')?.value);
+      const result = await onSave(payload, { isDraft: true });
+
+      if (result.success) {
+        setTimeout(() => {
+          router.push('/sales-return/sales-return-list');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error saving sales return draft:', error);
+      enqueueSnackbar?.(`Failed to save sales return draft: ${error.message}`, {
         variant: 'error',
         autoHideDuration: 5000,
         preventDuplicate: false,
@@ -472,11 +466,12 @@ export default function useSalesReturnHandler({
     watchItems,
     watchRoundOff,
     productsCloneData,
+    productData,
     banks,
+    signOptions,
     newBank,
     setNewBank,
     handleAddBank,
-    signOptions,
     handleSignatureSelection,
     paymentMethods,
     notesExpanded,
@@ -500,6 +495,7 @@ export default function useSalesReturnHandler({
     handleTaxClose,
     handleTaxMenuItemClick,
     handleFormSubmit,
+    handleDraftSubmit,
     handleError,
   };
 }

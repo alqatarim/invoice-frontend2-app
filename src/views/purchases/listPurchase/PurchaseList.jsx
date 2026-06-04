@@ -33,6 +33,7 @@ import { getPurchaseColumns } from './purchaseColumns';
 const PurchaseList = ({
      initialPurchases,
      initialPagination,
+     initialSummary = {},
      vendors = [],
      initialErrorMessage = ''
 }) => {
@@ -68,6 +69,7 @@ const PurchaseList = ({
      const handlers = usePurchaseListHandlers({
           initialPurchases,
           initialPagination,
+          initialSummary,
           onError,
           onSuccess,
      });
@@ -146,6 +148,7 @@ const PurchaseList = ({
           <div className='flex flex-col gap-5'>
                <PurchaseHead
                     purchaseListData={handlers.purchases}
+                    summary={handlers.summary}
                     isLoading={handlers.loading}
                />
 

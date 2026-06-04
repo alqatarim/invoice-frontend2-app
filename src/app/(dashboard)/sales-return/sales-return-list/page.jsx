@@ -25,6 +25,8 @@ const SalesReturnListPage = async () => {
         total: response.totalRecords || 0
       };
       initialCardCounts = response.cardCounts;
+    } else {
+      initialErrorMessage = response?.message || 'Failed to load sales returns.';
     }
   } catch (error) {
     console.error('Error fetching initial sales return data:', error);

@@ -1,44 +1,53 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Icon } from '@iconify/react';
 import {
   Alert,
+  Backdrop,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select
 } from '@mui/material';
+import { useSnackbar } from 'notistack';
 import { usePermission } from '@/Auth/usePermission';
 
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import BranchHead from './BranchHead';
 import BranchDialog from './BranchDialog';
 import { getBranchColumns } from './branchColumns';
-import AppSnackbar from '@/components/shared/AppSnackbar';
-import { addBranch, updateBranch } from '@/app/(dashboard)/branches/actions';
+import {
+  addBranch,
+  getBranchById,
+  updateBranch,
+} from '@/app/(dashboard)/branches/actions';
+import { resolveProvinceDisplayName } from '@/utils/normalizeBranchFormValues';
 import { useBranchListHandler } from './handler';
 
 const BranchList = ({
   initialBranches = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialSummary = {},
   initialProvincesCities = [],
-  initialUsers = []
+  initialUsers = [],
+  initialFilters = {},
 }) => {
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
   const permissions = {
     canCreate: usePermission('branch', 'create'),
     canUpdate: usePermission('branch', 'update'),
     canView: usePermission('branch', 'view'),
     canDelete: usePermission('branch', 'delete'),
   };
-
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
 
   const [dialogState, setDialogState] = useState({
     open: false,
@@ -52,29 +61,115 @@ const BranchList = ({
   });
 
   const [provincesCities] = useState(Array.isArray(initialProvincesCities) ? initialProvincesCities : []);
+  const teamUsers = Array.isArray(initialUsers) ? initialUsers : [];
 
-  const onError = useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'error' });
-  }, []);
+  const onError = useCallback(
+    msg => {
+      closeSnackbar();
+      enqueueSnackbar(msg, {
+        variant: 'error',
+        autoHideDuration: 5000,
+        preventDuplicate: true,
+      });
+    },
+    [closeSnackbar, enqueueSnackbar]
+  );
 
-  const onSuccess = useCallback(msg => {
-    setSnackbar({ open: true, message: msg, severity: 'success' });
+  const onSuccess = useCallback(
+    msg => {
+      enqueueSnackbar(msg, {
+        variant: 'success',
+        autoHideDuration: 3000,
+      });
+    },
+    [enqueueSnackbar]
+  );
+
+  const openBranchDialog = useCallback((mode, branchId) => {
+    setDialogBranch(null);
+    setLoadingBranch(mode !== 'add');
+    setDialogState({
+      open: true,
+      mode,
+      branchId: branchId ? String(branchId) : null,
+    });
   }, []);
 
   const handlers = useBranchListHandler({
     initialBranches,
     initialPagination,
+    initialSummary,
     onError,
     onSuccess,
-    onEdit: (id) => setDialogState({ open: true, mode: 'edit', branchId: id }),
-    onView: (id) => setDialogState({ open: true, mode: 'view', branchId: id }),
+    onEdit: id => openBranchDialog('edit', id),
+    onView: id => openBranchDialog('view', id),
+    initialFilters,
   });
 
-  const columns = useMemo(() => getBranchColumns({ permissions }), [permissions]);
+  const provinceFilterValue = handlers.filters?.province || '';
+  const cityFilterValue = handlers.filters?.city || '';
+
+  const cityFilterOptions = useMemo(() => {
+    const province = provincesCities.find(item => item.province === provinceFilterValue);
+    const cities = [...(province?.cities || [])];
+
+    if (cityFilterValue && !cities.some(city => city.name === cityFilterValue)) {
+      cities.push({ name: cityFilterValue, districts: [] });
+    }
+
+    return cities;
+  }, [cityFilterValue, provinceFilterValue, provincesCities]);
+
+  const locationFilterControls = (
+    <div className="flex items-center gap-2 max-sm:flex-col max-sm:is-full">
+      <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 180 } }}>
+        <InputLabel id="stores-province-filter-label">Province</InputLabel>
+        <Select
+          labelId="stores-province-filter-label"
+          value={provinceFilterValue}
+          label="Province"
+          onChange={event => handlers.handleProvinceFilterChange(event.target.value)}
+        >
+          <MenuItem value="">All provinces</MenuItem>
+          {provincesCities.map(item => (
+            <MenuItem key={item.province} value={item.province}>
+              {resolveProvinceDisplayName(item.province, provincesCities)}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl
+        size="small"
+        disabled={!provinceFilterValue}
+        sx={{ minWidth: { xs: '100%', sm: 170 } }}
+      >
+        <InputLabel id="stores-city-filter-label">City</InputLabel>
+        <Select
+          labelId="stores-city-filter-label"
+          value={cityFilterValue}
+          label="City"
+          onChange={event => handlers.handleCityFilterChange(event.target.value)}
+        >
+          <MenuItem value="">All cities</MenuItem>
+          {cityFilterOptions.map(city => (
+            <MenuItem key={city.name} value={city.name}>
+              {city.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </div>
+  );
+
+  const columns = useMemo(
+    () => getBranchColumns({ permissions, provincesCities }),
+    [permissions, provincesCities]
+  );
 
   const tableColumns = useMemo(() => {
     const cellHandlers = {
-      handleDelete: (id) => setDeleteDialog({ open: true, branchId: id }),
+      handleDelete: id => setDeleteDialog({ open: true, branchId: String(id || '') }),
       handleEdit: handlers.handleEdit,
       handleView: handlers.handleView,
       pagination: handlers.pagination,
@@ -92,39 +187,128 @@ const BranchList = ({
     total: handlers.pagination.total
   }), [handlers.pagination]);
 
-  const selectedBranch = useMemo(() => {
-    if (!dialogState.branchId) return null;
-    return handlers.branches.find(item => item._id === dialogState.branchId) || null;
-  }, [dialogState.branchId, handlers.branches]);
+  const [dialogBranch, setDialogBranch] = useState(null);
+  const [loadingBranch, setLoadingBranch] = useState(false);
+
+  const resetDialogState = useCallback(() => {
+    setDialogState({ open: false, mode: 'add', branchId: null });
+    setDialogBranch(null);
+    setLoadingBranch(false);
+  }, []);
+
+  const showBranchDialog =
+    dialogState.open &&
+    (dialogState.mode === 'add' || (!loadingBranch && Boolean(dialogBranch)));
+
+  const isLoadingBranchDetails =
+    dialogState.open && dialogState.mode !== 'add' && loadingBranch;
+
+  useEffect(() => {
+    if (!dialogState.open) return;
+
+    if (dialogState.mode === 'add') {
+      setDialogBranch(null);
+      setLoadingBranch(false);
+      return;
+    }
+
+    if (!dialogState.branchId) {
+      setDialogBranch(null);
+      setLoadingBranch(false);
+      return;
+    }
+
+    const branchId = dialogState.branchId;
+    let cancelled = false;
+
+    setDialogBranch(null);
+    setLoadingBranch(true);
+
+    (async () => {
+      const response = await getBranchById(branchId);
+
+      if (cancelled) return;
+
+      if (response.success && response.data) {
+        setDialogBranch(response.data);
+        setLoadingBranch(false);
+      } else {
+        onError(response.message || 'Failed to load location details');
+        resetDialogState();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      setLoadingBranch(false);
+    };
+  }, [dialogState.open, dialogState.mode, dialogState.branchId, onError, resetDialogState]);
 
   const handleDialogClose = () => {
-    setDialogState({ open: false, mode: 'add', branchId: null });
+    resetDialogState();
   };
 
-  const handleAddBranch = async (formData) => {
-    onSuccess('Creating location...');
-    const response = await addBranch(formData);
-    if (!response.success) {
-      onError(response.message || 'Failed to create location');
-      return;
-    }
-    onSuccess('Location created successfully!');
-    handleDialogClose();
-    await handlers.refreshData();
-  };
+  const handleAddBranch = useCallback(
+    async formData => {
+      const loadingKey = enqueueSnackbar('Creating location...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: true,
+      });
 
-  const handleUpdateBranch = async (formData) => {
-    if (!selectedBranch?._id) return;
-    onSuccess('Updating location...');
-    const response = await updateBranch(selectedBranch._id, formData);
-    if (!response.success) {
-      onError(response.message || 'Failed to update location');
-      return;
-    }
-    onSuccess('Location updated successfully!');
-    handleDialogClose();
-    await handlers.refreshData();
-  };
+      try {
+        const response = await addBranch(formData);
+        closeSnackbar(loadingKey);
+
+        if (!response.success) {
+          onError(response.message || 'Failed to create location');
+          return;
+        }
+
+        onSuccess('Location created successfully!');
+        handleDialogClose();
+        await handlers.refreshData();
+      } catch (error) {
+        closeSnackbar(loadingKey);
+        onError(error.message || 'Failed to create location');
+      }
+    },
+    [closeSnackbar, enqueueSnackbar, handlers, onError, onSuccess]
+  );
+
+  const handleUpdateBranch = useCallback(
+    async formData => {
+      const branchId = String(dialogBranch?._id || dialogBranch?.id || dialogState.branchId || '').trim();
+      if (!branchId) {
+        onError('Location not found. Close the dialog and open it again.');
+        return;
+      }
+
+      const loadingKey = enqueueSnackbar('Updating location...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: true,
+      });
+
+      try {
+        const response = await updateBranch(branchId, formData);
+        closeSnackbar(loadingKey);
+
+        if (!response.success) {
+          onError(response.message || 'Failed to update location');
+          return;
+        }
+
+        onSuccess('Location updated successfully!');
+        handleDialogClose();
+        await handlers.refreshData();
+      } catch (error) {
+        closeSnackbar(loadingKey);
+        onError(error.message || 'Failed to update location');
+      }
+    },
+    [closeSnackbar, dialogBranch, dialogState.branchId, enqueueSnackbar, handlers, onError, onSuccess]
+  );
 
   const handleDeleteConfirm = async () => {
     if (!deleteDialog.branchId) return;
@@ -134,19 +318,17 @@ const BranchList = ({
 
   return (
     <div className='flex flex-col gap-5'>
-      <BranchHead branches={handlers.branches} />
+      <BranchHead summary={handlers.summary} />
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Stores are customer-facing locations with default admins and staff, while warehouses are stock locations used for transfers, replenishment, and inventory operations.
-          </Alert>
+
           <CustomListTable
-            title="Stores & Warehouses"
+
             addRowButton={
               permissions.canCreate && (
                 <Button
-                  onClick={() => setDialogState({ open: true, mode: 'add', branchId: null })}
+                  onClick={() => openBranchDialog('add', null)}
                   variant="contained"
                   startIcon={<Icon icon="tabler:plus" />}
                 >
@@ -169,20 +351,28 @@ const BranchList = ({
             searchValue={handlers.searchTerm || ''}
             onSearchChange={handlers.handleSearchInputChange}
             searchPlaceholder="Search stores, warehouses, or default admins..."
+            searchControls={locationFilterControls}
             enableHover
           />
         </Grid>
       </Grid>
 
-      <BranchDialog
-        open={dialogState.open}
-        mode={dialogState.mode}
-        branch={selectedBranch}
-        users={initialUsers}
-        provincesCities={provincesCities}
-        onClose={handleDialogClose}
-        onSave={dialogState.mode === 'edit' ? handleUpdateBranch : handleAddBranch}
-      />
+      <Backdrop open={isLoadingBranchDetails} sx={{ zIndex: theme => theme.zIndex.modal - 1 }}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
+
+      {showBranchDialog ? (
+        <BranchDialog
+          key={`${dialogState.mode}-${dialogState.branchId || 'add'}`}
+          open
+          mode={dialogState.mode}
+          branch={dialogBranch}
+          users={teamUsers}
+          provincesCities={provincesCities}
+          onClose={handleDialogClose}
+          onSave={dialogState.mode === 'edit' ? handleUpdateBranch : handleAddBranch}
+        />
+      ) : null}
 
       <Dialog
         open={deleteDialog.open}
@@ -203,14 +393,6 @@ const BranchList = ({
           </Button>
         </DialogActions>
       </Dialog>
-
-      <AppSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={(_, reason) => reason !== 'clickaway' && setSnackbar(prev => ({ ...prev, open: false }))}
-        autoHideDuration={6000}
-      />
     </div>
   );
 };

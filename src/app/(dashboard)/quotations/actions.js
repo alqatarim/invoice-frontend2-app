@@ -12,7 +12,9 @@ const ENDPOINTS = {
     UPDATE: '/quotation',
     DELETE: '/quotation/deleteQuotation',
     GET_QUOTATION_NUMBER: '/quotation/getQuotationNumber',
-    UPDATE_STATUS: '/quotation/update_status'
+    UPDATE_STATUS: '/quotation/update_status',
+    CLONE: '/quotation/cloneQuotation',
+    CONVERT: '/quotation/convertInvoice',
   },
   LIST: {
     CUSTOMER_LIST: '/customers/listCustomers',
@@ -62,10 +64,14 @@ const appendQuotationFormData = (formData, data = {}) => {
   formData.append('roundOff', Boolean(data.roundOff));
   formData.append('TotalAmount', Number(data.TotalAmount || data.totalAmount || 0).toString());
   formData.append('bank', data.bank || '');
+  formData.append('employee', data.employee || '');
   formData.append('notes', data.notes || '');
   formData.append('termsAndCondition', data.termsAndCondition || data.termsAndConditions || '');
-  formData.append('employee', data.employee || '');
+  formData.append('status', data.status || '');
 };
+
+const extractActionMessage = (response, fallbackMessage) =>
+  response?.data?.message || response?.message || fallbackMessage;
 
 export async function getQuotationsList(page = 1, pageSize = 10, filters = {}) {
   try {
@@ -99,7 +105,8 @@ export async function getQuotationsList(page = 1, pageSize = 10, filters = {}) {
     return {
       success: true,
       data: response.data || [],
-      totalRecords: response.totalRecords || 0
+      totalRecords: response.totalRecords || 0,
+      summary: response.summary || {}
     };
   } catch (error) {
     console.error('Error fetching quotations list:', error);
@@ -120,11 +127,11 @@ export async function deleteQuotation(id) {
       revalidatePath('/quotations');
       return {
         success: true,
-        message: 'Quotation deleted successfully'
+        message: extractActionMessage(response, 'Quotation deleted successfully')
       };
     }
 
-    throw new Error(response?.message || 'Failed to delete quotation');
+    throw new Error(extractActionMessage(response, 'Failed to delete quotation'));
   } catch (error) {
     console.error('Error deleting quotation:', error);
     return { success: false, message: error.message };
@@ -179,7 +186,7 @@ export async function addQuotation(data) {
     return {
       success: true,
       data: response.data,
-      message: response.message
+      message: extractActionMessage(response, 'Quotation created successfully')
     };
   } catch (error) {
     console.error('Error adding quotation:', error);
@@ -215,7 +222,7 @@ export async function updateQuotation(id, data) {
     return {
       success: true,
       data: response.data,
-      message: response.message
+      message: extractActionMessage(response, 'Quotation updated successfully')
     };
   } catch (error) {
     console.error('Error updating quotation:', error);
@@ -257,7 +264,7 @@ export async function updateQuotationStatus(id, status) {
     revalidatePath('/quotations');
     return {
       success: true,
-      message: 'Quotation status updated successfully'
+      message: extractActionMessage(response, 'Quotation status updated successfully')
     };
   } catch (error) {
     console.error('Error updating quotation status:', error);
@@ -267,7 +274,7 @@ export async function updateQuotationStatus(id, status) {
 
 export async function convertToInvoice(id, paymentMethod = 'Cash') {
   try {
-    const response = await fetchWithAuth('/quotation/convertInvoice', {
+    const response = await fetchWithAuth(ENDPOINTS.QUOTATION.CONVERT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -287,20 +294,23 @@ export async function convertToInvoice(id, paymentMethod = 'Cash') {
       return {
         success: true,
         data: response.data,
-        message: response.message || 'Quotation converted to invoice successfully'
+        message: extractActionMessage(response, 'Quotation converted to invoice successfully')
       };
     }
 
     // Handle validation errors (inventory insufficient)
     if (response.code === 422 || response.code === 400) {
+      const validationMessage = response.data?.message || response.message;
       return {
         success: false,
-        message: response.message || 'Validation error occurred'
+        message: Array.isArray(validationMessage)
+          ? validationMessage.join(', ')
+          : validationMessage || 'Validation error occurred'
       };
     }
 
     // Handle other error cases
-    throw new Error(response?.message || 'Failed to convert quotation to invoice');
+    throw new Error(extractActionMessage(response, 'Failed to convert quotation to invoice'));
 
   } catch (error) {
     console.error('Error converting quotation to invoice:', error);
@@ -309,6 +319,36 @@ export async function convertToInvoice(id, paymentMethod = 'Cash') {
     return {
       success: false,
       message: error.message || 'An unexpected error occurred while converting the quotation'
+    };
+  }
+}
+
+export async function cloneQuotation(id) {
+  try {
+    const response = await fetchWithAuth(ENDPOINTS.QUOTATION.CLONE, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (response.code && response.code !== 200) {
+      throw new Error(extractActionMessage(response, 'Failed to clone quotation'));
+    }
+
+    revalidatePath('/quotations');
+
+    return {
+      success: true,
+      data: response.data?.quotation || response.data,
+      message: extractActionMessage(response, 'Quotation cloned successfully'),
+    };
+  } catch (error) {
+    console.error('Error cloning quotation:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to clone quotation',
     };
   }
 }

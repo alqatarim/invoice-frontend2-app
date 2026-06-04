@@ -9,6 +9,7 @@ import PurchaseOrderList from "@/views/purchase-orders/listOrder/PurchaseOrderLi
 const PurchaseOrderListIndex = ({
   initialPurchaseOrders = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialCardCounts = {},
   initialErrorMessage = '',
 }) => {
   const snackbarAction = snackbarId => (
@@ -28,6 +29,7 @@ const PurchaseOrderListIndex = ({
       <PurchaseOrderList
         initialPurchaseOrders={initialPurchaseOrders}
         initialPagination={initialPagination}
+        initialCardCounts={initialCardCounts}
         initialErrorMessage={initialErrorMessage}
       />
     </SnackbarProvider>

@@ -5,16 +5,16 @@ import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
 import OptionMenu from '@core/components/option-menu';
 import { formatDate } from '@/utils/dateUtils';
-import { statusOptions } from '@/data/dataSets';
-import { paymentMethodIcons } from '@/data/dataSets';
+import { salesReturnStatuses } from '@/data/dataSets';
+import { paymentMethods } from '@/data/dataSets';
 /**
  * Sales Return table column definitions
  */
 export const getSalesReturnColumns = ({ theme, permissions }) => [
   {
-    key: 'salesReturnId',
+    key: 'salesReturnNo',
     visible: true,
-    label: 'Sales Return ID',
+    label: 'Sales Return No',
     sortable: true,
     renderCell: (row) => (
       <Link href={`/sales-return/sales-return-view/${row._id}`} passHref>
@@ -26,6 +26,33 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
         </Typography>
       </Link>
     ),
+  },
+  {
+    key: 'invoiceNo',
+    visible: true,
+    label: 'Invoice No',
+    sortable: true,
+    renderCell: (row) => {
+      const invoice = row.invoiceInfo;
+
+      if (!invoice?._id || !invoice?.invoiceNumber) {
+        return (
+          <>
+          </>
+        );
+      }
+
+      return (
+        <Link href={`/invoices/invoice-view/${invoice._id}`} passHref>
+          <Typography
+            className="cursor-pointer text-primary hover:underline"
+            align='center'
+          >
+            {invoice.invoiceNumber}
+          </Typography>
+        </Link>
+      );
+    },
   },
   {
     key: 'createdOn',
@@ -44,39 +71,36 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
     label: 'Customer',
     sortable: true,
     renderCell: (row) => (
-      <div className="flex items-center gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-          <Icon icon="tabler:user" width="1rem" color={theme.palette.warning.main} />
-        </div>
-        <div className="flex flex-col">
-          <Link href={`/customers/customer-view/${row.customerInfo?._id}`} passHref>
-            <Typography
-              variant="body1"
-              className='text-[0.9rem] text-start cursor-pointer text-primary hover:underline font-medium'
-            >
-              {row.customerInfo?.name || 'Deleted Customer'}
-            </Typography>
-          </Link>
-          <Typography variant="caption" color="textSecondary">
-            {row.customerInfo?.phone || ''}
+
+      <div className="flex flex-col">
+        <Link href={`/customers/customer-view/${row.customerInfo?._id}`} passHref>
+          <Typography
+            variant="body1"
+            className='text-[0.9rem] text-start cursor-pointer text-primary hover:underline font-medium'
+          >
+            {row.customerInfo?.name || 'Deleted Customer'}
           </Typography>
-        </div>
+        </Link>
+        <Typography variant="body2" color="text.secondary" fontWeight={500} className='tabular-nums'>
+          {row.customerInfo?.phone || ''}
+        </Typography>
       </div>
+
     ),
   },
   {
-    key: 'amounts',
-    label: 'Refund Amount',
+    key: 'Refund',
+    label: 'Refund',
     visible: true,
     align: 'center',
     renderCell: (row) => {
       const total = Number(row.TotalAmount) || 0;
 
       return (
-        <div className="flex items-center justify-center gap-1 px-2 py-1 rounded-lg bg-red-50">
+        <div className="flex items-end justify-start gap-0">
 
-          <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.error.main} />
-          <Typography color="error.main" className='text-[0.9rem] font-medium'>
+          <Icon icon="lucide:saudi-riyal" width="0.75rem" color={theme.palette.text.primary} />
+          <Typography color="text.primary" lineHeight={1} className='font-medium'>
             {total.toLocaleString('en-IN', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
@@ -91,13 +115,16 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
     visible: true,
     label: 'Payment Mode',
     sortable: true,
-    renderCell: (row) => (
-      <Box className="flex items-center gap-2">
-        <Icon icon={paymentMethodIcons.find(icon => icon.value.toUpperCase() === row.paymentMode)?.label} fontSize={23} color={theme.palette.secondary.main} />
-        <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>{row.paymentMode || '-'}</Typography>
-      </Box>
+    renderCell: (row) => {
 
-    ),
+
+      return (
+        <Box className="flex items-center gap-1.5">
+          <Icon icon={(paymentMethods.find((item) => item.value === row.paymentMode))?.icon || 'mdi:cash-multiple'} fontSize={18} color={theme.palette.text.secondary} />
+          <Typography color='text.primary' >{row.paymentMode || '-'}</Typography>
+        </Box >
+      );
+    },
   },
   {
     key: 'status',
@@ -106,13 +133,13 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
     align: 'center',
     sortable: true,
     renderCell: (row) => {
-      const statusOption = statusOptions.find(opt => opt.value === row.status);
+      const statusOption = salesReturnStatuses.find((item) => item.value === row.status);
+
       return (
         <Chip
-          // className='mx-0'
-          // size='small'
+          size='small'
           variant='tonal'
-          label={statusOption?.label || 'Pending'}
+          label={statusOption?.label || row.status || 'Pending'}
           color={statusOption?.color || 'default'}
         />
       );
@@ -148,6 +175,28 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
         });
       }
 
+      if (permissions.canUpdate && row.status === salesReturnStatuses.find((item) => item.summaryKey === 'draft')?.value) {
+        options.push({
+          text: 'Set as Pending',
+          icon: <Icon icon="mdi:clock-outline" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleSetAsPending?.(row._id)
+          }
+        });
+      }
+
+      if (permissions.canUpdate && row.status === salesReturnStatuses.find((item) => item.summaryKey === 'pending')?.value) {
+        options.push({
+          text: 'Process Refund',
+          icon: <Icon icon="mdi:cash-refund" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleProcessRefund?.(row._id)
+          }
+        });
+      }
+
       if (permissions.canUpdate) {
         options.push({
           text: 'Print & Download',
@@ -155,15 +204,6 @@ export const getSalesReturnColumns = ({ theme, permissions }) => [
           menuItemProps: {
             className: 'flex items-center gap-2 text-textSecondary',
             onClick: () => handlers.handlePrintDownload(row._id)
-          }
-        });
-
-        options.push({
-          text: 'Process Refund',
-          icon: <Icon icon="mdi:cash-refund" />,
-          menuItemProps: {
-            className: 'flex items-center gap-2 text-textSecondary',
-            onClick: () => handlers.handleProcessRefund && handlers.handleProcessRefund(row._id)
           }
         });
       }

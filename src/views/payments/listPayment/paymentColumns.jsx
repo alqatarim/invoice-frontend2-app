@@ -3,62 +3,45 @@
 import Link from 'next/link';
 import { Box, Typography, Avatar, Chip } from '@mui/material';
 import { Icon } from '@iconify/react';
-import { formatDate } from '@/utils/dateUtils';
-import { formatCurrency } from '@/utils/currencyUtils';
-import { useTheme } from '@mui/material/styles';
-import { actionButtons } from '@/data/dataSets';
+import moment from 'moment';
+import { getPaymentStatusOption, paymentMethods } from '@/data/dataSets';
 import OptionMenu from '@core/components/option-menu';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 
-const getPaymentModeIcon = (mode) => {
-  switch (mode) {
-    case 'Cash':
-      return 'mdi:cash-multiple';
-    case 'Cheque':
-      return 'mdi:checkbook';
-    case 'Bank':
-      return 'mdi:bank';
-    case 'Online':
-      return 'mdi:web';
-    default:
-      return 'bi:credit-card';
-  }
-};
-
-export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
-  const theme = useTheme();
-
-  const handlers = { handleView, handleEdit, handleDelete };
-
-  return [
+export const getPaymentColumns = ({
+  theme = {},
+  permissions = {},
+  onDelete,
+  onView,
+  onEdit,
+  onSetAsSuccess,
+  onSetAsFailed,
+} = {}) => [
     {
       key: 'payment_number',
-      label: 'Payment No',
       visible: true,
+      label: 'Payment No',
       sortable: true,
-      renderCell: (row, handlers) => (
+      renderCell: row => (
         <Typography
-          variant="body1"
-          color="primary"
-          className="text-[0.9rem] font-medium"
-          sx={{ cursor: 'pointer', textDecoration: 'none' }}
-          onClick={() => handlers?.handleView?.(row._id)}
+          className="cursor-pointer text-primary hover:underline font-medium"
+          onClick={() => onView?.(row._id)}
         >
-          {row.payment_number}
+          {row.payment_number || 'N/A'}
         </Typography>
       ),
     },
     {
       key: 'customer',
-      label: 'Customer',
       visible: true,
+      label: 'Customer',
       sortable: true,
-      renderCell: (row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      renderCell: row => (
+        <Box className="flex items-center gap-2">
           <Avatar
             src={row.customerDetail?.image}
             alt={row.customerDetail?.name}
-            sx={{ mr: 2, width: 34, height: 34 }}
+            sx={{ width: 34, height: 34 }}
           >
             {!row.customerDetail?.image && <Icon icon="mdi:image-off-outline" />}
           </Avatar>
@@ -67,14 +50,14 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
               color="primary.main"
               variant="body1"
               className="text-[0.9rem] font-medium"
-              component={Link}
-              href={`/customers/customer-view/${row.customerDetail?._id}`}
+              component={row.customerDetail?._id ? Link : 'span'}
+              href={row.customerDetail?._id ? `/customers/customer-view/${row.customerDetail._id}` : undefined}
               sx={{ textDecoration: 'none' }}
             >
               {row.customerDetail?.name || 'Deleted Customer'}
             </Typography>
             <Typography variant="caption" display="block" className="text-[0.8rem]">
-              {row.customerDetail?.phone || 'Deleted Customer'}
+              {row.customerDetail?.phone || '—'}
             </Typography>
           </Box>
         </Box>
@@ -84,21 +67,33 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
       key: 'amount',
       label: 'Amount',
       visible: true,
+      align: 'center',
       sortable: true,
-      renderCell: (row) => (
-        <Typography variant="body1" className="text-[0.9rem]">
-          {formatCurrency(row.amount)}
-        </Typography>
-      ),
+      renderCell: row => {
+        const total = Number(row.amount) || 0;
+
+        return (
+          <div className="flex items-end justify-start gap-0">
+            <Icon icon="lucide:saudi-riyal" width="0.75rem" color={theme.palette?.text?.primary} />
+            <Typography color="text.primary" lineHeight={1} className="font-medium">
+              {total.toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </Typography>
+          </div>
+        );
+      },
     },
     {
       key: 'payment_date',
-      label: 'Payment Date',
       visible: true,
+      label: 'Date',
+      align: 'center',
       sortable: true,
-      renderCell: (row) => (
-        <Typography variant="body1" className="text-[0.9rem]">
-          {formatDate(row.createdAt)}
+      renderCell: row => (
+        <Typography variant="body1" color="text.primary" className="text-[0.9rem] whitespace-nowrap">
+          {row.createdAt ? moment(row.createdAt).format('DD MMM YY') : 'N/A'}
         </Typography>
       ),
     },
@@ -107,16 +102,14 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
       label: 'Payment Method',
       visible: true,
       sortable: true,
-      renderCell: (row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      renderCell: row => (
+        <Box className="flex items-center gap-1.5">
           <Icon
-            icon={getPaymentModeIcon(row.payment_method)}
-            fontSize={23}
-            color={theme.palette.secondary.main}
+            icon={paymentMethods.find(item => item.value === row.payment_method)?.icon || 'mdi:credit-card-outline'}
+            fontSize={18}
+            color={theme.palette?.text?.secondary}
           />
-          <Typography variant="body1" className="text-[0.9rem]">
-            {row.payment_method}
-          </Typography>
+          <Typography color="text.primary">{row.payment_method || '-'}</Typography>
         </Box>
       ),
     },
@@ -124,86 +117,85 @@ export const paymentColumns = ({ handleView, handleEdit, handleDelete }) => {
       key: 'status',
       label: 'Status',
       visible: true,
+      align: 'center',
       sortable: true,
-      renderCell: (row) => (
-        <Chip
-          color={
-            row.status === 'Success'
-              ? 'success'
-              : row.status === 'Processing'
-                ? 'primary'
-                : row.status === 'Pending'
-                  ? 'warning'
-                  : row.status === 'Failed'
-                    ? 'error'
-                    : 'secondary'
-          }
-          variant="tonal"
-          size="medium"
-          label={row.status.split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ')}
-        />
-      ),
+      renderCell: row => {
+        const statusOption = getPaymentStatusOption(row.status);
+
+        return (
+          <Chip size="small" variant="tonal" label={statusOption.label} color={statusOption.color} />
+        );
+      },
     },
     {
-      key: 'actions',
+      key: 'action',
       label: '',
       visible: true,
-      sortable: false,
-      renderCell: (row, cellHandlers) => {
-        const viewAction = actionButtons.find(action => action.id === 'view');
-        const editAction = actionButtons.find(action => action.id === 'edit');
-        const deleteAction = actionButtons.find(action => action.id === 'delete');
-        const permissions = cellHandlers?.permissions || {};
-
-        const menuOptions = [];
+      align: 'right',
+      renderCell: row => {
+        const options = [];
 
         if (permissions.canView) {
-          menuOptions.push({
-            text: viewAction?.label || 'View',
-            icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
+          options.push({
+            text: 'View',
+            icon: <Icon icon="mdi:eye-outline" />,
             menuItemProps: {
               className: 'flex items-center gap-2 text-textSecondary',
-              onClick: () => cellHandlers?.handleView?.(row._id)
-            }
+              onClick: () => onView?.(row._id),
+            },
           });
         }
 
         if (permissions.canUpdate) {
-          menuOptions.push({
-            text: editAction?.label || 'Edit',
-            icon: <Icon icon={editAction?.icon || 'mdi:edit-outline'} />,
+          options.push({
+            text: 'Edit',
+            icon: <Icon icon="mdi:edit-outline" />,
             menuItemProps: {
               className: 'flex items-center gap-2 text-textSecondary',
-              onClick: () => cellHandlers?.handleEdit?.(row._id)
-            }
+              onClick: () => onEdit?.(row._id),
+            },
+          });
+        }
+
+        const normalizedStatus = String(row.status || '').trim();
+
+        if (permissions.canUpdate && normalizedStatus === 'Pending') {
+          options.push({
+            text: 'Set as Success',
+            icon: <Icon icon="mdi:check-circle-outline" />,
+            menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+              onClick: () => onSetAsSuccess?.(row._id),
+            },
+          });
+          options.push({
+            text: 'Set as Failed',
+            icon: <Icon icon="mdi:close-circle-outline" />,
+            menuItemProps: {
+              className: 'flex items-center gap-2 text-textSecondary',
+              onClick: () => onSetAsFailed?.(row._id),
+            },
           });
         }
 
         if (permissions.canDelete && row.status !== 'Cancelled') {
-          menuOptions.push({
-            text: deleteAction?.label || 'Delete',
-            icon: <Icon icon={deleteAction?.icon || 'mdi:delete-outline'} />,
+          options.push({
+            text: 'Delete',
+            icon: <Icon icon="mdi:delete-outline" />,
             menuItemProps: {
               className: 'flex items-center gap-2 text-textSecondary',
-              onClick: () => cellHandlers?.handleDelete?.(row._id)
-            }
+              onClick: () => onDelete?.(row),
+            },
           });
         }
 
-        if (menuOptions.length === 0) return null;
-
-        return (
-          <Box className='flex items-center justify-end'>
-            <OptionMenu
-              icon={<MoreVertIcon />}
-              iconButtonProps={{ size: 'small', 'aria-label': 'payment actions' }}
-              options={menuOptions}
-            />
-          </Box>
-        );
+        return options.length ? (
+          <OptionMenu
+            icon={<MoreVertIcon />}
+            iconButtonProps={{ size: 'small', 'aria-label': 'payment actions' }}
+            options={options}
+          />
+        ) : null;
       },
     },
   ];
-};

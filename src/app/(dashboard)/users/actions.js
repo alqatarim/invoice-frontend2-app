@@ -1,11 +1,11 @@
 'use server';
 
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
-import { processSignatureImage } from '@/utils/fileUtils';
 
 const ENDPOINTS = {
      USER: {
           LIST: "/manage_users/listUsers",
+          CARD_COUNTS: "/manage_users/userCard",
           VIEW: "/manage_users/viewUser",
           ADD: "/manage_users/create",
           UPDATE: "/manage_users",
@@ -15,8 +15,26 @@ const ENDPOINTS = {
      },
 };
 
-const CACHE_STABLE_LIST = { next: { revalidate: 60 } };
 const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+
+const appendPreparedImage = (formData, fieldName, preparedImage) => {
+     if (!preparedImage?.base64) {
+          return;
+     }
+
+     const base64Data = preparedImage.base64.split(',')[1];
+     const byteCharacters = atob(base64Data);
+     const byteNumbers = new Array(byteCharacters.length);
+
+     for (let index = 0; index < byteCharacters.length; index += 1) {
+          byteNumbers[index] = byteCharacters.charCodeAt(index);
+     }
+
+     const byteArray = new Uint8Array(byteNumbers);
+     const blob = new Blob([byteArray], { type: preparedImage.type });
+
+     formData.append(fieldName, blob, preparedImage.name);
+};
 
 /**
  * Get user details by ID.
@@ -44,36 +62,50 @@ export async function getUserById(id) {
      }
 }
 
-/**
- * Get initial users data with default pagination and sorting.
- *
- * @returns {Promise<Object>} - The initial users data including users and pagination.
- * @throws {Error} - Throws an error with a detailed message if the operation fails.
- */
-export async function getInitialUsersData() {
+export async function getUsersListPageData() {
      try {
-          const response = await fetchWithAuth(
-               `${ENDPOINTS.USER.LIST}?page=1&pageSize=10&sortBy=&sortDirection=asc`,
-               CACHE_STABLE_LIST
+          const usersResponse = await fetchWithAuth(
+               `${ENDPOINTS.USER.LIST}?page=1&pageSize=10&sortBy=&sortDirection=asc`
           );
 
-          if (response.code === 200) {
-               return {
-                   users: response.data || [],
-                    pagination: {
-                         current: 1,
-                         pageSize: 10,
-                         total: response.totalRecords || 0,
-                    },
-               };
-          } else {
-               console.error('Failed to fetch initial users data');
-               throw new Error('Failed to fetch initial users data');
+          if (usersResponse.code !== 200) {
+               throw new Error(usersResponse?.message || 'Failed to fetch initial users data');
           }
+
+          let cardCounts = usersResponse.summary || {};
+
+          try {
+               const cardCountsResponse = await fetchWithAuth(ENDPOINTS.USER.CARD_COUNTS);
+               if (cardCountsResponse.code === 200) {
+                    cardCounts = cardCountsResponse.data || cardCounts;
+               }
+          } catch (cardCountsError) {
+               console.error('Error fetching user card counts:', cardCountsError.message);
+          }
+
+          return {
+               users: usersResponse.data || [],
+               cardCounts,
+               pagination: {
+                    current: 1,
+                    pageSize: 10,
+                    total: usersResponse.totalRecords || 0,
+               },
+          };
      } catch (error) {
           console.error('Error in getInitialUsersData:', error.message);
           throw new Error(error.message || 'Failed to fetch initial users data');
      }
+}
+
+export async function getInitialUsersData() {
+     const initialListData = await getUsersListPageData();
+
+     return {
+          users: initialListData.users,
+          summary: initialListData.cardCounts,
+          pagination: initialListData.pagination,
+     };
 }
 
 /**
@@ -98,6 +130,13 @@ export async function getFilteredUsers(page, pageSize, filters = {}, sortBy = ''
           if (filters.role && Array.isArray(filters.role) && filters.role.length > 0) {
                url += `&role=${filters.role.join(',')}`;
           }
+          if (
+               filters.organizationalRole &&
+               Array.isArray(filters.organizationalRole) &&
+               filters.organizationalRole.length > 0
+          ) {
+               url += `&organizationalRole=${filters.organizationalRole.join(',')}`;
+          }
           if (filters.search) {
                url += `&search=${encodeURIComponent(filters.search)}`;
           }
@@ -112,6 +151,7 @@ export async function getFilteredUsers(page, pageSize, filters = {}, sortBy = ''
           if (response.code === 200) {
                return {
                     users: response.data || [],
+                    summary: response.summary || {},
                     pagination: {
                          current: page,
                          pageSize,
@@ -140,26 +180,22 @@ export async function getFilteredUsers(page, pageSize, filters = {}, sortBy = ''
  * @param {string} userData.role - The role.
  * @param {string} userData.password - The password.
  * @param {string} userData.status - The status.
- * @param {File} [userData.image] - The profile image file.
+ * @param {Object} [preparedImage] - Serialized image payload.
  * @returns {Promise<Object>} - The response from the backend.
  * @throws {Error} - Throws an error with a detailed message if the operation fails.
  */
-export async function addUser(userData) {
+export async function addUser(userData, preparedImage = null) {
      const {
           firstName,
           lastName,
           userName,
           email,
           mobileNumber,
-          role,
-          roleId,
-          companyRole,
-          assignedBranchIds = [],
-          primaryBranchId = '',
-          branchRole = '',
+          organizationalRole,
+          storeAssignments = [],
           password,
           status,
-          image
+          gender
      } = userData;
 
      if (!firstName || typeof firstName !== 'string') {
@@ -178,8 +214,8 @@ export async function addUser(userData) {
           throw new Error('Invalid email');
      }
 
-     if (!role || typeof role !== 'string') {
-          throw new Error('Invalid role');
+     if (!organizationalRole || typeof organizationalRole !== 'string') {
+          throw new Error('Invalid organizational role');
      }
 
      if (!password || typeof password !== 'string') {
@@ -196,19 +232,13 @@ export async function addUser(userData) {
      formData.append('userName', userName);
      formData.append('email', email);
      formData.append('mobileNumber', mobileNumber || '');
-     formData.append('role', role);
-     formData.append('roleId', roleId || '');
-     formData.append('companyRole', companyRole || 'COMPANY_MEMBER');
-     formData.append('assignedBranchIds', JSON.stringify(assignedBranchIds || []));
-     formData.append('primaryBranchId', primaryBranchId || '');
-     formData.append('branchRole', branchRole || '');
+     formData.append('organizationalRole', organizationalRole);
+     formData.append('storeAssignments', JSON.stringify(storeAssignments || []));
      formData.append('password', password);
      formData.append('status', status);
+     formData.append('gender', gender || '');
 
-     // Handle image upload
-     if (image && image instanceof File) {
-          formData.append('image', image);
-     }
+     appendPreparedImage(formData, 'image', preparedImage);
 
      try {
           const response = await fetchWithAuth(ENDPOINTS.USER.ADD, {
@@ -239,11 +269,11 @@ export async function addUser(userData) {
  * @param {string} [userData.mobileNumber] - The mobile number.
  * @param {string} userData.role - The role.
  * @param {string} userData.status - The status.
- * @param {File} [userData.image] - The profile image file.
+ * @param {Object} [preparedImage] - Serialized image payload.
  * @returns {Promise<Object>} - The response from the backend.
  * @throws {Error} - Throws an error with a detailed message if the operation fails.
  */
-export async function updateUser(id, userData) {
+export async function updateUser(id, userData, preparedImage = null) {
      if (!id || typeof id !== 'string') {
           throw new Error('Invalid user ID');
      }
@@ -254,14 +284,10 @@ export async function updateUser(id, userData) {
           userName,
           email,
           mobileNumber,
-          role,
-          roleId,
-          companyRole,
-          assignedBranchIds = [],
-          primaryBranchId = '',
-          branchRole = '',
+          organizationalRole,
+          storeAssignments = [],
           status,
-          image,
+          gender,
           imageRemoved = false
      } = userData;
 
@@ -281,8 +307,8 @@ export async function updateUser(id, userData) {
           throw new Error('Invalid email');
      }
 
-     if (!role || typeof role !== 'string') {
-          throw new Error('Invalid role');
+     if (!organizationalRole || typeof organizationalRole !== 'string') {
+          throw new Error('Invalid organizational role');
      }
 
      if (!status || typeof status !== 'string') {
@@ -295,17 +321,14 @@ export async function updateUser(id, userData) {
      formData.append('userName', userName);
      formData.append('email', email);
      formData.append('mobileNumber', mobileNumber || '');
-     formData.append('role', role);
-     formData.append('roleId', roleId || '');
-     formData.append('companyRole', companyRole || 'COMPANY_MEMBER');
-     formData.append('assignedBranchIds', JSON.stringify(assignedBranchIds || []));
-     formData.append('primaryBranchId', primaryBranchId || '');
-     formData.append('branchRole', branchRole || '');
+     formData.append('organizationalRole', organizationalRole);
+     formData.append('storeAssignments', JSON.stringify(storeAssignments || []));
      formData.append('status', status);
+     formData.append('gender', gender || '');
 
      // Only remove the image when the dialog explicitly requests it.
-     if (image && image instanceof File) {
-          formData.append('image', image);
+     if (preparedImage) {
+          appendPreparedImage(formData, 'image', preparedImage);
      } else if (imageRemoved) {
           formData.append('image', 'remove');
      }

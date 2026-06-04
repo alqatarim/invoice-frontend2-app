@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath, unstable_noStore as noStore } from 'next/cache';
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 import { dataURLtoBlob } from '@/utils/fileUtils';
 import dayjs from 'dayjs';
@@ -27,13 +28,30 @@ const ENDPOINTS = {
   }
 };
 
-const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+const FETCH_NO_CACHE = { cache: 'no-store' };
+
+const DELIVERY_CHALLAN_PATHS = {
+  list: '/deliveryChallans/deliveryChallans-list',
+  add: '/deliveryChallans/deliveryChallans-add',
+  edit: (id) => `/deliveryChallans/deliveryChallans-edit/${id}`,
+  view: (id) => `/deliveryChallans/deliveryChallans-view/${id}`,
+};
+
+function revalidateDeliveryChallanRoutes(id) {
+  revalidatePath(DELIVERY_CHALLAN_PATHS.list);
+  revalidatePath(DELIVERY_CHALLAN_PATHS.add);
+  if (id) {
+    revalidatePath(DELIVERY_CHALLAN_PATHS.edit(id));
+    revalidatePath(DELIVERY_CHALLAN_PATHS.view(id));
+  }
+}
 
 /**
  * Get delivery challans with pagination.
  * Note: Backend only supports customer filter and fixed sorting by newest first.
  */
 export async function getFilteredDeliveryChallans(page, pageSize, filters = {}) {
+  noStore();
   try {
     const skip = (page - 1) * pageSize;
     let url = ENDPOINTS.DELIVERY_CHALLANS.LIST + `?skip=${skip}&limit=${pageSize}`;
@@ -46,7 +64,7 @@ export async function getFilteredDeliveryChallans(page, pageSize, filters = {}) 
       url += `&search=${encodeURIComponent(filters.search)}`;
     }
 
-    const response = await fetchWithAuth(url);
+    const response = await fetchWithAuth(url, FETCH_NO_CACHE);
 
     if (response.code === 200) {
       const deliveryChallans = response.data || [];
@@ -54,6 +72,7 @@ export async function getFilteredDeliveryChallans(page, pageSize, filters = {}) 
 
       return {
         deliveryChallans,
+        summary: response.summary || {},
         pagination: {
           current: page,
           pageSize,
@@ -74,12 +93,13 @@ export async function getFilteredDeliveryChallans(page, pageSize, filters = {}) 
  * Search customers for dropdown.
  */
 export async function searchCustomers(searchTerm = '') {
+  noStore();
   const url = searchTerm
     ? ENDPOINTS.DROPDOWN.CUSTOMER + `?search=${encodeURIComponent(searchTerm)}`
     : ENDPOINTS.DROPDOWN.CUSTOMER;
 
   try {
-    const response = await fetchWithAuth(url);
+    const response = await fetchWithAuth(url, FETCH_NO_CACHE);
     if (response.code === 200) {
       return response.data || [];
     } else {
@@ -96,16 +116,24 @@ export async function searchCustomers(searchTerm = '') {
  * Get delivery challan by ID.
  */
 export async function getDeliveryChallanById(id) {
+  noStore();
   if (!id || typeof id !== 'string') {
     throw new Error('Invalid delivery challan ID');
   }
 
   try {
-    const response = await fetchWithAuth(`${ENDPOINTS.DELIVERY_CHALLANS.VIEW}/${id}`, {
-      cache: 'no-store'
-    });
+    const response = await fetchWithAuth(`${ENDPOINTS.DELIVERY_CHALLANS.VIEW}/${id}`, FETCH_NO_CACHE);
 
-    return response.data?.dc_details || {};
+    if (response.code !== 200) {
+      throw new Error(response.data?.message || response.message || 'Failed to fetch delivery challan');
+    }
+
+    const details = response.data?.dc_details;
+    if (!details || (Array.isArray(details) && details.length === 0)) {
+      return null;
+    }
+
+    return details;
   } catch (error) {
     console.error('Error in getDeliveryChallanById:', error);
     throw error;
@@ -116,8 +144,9 @@ export async function getDeliveryChallanById(id) {
  * Get delivery challan number.
  */
 export async function getDeliveryChallanNumber() {
+  noStore();
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DELIVERY_CHALLANS.GET_NUMBER);
+    const response = await fetchWithAuth(ENDPOINTS.DELIVERY_CHALLANS.GET_NUMBER, FETCH_NO_CACHE);
     return {
       success: response.code === 200,
       data: response.data
@@ -132,8 +161,9 @@ export async function getDeliveryChallanNumber() {
  * Get customers dropdown data.
  */
 export async function getCustomers() {
+  noStore();
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER, CACHE_STABLE_DROPDOWN);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.CUSTOMER, FETCH_NO_CACHE);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching customers:', error);
@@ -145,8 +175,9 @@ export async function getCustomers() {
  * Get products dropdown data.
  */
 export async function getProducts() {
+  noStore();
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, CACHE_STABLE_DROPDOWN);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, FETCH_NO_CACHE);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -158,8 +189,9 @@ export async function getProducts() {
  * Get tax rates dropdown data.
  */
 export async function getTaxRates() {
+  noStore();
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, CACHE_STABLE_DROPDOWN);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, FETCH_NO_CACHE);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching tax rates:', error);
@@ -171,8 +203,9 @@ export async function getTaxRates() {
  * Get banks dropdown data.
  */
 export async function getBanks() {
+  noStore();
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK, CACHE_STABLE_DROPDOWN);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.BANK, FETCH_NO_CACHE);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching banks:', error);
@@ -184,8 +217,9 @@ export async function getBanks() {
  * Get signatures dropdown data.
  */
 export async function getSignatures() {
+  noStore();
   try {
-    const response = await fetchWithAuth('/pos/bootstrap', { cache: 'no-store' });
+    const response = await fetchWithAuth('/pos/bootstrap', FETCH_NO_CACHE);
     const employees = response?.data?.cashiers || [];
     return employees.map(employee => ({
       ...employee,
@@ -202,7 +236,8 @@ export async function getSignatures() {
 /**
  * Add a new delivery challan.
  */
-export async function addDeliveryChallan(data, signatureURL) {
+export async function addDeliveryChallan(data) {
+  noStore();
   try {
     const formData = new FormData();
 
@@ -272,27 +307,29 @@ export async function addDeliveryChallan(data, signatureURL) {
     
     // Add other fields
     if (data.bank) formData.append('bank', data.bank);
+    if (data.employee) formData.append('employee', data.employee);
     if (data.notes) formData.append('notes', data.notes);
     if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
     
     // Required fields with defaults
     formData.append('roundOff', data.roundOff || false);
-    formData.append('employee', data.employee || '');
-
     const response = await fetchWithAuth(ENDPOINTS.DELIVERY_CHALLANS.ADD, {
       method: 'POST',
-      body: formData
+      body: formData,
+      ...FETCH_NO_CACHE,
     });
 
     if (!response || response.code !== 200) {
       console.error('Server response:', response);
-      throw new Error(response?.message || 'Failed to add delivery challan');
+      throw new Error(response?.data?.message || response?.message || 'Failed to add delivery challan');
     }
+
+    revalidateDeliveryChallanRoutes();
 
     return {
       success: true,
       data: response.data,
-      message: 'Delivery challan created successfully'
+      message: response.data?.message || 'Delivery challan created successfully'
     };
   } catch (error) {
     console.error('Error adding delivery challan:', error);
@@ -303,7 +340,8 @@ export async function addDeliveryChallan(data, signatureURL) {
 /**
  * Update an existing delivery challan.
  */
-export async function updateDeliveryChallan(id, data, signatureURL) {
+export async function updateDeliveryChallan(id, data) {
+  noStore();
   if (!id || typeof id !== 'string') {
     throw new Error('Invalid delivery challan ID');
   }
@@ -380,27 +418,29 @@ export async function updateDeliveryChallan(id, data, signatureURL) {
     
     // Add other fields
     if (data.bank) formData.append('bank', data.bank);
+    if (data.employee) formData.append('employee', data.employee);
     if (data.notes) formData.append('notes', data.notes);
     if (data.termsAndCondition) formData.append('termsAndCondition', data.termsAndCondition);
     
     // Required fields with defaults
     formData.append('roundOff', data.roundOff || false);
-    formData.append('employee', data.employee || '');
-
     const response = await fetchWithAuth(`${ENDPOINTS.DELIVERY_CHALLANS.UPDATE}/${id}`, {
       method: 'PUT',
-      body: formData
+      body: formData,
+      ...FETCH_NO_CACHE,
     });
 
     if (!response || response.code !== 200) {
       console.error('Server response:', response);
-      throw new Error(response?.message || 'Failed to update delivery challan');
+      throw new Error(response?.data?.message || response?.message || 'Failed to update delivery challan');
     }
+
+    revalidateDeliveryChallanRoutes(id);
 
     return {
       success: true,
       data: response.data,
-      message: 'Delivery challan updated successfully'
+      message: response.data?.message || 'Delivery challan updated successfully'
     };
   } catch (error) {
     console.error('Error updating delivery challan:', error);
@@ -412,23 +452,27 @@ export async function updateDeliveryChallan(id, data, signatureURL) {
  * Delete a delivery challan.
  */
 export async function deleteDeliveryChallan(id) {
+  noStore();
   try {
     const formData = new FormData();
     formData.append('_id', id);
 
     const response = await fetchWithAuth(ENDPOINTS.DELIVERY_CHALLANS.DELETE, {
       method: 'POST',
-      body: formData
+      body: formData,
+      ...FETCH_NO_CACHE,
     });
 
     if (response.code === 200) {
+      revalidateDeliveryChallanRoutes(id);
+
       return {
         success: true,
-        message: 'Delivery challan deleted successfully'
+        message: response.data?.message || 'Delivery challan deleted successfully'
       };
     }
 
-    throw new Error(response?.message || 'Failed to delete delivery challan');
+    throw new Error(response.data?.message || response?.message || 'Failed to delete delivery challan');
   } catch (error) {
     console.error('Error deleting delivery challan:', error);
     return { success: false, message: error.message };
@@ -439,20 +483,24 @@ export async function deleteDeliveryChallan(id) {
  * Clone a delivery challan.
  */
 export async function cloneDeliveryChallan(id) {
+  noStore();
   try {
     const response = await fetchWithAuth(`${ENDPOINTS.DELIVERY_CHALLANS.CLONE}/${id}/clone`, {
-      method: 'POST'
+      method: 'POST',
+      ...FETCH_NO_CACHE,
     });
 
     if (response.code === 200) {
+      revalidateDeliveryChallanRoutes(id);
+
       return {
         success: true,
-        data: response.data,
-        message: 'Delivery challan cloned successfully'
+        data: response.data?.data || response.data,
+        message: response.data?.message || 'Delivery challan cloned successfully'
       };
     }
 
-    throw new Error(response?.message || 'Failed to clone delivery challan');
+    throw new Error(response.data?.message || response?.message || 'Failed to clone delivery challan');
   } catch (error) {
     console.error('Error cloning delivery challan:', error);
     return { success: false, message: error.message };
@@ -463,6 +511,7 @@ export async function cloneDeliveryChallan(id) {
  * Convert delivery challan to invoice.
  */
 export async function convertToInvoice(data) {
+  noStore();
   try {
     const deliveryChallanId = typeof data === 'string' ? data : data?._id;
 
@@ -473,26 +522,40 @@ export async function convertToInvoice(data) {
     const formData = new FormData();
     formData.append('_id', deliveryChallanId);
 
+    if (typeof data === 'object' && data?.payment_method) {
+      formData.append('payment_method', data.payment_method);
+    }
     if (typeof data === 'object' && data?.isRecurring !== undefined) {
-      formData.append('isRecurring', data.isRecurring);
+      formData.append('isRecurring', String(data.isRecurring));
+    } else {
+      formData.append('isRecurring', 'false');
     }
     if (typeof data === 'object' && data?.recurringCycle !== undefined) {
-      formData.append('recurringCycle', data.recurringCycle);
+      formData.append('recurringCycle', String(data.recurringCycle));
     }
 
     const response = await fetchWithAuth(ENDPOINTS.DELIVERY_CHALLANS.CONVERT_TO_INVOICE, {
       method: 'POST',
-      body: formData
+      body: formData,
+      ...FETCH_NO_CACHE,
     });
 
     if (response.code === 200) {
+      revalidateDeliveryChallanRoutes(deliveryChallanId);
+      revalidatePath('/invoices/invoice-list');
+
       return {
         success: true,
-        message: 'Delivery challan converted to invoice successfully'
+        message: response.data?.message || 'Delivery challan converted to invoice successfully',
+        data: response.data,
       };
     }
 
-    throw new Error(response?.message || 'Failed to convert delivery challan to invoice');
+    const errorMessage = Array.isArray(response.data?.message)
+      ? response.data.message.join(', ')
+      : response.data?.message || response?.message;
+
+    throw new Error(errorMessage || 'Failed to convert delivery challan to invoice');
   } catch (error) {
     console.error('Error converting delivery challan to invoice:', error);
     return { success: false, message: error.message };
@@ -503,10 +566,12 @@ export async function convertToInvoice(data) {
  * Add a new bank.
  */
 export async function addBank(bankData) {
+  noStore();
   try {
     const response = await fetchWithAuth(ENDPOINTS.BANK.ADD, {
       method: 'POST',
       body: JSON.stringify(bankData),
+      ...FETCH_NO_CACHE,
     });
 
     if (response.code === 200) {

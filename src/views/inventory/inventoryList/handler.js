@@ -961,6 +961,7 @@ export function useInventoryListViewHandler({
       ...handlers,
       permissions,
       openStockDialog,
+      onViewHistory: handleOpenMovementHistory,
       stockLoading: handlers.stockLoading,
       expandedRows,
       toggleRow,
@@ -977,6 +978,7 @@ export function useInventoryListViewHandler({
       }));
   }, [
     expandedRows,
+    handleOpenMovementHistory,
     handlers,
     inventoryColumns,
     openStockDialog,

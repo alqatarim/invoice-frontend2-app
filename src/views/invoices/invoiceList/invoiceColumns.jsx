@@ -4,7 +4,7 @@ import { Typography, LinearProgress, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
 import OptionMenu from '@core/components/option-menu';
-import { actionButtons } from '@/data/dataSets';
+import { actionButtons, nonConvertibleToSalesReturnStatuses } from '@/data/dataSets';
 import InvoiceStatusBadge from '@/components/custom-components/InvoiceStatusBadge';
 
 /**
@@ -175,7 +175,10 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
         });
       }
 
-      if (permissions.canUpdate) {
+      if (
+        permissions.canUpdate &&
+        !nonConvertibleToSalesReturnStatuses.includes(row.status)
+      ) {
         menuOptions.push({
           text: 'Convert to Sales Return',
           icon: <Icon icon="mdi:invoice-export-outline" style={{ transform: 'scaleX(-1)' }} />,
@@ -184,7 +187,9 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
             onClick: () => handlers.openConvertDialog(row)
           }
         });
+      }
 
+      if (permissions.canUpdate) {
         menuOptions.push({
           text: actionButtons.find(action => action.id === 'print').label,
           icon: <Icon icon={actionButtons.find(action => action.id === 'print').icon} />,

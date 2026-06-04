@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import {
-  Card,
   Button,
   Dialog,
   DialogTitle,
@@ -16,16 +14,26 @@ import {
 } from '@mui/material';
 
 import { useTheme } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
 import { usePermission } from '@/Auth/usePermission';
-import { useSearchParams } from 'next/navigation';
 import { useSnackbar } from 'notistack';
 
 import PurchaseOrderHead from '@/views/purchase-orders/listOrder/PurchaseOrderHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import { usePurchaseOrderListHandlers } from './handler';
-import { formatCurrency } from '@/utils/currencyUtils';
 import { getPurchaseOrderColumns } from './purchaseOrderColumns';
+
+const mergeSavedColumnState = (baseColumns, savedColumns = []) => {
+  if (!Array.isArray(savedColumns)) return baseColumns;
+
+  return baseColumns.map(column => {
+    const savedColumn = savedColumns.find(saved => saved.key === column.key);
+
+    return {
+      ...column,
+      visible: savedColumn?.visible ?? column.visible,
+    };
+  });
+};
 
 /**
  * Simplified PurchaseOrderList Component - matches vendor list structure
@@ -33,20 +41,26 @@ import { getPurchaseOrderColumns } from './purchaseOrderColumns';
 const PurchaseOrderList = ({
   initialPurchaseOrders,
   initialPagination,
+  initialCardCounts = {},
   initialErrorMessage = ''
 }) => {
   const theme = useTheme();
-  const { data: session } = useSession();
-  const searchParams = useSearchParams();
   const { enqueueSnackbar } = useSnackbar();
 
   // Permissions
-  const permissions = {
-    canCreate: usePermission('purchase_order', 'create'),
-    canUpdate: usePermission('purchase_order', 'update'),
-    canView: usePermission('purchase_order', 'view'),
-    canDelete: usePermission('purchase_order', 'delete'),
-  };
+  const canCreate = usePermission('purchase_order', 'create');
+  const canUpdate = usePermission('purchase_order', 'update');
+  const canView = usePermission('purchase_order', 'view');
+  const canDelete = usePermission('purchase_order', 'delete');
+  const permissions = useMemo(
+    () => ({
+      canCreate,
+      canUpdate,
+      canView,
+      canDelete,
+    }),
+    [canCreate, canUpdate, canView, canDelete]
+  );
 
   useEffect(() => {
     if (initialErrorMessage) {
@@ -67,6 +81,7 @@ const PurchaseOrderList = ({
   const handlers = usePurchaseOrderListHandlers({
     initialPurchaseOrders,
     initialPagination,
+    initialCardCounts,
     onError,
     onSuccess,
   });
@@ -83,7 +98,7 @@ const PurchaseOrderList = ({
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          return Array.isArray(parsed) ? parsed : columns;
+          return Array.isArray(parsed) ? mergeSavedColumnState(columns, parsed) : columns;
         } catch (e) {
           console.warn('Failed to parse saved column preferences:', e);
         }
@@ -95,10 +110,10 @@ const PurchaseOrderList = ({
   const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
 
   React.useEffect(() => {
-    if (columns.length > 0 && columnsState.length === 0) {
-      setColumns(columns);
+    if (columns.length > 0) {
+      setColumns(prevColumns => mergeSavedColumnState(columns, prevColumns));
     }
-  }, [columns, columnsState.length]);
+  }, [columns]);
 
   const handleColumnCheckboxChange = React.useCallback((columnKey, checked) => {
     setColumns(prev => prev.map(col =>
@@ -116,11 +131,12 @@ const PurchaseOrderList = ({
   // Table columns
   const tableColumns = useMemo(() => {
     const cellHandlers = {
-      handleDelete: handlers.handleDelete,
+      handleDeleteClick: handlers.handleDeleteClick,
       handleView: handlers.handleView,
       handleEdit: handlers.handleEdit,
       handleClone: handlers.handleClone,
-      handleSend: handlers.handleSend,
+      handleStatusChange: handlers.handleStatusChange,
+      handleSubmitForApproval: handlers.handleSubmitForApproval,
       handlePrintDownload: handlers.handlePrintDownload,
       openConvertDialog: handlers.openConvertDialog,
       permissions,
@@ -144,7 +160,7 @@ const PurchaseOrderList = ({
   return (
     <div className='flex flex-col gap-5'>
       <PurchaseOrderHead
-        purchaseOrderListData={handlers.purchaseOrders}
+        purchaseOrderStatsData={handlers.cardCounts}
         isLoading={handlers.loading}
       />
 
@@ -237,6 +253,26 @@ const PurchaseOrderList = ({
           </Button>
           <Button onClick={handlers.confirmConvertToPurchase} color="primary" autoFocus>
             Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={handlers.deleteDialogOpen}
+        onClose={handlers.handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+      >
+        <DialogTitle id="delete-dialog-title">Delete Purchase Order</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete purchase order{' '}
+          {handlers.selectedPurchaseOrder?.purchaseOrderId || ''}?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handlers.handleDeleteCancel} color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={handlers.handleDeleteConfirm} color="error" variant="contained">
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

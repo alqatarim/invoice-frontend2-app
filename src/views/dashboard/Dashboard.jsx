@@ -16,9 +16,10 @@ import { dashboardInsightTabs } from '@/data/dataSets';
 import { BusinessPulse } from './components/BusinessPulse';
 import { CustomerHealthCard } from './components/CustomerHealthCard';
 import { RevenueTrend } from './components/RevenueTrend';
+import { SaudiDigitalMapCard } from './components/SaudiDigitalMapCard';
 import { UnifiedTopList } from './components/UnifiedTopList';
 
-const DASHBOARD_PANEL_HEIGHT = 295;
+const DASHBOARD_PANEL_MIN_HEIGHT = 295;
 
 const SalesOverview = dynamic(() => import('@views/charts/SalesOverview'), {
 	loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-lg" />,
@@ -64,7 +65,7 @@ const BusinessPulseSkeleton = () => (
 );
 
 const SalesOverviewSkeleton = () => (
-	<Card sx={{ height: '100%' }}>
+	<Card sx={{ width: '100%', height: '100%' }}>
 		<CardHeader
 			title={<Skeleton variant="text" width={140} height={28} />}
 			subheader={<Skeleton variant="text" width={180} height={18} />}
@@ -82,8 +83,25 @@ const SalesOverviewSkeleton = () => (
 	</Card>
 );
 
-const UnifiedTopListSkeleton = ({ panelHeight = DASHBOARD_PANEL_HEIGHT }) => (
-	<Card sx={{ height: '100%', minHeight: panelHeight }}>
+const SaudiDigitalMapSkeleton = () => (
+	<Card sx={{ height: '100%', minHeight: 510, overflow: 'hidden' }}>
+		<CardContent sx={{ height: '100%', p: { xs: 2.5, md: 3 } }}>
+			<Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
+				<Box>
+					<Skeleton variant="text" width={140} height={28} />
+					<Skeleton variant="text" width={150} height={18} />
+				</Box>
+				<Skeleton variant="rounded" width={36} height={36} />
+			</Stack>
+			<Stack alignItems="center" justifyContent="center" sx={{ height: 'calc(100% - 76px)' }}>
+				<Skeleton variant="rounded" width="86%" height={365} sx={{ borderRadius: 6 }} />
+			</Stack>
+		</CardContent>
+	</Card>
+);
+
+const UnifiedTopListSkeleton = ({ panelMinHeight = DASHBOARD_PANEL_MIN_HEIGHT }) => (
+	<Card sx={{ width: '100%', height: '100%', minHeight: panelMinHeight }}>
 		<CardHeader
 			title={<Skeleton variant="text" width={150} height={28} />}
 			action={<Skeleton variant="rounded" width={160} height={32} />}
@@ -105,8 +123,8 @@ const UnifiedTopListSkeleton = ({ panelHeight = DASHBOARD_PANEL_HEIGHT }) => (
 	</Card>
 );
 
-const CustomerHealthSkeleton = ({ panelHeight = DASHBOARD_PANEL_HEIGHT }) => (
-	<Card sx={{ height: '100%', minHeight: panelHeight }}>
+const CustomerHealthSkeleton = ({ panelMinHeight = DASHBOARD_PANEL_MIN_HEIGHT }) => (
+	<Card sx={{ width: '100%', height: '100%', minHeight: panelMinHeight }}>
 		<CardHeader
 			title={<Skeleton variant="text" width={170} height={28} />}
 			subheader={<Skeleton variant="text" width={140} height={18} />}
@@ -141,6 +159,8 @@ const Dashboard = ({
 	topProducts = [],
 	topCustomers = [],
 	inventoryAlerts = [],
+	stores = [],
+	provincesCities = [],
 	financeTrendData = {},
 	businessPulseBackgroundShapes,
 	handleProductsTabChange = () => { },
@@ -178,8 +198,8 @@ const Dashboard = ({
 				)}
 			</Grid>
 
-			{/* ── REVENUE TREND + SALES OVERVIEW ─────────────────────────── */}
-			<Grid size={{ xs: 12, lg: 8 }}>
+			{/* ── REVENUE TREND + SAUDI NETWORK MAP ──────────────────────── */}
+			<Grid size={{ xs: 12, lg: 7.25 }}>
 				<RevenueTrend
 					financeTab={financeTab}
 					financeTrendData={financeTrendData}
@@ -190,7 +210,35 @@ const Dashboard = ({
 				/>
 			</Grid>
 
-			<Grid size={{ xs: 12, lg: 4 }}>
+			<Grid size={{ xs: 12, lg: 4.75 }}>
+				{isLoading ? (
+					<SaudiDigitalMapSkeleton />
+				) : (
+					<SaudiDigitalMapCard stores={stores} provincesCities={provincesCities} />
+				)}
+			</Grid>
+
+			{/* ── TOP LIST + INVOICE INSIGHTS + CUSTOMER HEALTH ──────────── */}
+			<Grid size={{ xs: 12, md: 6, lg: 6 }} sx={{ display: 'flex' }}>
+				{isLoading ? (
+					<UnifiedTopListSkeleton panelMinHeight={DASHBOARD_PANEL_MIN_HEIGHT} />
+				) : (
+					<UnifiedTopList
+						products={topProducts}
+						customers={topCustomers}
+						stockAlerts={inventoryAlerts}
+						productsTab={productsTab}
+						customersTab={customersTab}
+						tabs={dashboardInsightTabs}
+						onProductsTabChange={handleProductsTabChange}
+						onCustomersTabChange={handleCustomersTabChange}
+						panelMinHeight={DASHBOARD_PANEL_MIN_HEIGHT}
+						delay={0.4}
+					/>
+				)}
+			</Grid>
+
+			<Grid size={{ xs: 12, md: 6, lg: 3 }} sx={{ display: 'flex' }}>
 				{isLoading ? (
 					<SalesOverviewSkeleton />
 				) : (
@@ -208,33 +256,13 @@ const Dashboard = ({
 				)}
 			</Grid>
 
-			{/* ── UNIFIED TOP LIST + CUSTOMER HEALTH ─────────────────────── */}
-			<Grid size={{ xs: 12, lg: 8 }}>
+			<Grid size={{ xs: 12, md: 6, lg: 3 }} sx={{ display: 'flex' }}>
 				{isLoading ? (
-					<UnifiedTopListSkeleton panelHeight={DASHBOARD_PANEL_HEIGHT} />
-				) : (
-					<UnifiedTopList
-						products={topProducts}
-						customers={topCustomers}
-						stockAlerts={inventoryAlerts}
-						productsTab={productsTab}
-						customersTab={customersTab}
-						tabs={dashboardInsightTabs}
-						onProductsTabChange={handleProductsTabChange}
-						onCustomersTabChange={handleCustomersTabChange}
-						panelHeight={DASHBOARD_PANEL_HEIGHT}
-						delay={0.4}
-					/>
-				)}
-			</Grid>
-
-			<Grid size={{ xs: 12, lg: 4 }}>
-				{isLoading ? (
-					<CustomerHealthSkeleton panelHeight={DASHBOARD_PANEL_HEIGHT} />
+					<CustomerHealthSkeleton panelMinHeight={DASHBOARD_PANEL_MIN_HEIGHT} />
 				) : (
 					<CustomerHealthCard
 						data={customerHealth}
-						panelHeight={DASHBOARD_PANEL_HEIGHT}
+						panelMinHeight={DASHBOARD_PANEL_MIN_HEIGHT}
 						delay={0.5}
 					/>
 				)}

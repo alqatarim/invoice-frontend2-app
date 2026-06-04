@@ -13,6 +13,8 @@ const EMPTY_DASHBOARD = Object.freeze({});
 
 const DashboardIndex = ({
 	initialDashboardData = null,
+	initialStores = [],
+	initialProvincesCities = [],
 	initialBranchId = '',
 	initialFromDate = '',
 	initialToDate = '',
@@ -92,6 +94,8 @@ const DashboardIndex = ({
 				topProducts={topProducts}
 				topCustomers={topCustomers}
 				inventoryAlerts={inventoryAlerts}
+				stores={initialStores}
+				provincesCities={initialProvincesCities}
 				financeTrendData={financeTrendData}
 				handleProductsTabChange={handler.handleProductsTabChange}
 				handleCustomersTabChange={handler.handleCustomersTabChange}

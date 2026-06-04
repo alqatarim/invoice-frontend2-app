@@ -31,7 +31,8 @@ export const purchaseSchema = yup.object().shape({
           .min(yup.ref('purchaseDate'), 'Due date cannot be before purchase date')
           .required('Due date is required'),
      vendorId: yup.string().required('Vendor is required'),
-     bank: yup.string().required('Bank is required'),
+     bank: yup.string().nullable(),
+     employee: yup.string().nullable(),
      payment_method: yup.string().required('Payment method is required'),
      referenceNo: yup.string(),
      supplierInvoiceSerialNumber: yup.string(),
@@ -45,15 +46,6 @@ export const purchaseSchema = yup.object().shape({
           .min(0, 'Total discount cannot be negative'),
      roundOff: yup.boolean(),
      roundOffValue: yup.number(),
-     sign_type: yup.string().oneOf(['eSignature', 'manualSignature']),
-     employeeName: yup.string(),
-     employee: yup.string()
-          .when('sign_type', {
-               is: 'manualSignature',
-               then: (schema) => schema.required('Signature is required'),
-               otherwise: (schema) => schema
-          }),
-     employeeImage: yup.string(),
      notes: yup.string(),
      termsAndCondition: yup.string(),
      items: yup.array()
@@ -66,6 +58,4 @@ export const purchaseSchema = yup.object().shape({
 export const editPurchaseSchema = purchaseSchema.shape({
      id: yup.string().required('Purchase ID is required')
 });
-
-// For backward compatibility
 export const PurchaseSchema = purchaseSchema;

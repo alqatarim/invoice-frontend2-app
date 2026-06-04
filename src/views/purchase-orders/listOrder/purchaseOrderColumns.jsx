@@ -3,266 +3,253 @@ import { Icon } from '@iconify/react';
 import { Typography, Chip, Box } from '@mui/material';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
 import moment from 'moment';
-import { statusOptions, actionButtons } from '@/data/dataSets';
+import { paymentMethods } from '@/data/dataSets';
+import { getPurchaseOrderStatusOption, normalizePurchaseOrderStatus } from './handler';
 import OptionMenu from '@core/components/option-menu';
-import { formatDate } from '@/utils/dateUtils';
 
-// Action cell extracted into its own component so hooks are used at the top level
-const ActionCell = ({ row, handlers, permissions }) => {
-  const viewAction = actionButtons.find(action => action.id === 'view');
-  const editAction = actionButtons.find(action => action.id === 'edit');
-  const menuOptions = [];
-
-  if (permissions?.canView) {
-    menuOptions.push({
-      text: viewAction?.label || 'View',
-      icon: <Icon icon={viewAction?.icon || 'mdi:eye-outline'} />,
-      menuItemProps: {
-        className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers?.handleView?.(row._id)
-      }
-    });
-  }
-
-  if (permissions?.canUpdate) {
-    menuOptions.push({
-      text: editAction?.label || 'Edit',
-      icon: <Icon icon={editAction?.icon || 'mdi:edit-outline'} />,
-      menuItemProps: {
-        className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers?.handleEdit?.(row._id)
-      }
-    });
-  }
-
-  if (permissions?.canCreate) {
-    menuOptions.push({
-      text: 'Clone',
-      icon: <Icon icon="mdi:content-duplicate" />,
-      menuItemProps: {
-        className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers.handleClone?.(row.id || row._id)
-      }
-    });
-
-    menuOptions.push({
-      text: 'Send',
-      icon: <Icon icon="mdi:invoice-send-outline" />,
-      menuItemProps: {
-        className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers.handleSend?.(row.id || row._id)
-      }
-    });
-  }
-
-  if (permissions?.canUpdate) {
-    menuOptions.push({
-      text: 'Convert to Purchase',
-      icon: <Icon icon="mdi:invoice-export-outline" style={{ transform: 'scaleX(-1)' }} />,
-      menuItemProps: {
-        className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers.openConvertDialog?.(row)
-      }
-    });
-
-    menuOptions.push({
-      text: 'Print & Download',
-      icon: <Icon icon="mdi:printer-outline" />,
-      menuItemProps: {
-        className: 'flex items-center gap-2 text-textSecondary',
-        onClick: () => handlers.handlePrintDownload?.(row._id)
-      }
-    });
-  }
-
-  if (menuOptions.length === 0) return null;
-
-  return (
-    <Box className='flex items-center justify-end'>
-      <OptionMenu
-        icon={<MoreVertIcon />}
-        iconButtonProps={{ size: 'small', 'aria-label': 'purchase order actions' }}
-        options={menuOptions}
-      />
-    </Box>
-  );
-};
-
-/**
- * Purchase Order table column definitions
- */
 export const getPurchaseOrderColumns = ({ theme = {}, permissions = {} } = {}) => [
-  // {
-  //   key: 'serial',
-  //   visible: true,
-  //   label: '#',
-  //   align: 'center',
-  //   renderCell: (row, handlers, index) => {
-  //     // Add proper fallbacks and validation
-  //     const currentPage = Number(handlers?.pagination?.current || handlers?.pagination?.page || 1);
-  //     const pageSize = Number(handlers?.pagination?.pageSize || handlers?.pagination?.limit || 10);
-  //     const rowIndex = Number(index >= 0 ? index : 0);
-
-  //     // Calculate serial number with proper validation
-  //     const serialNumber = (currentPage - 1) * pageSize + rowIndex + 1;
-
-  //     return (
-  //       <Typography variant="body1" color='text.primary' className='text-[0.9rem] font-medium'>
-  //         {!isNaN(serialNumber) ? serialNumber : rowIndex + 1}
-  //       </Typography>
-  //     );
-  //   },
-  // },
   {
     key: 'purchaseOrderId',
     visible: true,
     label: 'Order No',
     sortable: true,
-    renderCell: (row, handlers) => (
-      <Typography
-        className="cursor-pointer text-primary hover:underline font-medium"
-        onClick={() => handlers?.handleView?.(row._id)}
-      >
-        {row.purchaseOrderId || 'N/A'}
-      </Typography>
+    renderCell: row => (
+      <Link href={`/purchase-orders/order-view/${row._id}`} passHref>
+        <Typography className="cursor-pointer text-primary hover:underline" align="center">
+          {row.purchaseOrderId || 'N/A'}
+        </Typography>
+      </Link>
     ),
   },
   {
     key: 'purchaseOrderDate',
     visible: true,
     label: 'Order Date',
-    align: 'center',
     sortable: true,
-    renderCell: (row) => {
-      return (
-        <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-          {formatDate(row.purchaseOrderDate)}
-        </Typography>
-      )
-    },
+    renderCell: row => (
+      <Typography variant="body1" color="text.primary" className="text-[0.9rem] whitespace-nowrap">
+        {row.purchaseOrderDate ? moment(row.purchaseOrderDate).format('DD MMM YY') : 'N/A'}
+      </Typography>
+    ),
   },
   {
     key: 'vendor',
     visible: true,
     label: 'Vendor',
     sortable: true,
-    renderCell: (row, handlers) => (
-
-      <Box className='flex flex-col'>
-        <Typography
-          className="cursor-pointer text-primary hover:underline font-medium"
-          onClick={() => window.open(`/vendors/vendor-view/${row.vendorId}`, '_blank')}
-        >
-          {row.vendorInfo?.vendor_name || 'Deleted Vendor'}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" className='text-[0.85rem]'>
-          {row.vendorInfo?.vendor_phone || 'N/A'}
-        </Typography>
-      </Box>
-    ),
-  },
-  {
-    key: 'totalAmount',
-    label: 'Total Amount',
-    visible: true,
-    align: 'left',
-    sortable: true,
-    renderCell: (row) => {
-      // Ensure proper number handling and fallback
-      const total = parseFloat(row.TotalAmount) || 0;
-
-      // Format amount with locale (Indian number format like old frontend)
-      let formattedAmount = '0.00';
-      try {
-        formattedAmount = total.toLocaleString('en-IN', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        });
-      } catch (e) {
-        // Fallback to simple formatting if locale fails
-        formattedAmount = total.toFixed(2);
-      }
+    renderCell: row => {
+      const vendorId = row.vendorInfo?._id || row.vendorId?._id || row.vendorId;
 
       return (
-        <div className="flex items-center justify-start gap-1">
-          <Icon
-            icon="lucide:saudi-riyal"
-            width="1rem"
-            color={theme.palette.secondary.light}
-          />
-          <Typography
-            color="text.primary"
-            className='text-[0.9rem] font-medium'
-          >
-            {formattedAmount}
+        <div className="flex flex-col">
+          <Link href={`/vendors/vendor-view/${vendorId}`} passHref>
+            <Typography
+              variant="body1"
+              className="text-[0.9rem] text-start cursor-pointer text-primary hover:underline font-medium"
+            >
+              {row.vendorInfo?.vendor_name || row.vendorId?.vendor_name || 'Deleted Vendor'}
+            </Typography>
+          </Link>
+          <Typography variant="body2" color="text.secondary" fontWeight={500} className="tabular-nums">
+            {row.vendorInfo?.vendor_phone || row.vendorId?.vendor_phone || ''}
           </Typography>
         </div>
       );
     },
   },
   {
-    key: 'dueDate',
-    label: 'Due Date',
+    key: 'totalAmount',
+    label: 'Total Amount',
     visible: true,
     align: 'center',
     sortable: true,
-    renderCell: (row) => {
+    renderCell: row => {
+      const total = Number(row.TotalAmount) || 0;
 
       return (
-        <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
-          {formatDate(row.dueDate)}
-        </Typography>
-      )
-
+        <div className="flex items-end justify-start gap-0">
+          <Icon icon="lucide:saudi-riyal" width="0.75rem" color={theme.palette?.text?.primary} />
+          <Typography color="text.primary" lineHeight={1} className="font-medium">
+            {total.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </Typography>
+        </div>
+      );
     },
   },
-  // {
-  //   key: 'status',
-  //   label: 'Status',
-  //   visible: true,
-  //   align: 'center',
-  //   sortable: true,
-  //   renderCell: (row) => {
-  //     const getStatusConfig = (status) => {
-  //       switch (status?.toLowerCase()) {
-  //         case 'pending':
-  //           return { color: 'warning', label: 'Pending' };
-  //         case 'approved':
-  //           return { color: 'success', label: 'Approved' };
-  //         case 'rejected':
-  //           return { color: 'error', label: 'Rejected' };
-  //         case 'draft':
-  //           return { color: 'secondary', label: 'Draft' };
-  //         case 'converted':
-  //           return { color: 'info', label: 'Converted' };
-  //         default:
-  //           return { color: 'default', label: 'N/A' };
-  //       }
-  //     };
+  {
+    key: 'paymentMode',
+    visible: true,
+    label: 'Payment Mode',
+    sortable: true,
+    renderCell: row => (
+      <Box className="flex items-center gap-1.5">
+        <Icon
+          icon={(paymentMethods.find(item => item.value === row.paymentMode))?.icon || 'mdi:cash-multiple'}
+          fontSize={18}
+          color={theme.palette?.text?.secondary}
+        />
+        <Typography color="text.primary">{row.paymentMode || '-'}</Typography>
+      </Box>
+    ),
+  },
+  {
+    key: 'dueDate',
+    label: 'Due Date',
+    visible: true,
+    sortable: true,
+    renderCell: row => (
+      <Typography variant="body1" color="text.primary" className="text-[0.9rem] whitespace-nowrap">
+        {row.dueDate ? moment(row.dueDate).format('DD MMM YY') : 'N/A'}
+      </Typography>
+    ),
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    visible: true,
+    align: 'center',
+    sortable: true,
+    renderCell: row => {
+      const statusOption = getPurchaseOrderStatusOption(row.status);
 
-  //     const statusConfig = getStatusConfig(row.status);
-  //     return (
-  //       <Chip
-  //         className='mx-0'
-  //         size='small'
-  //         variant='tonal'
-  //         label={statusConfig.label}
-  //         color={statusConfig.color}
-  //       />
-  //     );
-  //   },
-  // },
+      return (
+        <Chip
+          size="small"
+          variant="tonal"
+          label={statusOption.label}
+          color={statusOption.color}
+        />
+      );
+    },
+  },
   {
     key: 'action',
     label: '',
     visible: true,
     align: 'right',
-    renderCell: (row, handlers) => (
-      <ActionCell
-        row={row}
-        handlers={handlers}
-        permissions={permissions}
-      />
-    ),
+    renderCell: (row, handlers) => {
+      const options = [];
+      const status = normalizePurchaseOrderStatus(row.status);
+      const rowId = row._id;
+
+      if (permissions.canView) {
+        options.push({
+          text: 'View',
+          icon: <Icon icon="mdi:eye-outline" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleView?.(rowId),
+          },
+        });
+      }
+
+      if (permissions.canUpdate) {
+        options.push({
+          text: 'Edit',
+          icon: <Icon icon="mdi:edit-outline" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleEdit?.(rowId),
+          },
+        });
+      }
+
+      if (permissions.canCreate) {
+        options.push({
+          text: 'Clone',
+          icon: <Icon icon="mdi:content-duplicate" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: event => {
+              event?.preventDefault?.();
+              event?.stopPropagation?.();
+              handlers.handleClone?.(rowId);
+            },
+          },
+        });
+      }
+
+      if (permissions.canUpdate && status === 'Draft') {
+        options.push({
+          text: 'Submit for Approval',
+          icon: <Icon icon="mdi:clock-outline" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleSubmitForApproval?.(rowId),
+          },
+        });
+      }
+
+      if (permissions.canUpdate && status === 'PENDING_APPROVAL') {
+        options.push({
+          text: 'Approve',
+          icon: <Icon icon="mdi:check-circle-outline" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleStatusChange?.(rowId, 'APPROVED'),
+          },
+        });
+        options.push({
+          text: 'Reject',
+          icon: <Icon icon="mdi:close-circle-outline" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleStatusChange?.(rowId, 'REJECTED'),
+          },
+        });
+        options.push({
+          text: 'Cancel',
+          icon: <Icon icon="mdi:cancel" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleStatusChange?.(rowId, 'CANCELLED'),
+          },
+        });
+      }
+
+      if (permissions.canCreate && status === 'APPROVED') {
+        options.push({
+          text: 'Convert to Purchase',
+          icon: <Icon icon="mdi:invoice-export-outline" style={{ transform: 'scaleX(-1)' }} />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.openConvertDialog?.(row),
+          },
+        });
+      }
+
+      if (permissions.canUpdate) {
+        options.push({
+          text: 'Print & Download',
+          icon: <Icon icon="mdi:printer-outline" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handlePrintDownload?.(rowId),
+          },
+        });
+      }
+
+      if (permissions.canDelete) {
+        options.push({
+          text: 'Delete',
+          icon: <Icon icon="mdi:delete-outline" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleDeleteClick?.(row),
+          },
+        });
+      }
+
+      return options.length ? (
+        <OptionMenu
+          icon={<MoreVertIcon />}
+          iconButtonProps={{ size: 'small', 'aria-label': 'purchase order actions' }}
+          options={options}
+        />
+      ) : null;
+    },
   },
 ];

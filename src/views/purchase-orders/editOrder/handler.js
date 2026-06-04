@@ -5,6 +5,11 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useRouter } from 'next/navigation';
 import { paymentMethods } from '@/data/dataSets';
+
+const normalizePurchaseOrderStatus = (status = '') => {
+  const normalized = String(status || '').trim().toUpperCase();
+  return normalized || 'Draft';
+};
 import { calculatePurchaseItemValues } from '@/utils/purchaseItemCalculations';
 import { formatNewBuyItem } from '@/utils/formatNewBuyItem';
 import { notifyNotistackFormValidationErrors } from '@/utils/notifyNotistackFormValidationErrors';
@@ -14,9 +19,11 @@ function mapPurchaseOrderItems(items = []) {
   return items.map(item => ({
     productId: item.productId?._id || item.productId || '',
     name: item.name || '',
+    sku: item.sku || item.productId?.sku || '',
+    category: item.category || item.productId?.category || null,
     quantity: item.quantity || 1,
     units: item.units || item.unit || '',
-    unit_id: item.unit_id || item.unit || '',
+    unit: item.unit || item.unit_id || '',
     rate: item.rate || 0,
     form_updated_rate: item.form_updated_rate || item.rate || 0,
     discount: item.discount || 0,
@@ -45,6 +52,7 @@ function useFormHandler({ purchaseOrderData }) {
       : today,
     dueDate: purchaseOrderData?.dueDate ? new Date(purchaseOrderData.dueDate).toISOString().split('T')[0] : today,
     vendorId: purchaseOrderData?.vendorId || '',
+    employee: purchaseOrderData?.employee?._id || purchaseOrderData?.employee || '',
     bank: purchaseOrderData?.bank || '',
     payment_method: paymentMethod,
     paymentMode: paymentMethod,
@@ -55,12 +63,9 @@ function useFormHandler({ purchaseOrderData }) {
     totalDiscount: purchaseOrderData?.totalDiscount || 0,
     roundOff: purchaseOrderData?.roundOff || false,
     roundOffValue: purchaseOrderData?.roundOffValue || 0,
-    sign_type: purchaseOrderData?.sign_type || 'manualSignature',
-    employeeName: purchaseOrderData?.employeeName || '',
-    employee: purchaseOrderData?.employee || '',
-    employeeImage: purchaseOrderData?.employeeImage || '',
     notes: purchaseOrderData?.notes || '',
     termsAndCondition: purchaseOrderData?.termsAndCondition || '',
+    status: normalizePurchaseOrderStatus(purchaseOrderData?.status || 'Draft'),
     items: mapPurchaseOrderItems(purchaseOrderData?.items),
   };
 
@@ -121,7 +126,10 @@ function useItemsHandler({ setValue, getValues, append, remove, productData, pro
 
     setValue(`items.${index}.productId`, productId);
     setValue(`items.${index}.name`, product.name);
+    setValue(`items.${index}.sku`, product.sku || '');
+    setValue(`items.${index}.category`, product.category || null);
     setValue(`items.${index}.units`, product.units?.name || '');
+    setValue(`items.${index}.unit`, product.units?._id || '');
     setValue(`items.${index}.rate`, product.purchasePrice || product.sellingPrice || 0);
     setValue(`items.${index}.form_updated_rate`, product.purchasePrice || product.sellingPrice || 0);
     setValue(`items.${index}.discountType`, product.discountType || 3);
@@ -255,29 +263,6 @@ function useBankHandler({ initialBanks, addBank }) {
   };
 }
 
-function useSignatureHandler({ employees, setValue }) {
-  const [signOptions] = useState(employees || []);
-
-  const handleSignatureSelection = (selected, field) => {
-    if (selected) {
-      field.onChange(selected._id);
-      setValue('employeeName', selected.employeeName);
-      setValue('employeeImage', selected.employeeImage);
-      setValue('sign_type', 'manualSignature');
-      return;
-    }
-
-    field.onChange('');
-    setValue('employeeName', '');
-    setValue('employeeImage', '');
-  };
-
-  return {
-    signOptions,
-    handleSignatureSelection,
-  };
-}
-
 function useDialogHandler({ setValue, getValues }) {
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [termsDialogOpen, setTermsDialogOpen] = useState(false);
@@ -330,6 +315,7 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, getValu
         purchaseOrderId: purchaseOrderNumber,
         payment_method: paymentMethod,
         paymentMode: paymentMethod,
+        employee: data.employee || '',
         referenceNo: data.referenceNo || '',
         taxableAmount: Number(data.taxableAmount),
         TotalAmount: Number(data.TotalAmount),
@@ -337,18 +323,15 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, getValu
         totalDiscount: Number(data.totalDiscount),
         roundOff: data.roundOff || false,
         roundOffValue: Number(data.roundOffValue) || 0,
-        sign_type: data.sign_type || 'manualSignature',
-        employeeName: data.employeeName || '',
-        employee: data.employee || '',
-        employeeImage: data.employeeImage || '',
         notes: data.notes || '',
         termsAndCondition: data.termsAndCondition || '',
+        status: data.status || 'Draft',
         items: (data.items || []).map(item => ({
           productId: item.productId,
           name: item.name,
           quantity: Number(item.quantity),
           units: item.units,
-          unit_id: item.unit_id,
+          unit: item.unit,
           rate: Number(item.rate),
           discount: Number(item.discount),
           discountType: Number(item.discountType),
@@ -363,8 +346,7 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, getValu
         })),
       };
 
-      const employeeURL = data.sign_type === 'eSignature' && data.employeeImage ? data.employeeImage : null;
-      const result = await onSave(purchaseOrderPayload, employeeURL);
+      const result = await onSave(purchaseOrderPayload);
 
       if (result.success) {
         setTimeout(() => {
@@ -399,14 +381,15 @@ function useSubmissionHandler({ trigger, closeSnackbar, enqueueSnackbar, getValu
 export default function useEditPurchaseOrderHandlers({
   purchaseOrderData,
   productData,
+  employees = [],
   initialBanks,
-  employees,
   onSave,
   enqueueSnackbar,
   closeSnackbar,
   addBank,
 }) {
   const [productsCloneData, setProductsCloneData] = useState(productData || []);
+  const [signOptions] = useState(employees || []);
 
   const { control, handleSubmit, setValue, getValues, trigger, errors, fields, append, remove, watchItems, watchRoundOff } =
     useFormHandler({ purchaseOrderData });
@@ -426,11 +409,6 @@ export default function useEditPurchaseOrderHandlers({
     addBank,
   });
 
-  const employeeHandler = useSignatureHandler({
-    employees,
-    setValue,
-  });
-
   const dialogHandler = useDialogHandler({
     setValue,
     getValues,
@@ -444,6 +422,12 @@ export default function useEditPurchaseOrderHandlers({
     onSave,
   });
 
+  const handleSignatureSelection = (selectedEmployee, field) => {
+    const employeeId = selectedEmployee?._id || '';
+    field.onChange(employeeId);
+    setValue('employee', employeeId, { shouldValidate: true, shouldDirty: true });
+  };
+
   return {
     control,
     handleSubmit,
@@ -454,12 +438,13 @@ export default function useEditPurchaseOrderHandlers({
     watchItems,
     watchRoundOff,
     productsCloneData,
+    productData,
+    signOptions,
     banks: bankHandler.banks,
     newBank: bankHandler.newBank,
     setNewBank: bankHandler.setNewBank,
     handleAddBank: bankHandler.handleAddBank,
-    signOptions: employeeHandler.signOptions,
-    handleSignatureSelection: employeeHandler.handleSignatureSelection,
+    handleSignatureSelection,
     paymentMethods,
     notesExpanded: dialogHandler.notesExpanded,
     termsDialogOpen: dialogHandler.termsDialogOpen,

@@ -4,12 +4,14 @@ import { useSnackbar } from 'notistack';
 
 import { usePermission } from '@/Auth/usePermission';
 import { addUser, deleteUser, getFilteredUsers, updateUser } from '@/app/(dashboard)/users/actions';
-import { userFilterOptions, userStatusOptions } from '@/data/dataSets';
+import { orgRoleOptions, userStatusOptions } from '@/data/dataSets';
 import { getUserColumns } from './userColumns';
+import { resolveUserAvatarUrl } from '@/utils/defaultUserAvatar';
 
 export const useUsersListHandlers = ({
   initialUsers = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialCardCounts = {},
   initialTab = 'ALL',
   initialFilters = {},
   initialSortBy = '',
@@ -20,9 +22,10 @@ export const useUsersListHandlers = ({
   onSuccess,
 }) => {
   const theme = useTheme();
-  const { enqueueSnackbar } = useSnackbar();
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
   const [users, setUsers] = useState(initialUsers);
+  const [cardCounts, setCardCounts] = useState(initialCardCounts || {});
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState(initialSortBy);
@@ -30,6 +33,7 @@ export const useUsersListHandlers = ({
   const [filterValues, setFilterValues] = useState({
     status: initialTab !== 'ALL' ? [initialTab] : [],
     role: [],
+    organizationalRole: [],
     search: '',
     ...initialFilters,
   });
@@ -77,6 +81,7 @@ export const useUsersListHandlers = ({
       );
 
       setUsers(result.users);
+      setCardCounts(result.summary || {});
       setPagination(result.pagination);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -127,6 +132,7 @@ export const useUsersListHandlers = ({
     const resetFilters = {
       status: [],
       role: [],
+      organizationalRole: [],
       search: '',
     };
     setFilterValues(resetFilters);
@@ -224,40 +230,58 @@ export const useUsersListHandlers = ({
     setSelectedUserId(null);
   }, []);
 
-  const handleSubmitUser = useCallback(async (userId, userData) => {
+  const handleSubmitUser = useCallback(async (userId, userData, preparedImage = null) => {
     setUserDialogLoading(true);
+    let loadingKey = null;
+
     try {
+      loadingKey = enqueueSnackbar(userId ? 'Updating member...' : 'Adding member...', {
+        variant: 'info',
+        persist: true,
+        preventDuplicate: true,
+      });
+
       const response = userId
-        ? await updateUser(userId, userData)
-        : await addUser(userData);
+        ? await updateUser(userId, userData, preparedImage)
+        : await addUser(userData, preparedImage);
+
+      closeSnackbar(loadingKey);
 
       if (response.success) {
+        const successMessage = userId ? 'Member updated successfully!' : 'Member added successfully!';
         enqueueSnackbar(
-          userId ? 'User updated successfully!' : 'User added successfully!',
+          successMessage,
           { variant: 'success', autoHideDuration: 3000 }
         );
         await loadUsers(pagination.current, pagination.pageSize);
         setUserDialogOpen(false);
         setUserDialogData(null);
-        return true;
+        return { success: true, message: successMessage, data: response.data };
       }
 
-      enqueueSnackbar(response.message || 'Failed to save user', {
+      const errorMessage = response.message || 'Failed to save member';
+      enqueueSnackbar(errorMessage, {
         variant: 'error',
         autoHideDuration: 5000,
+        preventDuplicate: true,
       });
-      return false;
+      return { success: false, message: errorMessage };
     } catch (error) {
+      if (loadingKey) {
+        closeSnackbar(loadingKey);
+      }
       console.error('Error saving user:', error);
-      enqueueSnackbar('Failed to save user', {
+      const errorMessage = error.message || 'Failed to save member';
+      enqueueSnackbar(errorMessage, {
         variant: 'error',
         autoHideDuration: 5000,
+        preventDuplicate: true,
       });
-      return false;
+      return { success: false, message: errorMessage };
     } finally {
       setUserDialogLoading(false);
     }
-  }, [enqueueSnackbar, loadUsers, pagination.current, pagination.pageSize]);
+  }, [closeSnackbar, enqueueSnackbar, loadUsers, pagination.current, pagination.pageSize]);
 
   const handleManageColumnsOpen = useCallback(() => {
     setManageColumnsOpen(true);
@@ -282,10 +306,27 @@ export const useUsersListHandlers = ({
   }, [availableColumns, onSuccess]);
 
   const handleImageError = useCallback((event) => {
-    event.target.src = '/images/avatars/default-avatar.png';
+    const rowId = event?.currentTarget?.dataset?.userId || '';
+    event.target.src = resolveUserAvatarUrl({ userId: rowId });
   }, []);
 
-  const roleOptions = useMemo(() => userFilterOptions.roles, []);
+  const organizationalRoleOptions = useMemo(
+    () =>
+      orgRoleOptions.map(({ value, label }) => ({
+        value,
+        label,
+      })),
+    []
+  );
+
+  const roleOptions = useMemo(
+    () =>
+      (roles || []).map(role => ({
+        value: role.value || role.label,
+        label: role.label || role.value,
+      })),
+    [roles]
+  );
 
   const statusOptions = useMemo(() => userStatusOptions, []);
 
@@ -302,6 +343,7 @@ export const useUsersListHandlers = ({
 
   return {
     users,
+    cardCounts,
     pagination,
     loading,
     filterValues,
@@ -320,6 +362,7 @@ export const useUsersListHandlers = ({
     roles,
     permissions,
     roleOptions,
+    organizationalRoleOptions,
     statusOptions,
     columns,
     handleFilterValueChange,

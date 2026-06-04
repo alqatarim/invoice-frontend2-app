@@ -1,7 +1,6 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import {
-  Autocomplete,
   TextField,
   MenuItem,
   FormControl,
@@ -13,13 +12,8 @@ import {
 import { alpha } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import CustomOriginalIconButton from '@core/components/mui/CustomOriginalIconButton';
+import ProductAutocomplete from '@/components/shared/ProductAutocomplete';
 import { productSupportsScaleBarcode } from '@/utils/productScaleBarcode';
-
-const getProductCategoryLabel = (product) => {
-  if (!product) return '—';
-  if (typeof product.category === 'string') return product.category;
-  return product.category?.name || product.category?.title || '—';
-};
 
 const normalizeQuantityInput = (value, allowDecimals = false) => {
   const parsed = Number(String(value ?? '').replace(/,/g, '.'));
@@ -96,233 +90,25 @@ export const getInvoiceFormColumns = ({
                   category: watched.category || null,
                 }
                 : null);
-            const options = selectedProduct
-              ? [selectedProduct, ...availableProducts.filter((product) => product._id !== selectedProduct._id)]
-              : availableProducts;
-
-            const optionGridColumns = 'minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 0.75fr)';
-
-            const ProductOptionsListbox = React.forwardRef(function ProductOptionsListbox(listboxProps, ref) {
-              const { children, sx, ...other } = listboxProps;
-
-              return (
-                <Box
-                  component="ul"
-                  ref={ref}
-                  {...other}
-                  sx={[
-                    { m: 0, p: 0, listStyle: 'none' },
-                    sx
-                  ]}
-                >
-                  <Box
-                    component="li"
-                    role="presentation"
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: optionGridColumns,
-                      columnGap: 2,
-                      alignItems: 'center',
-                      px: 6,
-                      py: 2.5,
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 2,
-                      bgcolor: theme.palette.background.default,
-                      borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`
-                    }}
-                  >
-                    <Typography
-                      variant="overline"
-                      sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
-                    >
-                      Name
-                    </Typography>
-                    <Typography
-                      variant="overline"
-                      sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
-                    >
-                      Category
-                    </Typography>
-                    <Typography
-                      variant="overline"
-                      sx={{ fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}
-                    >
-                      SKU
-                    </Typography>
-                  </Box>
-                  {children}
-                </Box>
-              );
-            });
 
             return (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Autocomplete
-                  fullWidth
+                <ProductAutocomplete
+                  availableProducts={availableProducts}
+                  allProducts={allProducts}
+                  selectedProduct={selectedProduct}
                   disabled={disabled}
-                  options={options}
-                  value={selectedProduct}
-                  getOptionLabel={(option) => option?.name || ''}
-                  filterOptions={(options, { inputValue }) => {
-                    const search = inputValue.trim().toLowerCase();
-                    if (!search) return options;
-                    return options.filter((option) => {
-                      const name = option?.name || '';
-                      const sku = option?.sku || '';
-                      const category = getProductCategoryLabel(option);
-                      return [name, sku, category]
-                        .filter(Boolean)
-                        .some((value) => String(value).toLowerCase().includes(search));
-                    });
-                  }}
-                  onChange={(_, newValue) => {
+                  autoFocus={autoFocusFirstProductCell && index === 0}
+                  error={!!errors.items?.[index]?.productId}
+                  onChange={newValue => {
                     if (!newValue?._id) {
                       field.onChange('');
                       return;
                     }
+
                     field.onChange(newValue._id);
                     handleUpdateItemProduct(index, newValue._id, field.value);
                   }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      size="small"
-                      placeholder="Select Product"
-                      autoFocus={autoFocusFirstProductCell && index === 0}
-                      error={!!errors.items?.[index]?.productId}
-                      inputProps={{
-                        ...params.inputProps,
-                        className: `${params.inputProps?.className ?? ''} text-[0.85rem]`,
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'secondary.light'
-                        },
-                        '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'secondary.main'
-                        },
-                        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'primary.main'
-                        }
-                      }}
-                    />
-                  )}
-                  renderOption={(props, option, { index: optionIndex }) => {
-                  const { key, ...optionProps } = props;
-                  const zebraBg = optionIndex % 2 ? alpha(theme.palette.primary.main, 0.015) : 'transparent';
-
-                  return (
-                    <Box
-                      key={key}
-                      component="li"
-                      {...optionProps}
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: optionGridColumns,
-                        columnGap: 2,
-                        alignItems: 'center',
-                        px: 6,
-                        py: 0.9,
-                        minHeight: 38,
-                        backgroundColor: zebraBg,
-                        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                        transition: 'background-color 120ms ease',
-                        '&:last-of-type': { borderBottom: 'none' },
-                        '&:hover': {
-                          backgroundColor: theme.palette.secondary.lightestOpacity
-                        },
-                        '&[data-focus="true"]': {
-                          backgroundColor: theme.palette.primary.main
-                        },
-                        '&[aria-selected="true"]': {
-                          backgroundColor: theme.palette.primary.lightOpacity
-                        },
-                        '&[aria-selected="true"][data-focus="true"]': {
-                          backgroundColor: theme.palette.primary.main
-                        }
-                      }}
-                    >
-                      <Typography
-                        variant="h6"
-                        noWrap
-                        sx={{
-                          minWidth: 0,
-                          // color: 'text.secondary',
-                          fontSize: '0.8rem'
-                        }}
-                      >
-                        {option.name}
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        noWrap
-                        sx={{
-                          minWidth: 0,
-                          // color: 'text.secondary',
-                          fontSize: '0.8rem'
-                        }}
-                      >
-                        {getProductCategoryLabel(option)}
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        noWrap
-                        sx={{
-                          minWidth: 0,
-                          // color: 'text.secondary',
-                          fontSize: '0.8rem'
-                        }}
-                      >
-                        {option.sku || '—'}
-                      </Typography>
-                    </Box>
-                  );
-                  }}
-                  noOptionsText={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2, px: 1 }}>
-                      <Icon icon="mdi:package-variant-closed" width={22} color={theme.palette.text.secondary} />
-                      <Typography variant="body2" color="text.secondary">
-                        No products found
-                      </Typography>
-                    </Box>
-                  }
-                  slots={{ listbox: ProductOptionsListbox }}
-                  PaperProps={{
-                    sx: {
-
-                      borderRadius: '12px',
-                      boxShadow: theme.shadows[8],
-                      border: `1px solid ${alpha(theme.palette.divider, 0.12)}`,
-                      mt: 1,
-                      overflow: 'hidden'
-                    }
-                  }}
-                  slotProps={{
-
-                    htmlInput: {
-                      className: 'text-[0.85rem]',
-                    },
-                    popper: {
-
-                      placement: 'bottom-start',
-                      sx: {
-                        width: 'auto !important',
-                        minWidth: 520,
-                        maxWidth: 'min(760px, calc(100vw - 32px))',
-                      }
-                    },
-                    listbox: {
-                      sx: {
-                        maxHeight: 320,
-                        py: 0
-                      }
-                    },
-                  }}
-                  isOptionEqualToValue={(option, value) => option._id === value._id}
-                  disableClearable
-                  autoHighlight
-                  openOnFocus
                 />
                 {watched.promotionAutoApplied && watched.promotionSummary ? (
                   <Typography variant="caption" color="success.main" sx={{ lineHeight: 1.2, pl: 0.5 }}>

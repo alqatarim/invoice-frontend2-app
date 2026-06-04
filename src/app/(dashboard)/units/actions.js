@@ -55,6 +55,7 @@ export async function getInitialUnitData() {
           pageSize: 10,
           total: response.totalRecords || 0,
         },
+        summary: response.summary || {},
       };
 
       return result;
@@ -102,6 +103,7 @@ export async function getFilteredUnits(page, pageSize, filters = {}, sortBy = ''
           pageSize,
           total: response.totalRecords || 0,
         },
+        summary: response.summary || {},
       };
     } else {
       console.error('Failed to fetch filtered units:', response.message);

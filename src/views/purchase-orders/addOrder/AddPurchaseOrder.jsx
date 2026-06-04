@@ -1,14 +1,14 @@
 import React from 'react';
 import PurchaseOrder from '@/views/purchase-orders/purchaseOrder';
 import { useAddPurchaseOrderHandlers } from '@/views/purchase-orders/handler';
-import { getAddPurchaseOrderColumns } from './AddPurchaseOrderColumns';
+import { getPurchaseOrderFormColumns } from '@/views/purchase-orders/purchaseOrderFormColumns';
 
 const AddPurchaseOrder = ({ vendorsData, productData, taxRates, initialBanks, employees, onSave, enqueueSnackbar, closeSnackbar, purchaseOrderNumber }) => {
   const handlers = useAddPurchaseOrderHandlers({
     purchaseOrderId: purchaseOrderNumber,
     productData,
-    initialBanks,
     employees,
+    initialBanks,
     onSave,
     enqueueSnackbar,
     closeSnackbar,
@@ -23,7 +23,7 @@ const AddPurchaseOrder = ({ vendorsData, productData, taxRates, initialBanks, em
       vendorsData={vendorsData}
       taxRates={taxRates}
       handlers={handlers}
-      columnsFactory={getAddPurchaseOrderColumns}
+      columnsFactory={getPurchaseOrderFormColumns}
     />
   );
 };

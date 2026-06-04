@@ -11,9 +11,11 @@ const ENDPOINTS = {
     VIEW: '/purchase_orders',
     UPDATE: '/purchase_orders',
     DELETE: '/purchase_orders',
+    STATUS: '/purchase_orders',
     CONVERT: '/purchase_orders/convert',
     CLONE: '/purchase_orders/purchaseOrders',
-    GET_NUMBER: '/purchase_orders/getPurchaseOrderNumber'
+    GET_NUMBER: '/purchase_orders/getPurchaseOrderNumber',
+    STATS: '/purchase_orders/stats'
   }
 };
 
@@ -164,37 +166,35 @@ export async function getFilteredPurchaseOrders(tab, page, pageSize, filters = {
 }
 
 async function fetchPurchaseOrdersWithSingleStatus(status, page, pageSize, filters, sortBy, sortDirection) {
-  // Build the URL with single status
-  let url = ENDPOINTS.PURCHASE_ORDER.LIST + `?page=${page}&pageSize=${pageSize}`;
+  const queryParams = new URLSearchParams();
+  queryParams.append('skip', String((page - 1) * pageSize));
+  queryParams.append('limit', String(pageSize));
 
-  // Apply single status filter
   if (status && status !== 'ALL') {
-    url += `&status=${encodeURIComponent(status)}`;
+    queryParams.append('status', status);
   }
 
-  // Apply additional filters (excluding status since we handle it separately)
   if (filters.vendor && Array.isArray(filters.vendor) && filters.vendor.length > 0) {
-    url += `&vendor=${filters.vendor.map(id => encodeURIComponent(id)).join(',')}`;
+    queryParams.append('vendor', filters.vendor.join(','));
   }
   if (filters.purchaseOrderId && Array.isArray(filters.purchaseOrderId) && filters.purchaseOrderId.length > 0) {
-    url += `&purchaseOrderId=${filters.purchaseOrderId.map(id => encodeURIComponent(id)).join(',')}`;
+    queryParams.append('purchaseOrderId', filters.purchaseOrderId.join(','));
   }
   if (filters.search) {
-    url += `&search=${encodeURIComponent(filters.search)}`;
+    queryParams.append('search', filters.search);
   }
   if (filters.fromDate) {
-    url += `&fromDate=${encodeURIComponent(filters.fromDate)}`;
+    queryParams.append('fromDate', filters.fromDate);
   }
   if (filters.toDate) {
-    url += `&toDate=${encodeURIComponent(filters.toDate)}`;
+    queryParams.append('toDate', filters.toDate);
   }
-
-  // Apply sorting
   if (sortBy) {
-    url += `&sortBy=${encodeURIComponent(sortBy)}&sortDirection=${encodeURIComponent(sortDirection)}`;
+    queryParams.append('sortBy', sortBy);
+    queryParams.append('sortDirection', sortDirection);
   }
 
-  const response = await fetchWithAuth(url);
+  const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.LIST}?${queryParams.toString()}`);
 
   if (response.code === 200 || response.data) {
     // Ensure vendor information is properly populated
@@ -251,7 +251,8 @@ export async function deletePurchaseOrder (id) {
 
     return {
       success: response.code === 200,
-      message: response.message
+      data: response.data,
+      message: response.data?.message || response.message || 'Purchase order deleted successfully',
     };
   } catch (error) {
     console.error('Error deleting purchase order:', error);
@@ -259,30 +260,67 @@ export async function deletePurchaseOrder (id) {
   }
 };
 
-export async function convertToPurchase(id, data) {
+export async function updatePurchaseOrderStatus(id, status) {
+  if (!id) {
+    return { success: false, message: 'Purchase order id is required' };
+  }
+
+  try {
+    const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.STATUS}/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return {
+      success: response.code === 200,
+      data: response.data,
+      message: response.data?.message || response.message || 'Purchase order status updated successfully',
+    };
+  } catch (error) {
+    console.error('Error updating purchase order status:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to update purchase order status',
+    };
+  }
+}
+
+export async function convertToPurchase(id, data = null) {
+  if (!id && !data?._id) {
+    return { success: false, message: 'Purchase order id is required' };
+  }
+
   try {
     // Convert data to FormData
     const formData = new FormData();
 
-    // Add items data
-    data.items.forEach((item, i) => {
-      Object.keys(item).forEach(key => {
-        if (item[key] !== undefined && item[key] !== null) {
-          formData.append(`items[${i}][${key}]`, item[key]);
-        }
+    if (data?.items?.length) {
+      data.items.forEach((item, i) => {
+        Object.keys(item).forEach(key => {
+          if (item[key] !== undefined && item[key] !== null) {
+            formData.append(`items[${i}][${key}]`, item[key]);
+          }
+        });
       });
-    });
+    }
 
     // Add all other fields
-    Object.keys(data).forEach(key => {
-      if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
-        if (key === 'dueDate' || key === 'purchaseOrderDate') {
-          formData.append(key, new Date(data[key]).toISOString());
-        } else {
-          formData.append(key, data[key]);
+    if (data) {
+      Object.keys(data).forEach(key => {
+        if (key !== 'items' && data[key] !== undefined && data[key] !== null) {
+          if (key === 'dueDate' || key === 'purchaseOrderDate') {
+            formData.append(key, new Date(data[key]).toISOString());
+          } else {
+            formData.append(key, data[key]);
+          }
         }
-      }
-    });
+      });
+    }
+
+    formData.set('_id', data?._id || id);
 
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.CONVERT}`, {
       method: 'POST',
@@ -292,7 +330,7 @@ export async function convertToPurchase(id, data) {
     return {
       success: response.code === 200,
       data: response.data,
-      message: response.message
+      message: response.data?.message || response.message || 'Purchase order converted successfully',
     };
   } catch (error) {
     console.error('Error converting purchase order:', error);
@@ -318,7 +356,7 @@ export async function clonePurchaseOrder(id) {
     return {
       success: true,
       data: response.data,
-      message: response.message || 'Purchase order cloned successfully'
+      message: response.data?.message || 'Purchase order cloned successfully',
     };
 
   } catch (error) {
@@ -335,7 +373,7 @@ export async function getPurchaseOrderNumber  () {
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.GET_NUMBER);
     return {
       success: response.code === 200,
-      data: response.data
+      data: response.data || null
     };
   } catch (error) {
     console.error('Error getting purchase order number:', error);
@@ -407,7 +445,7 @@ export async function printDownloadPurchaseOrder(id) {
   return `/purchase-orders/order-view/${id}?print=true`;
 }
 
-export async function addPurchaseOrder(data, signatureURL) {
+export async function addPurchaseOrder(data) {
   try {
     const formData = new FormData();
 
@@ -446,13 +484,10 @@ export async function addPurchaseOrder(data, signatureURL) {
       }
     });
 
-    formData.delete('signatureId');
-    formData.delete('signatureName');
-    formData.delete('signatureImage');
-
     // Ensure required fields are present
     formData.append('roundOff', data.roundOff || false);
-    formData.append('employee', data.employee || '');
+    formData.append('status', data.status || 'PENDING_APPROVAL');
+    formData.append('paymentMode', data.payment_method || data.paymentMode || 'Cash');
 
     const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.ADD, {
       method: 'POST',
@@ -467,17 +502,17 @@ export async function addPurchaseOrder(data, signatureURL) {
     return {
       success: true,
       data: response.data,
-      message: response.message
+      message: response.data?.message || response.message,
     };
   } catch (error) {
     console.error('Error details:', error);
 
-    // Extract error messages from the response
     const errorMessages = error.response?.data?.message || [error.message || 'Error adding purchase order'];
+    const normalizedMessage = Array.isArray(errorMessages) ? errorMessages.join('\n') : errorMessages;
 
     return {
       success: false,
-      message: error.message || 'Error adding purchase order',
+      message: normalizedMessage || 'Error adding purchase order',
       errors: errorMessages
     };
   }
@@ -496,7 +531,7 @@ export async function getPurchaseOrderDetails (id)  {
   }
 };
 
-export async function updatePurchaseOrder(id, data, signatureURL) {
+export async function updatePurchaseOrder(id, data) {
   // 1. ID Validation
   if (!id || typeof id !== 'string') {
     throw new Error('Invalid purchase order ID');
@@ -546,9 +581,11 @@ export async function updatePurchaseOrder(id, data, signatureURL) {
     formData.append("totalDiscount", data.totalDiscount);
     formData.append("roundOff", data.roundOff);
     formData.append("bank", data.bank?._id || "");
+    formData.append("employee", data.employee || "");
     formData.append("notes", data.notes);
     formData.append("termsAndCondition", data.termsAndCondition);
-    formData.append("employee", data.employee || "");
+    formData.append("status", data.status || "DRAFT");
+    formData.append("paymentMode", data.payment_method || data.paymentMode || "Cash");
 
     // 5. API Call
     const response = await fetchWithAuth(`${ENDPOINTS.PURCHASE_ORDER.UPDATE}/${id}`, {
@@ -563,7 +600,7 @@ export async function updatePurchaseOrder(id, data, signatureURL) {
     return {
       success: true,
       data: response.data,
-      message: response.message
+      message: response.data?.message || response.message,
     };
   } catch (error) {
     console.error('Error updating purchase order:', error);
@@ -622,30 +659,18 @@ export async function exportPurchaseOrders(format = 'csv', filters = {}) {
 
 export async function getPurchaseOrderStats() {
   try {
-    const response = await fetchWithAuth('/purchase_orders/stats');
+    const response = await fetchWithAuth(ENDPOINTS.PURCHASE_ORDER.STATS);
 
     return {
-      success: true,
-      data: response.data || {
-        totalOrders: 0,
-        pendingOrders: 0,
-        completedOrders: 0,
-        totalAmount: 0,
-        avgOrderValue: 0
-      }
+      success: response.code === 200,
+      data: response.data || {}
     };
   } catch (error) {
     console.error('Error fetching purchase order stats:', error);
     return {
       success: false,
       message: error.message,
-      data: {
-        totalOrders: 0,
-        pendingOrders: 0,
-        completedOrders: 0,
-        totalAmount: 0,
-        avgOrderValue: 0
-      }
+      data: {}
     };
   }
 }

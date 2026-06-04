@@ -147,7 +147,7 @@ export const usePermissionsHandler = (initialPermissions) => {
         enqueueSnackbar(result.message || 'Permissions updated successfully', {
           variant: 'success'
         })
-        router.push('/roles-permission/roles-permission-list')
+        router.push('/access-control')
       } else {
         enqueueSnackbar(result.error || 'Failed to update permissions', {
           variant: 'error'
@@ -164,7 +164,7 @@ export const usePermissionsHandler = (initialPermissions) => {
   }, [enqueueSnackbar, permissions, router])
 
   const handleBack = useCallback(() => {
-    router.push('/roles-permission/roles-permission-list')
+    router.push('/access-control')
   }, [router])
 
   return {

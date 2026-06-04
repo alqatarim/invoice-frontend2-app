@@ -38,6 +38,12 @@ const TotalsTwo = ({
   primaryActionColor = 'success',
   primaryActionIcon = 'mdi:check-circle-outline',
   onPrimaryAction,
+  secondaryActionLabel,
+  onSecondaryAction,
+  secondaryActionDisabled = false,
+  secondaryActionColor = 'secondary',
+  secondaryActionIcon = 'mdi:content-save-outline',
+  secondaryActionVariant = 'outlined',
   handleSubmit,
   handleFormSubmit,
   handleError,
@@ -106,7 +112,7 @@ const TotalsTwo = ({
           p: 1.75,
           borderRadius: 1.5,
           border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
-          bgcolor: alpha(theme.palette.background.paper, 0.88),
+          // bgcolor: alpha(theme.vars.palette.background.paper, 0.88),
         }}
       >
         {renderSummaryRow({ label: subtotalLabel, fieldName: 'taxableAmount' })}
@@ -141,6 +147,19 @@ const TotalsTwo = ({
           >
             {primaryActionLabel || buttonText || saveLabel}
           </CustomButton>
+          {secondaryActionLabel ? (
+            <CustomButton
+              fullWidth
+              variant={secondaryActionVariant}
+              color={secondaryActionColor}
+              startIcon={secondaryActionIcon ? <Icon icon={secondaryActionIcon} width={18} /> : null}
+              onClick={onSecondaryAction}
+              disabled={disabled || isSubmitting || secondaryActionDisabled}
+              sx={{ py: 1 }}
+            >
+              {secondaryActionLabel}
+            </CustomButton>
+          ) : null}
         </Box>
       ) : null}
     </>

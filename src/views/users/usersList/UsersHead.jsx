@@ -4,70 +4,66 @@ import React, { useMemo } from 'react';
 import { Grid } from '@mui/material';
 import PageIconHeader from '@components/headers/PageIconHeader';
 import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
-
+import { orgRoleOptions } from '@/data/dataSets';
 /**
- * UsersHead Component - Displays users statistics header
+ * UsersHead — reads list summary card counts (same pattern as InvoiceHead / CustomerHead).
  */
-const UsersHead = ({ users = [] }) => {
-     // Calculate statistics based on actual users data
-     const statsData = useMemo(() => {
-          const totalUsers = users.length;
-          const companyAdmins = users.filter(user =>
-               ['OWNER', 'COMPANY_ADMIN'].includes(user.companyRole || user.orgRole)
-          ).length;
-          const storeScopedUsers = users.filter(
-               user => Array.isArray(user.assignedBranchIds) && user.assignedBranchIds.length > 0
-          ).length;
+const UsersHead = ({ userListData = {} }) => {
+  const cardCounts = useMemo(
+    () => ({
+      totalUsers: Number(userListData?.totalUsers || 0),
+      companyAdmins: Number(userListData?.companyAdmins || 0),
+      storeAdmins: Number(userListData?.storeAdmins || 0),
+      storeMembers: Number(userListData?.storeMembers || 0),
+    }),
+    [userListData]
+  );
 
-          return {
-               totalUsers: { count: totalUsers, amount: totalUsers },
-               companyAdmins: { count: companyAdmins, amount: companyAdmins },
-               storeScopedUsers: { count: storeScopedUsers, amount: storeScopedUsers },
-          };
-     }, [users]);
+  const statCards = useMemo(
+    () => [
+      {
+        title: 'Total',
+        value: cardCounts.totalUsers,
+        icon: orgRoleOptions.find(opt => opt.value === 'ALL')?.icon || 'mdi:users-group-outline',
+        color: orgRoleOptions.find(opt => opt.value === 'ALL')?.color || 'primary',
+      },
+      {
+        title: 'Company Admins',
+        value: cardCounts.companyAdmins,
+        icon: orgRoleOptions.find(opt => opt.value === 'COMPANY_ADMIN')?.icon || 'mdi:shield-account-outline',
+        color: orgRoleOptions.find(opt => opt.value === 'COMPANY_ADMIN')?.color || 'info',
+      },
+      {
+        title: 'Store Admins',
+        value: cardCounts.storeAdmins,
+        icon: orgRoleOptions.find(opt => opt.value === 'STORE_ADMIN')?.icon || 'mdi:store-cog-outline',
+        color: orgRoleOptions.find(opt => opt.value === 'STORE_ADMIN')?.color || 'warning',
+      },
+      {
+        title: 'Store Members',
+        value: cardCounts.storeMembers,
+        icon: orgRoleOptions.find(opt => opt.value === 'STORE_MEMBER')?.icon || 'mdi:account-outline',
+        color: 'success',
+      },
+    ],
+    [cardCounts]
+  );
 
-     const statCards = useMemo(
-          () => [
-               {
-                    title: 'Total Members',
-                    value: statsData.totalUsers.count,
-                    subtitle: 'Company And Store Team',
-                    icon: 'mdi:account-group',
-                    color: 'primary',
-               },
-               {
-                    title: 'Company Admins',
-                    value: statsData.companyAdmins.count,
-                    subtitle: 'Owner And Company Admin',
-                    icon: 'mdi:shield-account-outline',
-                    color: 'info',
-               },
-               {
-                    title: 'Store Members',
-                    value: statsData.storeScopedUsers.count,
-                    subtitle: 'Assigned To Stores',
-                    icon: 'mdi:store-cog-outline',
-                    color: 'success',
-               },
-          ],
-          [statsData]
-     );
+  return (
+    <>
+      <PageIconHeader title="Team" icon="mdi:users-group-outline" />
 
-     return (
-          <>
-               <PageIconHeader title='Team' icon='mdi:account-group' />
-
-               <div className="mb-2">
-                    <Grid container className='flex flex-wrap justify-between gap-0'>
-                         {statCards.map((card) => (
-                              <Grid key={card.title}>
-                                   <HorizontalWithoutBorder {...card} />
-                              </Grid>
-                         ))}
-                    </Grid>
-               </div>
-          </>
-     );
+      <div className="mb-2">
+        <Grid container className="flex flex-wrap justify-between gap-0">
+          {statCards.map(card => (
+            <Grid key={card.title}>
+              <HorizontalWithoutBorder {...card} />
+            </Grid>
+          ))}
+        </Grid>
+      </div>
+    </>
+  );
 };
 
 export default UsersHead;

@@ -9,6 +9,7 @@ import PurchaseList from './PurchaseList';
 const PurchaseListIndex = ({
      initialPurchases = [],
      initialPagination = { current: 1, pageSize: 10, total: 0 },
+     initialSummary = {},
      initialVendors = [],
      initialErrorMessage = '',
 }) => {
@@ -29,6 +30,7 @@ const PurchaseListIndex = ({
                <PurchaseList
                     initialPurchases={initialPurchases}
                     initialPagination={initialPagination}
+                    initialSummary={initialSummary}
                     vendors={initialVendors}
                     initialErrorMessage={initialErrorMessage}
                />

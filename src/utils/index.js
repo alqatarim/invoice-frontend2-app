@@ -17,3 +17,4 @@ export * from './rgbaToHex';
 export * from './string';
 export * from './salesUtils';
 export * from './vendorUtils';
+export * from './defaultUserAvatar';

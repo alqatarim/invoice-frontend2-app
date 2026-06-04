@@ -7,8 +7,8 @@ const EditPurchase = ({ vendorsData, productData, taxRates, initialBanks, employ
   const handlers = useEditPurchaseHandlers({
     purchaseData,
     productData,
-    initialBanks,
     employees,
+    initialBanks,
     onSave,
     enqueueSnackbar,
     closeSnackbar,

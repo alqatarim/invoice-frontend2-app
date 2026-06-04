@@ -8,31 +8,15 @@ import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWitho
 /**
  * ProductHead Component - Displays product statistics header
  */
-const ProductHead = ({ productListData }) => {
+const ProductHead = ({ summary = {} }) => {
   const productStats = useMemo(
-    () =>
-      (productListData || []).reduce(
-        (acc, product) => {
-          acc.totalProducts += 1;
-
-          if (product.isDeleted) {
-            acc.inactiveProducts += 1;
-          } else {
-            acc.activeProducts += 1;
-          }
-
-          acc.totalValue += Number(product.sellingPrice) || 0;
-
-          return acc;
-        },
-        {
-          totalProducts: 0,
-          activeProducts: 0,
-          inactiveProducts: 0,
-          totalValue: 0,
-        }
-      ),
-    [productListData]
+    () => ({
+      totalProducts: Number(summary.totalProducts || 0),
+      activeProducts: Number(summary.activeProducts || 0),
+      inactiveProducts: Number(summary.inactiveProducts || 0),
+      totalValue: Number(summary.totalValue || 0),
+    }),
+    [summary]
   );
 
   const statCards = useMemo(

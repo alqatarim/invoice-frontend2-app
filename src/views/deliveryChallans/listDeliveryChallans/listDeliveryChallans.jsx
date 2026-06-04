@@ -2,33 +2,18 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { useTheme, alpha } from '@mui/material/styles';
 import {
-  Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
   Grid,
-  Typography,
 } from '@mui/material';
 import { Icon } from '@iconify/react';
-import { MoreVert as MoreVertIcon } from '@mui/icons-material';
-import { formatDate } from '@/utils/dateUtils';
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import OptionMenu from '@core/components/option-menu';
-import { deliveryChallanStatusOptions } from '@/data/dataSets';
-import { formatDecimal } from '@/utils/numberUtils';
-import PageIconHeader from '@components/headers/PageIconHeader';
-import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
-
-const getStatusColor = (status) => {
-  const statusOption = deliveryChallanStatusOptions.find((option) => option.value === status);
-  return statusOption?.color || 'default';
-};
+import DeliveryChallanHead from './DeliveryChallanHead';
 
 const ListDeliveryChallans = ({
   deliveryChallans = [],
@@ -37,189 +22,20 @@ const ListDeliveryChallans = ({
   loadingAction = false,
   permissions,
   searchTerm = '',
-  cardCounts = {},
+  summary = {},
+  tableColumns = [],
   deleteDialogOpen = false,
   convertDialogOpen = false,
+  selectedDeliveryChallan = null,
   onSearchChange,
   onPageChange,
   onRowsPerPageChange,
   onView,
-  onEdit,
-  onDelete,
-  onConvert,
-  onDeleteDialogClose,
+  onDeleteCancel,
   onDeleteConfirm,
   onConvertDialogClose,
   onConvertConfirm,
 }) => {
-  const theme = useTheme();
-
-  const columns = useMemo(
-    () => [
-      {
-        key: 'challanNumber',
-        visible: true,
-        label: 'Challan No',
-        sortable: true,
-        align: 'center',
-        renderCell: (row) => (
-          <Link href={`/deliveryChallans/deliveryChallans-view/${row._id}`} passHref>
-            <Typography className="cursor-pointer text-primary hover:underline" align="center">
-              {row.challanNumber || row.deliveryChallanNumber || 'N/A'}
-            </Typography>
-          </Link>
-        ),
-      },
-      {
-        key: 'customer',
-        visible: true,
-        label: 'Customer',
-        sortable: true,
-        align: 'center',
-        renderCell: (row) => (
-          <Box className="flex justify-between items-start flex-col gap-1">
-            <Link href={`/customers/customer-view/${row.customerId?._id}`} passHref>
-              <Typography
-                variant="body1"
-                className="text-[0.95rem] text-start cursor-pointer text-primary hover:underline"
-              >
-                {row.customerId?.name || 'N/A'}
-              </Typography>
-            </Link>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              className="text-[0.85rem] truncate select-text"
-              sx={{ userSelect: 'text', cursor: 'text' }}
-            >
-              {row.customerId?.phone || 'N/A'}
-            </Typography>
-          </Box>
-        ),
-      },
-      {
-        key: 'amount',
-        label: 'Amount',
-        visible: true,
-        align: 'center',
-        renderCell: (row) => (
-          <div className="flex items-center gap-1 justify-center">
-            <Icon icon="lucide:saudi-riyal" width="1rem" color={theme.palette.secondary.light} />
-            <Typography color="text.primary" className="text-[1rem] font-medium">
-              {formatDecimal(row.TotalAmount || row.totalAmount)}
-            </Typography>
-          </div>
-        ),
-      },
-      {
-        key: 'deliveryDate',
-        label: 'Delivery Date',
-        visible: true,
-        align: 'center',
-        sortable: true,
-        renderCell: (row) => (
-          <Typography
-            variant="body1"
-            color="text.primary"
-            className="text-[0.9rem] whitespace-nowrap"
-          >
-            {row.deliveryDate ? formatDate(row.deliveryDate) : 'N/A'}
-          </Typography>
-        ),
-      },
-      {
-        key: 'status',
-        label: 'Status',
-        visible: true,
-        align: 'center',
-        sortable: true,
-        renderCell: (row) => (
-          <Chip
-            label={
-              row.status
-                ? row.status
-                  .replace(/_/g, ' ')
-                  .toLowerCase()
-                  .replace(/\b\w/g, (letter) => letter.toUpperCase())
-                : 'N/A'
-            }
-            size="medium"
-            color={getStatusColor(row.status)}
-            variant="tonal"
-            sx={{ fontWeight: 500 }}
-          />
-        ),
-      },
-      {
-        key: 'actions',
-        label: '',
-        visible: true,
-        align: 'right',
-        renderCell: (row) => {
-          const menuOptions = [];
-
-          if (permissions?.canView) {
-            menuOptions.push({
-              text: 'View',
-              icon: <Icon icon="tabler:eye" />,
-              menuItemProps: {
-                className: 'flex items-center gap-2 text-textSecondary',
-                onClick: () => onView(row._id),
-              },
-            });
-          }
-
-          if (permissions?.canUpdate) {
-            menuOptions.push({
-              text: 'Edit',
-              icon: <Icon icon="tabler:edit" />,
-              menuItemProps: {
-                className: 'flex items-center gap-2 text-textSecondary',
-                onClick: () => onEdit(row._id),
-              },
-            });
-
-            menuOptions.push({
-              text: 'Convert to Invoice',
-              icon: <Icon icon="tabler:arrow-right" />,
-              menuItemProps: {
-                className: 'flex items-center gap-2 text-textSecondary',
-                disabled: row?.status === 'CONVERTED',
-                onClick: row?.status === 'CONVERTED' ? undefined : () => onConvert(row),
-              },
-            });
-          }
-
-          if (permissions?.canDelete) {
-            menuOptions.push({
-              text: 'Delete',
-              icon: <Icon icon="tabler:trash" />,
-              menuItemProps: {
-                className: 'flex items-center gap-2 text-textSecondary',
-                onClick: () => onDelete(row),
-              },
-            });
-          }
-
-          if (menuOptions.length === 0) {
-            return null;
-          }
-
-          return (
-            <Box className="flex items-center justify-end">
-              <OptionMenu
-                icon={<MoreVertIcon />}
-                iconButtonProps={{ size: 'small', 'aria-label': 'delivery challan actions' }}
-                options={menuOptions}
-              />
-            </Box>
-          );
-        },
-      },
-    ],
-    [onConvert, onDelete, onEdit, onView, permissions, theme.palette.secondary.light]
-  );
-
   const tablePagination = useMemo(
     () => ({
       page: Math.max(0, pagination.current - 1),
@@ -231,50 +47,7 @@ const ListDeliveryChallans = ({
 
   return (
     <div className="flex flex-col gap-5">
-      <PageIconHeader title='Delivery Challans' icon='tabler:truck-delivery' />
-
-      <div className="mb-2">
-        <Grid container className='flex flex-wrap justify-between gap-0'>
-          {[
-            {
-              title: 'Total Challans',
-              value: cardCounts.totalDeliveryChallans?.total_sum || 0,
-              subtitle: `${cardCounts.totalDeliveryChallans?.count || 0} challans`,
-              icon: 'tabler:truck-delivery',
-              color: 'primary',
-              isCurrency: true,
-            },
-            {
-              title: 'Active',
-              value: cardCounts.totalActive?.total_sum || 0,
-              subtitle: `${cardCounts.totalActive?.count || 0} active`,
-              icon: 'mdi:check-circle-outline',
-              color: 'success',
-              isCurrency: true,
-            },
-            {
-              title: 'Converted',
-              value: cardCounts.totalConverted?.total_sum || 0,
-              subtitle: `${cardCounts.totalConverted?.count || 0} converted`,
-              icon: 'mdi:arrow-right-circle-outline',
-              color: 'info',
-              isCurrency: true,
-            },
-            {
-              title: 'Cancelled',
-              value: cardCounts.totalCancelled?.total_sum || 0,
-              subtitle: `${cardCounts.totalCancelled?.count || 0} cancelled`,
-              icon: 'mdi:close-circle-outline',
-              color: 'error',
-              isCurrency: true,
-            },
-          ].map((card) => (
-            <Grid key={card.title}>
-              <HorizontalWithoutBorder {...card} />
-            </Grid>
-          ))}
-        </Grid>
-      </div>
+      <DeliveryChallanHead summary={summary} />
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
@@ -291,7 +64,7 @@ const ListDeliveryChallans = ({
                 </Button>
               )
             }
-            columns={columns}
+            columns={tableColumns}
             rows={deliveryChallans}
             loading={loading}
             pagination={tablePagination}
@@ -309,72 +82,44 @@ const ListDeliveryChallans = ({
         </Grid>
       </Grid>
 
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={onDeleteDialogClose}
-        PaperProps={{
-          sx: {
-            borderRadius: '16px',
-            width: { xs: '90%', sm: 'auto' },
-            minWidth: { sm: 400 },
-            boxShadow: (muiTheme) => `0 8px 24px 0 ${alpha(muiTheme.palette.common.black, 0.16)}`,
-          },
-        }}
-      >
-        <DialogTitle sx={{ px: 4, pt: 4, fontSize: '1.25rem' }}>Confirm Delete</DialogTitle>
-        <DialogContent sx={{ px: 4 }}>
+      <Dialog open={deleteDialogOpen} onClose={onDeleteCancel}>
+        <DialogTitle>Delete Delivery Challan</DialogTitle>
+        <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete this delivery challan? This action cannot be undone.
+            Are you sure you want to delete{' '}
+            <strong>
+              {selectedDeliveryChallan?.deliveryChallanNumber || 'this delivery challan'}
+            </strong>
+            ? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ px: 4, pb: 4, pt: 2 }}>
-          <Button
-            onClick={onDeleteDialogClose}
-            variant="outlined"
-            disabled={loadingAction}
-            sx={{ borderRadius: '10px', py: 1, px: 3 }}
-          >
+        <DialogActions>
+          <Button onClick={onDeleteCancel} color="secondary" disabled={loadingAction}>
             Cancel
           </Button>
           <Button
             onClick={onDeleteConfirm}
-            variant="contained"
             color="error"
+            variant="contained"
             disabled={loadingAction}
             startIcon={<Icon icon="tabler:trash" />}
-            sx={{ borderRadius: '10px', py: 1, px: 3, ml: 2 }}
           >
             Delete
           </Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog
-        open={convertDialogOpen}
-        onClose={onConvertDialogClose}
-        PaperProps={{
-          sx: {
-            borderRadius: '16px',
-            width: { xs: '90%', sm: 'auto' },
-            minWidth: { sm: 400 },
-            boxShadow: (muiTheme) => `0 8px 24px 0 ${alpha(muiTheme.palette.common.black, 0.16)}`,
-          },
-        }}
-      >
-        <DialogTitle sx={{ px: 4, pt: 4, fontSize: '1.25rem' }}>Convert to Invoice</DialogTitle>
-        <DialogContent sx={{ px: 4 }}>
+      <Dialog open={convertDialogOpen} onClose={onConvertDialogClose}>
+        <DialogTitle>Convert to Invoice</DialogTitle>
+        <DialogContent>
           <DialogContentText>
-            Are you sure you want to convert this delivery challan to an invoice? This will create
-            a new invoice with the same details.
+            Are you sure you want to convert{' '}
+            <strong>{selectedDeliveryChallan?.deliveryChallanNumber || 'this delivery challan'}</strong>{' '}
+            to an invoice? This will create a new invoice with the same details.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ px: 4, pb: 4, pt: 2 }}>
-          <Button
-            onClick={onConvertDialogClose}
-            variant="outlined"
-            disabled={loadingAction}
-            sx={{ borderRadius: '10px', py: 1, px: 3 }}
-          >
+        <DialogActions>
+          <Button onClick={onConvertDialogClose} color="secondary" disabled={loadingAction}>
             Cancel
           </Button>
           <Button
@@ -382,7 +127,6 @@ const ListDeliveryChallans = ({
             variant="contained"
             disabled={loadingAction}
             startIcon={<Icon icon="tabler:arrow-right" />}
-            sx={{ borderRadius: '10px', py: 1, px: 3, ml: 2 }}
           >
             Convert
           </Button>

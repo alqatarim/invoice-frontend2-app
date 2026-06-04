@@ -8,6 +8,7 @@ export const metadata = {
 
 async function ExpenseListPage() {
   let initialExpenses = [];
+  let initialSummary = {};
   let initialPagination = {
     current: 1,
     pageSize: 10,
@@ -23,6 +24,7 @@ async function ExpenseListPage() {
     ]);
 
     initialExpenses = initialListData?.success ? initialListData.data || [] : [];
+    initialSummary = initialListData?.success ? initialListData.summary || {} : {};
     initialPagination = {
       current: 1,
       pageSize: 10,
@@ -50,6 +52,7 @@ async function ExpenseListPage() {
     <ExpenseListIndex
       initialExpenses={initialExpenses}
       initialPagination={initialPagination}
+      initialSummary={initialSummary}
       initialExpenseNumber={initialExpenseNumber}
       initialErrorMessage={initialErrorMessage}
     />

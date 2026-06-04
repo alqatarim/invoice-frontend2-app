@@ -10,12 +10,14 @@ import { usePurchaseReturnListHandler } from './handler';
 const PurchaseReturnListContent = ({
   initialDebitNotes = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialSummary = {},
   initialErrorMessage = '',
 }) => {
   const { enqueueSnackbar } = useSnackbar();
   const handler = usePurchaseReturnListHandler({
     initialDebitNotes,
     initialPagination,
+    initialSummary,
     initialErrorMessage,
   });
 
@@ -37,6 +39,7 @@ const PurchaseReturnListContent = ({
         sortBy={handler.sortBy}
         sortDirection={handler.sortDirection}
         searchTerm={handler.searchTerm}
+        summary={handler.summary}
         permissions={handler.permissions}
         tableColumns={handler.tableColumns}
         manageColumnsOpen={handler.manageColumnsOpen}
@@ -49,8 +52,11 @@ const PurchaseReturnListContent = ({
         onCloseManageColumns={handler.closeManageColumns}
         onColumnCheckboxChange={handler.handleColumnCheckboxChange}
         onSaveColumns={handler.handleSaveColumns}
+        deleteDialogOpen={handler.deleteDialogOpen}
+        selectedDebitNote={handler.selectedDebitNote}
+        onDeleteConfirm={handler.handleDeleteConfirm}
+        onDeleteCancel={handler.handleDeleteCancel}
       />
-
     </>
   );
 };

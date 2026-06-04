@@ -209,9 +209,9 @@ export const getInventoryColumns = ({ theme, selectedBranch = null, selectedBran
       label: '',
       sortable: false,
       align: 'center',
-      width: '120px',
+      width: '160px',
       renderCell: (row, rowIndex, handlers) => {
-        if (!handlers?.permissions?.canUpdate) return null;
+        if (!handlers?.permissions?.canUpdate && !handlers?.permissions?.canView) return null;
 
         const isAnyLoading = Boolean(
           handlers?.stockLoading?.addStock ||
@@ -222,48 +222,71 @@ export const getInventoryColumns = ({ theme, selectedBranch = null, selectedBran
         const hasSelectedBranch = Boolean(selectedBranchId);
         const { quantity } = getSelectedBranchStock(row, selectedBranchId);
         const branchRow = buildSelectedBranchRow(row, selectedBranch, selectedBranchId);
+        const canAdjustStock = Boolean(handlers?.permissions?.canUpdate);
 
         const openStockDialog = (event, type) => {
           event.stopPropagation();
-          if (!hasSelectedBranch) return;
+          if (!hasSelectedBranch || !canAdjustStock) return;
           handlers?.openStockDialog?.(type, branchRow, event.currentTarget);
+        };
+
+        const openMovementHistory = (event) => {
+          event.stopPropagation();
+          if (!hasSelectedBranch) return;
+          handlers?.onViewHistory?.(branchRow);
         };
 
         return (
           <Box className="flex items-center justify-center gap-1" onClick={(event) => event.stopPropagation()}>
-            <Tooltip title={hasSelectedBranch ? 'Add Stock' : 'Choose a branch from the top bar'} arrow>
+            {canAdjustStock && (
+              <>
+                <Tooltip title={hasSelectedBranch ? 'Add Stock' : 'Choose a branch from the top bar'} arrow>
+                  <span>
+                    <CustomIconButtonTwo
+                      size="small"
+                      skin="light"
+                      color="success"
+                      onClick={(event) => openStockDialog(event, 'add')}
+                      disabled={isAnyLoading || !hasSelectedBranch}
+                    >
+                      <Icon icon="mdi:plus" width={18} />
+                    </CustomIconButtonTwo>
+                  </span>
+                </Tooltip>
+                <Tooltip
+                  title={
+                    !hasSelectedBranch
+                      ? 'Choose a branch from the top bar'
+                      : quantity > 0
+                        ? 'Remove Stock'
+                        : 'No stock in selected branch'
+                  }
+                  arrow
+                >
+                  <span>
+                    <CustomIconButtonTwo
+                      size="small"
+                      skin="light"
+                      color="error"
+                      onClick={(event) => openStockDialog(event, 'remove')}
+                      disabled={isAnyLoading || !hasSelectedBranch || quantity <= 0}
+                    >
+                      <Icon icon="mdi:minus" width={18} color={theme.palette.error.main} />
+                    </CustomIconButtonTwo>
+                  </span>
+                </Tooltip>
+              </>
+            )}
+            <Tooltip title={hasSelectedBranch ? 'Movement History' : 'Choose a branch from the top bar'} arrow>
               <span>
                 <CustomIconButtonTwo
                   size="small"
-                  // variant="tonal"
                   skin="light"
-                  color="success"
-                  onClick={(event) => openStockDialog(event, 'add')}
+                  color="secondary"
+                  onClick={openMovementHistory}
                   disabled={isAnyLoading || !hasSelectedBranch}
                 >
-                  <Icon icon="mdi:plus" width={18} />
-                </CustomIconButtonTwo>
-              </span>
-            </Tooltip>
-            <Tooltip
-              title={
-                !hasSelectedBranch
-                  ? 'Choose a branch from the top bar'
-                  : quantity > 0
-                    ? 'Remove Stock'
-                    : 'No stock in selected branch'
-              }
-              arrow
-            >
-              <span>
-                <CustomIconButtonTwo
-                  size="small"
-                  skin="light"
-                  color="error"
-                  onClick={(event) => openStockDialog(event, 'remove')}
-                  disabled={isAnyLoading || !hasSelectedBranch || quantity <= 0}
-                >
-                  <Icon icon="mdi:minus" width={18} color={theme.palette.error.main} />
+                  <Icon icon="mdi:timeline-clock-outline" width={18} color={theme.palette.secondary.main} />
                 </CustomIconButtonTwo>
               </span>
             </Tooltip>

@@ -6,6 +6,8 @@ const colorSchemes = skin => {
           main: '#8C57FF',
           light: '#A379FF',
           dark: '#7E4EE6',
+          darker: '#6E44D4',
+          darkest: '#5F3BC0',
           contrastText: '#fff',
           lighter: '#C3A6FF', // real lighter hex
           lightest: '#E3DBFF', // real lightest hex
@@ -22,6 +24,8 @@ const colorSchemes = skin => {
           main: '#8A8D93',
           light: '#A1A4A9',
           dark: '#7C7F84',
+          darker: '#767980',
+          darkest: '#666970',
           lighter: '#C2C4C8', // real lighter hex
           lightest: '#E3E4E6', // real lightest hex
           contrastText: '#fff',
@@ -37,6 +41,8 @@ const colorSchemes = skin => {
           main: '#FF4C51',
           light: '#FF7074',
           dark: '#E64449',
+          darker: '#E6454A',
+          darkest: '#CC3E42',
           lighter: '#FFB3B5', // real lighter hex
           lightest: '#FFE5E6', // real lightest hex
           contrastText: '#fff',
@@ -52,6 +58,8 @@ const colorSchemes = skin => {
           main: '#FFB400',
           light: '#FFC333',
           dark: '#E6A200',
+          darker: '#E0A000',
+          darkest: '#C58D00',
           lighter: '#FFE099', // real lighter hex
           lightest: '#FFF7E0', // real lightest hex
           contrastText: '#fff',
@@ -68,6 +76,8 @@ const colorSchemes = skin => {
           main: '#16B1FF',
           light: '#45C1FF',
           dark: '#149FE6',
+          darker: '#129ADE',
+          darkest: '#0F83BE',
           lighter: '#99DBFF', // real lighter hex
           lightest: '#E0F5FF', // real lightest hex
           contrastText: '#fff',
@@ -83,6 +93,8 @@ const colorSchemes = skin => {
           main: '#56CA00',
           light: '#78D533',
           dark: '#4DB600',
+          darker: '#4AAA00',
+          darkest: '#3F9100',
           lighter: '#B6F399', // real lighter hex
           lightest: '#E9FFD9', // real lightest hex
           contrastText: '#fff',

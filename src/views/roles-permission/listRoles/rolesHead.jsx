@@ -11,21 +11,18 @@ const RolesHead = ({ cardCounts }) => {
       {
         title: 'Total Roles',
         value: cardCounts?.totalRoles || 0,
-        subtitle: 'No of Roles',
         icon: 'ri-group-line',
         color: 'primary',
       },
       {
         title: 'Active Roles',
         value: cardCounts?.activeRoles || 0,
-        subtitle: 'No of Active Roles',
         icon: 'ri-check-double-line',
         color: 'success',
       },
       {
         title: 'Super Admin',
         value: cardCounts?.superAdminRole || 0,
-        subtitle: 'No of Super Admin',
         icon: 'ri-admin-line',
         color: 'warning',
       },

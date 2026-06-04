@@ -23,6 +23,7 @@ import { useSnackbar } from 'notistack'
 import { getUserById } from '@/app/(dashboard)/users/actions'
 import { userStatusOptions, getFormIcon } from '@/data/dataSets'
 import moment from 'moment'
+import { resolveUserAvatarUrl } from '@/utils/defaultUserAvatar'
 
 const formatRoleLabel = (value = '') =>
      value
@@ -39,8 +40,10 @@ const getOrgRoleColor = role => {
                return 'success'
           case 'COMPANY_ADMIN':
                return 'primary'
-          case 'COMPANY_MEMBER':
-               return 'secondary'
+          case 'STORE_ADMIN':
+               return 'warning'
+          case 'STORE_MEMBER':
+               return 'info'
           default:
                return 'default'
      }
@@ -86,13 +89,16 @@ const UserViewDialog = ({ open, onClose, userId }) => {
 
      const statusOption = userStatusOptions.find(opt => opt.value === userData?.status)
      const displayName = userData?.fullname || `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim() || userData?.userName || 'N/A'
-     const orgRole = userData?.companyRole || userData?.orgRole || 'COMPANY_MEMBER'
-     const assignedBranchNames = Array.isArray(userData?.assignedBranches)
-          ? userData.assignedBranches.map(branch => branch?.name).filter(Boolean)
+     const orgRole = userData?.organizationalRole || userData?.orgRole || 'STORE_MEMBER'
+     const assignedBranchNames = Array.isArray(userData?.storeAssignments)
+          ? userData.storeAssignments.map(assignment => assignment?.branchName).filter(Boolean)
           : []
-     const branchRoleLabel = Array.isArray(userData?.branchRoles) && userData.branchRoles.length
-          ? userData.branchRoles.map(role => formatRoleLabel(role)).join(', ')
-          : 'Company-wide'
+     const storesLabel =
+          orgRole === 'OWNER' || orgRole === 'COMPANY_ADMIN'
+               ? 'All stores'
+               : assignedBranchNames.length
+                    ? assignedBranchNames.join(', ')
+                    : '—'
 
      return (
           <Dialog
@@ -180,7 +186,11 @@ const UserViewDialog = ({ open, onClose, userId }) => {
                                              border: `4px solid ${alpha(theme.palette.primary.main, 0.1)}`
                                         }}
                                         onError={(e) => {
-                                             e.target.src = '/images/avatars/default-avatar.png'
+                                             e.target.src = resolveUserAvatarUrl({
+                                                  image: '',
+                                                  defaultAvatar: userData?.defaultAvatar || '',
+                                                  userId: userData?._id || '',
+                                             })
                                         }}
                                    >
                                         {displayName.charAt(0).toUpperCase()}
@@ -467,11 +477,11 @@ const UserViewDialog = ({ open, onClose, userId }) => {
                                                   <Box className="flex items-center gap-2 mb-1.5">
                                                        <Icon icon="mdi:store-cog-outline" fontSize={18} color={theme.palette.text.secondary} />
                                                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                                                            Store Role
+                                                            Stores
                                                        </Typography>
                                                   </Box>
                                                   <Typography variant="body1" color="text.primary" fontWeight={500} className="ml-6">
-                                                       {branchRoleLabel}
+                                                       {storesLabel}
                                                   </Typography>
                                              </Box>
                                         </Grid>

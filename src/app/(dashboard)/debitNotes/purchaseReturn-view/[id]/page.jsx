@@ -23,6 +23,7 @@ const ViewDebitNotePage = async ({ params }) => {
 
   return (
     <ViewDebitNoteIndex
+      debitNoteId={params.id}
       initialDebitNoteData={initialDebitNoteData}
       initialErrorMessage={initialErrorMessage}
     />

@@ -16,6 +16,7 @@ import { getProductColumns } from './productColumns';
 const ProductList = ({
   initialProducts = [],
   initialPagination = { current: 1, pageSize: 10, total: 0 },
+  initialSummary = {},
   initialErrorMessage = '',
 }) => {
   const theme = useTheme();
@@ -52,6 +53,7 @@ const ProductList = ({
   const handlers = useProductListHandler({
     initialProducts,
     initialPagination,
+    initialSummary,
     onError,
     onSuccess,
   });
@@ -106,7 +108,7 @@ const ProductList = ({
 
   return (
     <div className='flex flex-col gap-0'>
-      <ProductHead productListData={handlers.products} isLoading={handlers.loading} />
+      <ProductHead summary={handlers.summary} isLoading={handlers.loading} />
 
       <ProductNavigationButtons />
 
