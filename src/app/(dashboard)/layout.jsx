@@ -32,6 +32,7 @@ const Layout = async ({ children, params }) => {
 
       <AuthGuard>
         <LayoutWrapper
+          systemMode={systemMode}
           verticalLayout={
             <VerticalLayout
               navigation={<Navigation dictionary={dictionary} mode={mode} systemMode={systemMode} />}

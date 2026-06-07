@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Button, TextField, Typography } from '@mui/material';
+import { Button, Typography, Grid } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { Icon } from '@iconify/react';
 
 import { usePermission } from '@/Auth/usePermission';
 import AppSnackbar from '@/components/shared/AppSnackbar';
+import CustomDatePicker from '@/components/datePicker/CustomDatePicker';
 import StoreScopeSelect from '@/components/shared/StoreScopeSelect';
 import useAccessibleStoreScope from '@/hooks/useAccessibleStoreScope';
 import { getIncomeStatement } from '@/app/(dashboard)/accounting/actions';
 import { findBranchByIdentifier } from '@/utils/branchAccess';
-import AccountingPageHeader from './AccountingPageHeader';
+import PageIconHeader from '@components/headers/PageIconHeader';
 import AccountingReportTable from './AccountingReportTable';
 import { formatCurrency } from './utils';
 
@@ -44,31 +44,6 @@ const IncomeStatementView = ({
     [branchId, storeBranches]
   );
 
-  const storeScopeHelperText = useMemo(() => {
-    if (selectedStore?.name) {
-      return `Refresh to review revenue and expenses for ${selectedStore.name} only.`;
-    }
-
-    if (isRestrictedToAssignedStores) {
-      if (!hasStoreScope) {
-        return 'This report is limited to assigned stores, but none are assigned to this account.';
-      }
-
-      if (primaryStore?.name) {
-        return `Blank store scope keeps the income statement limited to your assigned stores. Primary store: ${primaryStore.name}.`;
-      }
-
-      return 'Blank store scope keeps the income statement limited to your assigned stores.';
-    }
-
-    return 'Choose a store to compare profitability by location.';
-  }, [
-    hasStoreScope,
-    isRestrictedToAssignedStores,
-    primaryStore?.name,
-    selectedStore?.name,
-  ]);
-
   const loadReport = async () => {
     setLoading(true);
     try {
@@ -76,6 +51,21 @@ const IncomeStatementView = ({
       setReport(nextReport);
     } catch (error) {
       setSnackbar({ open: true, message: error.message || 'Failed to load income statement.', severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setStartDate('');
+    setEndDate('');
+    setBranchId('');
+    setLoading(true);
+    try {
+      const nextReport = await getIncomeStatement({ startDate: '', endDate: '', branchId: '' });
+      setReport(nextReport);
+    } catch (error) {
+      setSnackbar({ open: true, message: error.message || 'Failed to reset income statement.', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -95,43 +85,48 @@ const IncomeStatementView = ({
 
   return (
     <div className='flex flex-col gap-5'>
-      <AccountingPageHeader
+      <PageIconHeader
+        className=''
         icon='tabler:chart-bar'
         title='Income Statement'
-        description='Review revenue, contra-revenue, COGS, and expenses for a selected period.'
+      // description='Review revenue, contra-revenue, COGS, and expenses for a selected period.'
       />
 
-      <div className='flex flex-wrap gap-4 items-end'>
-        <TextField
-          type='date'
-          label='Start Date'
-          value={startDate}
-          onChange={event => setStartDate(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-          type='date'
-          label='End Date'
-          value={endDate}
-          onChange={event => setEndDate(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-        {hasStoreScope ? (
-          <StoreScopeSelect
-            value={branchId}
-            onChange={setBranchId}
-            branches={storeBranches}
+      <Grid container spacing={2.5} className='flex flex-row justify-start items-end'>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <CustomDatePicker
+            mode='range'
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            label='Date Range'
             disabled={loading}
-            allLabel={isRestrictedToAssignedStores ? 'All assigned stores' : 'All stores'}
           />
-        ) : null}
-        <Button variant='contained' startIcon={<Icon icon='tabler:filter' />} onClick={loadReport} disabled={loading}>
-          Refresh
-        </Button>
-      </div>
-      <Typography variant='caption' color='text.secondary'>
-        {storeScopeHelperText}
-      </Typography>
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          {hasStoreScope ? (
+            <StoreScopeSelect
+              fullWidth
+              size='small'
+              value={branchId}
+              onChange={setBranchId}
+              branches={storeBranches}
+              disabled={loading}
+              allLabel={isRestrictedToAssignedStores ? 'All assigned stores' : 'All Stores'}
+            />
+          ) : null}
+        </Grid>
+        <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+          <Button fullWidth variant='contained' onClick={loadReport} disabled={loading}>
+            Apply
+          </Button>
+          <Button fullWidth variant='outlined' onClick={handleReset} disabled={loading}>
+            Reset
+          </Button>
+        </Grid>
+      </Grid>
+
 
       <AccountingReportTable
         title='Revenue'

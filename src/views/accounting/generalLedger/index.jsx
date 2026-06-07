@@ -53,6 +53,7 @@ const GeneralLedgerIndex = ({
         onEndDateChange={handler.setEndDate}
         onBranchChange={handler.setBranchId}
         onRefresh={handler.handleLoadLedger}
+        onReset={handler.handleReset}
         onOpenEntry={handler.handleOpenEntry}
       />
 

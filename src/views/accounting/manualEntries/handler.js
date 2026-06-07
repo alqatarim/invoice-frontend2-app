@@ -66,18 +66,18 @@ export function useManualEntriesHandler({
   const handleCreate = async (payload) => {
     setLoading(true);
     try {
-      if (type === 'voucher') {
-        await createManualVoucher(payload);
-      } else {
-        await createManualJournal(payload);
-      }
+      const response =
+        type === 'voucher'
+          ? await createManualVoucher(payload)
+          : await createManualJournal(payload);
 
       setSnackbar({
         open: true,
         message:
-          type === 'voucher'
+          response?.message ||
+          (type === 'voucher'
             ? 'Voucher created successfully.'
-            : 'Journal entry created successfully.',
+            : 'Journal entry created successfully.'),
         severity: 'success',
       });
       setDialogOpen(false);
@@ -96,10 +96,10 @@ export function useManualEntriesHandler({
   const handleReverse = async (entry) => {
     setLoading(true);
     try {
-      await reverseJournalEntry(entry._id);
+      const response = await reverseJournalEntry(entry._id);
       setSnackbar({
         open: true,
-        message: 'Entry reversed successfully.',
+        message: response?.message || 'Entry reversed successfully.',
         severity: 'success',
       });
       await fetchEntries();
@@ -115,7 +115,7 @@ export function useManualEntriesHandler({
   };
 
   const closeSnackbar = () => {
-    setSnackbar((prev) => ({
+    setSnackbar(prev => ({
       ...prev,
       open: false,
     }));

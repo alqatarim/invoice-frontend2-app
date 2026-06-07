@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Button, TextField, Typography } from '@mui/material';
+import { Button, Typography, Grid } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { Icon } from '@iconify/react';
 
 import { usePermission } from '@/Auth/usePermission';
 import AppSnackbar from '@/components/shared/AppSnackbar';
+import CustomDatePicker from '@/components/datePicker/CustomDatePicker';
 import StoreScopeSelect from '@/components/shared/StoreScopeSelect';
 import useAccessibleStoreScope from '@/hooks/useAccessibleStoreScope';
 import { getBalanceSheet } from '@/app/(dashboard)/accounting/actions';
 import { findBranchByIdentifier } from '@/utils/branchAccess';
-import AccountingPageHeader from './AccountingPageHeader';
+import PageIconHeader from '@components/headers/PageIconHeader';
 import AccountingReportTable from './AccountingReportTable';
 import { formatCurrency } from './utils';
 
@@ -43,30 +43,6 @@ const BalanceSheetView = ({
     [branchId, storeBranches]
   );
 
-  const storeScopeHelperText = useMemo(() => {
-    if (selectedStore?.name) {
-      return `Refresh to review the balance sheet for ${selectedStore.name} only.`;
-    }
-
-    if (isRestrictedToAssignedStores) {
-      if (!hasStoreScope) {
-        return 'This report is limited to assigned stores, but none are assigned to this account.';
-      }
-
-      if (primaryStore?.name) {
-        return `Blank store scope keeps the balance sheet limited to your assigned stores. Primary store: ${primaryStore.name}.`;
-      }
-
-      return 'Blank store scope keeps the balance sheet limited to your assigned stores.';
-    }
-
-    return 'Choose a store to inspect one location without losing the accounting drilldown.';
-  }, [
-    hasStoreScope,
-    isRestrictedToAssignedStores,
-    primaryStore?.name,
-    selectedStore?.name,
-  ]);
 
   const loadReport = async () => {
     setLoading(true);
@@ -75,6 +51,20 @@ const BalanceSheetView = ({
       setReport(nextReport);
     } catch (error) {
       setSnackbar({ open: true, message: error.message || 'Failed to load balance sheet.', severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setAsOfDate('');
+    setBranchId('');
+    setLoading(true);
+    try {
+      const nextReport = await getBalanceSheet({ asOfDate: '', branchId: '' });
+      setReport(nextReport);
+    } catch (error) {
+      setSnackbar({ open: true, message: error.message || 'Failed to reset balance sheet.', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -93,36 +83,46 @@ const BalanceSheetView = ({
 
   return (
     <div className='flex flex-col gap-5'>
-      <AccountingPageHeader
+      <PageIconHeader
+        className=''
         icon='tabler:building-bank'
         title='Balance Sheet'
-        description='View assets, liabilities, and equity as of a selected date, with direct drilldowns into ledger accounts.'
+      // description='View assets, liabilities, and equity as of a selected date, with direct drilldowns into ledger accounts.'
       />
 
-      <div className='flex flex-wrap gap-4 items-end'>
-        <TextField
-          type='date'
-          label='As Of Date'
-          value={asOfDate}
-          onChange={event => setAsOfDate(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-        {hasStoreScope ? (
-          <StoreScopeSelect
-            value={branchId}
-            onChange={setBranchId}
-            branches={storeBranches}
+      <Grid container spacing={2.5} className='flex flex-row justify-start items-end'>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <CustomDatePicker
+            mode='single'
+            value={asOfDate}
+            onChange={setAsOfDate}
+            label='As Of Date'
             disabled={loading}
-            allLabel={isRestrictedToAssignedStores ? 'All assigned stores' : 'All stores'}
           />
-        ) : null}
-        <Button variant='contained' startIcon={<Icon icon='tabler:filter' />} onClick={loadReport} disabled={loading}>
-          Refresh
-        </Button>
-      </div>
-      <Typography variant='caption' color='text.secondary'>
-        {storeScopeHelperText}
-      </Typography>
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          {hasStoreScope ? (
+            <StoreScopeSelect
+              fullWidth
+              size='small'
+              value={branchId}
+              onChange={setBranchId}
+              branches={storeBranches}
+              disabled={loading}
+              allLabel={isRestrictedToAssignedStores ? 'All assigned stores' : 'All Stores'}
+            />
+          ) : null}
+        </Grid>
+        <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+          <Button fullWidth variant='contained' onClick={loadReport} disabled={loading}>
+            Apply
+          </Button>
+          <Button fullWidth variant='outlined' onClick={handleReset} disabled={loading}>
+            Reset
+          </Button>
+        </Grid>
+      </Grid>
+
 
       <AccountingReportTable
         title='Assets'

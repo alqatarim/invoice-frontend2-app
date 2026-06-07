@@ -14,7 +14,7 @@ import {
   runAccountingBackfill,
   updateAccount,
 } from '@/app/(dashboard)/accounting/actions';
-import AccountingPageHeader from './AccountingPageHeader';
+import PageIconHeader from '@components/headers/PageIconHeader';
 import AccountFormDialog from './AccountFormDialog';
 import { formatDate } from './utils';
 
@@ -168,10 +168,11 @@ const ChartOfAccountsView = ({
 
   return (
     <div className='flex flex-col gap-5'>
-      <AccountingPageHeader
+      <PageIconHeader
+        className=''
         icon='tabler:hierarchy-2'
         title='Chart Of Accounts'
-        description='Manage the account tree, default ledger structure, and historical accounting backfill.'
+      // description='Manage the account tree, default ledger structure, and historical accounting backfill.'
       />
 
       <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>

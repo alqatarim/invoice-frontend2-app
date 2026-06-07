@@ -13,11 +13,7 @@ const StyledFooter = styled.footer`
     inset-block-end: 0;
     z-index: var(--footer-z-index);
     background-color: var(--mui-palette-background-paper);
-    box-shadow: 0 -4px 8px -4px rgb(var(--mui-mainColorChannels-lightShadow) / 0.42);
-    
-    [data-mui-color-scheme="dark"] & {
-      box-shadow: 0 -4px 8px -4px rgb(var(--mui-mainColorChannels-darkShadow) / 0.42);
-    }
+    box-shadow: 0 -4px 8px -4px rgb(var(--mui-mainColorChannels-shadow) / 0.42);
 
     [data-skin="bordered"] & {
       box-shadow: none;

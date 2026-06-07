@@ -43,30 +43,7 @@ export function useGeneralLedgerHandler({
     [branchId, storeBranches]
   );
 
-  const storeScopeHelperText = useMemo(() => {
-    if (selectedStore?.name) {
-      return `Ledger rows will refresh for ${selectedStore.name} only.`;
-    }
 
-    if (isRestrictedToAssignedStores) {
-      if (!hasStoreScope) {
-        return 'This ledger is limited to assigned stores, but none are assigned to this account.';
-      }
-
-      if (primaryStore?.name) {
-        return `Blank store scope keeps the ledger limited to your assigned stores. Primary store: ${primaryStore.name}.`;
-      }
-
-      return 'Blank store scope keeps the ledger limited to your assigned stores.';
-    }
-
-    return 'Choose a store to inspect account activity for one location.';
-  }, [
-    hasStoreScope,
-    isRestrictedToAssignedStores,
-    primaryStore?.name,
-    selectedStore?.name,
-  ]);
 
   const handleLoadLedger = async () => {
     if (!accountId) {
@@ -98,6 +75,14 @@ export function useGeneralLedgerHandler({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReset = () => {
+    setAccountId('');
+    setStartDate('');
+    setEndDate('');
+    setBranchId('');
+    setReport(null);
   };
 
   const handleOpenEntry = async (row) => {
@@ -140,12 +125,12 @@ export function useGeneralLedgerHandler({
     hasStoreScope,
     isRestrictedToAssignedStores,
     selectedStore,
-    storeScopeHelperText,
     setAccountId,
     setStartDate,
     setEndDate,
     setBranchId,
     handleLoadLedger,
+    handleReset,
     handleOpenEntry,
     closeEntryDialog,
     closeSnackbar,

@@ -44,6 +44,9 @@ export async function getAccountDropdown() {
 export async function createAccount(payload) {
   const response = await fetchWithAuth(ENDPOINTS.CHART_OF_ACCOUNTS, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(payload),
   });
 
@@ -53,6 +56,9 @@ export async function createAccount(payload) {
 export async function updateAccount(id, payload) {
   const response = await fetchWithAuth(`${ENDPOINTS.CHART_OF_ACCOUNTS}/${id}`, {
     method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(payload),
   });
 
@@ -70,6 +76,9 @@ export async function getAccountingSettings() {
 export async function updateAccountingSettings(payload) {
   const response = await fetchWithAuth(ENDPOINTS.ACCOUNTING_SETTINGS, {
     method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(payload),
   });
 
@@ -121,6 +130,9 @@ export async function getJournalEntryById(id) {
 export async function createManualJournal(payload) {
   const response = await fetchWithAuth(`${ENDPOINTS.JOURNAL_ENTRIES}/manual-journals`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(payload),
   });
 
@@ -130,6 +142,9 @@ export async function createManualJournal(payload) {
 export async function createManualVoucher(payload) {
   const response = await fetchWithAuth(`${ENDPOINTS.JOURNAL_ENTRIES}/manual-vouchers`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(payload),
   });
 
@@ -139,6 +154,9 @@ export async function createManualVoucher(payload) {
 export async function reverseJournalEntry(id, reason = 'Manual reversal') {
   const response = await fetchWithAuth(`${ENDPOINTS.JOURNAL_ENTRIES}/${id}/reverse`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ reason }),
   });
 
@@ -200,6 +218,9 @@ export async function getGeneralLedger({ accountId = '', startDate = '', endDate
 export async function runAccountingBackfill() {
   const response = await fetchWithAuth(`${ENDPOINTS.ACCOUNTING_REPORTS}/backfill`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({}),
   });
 

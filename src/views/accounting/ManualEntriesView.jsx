@@ -5,7 +5,7 @@ import { Button, Chip, IconButton } from '@mui/material';
 import { Icon } from '@iconify/react';
 
 import CustomListTable from '@/components/custom-components/CustomListTable';
-import AccountingPageHeader from './AccountingPageHeader';
+import PageIconHeader from '@components/headers/PageIconHeader';
 import AccountingEntryDetailsDialog from './AccountingEntryDetailsDialog';
 import JournalEntryFormDialog from './JournalEntryFormDialog';
 import { formatCurrency, formatDate } from './utils';
@@ -91,12 +91,13 @@ const ManualEntriesView = ({
 
   return (
     <div className='flex flex-col gap-5'>
-      <AccountingPageHeader
+      <PageIconHeader
+        className=''
         icon={type === 'voucher' ? 'tabler:file-dollar' : 'tabler:book-2'}
         title={type === 'voucher' ? 'Vouchers' : 'Journals'}
-        description={type === 'voucher'
-          ? 'Create manual vouchers and review posted voucher history.'
-          : 'Create manual journals and review posted journal history.'}
+      // description={type === 'voucher'
+      //   ? 'Create manual vouchers and review posted voucher history.'
+      //   : 'Create manual journals and review posted journal history.'}
       />
 
       <CustomListTable

@@ -7,17 +7,25 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter'
 import CssBaseline from '@mui/material/CssBaseline'
 import { useMedia } from 'react-use'
 import stylisRTLPlugin from 'stylis-plugin-rtl'
-import ModeSync from './ModeSync'
+import ModeChanger from './ModeChanger'
 import themeConfig from '@configs/themeConfig'
 import { useSettings } from '@core/hooks/useSettings'
-import { resolveColorSchemeMode } from '@core/utils/colorScheme'
 import defaultCoreTheme from '@core/theme'
 
 const CustomThemeProvider = props => {
   const { children, direction, systemMode } = props
+  const isServer = typeof window === 'undefined'
+  let currentMode
   const { settings } = useSettings()
-  const prefersDark = useMedia('(prefers-color-scheme: dark)', systemMode === 'dark')
-  const currentMode = resolveColorSchemeMode(settings.mode, systemMode, prefersDark)
+  const isDark = useMedia('(prefers-color-scheme: dark)', systemMode === 'dark')
+
+  if (isServer) {
+    currentMode = systemMode
+  } else if (settings.mode === 'system') {
+    currentMode = isDark ? 'dark' : 'light'
+  } else {
+    currentMode = settings.mode
+  }
 
   const theme = useMemo(() => {
     const newTheme = {
@@ -68,13 +76,14 @@ const CustomThemeProvider = props => {
     >
       <ThemeProvider
         theme={theme}
-        defaultMode={currentMode}
+        defaultMode={systemMode}
         modeStorageKey={`${themeConfig.settingsCookieName}-mui-mode`}
-        disableTransitionOnChange
       >
-        <ModeSync systemMode={systemMode} />
-        <CssBaseline enableColorScheme />
-        {children}
+        <>
+          <ModeChanger systemMode={systemMode} />
+          <CssBaseline />
+          {children}
+        </>
       </ThemeProvider>
     </AppRouterCacheProvider>
   )

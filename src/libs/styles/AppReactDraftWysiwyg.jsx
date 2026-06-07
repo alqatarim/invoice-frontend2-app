@@ -58,7 +58,7 @@ const EditorWrapper = styled(Box)(({ theme }) => ({
           right: '10%',
           borderBottomColor: theme.vars.palette.text.disabled
         },
-        '[data-mui-color-scheme="dark"] & img': {
+        '[data-dark] & img': {
           filter: 'invert(1)'
         }
       },

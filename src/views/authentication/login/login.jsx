@@ -29,7 +29,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 
 // Component Imports
 import Logo from '@core/svg/Logo'
-import { VibrantHeader } from '@/components/shared/VibrantHeader'
+import { VibrantHeader } from '@/components/backgrounds'
 
 const StyledSnackbar = styled(Snackbar)(({ theme, status }) => ({
   '& .MuiSnackbarContent-root': {
@@ -162,10 +162,7 @@ const LoginHeroPanel = ({ isDark, animate }) => {
         isolation: 'isolate',
         backgroundColor: 'background.paper',
         backgroundImage: isDark
-          ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.18)} 0%, ${alpha(
-            theme.palette.primary.main,
-            0.05
-          )} 48%, ${alpha(theme.palette.info.main, 0.08)} 100%)`
+          ? `linear-gradient(135deg, ${(theme.vars?.palette?.primary || theme.palette.primary).lighterOpacity} 0%, ${(theme.vars?.palette?.primary || theme.palette.primary).lightestOpacity} 48%, ${(theme.vars?.palette?.info || theme.palette.info).lightestOpacity} 100%)`
           : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.11)} 0%, ${alpha(
             theme.palette.background.paper,
             0

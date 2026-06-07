@@ -28,14 +28,28 @@ const getReactDatePickerStyles = theme => {
       color: 'var(--mui-palette-text-primary)',
       borderRadius: 'var(--mui-shape-borderRadius)',
       fontFamily: theme.typography.fontFamily,
-      backgroundColor: 'var(--mui-palette-background-paper)',
+      backgroundColor: 'var(--mui-palette-background-paper) !important',
       boxShadow: 'var(--mui-customShadows-md)',
-      border: 'none',
+      border: 'none !important',
+      outline: 'none',
+      '& .react-datepicker__month-container': {
+        backgroundColor: 'var(--mui-palette-background-paper)'
+      },
+      '& .react-datepicker__month, & .react-datepicker__year': {
+        backgroundColor: 'var(--mui-palette-background-paper)'
+      },
+      '& .react-datepicker__children-container': {
+        width: '100%',
+        margin: 0,
+        padding: 0,
+        backgroundColor: 'var(--mui-palette-background-paper)'
+      },
       '& .react-datepicker__header': {
         padding: 0,
-        border: 'none',
+        border: 'none !important',
+        borderBottom: 'none !important',
         fontWeight: 'normal',
-        backgroundColor: 'var(--mui-palette-background-paper)',
+        backgroundColor: 'var(--mui-palette-background-paper) !important',
         '&:not(.react-datepicker-year-header)': {
           '& + .react-datepicker__month, & + .react-datepicker__year': {
             margin: theme.spacing(2),
@@ -408,7 +422,7 @@ const getReactDatePickerStyles = theme => {
           color: 'var(--mui-palette-text-primary)'
         },
         '& .react-datepicker__time': {
-          background: 'var(--mui-palette-background-paper)',
+          background: 'var(--mui-palette-background-paper) !important',
           '& .react-datepicker__time-box .react-datepicker__time-list-item--disabled': {
             pointerEvents: 'none',
             color: 'var(--mui-palette-text-disabled)',
@@ -455,12 +469,18 @@ const getReactDatePickerStyles = theme => {
           /* Handle */
           '&::-webkit-scrollbar-thumb': {
             borderRadius: 10,
-            background: '#aaa'
+            background: 'var(--mui-palette-action-disabled)',
+            ...theme.applyStyles('dark', {
+              background: 'var(--mui-palette-action-active)'
+            })
           },
 
           /* Handle on hover */
           '&::-webkit-scrollbar-thumb:hover': {
-            background: '#999'
+            background: 'var(--mui-palette-text-disabled)',
+            ...theme.applyStyles('dark', {
+              background: 'var(--mui-palette-text-secondary)'
+            })
           }
         }
       },
@@ -470,7 +490,7 @@ const getReactDatePickerStyles = theme => {
       },
       '[data-skin="bordered"] &': {
         boxShadow: 'none',
-        border: `1px solid var(--mui-palette-divider)`
+        border: `1px solid var(--mui-palette-divider) !important`
       }
     },
     '& .react-datepicker__close-icon': {

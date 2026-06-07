@@ -9,6 +9,20 @@ const VIBRANT_SHAPE_OPTIONS = ['circle', 'square', 'triangle'];
 export const DEFAULT_VIBRANT_SHAPES = ['circle'];
 const SHAPE_CHAR_TO_NAME = { c: 'circle', s: 'square', t: 'triangle' };
 
+const LIGHT_PARTICLE_OPACITY = { center: 0.1, edge: 0.15 };
+const DARK_PARTICLE_OPACITY = { center: 0.08, edge: 0.11 };
+
+const buildDefaultPaletteEntries = (theme, isDark) => [
+	{
+		type: 'alpha',
+		color: isDark ? theme.palette.primary.dark : theme.palette.primary.main,
+	},
+	{
+		type: 'alpha',
+		color: isDark ? theme.palette.info.dark : theme.palette.info.main,
+	},
+];
+
 // Accepts friendly names ('circle','square','triangle') or raw single-char
 // codes ('c','s','t') from the original library and returns friendly names.
 const normalizeVibrantShapes = shapes => {
@@ -23,27 +37,31 @@ const normalizeVibrantShapes = shapes => {
 	return names.length ? names : DEFAULT_VIBRANT_SHAPES;
 };
 
-const getVibrantShapeStyles = ({ shape, color, centerAlpha, midAlpha, edgeAlpha }) => {
-	const background = `radial-gradient(circle at center, ${alpha(color, centerAlpha)} 0%, ${alpha(
-		color,
-		midAlpha
-	)} 55%, ${alpha(color, edgeAlpha)} 100%)`;
-
+const getShapeClipStyles = shape => {
 	if (shape === 'triangle') {
 		return {
-			background,
 			clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
 			borderRadius: 0,
 		};
 	}
 
 	if (shape === 'square') {
-		// Sharp axis-aligned squares match the original Finisher implementation.
-		return { background, borderRadius: 0 };
+		return { borderRadius: 0 };
 	}
 
-	return { background, borderRadius: '50%' };
+	return { borderRadius: '50%' };
 };
+
+const buildAlphaGradient = ({ color, centerAlpha, midAlpha, edgeAlpha }) =>
+	`radial-gradient(circle at center, ${alpha(color, centerAlpha)} 0%, ${alpha(
+		color,
+		midAlpha
+	)} 55%, ${alpha(color, edgeAlpha)} 100%)`;
+
+const getVibrantShapeStyles = ({ shape, background }) => ({
+	background,
+	...getShapeClipStyles(shape),
+});
 
 const randInRange = ({ min, max }) =>
 	min === max ? min : Math.random() * (max - min) + min;
@@ -52,17 +70,17 @@ const randSign = () => (Math.random() > 0.5 ? 1 : -1);
 const VIBRANT_DEFAULTS = {
 	count: 6,
 	size: { min: 950, max: 1200 },
-	// Per-frame velocities at a 60 fps reference; the RAF loop converts dt to frame units.
 	speed: {
 		x: { min: 0.1, max: 0.3 },
 		y: { min: 0.1, max: 0.3 },
 	},
-	opacity: { center: 0.1, edge: 0.15 },
 	skew: -2,
 };
 
-// DOM/CSS port of finisher.co/lab/header. React stays static and the RAF loop
-// mutates transforms via refs, mirroring the original dashboard banner effect.
+// DOM/CSS port of finisher.co/lab/header. Each particle is an absolutely
+// positioned <div> with a radial-gradient background. React stays static
+// (specs are memoized) and the RAF loop mutates transforms via refs, so
+// React never re-renders during the animation.
 export const VibrantHeader = ({
 	isDark = false,
 	animate = true,
@@ -81,20 +99,23 @@ export const VibrantHeader = ({
 
 	const activeShapes = useMemo(() => normalizeVibrantShapes(shapes), [shapes]);
 
-	const palette = useMemo(() => {
-		if (Array.isArray(colorsProp) && colorsProp.length) return colorsProp;
+	const paletteEntries = useMemo(() => {
+		if (Array.isArray(colorsProp) && colorsProp.length) {
+			return colorsProp.map(color => ({ type: 'alpha', color }));
+		}
 
-		return [theme.palette.primary.main, theme.palette.info.main];
-	}, [colorsProp, theme.palette.info.main, theme.palette.primary.main]);
+		return buildDefaultPaletteEntries(theme, isDark);
+	}, [colorsProp, isDark, theme]);
 
-	const blending = blendingProp || (isDark ? 'screen' : 'overlay');
+	const blending = blendingProp || (isDark ? 'soft-light' : 'overlay');
 	const skew = typeof skewProp === 'number' ? skewProp : VIBRANT_DEFAULTS.skew;
 	const count = typeof countProp === 'number' ? countProp : VIBRANT_DEFAULTS.count;
 
-	const opacity = useMemo(
-		() => ({ ...VIBRANT_DEFAULTS.opacity, ...(opacityProp || {}) }),
-		[opacityProp]
-	);
+	const opacity = useMemo(() => {
+		const baseOpacity = isDark ? DARK_PARTICLE_OPACITY : LIGHT_PARTICLE_OPACITY;
+		return { ...baseOpacity, ...(opacityProp || {}) };
+	}, [isDark, opacityProp]);
+
 	const size = useMemo(
 		() => ({ ...VIBRANT_DEFAULTS.size, ...(sizeProp || {}) }),
 		[sizeProp]
@@ -114,21 +135,23 @@ export const VibrantHeader = ({
 			typeof opacity.mid === 'number' ? opacity.mid : (opacity.center + opacity.edge) / 2;
 
 		return Array.from({ length: activeCount }, (_, i) => {
-			const colorHex = palette[i % palette.length];
+			const paletteEntry = paletteEntries[i % paletteEntries.length];
 			const shape = activeShapes[Math.floor(Math.random() * activeShapes.length)];
 			const particleSize = Math.abs(randInRange(size));
 			const quadrant = i % 4;
-			const shapeStyles = getVibrantShapeStyles({
-				shape,
-				color: colorHex,
+
+			const background = buildAlphaGradient({
+				color: paletteEntry.color,
 				centerAlpha: opacity.center,
 				midAlpha,
 				edgeAlpha: opacity.edge,
 			});
 
+			const shapeStyles = getVibrantShapeStyles({ shape, background });
+
 			return { particleSize, quadrant, shapeStyles, key: i };
 		});
-	}, [activeShapes, count, opacity, palette, size]);
+	}, [activeShapes, count, opacity, paletteEntries, size]);
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return undefined;
@@ -298,3 +321,5 @@ export const VibrantHeader = ({
 		</Box>
 	);
 };
+
+export default VibrantHeader;

@@ -7,25 +7,43 @@ import { resolveBranchId } from '@/utils/branchAccess';
 
 const StoreScopeSelect = ({
   label = 'Store Scope',
+  size = 'medium',
   value = '',
   onChange,
+  fullWidth = true,
   branches = [],
   disabled = false,
   allowAll = true,
-  allLabel = 'All assigned stores',
+  allLabel = 'All Stores',
   sx = {},
 }) => {
   const normalizedBranches = Array.isArray(branches) ? branches : [];
 
+  const resolveSelectedLabel = selectedValue => {
+    if (!selectedValue) return allLabel;
+
+    const branch = normalizedBranches.find(
+      item => resolveBranchId(item) === selectedValue
+    );
+
+    return branch?.name || branch?.branchId || selectedValue;
+  };
+
   return (
     <TextField
+      fullWidth={fullWidth}
       select
-      size='small'
+      size={size}
       label={label}
       value={value}
       onChange={event => onChange?.(event.target.value)}
       disabled={disabled}
-      sx={{ minWidth: 220, ...sx }}
+      InputLabelProps={{ shrink: true }}
+      SelectProps={{
+        displayEmpty: true,
+        renderValue: selected => resolveSelectedLabel(selected),
+      }}
+      sx={{ ...sx }}
     >
       {allowAll ? <MenuItem value=''>{allLabel}</MenuItem> : null}
       {normalizedBranches.map(branch => {

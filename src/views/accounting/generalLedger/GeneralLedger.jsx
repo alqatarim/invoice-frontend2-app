@@ -2,11 +2,12 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Button, IconButton, MenuItem, TextField, Typography } from '@mui/material';
+import { Button, Grid, IconButton, MenuItem, TextField, Typography } from '@mui/material';
 import { Icon } from '@iconify/react';
 import CustomListTable from '@/components/custom-components/CustomListTable';
+import CustomDatePicker from '@/components/datePicker/CustomDatePicker';
 import StoreScopeSelect from '@/components/shared/StoreScopeSelect';
-import AccountingPageHeader from '../AccountingPageHeader';
+import PageIconHeader from '@components/headers/PageIconHeader';
 import { formatCurrency, formatDate, getSourceHref } from '../utils';
 
 const GeneralLedger = ({
@@ -27,6 +28,7 @@ const GeneralLedger = ({
   onEndDateChange,
   onBranchChange,
   onRefresh,
+  onReset,
   onOpenEntry,
 }) => {
   const columns = [
@@ -104,66 +106,66 @@ const GeneralLedger = ({
 
   return (
     <div className='flex flex-col gap-5'>
-      <AccountingPageHeader
+      <PageIconHeader
+        className=''
         icon='tabler:book'
         title='General Ledger'
-        description='Drill into account activity, inspect journal lines, and open the related source document.'
       />
 
-      <div className='flex flex-wrap items-end gap-4'>
-        <TextField
-          select
-          label='Account'
-          value={accountId}
-          onChange={(event) => onAccountChange(event.target.value)}
-          sx={{ minWidth: 320 }}
-        >
-          {accountOptions.map((option) => (
-            <MenuItem key={option._id} value={option._id}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <TextField
-          type='date'
-          label='Start Date'
-          value={startDate}
-          onChange={(event) => onStartDateChange(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-
-        <TextField
-          type='date'
-          label='End Date'
-          value={endDate}
-          onChange={(event) => onEndDateChange(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-
-        {hasStoreScope ? (
-          <StoreScopeSelect
-            value={branchId}
-            onChange={onBranchChange}
-            branches={storeBranches}
+      <Grid container spacing={2.5} className='flex flex-row justify-start items-end'>
+        <Grid size={{ xs: 12, md: 3 }}>
+          <CustomDatePicker
+            mode='range'
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={onStartDateChange}
+            onEndDateChange={onEndDateChange}
+            label='Date Range'
             disabled={loading}
-            allLabel={isRestrictedToAssignedStores ? 'All assigned stores' : 'All stores'}
           />
-        ) : null}
+        </Grid>
 
-        <Button
-          variant='contained'
-          startIcon={<Icon icon='tabler:filter' />}
-          onClick={onRefresh}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
-      </div>
+        <Grid size={{ xs: 12, md: 3 }}>
+          <TextField
+            fullWidth
+            size='small'
+            select
+            label='Account'
+            value={accountId}
+            onChange={(event) => onAccountChange(event.target.value)}
+          >
+            {accountOptions.map((option) => (
+              <MenuItem key={option._id} value={option._id}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Grid>
 
-      <Typography variant='caption' color='text.secondary'>
-        {storeScopeHelperText}
-      </Typography>
+        <Grid size={{ xs: 12, md: 3 }}>
+          {hasStoreScope ? (
+            <StoreScopeSelect
+              fullWidth
+              size='small'
+              value={branchId}
+              onChange={onBranchChange}
+              branches={storeBranches}
+              disabled={loading}
+              allLabel={isRestrictedToAssignedStores ? 'All assigned stores' : 'All Stores'}
+            />
+          ) : null}
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+          <Button fullWidth variant='contained' onClick={onRefresh} disabled={loading}>
+            Apply
+          </Button>
+          <Button fullWidth variant='outlined' onClick={onReset} disabled={loading}>
+            Reset
+          </Button>
+        </Grid>
+      </Grid>
+
 
       {report?.account ? (
         <div className='flex flex-wrap gap-6 rounded border p-4'>
@@ -173,7 +175,7 @@ const GeneralLedger = ({
           <Typography variant='body1'>
             <strong>Store Scope:</strong>{' '}
             {selectedStore?.name ||
-              (isRestrictedToAssignedStores ? 'Assigned stores' : 'All stores')}
+              (isRestrictedToAssignedStores ? 'Assigned stores' : 'All Stores')}
           </Typography>
           <Typography variant='body1'>
             <strong>Total Debit:</strong> {formatCurrency(report?.totals?.totalDebit)}

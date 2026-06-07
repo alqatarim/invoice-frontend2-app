@@ -18,7 +18,7 @@ import {
   TextField,
 } from '@mui/material';
 import SectionHeader from '@components/headers/SectionHeader';
-import CustomAlert from '@/components/shared/CustomAlert';
+import CustomAlert from '@/components/Alert/CustomAlert';
 import {
   getBranchDialogInitialForm,
   normalizeUserId,

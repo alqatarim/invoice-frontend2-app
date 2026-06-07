@@ -1,18 +1,14 @@
 'use client';
 
-import dayjs from 'dayjs';
-import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 
 import {
 	Box,
-	Button,
 	Card,
 	CardContent,
 	Chip,
-	Divider,
 	IconButton,
 	Stack,
-	TextField,
 	Tooltip,
 	Typography,
 } from '@mui/material';
@@ -20,7 +16,8 @@ import { alpha, useColorScheme, useTheme } from '@mui/material/styles';
 import { Icon } from '@iconify/react';
 import { motion, useReducedMotion } from 'framer-motion';
 
-import AppReactDatepicker from '@/libs/styles/AppReactDatepicker';
+import { DEFAULT_VIBRANT_SHAPES, VibrantHeader } from '@/components/backgrounds';
+import CustomDatePicker from '@/components/datePicker/CustomDatePicker';
 import { dashboardEasing } from '@/data/dataSets';
 import { RiyalIcon } from '@/utils/currencyUtils';
 import { formatCompactNumber, formatWholeNumber } from '@/utils/numberUtils';
@@ -28,356 +25,32 @@ import { formatCompactNumber, formatWholeNumber } from '@/utils/numberUtils';
 import { CountUp } from './CountUp';
 import { Sparkline } from './Sparkline';
 
-const PulseDateInput = forwardRef(function PulseDateInput(
-	{ displayValue, value, onClick, ...rest },
-	ref
-) {
-	return (
-		<TextField
-			fullWidth
-			label="Date Range"
-			value={displayValue ?? value ?? ''}
-			onClick={onClick}
-			inputRef={ref}
-			{...rest}
-		/>
-	);
-});
+const getPulseAccent = (theme, colorKey, isDark) => {
+	const palette = theme.palette[colorKey] || theme.palette.primary;
 
-const toDateValue = value => {
-	const parsed = dayjs(value);
+	if (isDark) return palette.darker || palette.dark || palette.main;
 
-	return parsed.isValid() ? parsed.toDate() : null;
+	return palette.dark || palette.main;
 };
 
-const formatDateLabel = (from, to, fallback = 'All Time') => {
-	const start = from ? dayjs(from) : null;
-	const end = to ? dayjs(to) : null;
+const getMetricSparkColor = (theme, colorKey, isDark) => {
+	const palette = theme.palette[colorKey] || theme.palette.primary;
 
-	if (start && end) return `${start.format('DD MMM YYYY')} - ${end.format('DD MMM YYYY')}`;
-	if (start) return `${start.format('DD MMM YYYY')} - ...`;
+	if (isDark) return palette.dark || palette.main;
 
-	return fallback;
-};
-
-const VIBRANT_SHAPE_OPTIONS = ['circle', 'square', 'triangle'];
-const DEFAULT_VIBRANT_SHAPES = ['circle'];
-const SHAPE_CHAR_TO_NAME = { c: 'circle', s: 'square', t: 'triangle' };
-
-// Accepts friendly names ('circle','square','triangle') or raw single-char
-// codes ('c','s','t') from the original library and returns friendly names.
-const normalizeVibrantShapes = shapes => {
-	const source = Array.isArray(shapes) ? shapes : String(shapes || '').split(',');
-	const names = source
-		.map(shape => String(shape).trim().toLowerCase())
-		.map(shape =>
-			VIBRANT_SHAPE_OPTIONS.includes(shape) ? shape : SHAPE_CHAR_TO_NAME[shape] || null
-		)
-		.filter(Boolean);
-
-	return names.length ? names : DEFAULT_VIBRANT_SHAPES;
-};
-
-const getVibrantShapeStyles = ({ shape, color, centerAlpha, midAlpha, edgeAlpha }) => {
-	const background = `radial-gradient(circle at center, ${alpha(color, centerAlpha)} 0%, ${alpha(
-		color,
-		midAlpha
-	)} 55%, ${alpha(color, edgeAlpha)} 100%)`;
-
-	if (shape === 'triangle') {
-		return {
-			background,
-			clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-			borderRadius: 0,
-		};
-	}
-
-	if (shape === 'square') {
-		// Sharp axis-aligned squares — matches the original Finisher implementation.
-		return { background, borderRadius: 0 };
-	}
-
-	return { background, borderRadius: '50%' };
-};
-
-const randInRange = ({ min, max }) =>
-	min === max ? min : Math.random() * (max - min) + min;
-const randSign = () => (Math.random() > 0.5 ? 1 : -1);
-
-const VIBRANT_DEFAULTS = {
-	count: 6,
-	size: { min: 950, max: 1200 },
-	// Per-frame velocities (60 fps reference). Same numeric range the original
-	// library uses; we convert dt → frame units in the RAF tick.
-	speed: {
-		x: { min: 0.1, max: 0.3 },
-		y: { min: 0.1, max: 0.3 },
-	},
-	opacity: { center: 0.1, edge: 0.15 },
-	skew: -2,
-};
-
-// DOM/CSS port of finisher.co/lab/header. Each particle is an absolutely
-// positioned <div> with a radial-gradient background. React stays static
-// (specs are memoized) and the RAF loop mutates transforms via refs, so
-// React never re-renders during the animation. Algorithm mirrors the
-// original: 4-quadrant random spawn, random shape per particle, signed
-// velocities, container-edge bouncing, mobile particle reduction.
-const VibrantHeader = ({
-	isDark = false,
-	animate = true,
-	shapes = DEFAULT_VIBRANT_SHAPES,
-	count: countProp,
-	colors: colorsProp,
-	blending: blendingProp,
-	opacity: opacityProp,
-	size: sizeProp,
-	speed: speedProp,
-	skew: skewProp,
-}) => {
-	const theme = useTheme();
-	const skewBoxRef = useRef(null);
-	const particleRefs = useRef([]);
-
-	const activeShapes = useMemo(() => normalizeVibrantShapes(shapes), [shapes]);
-
-	const palette = useMemo(() => {
-		if (Array.isArray(colorsProp) && colorsProp.length) return colorsProp;
-
-		return [theme.palette.primary.main, theme.palette.info.main];
-	}, [colorsProp, theme.palette.info.main, theme.palette.primary.main]);
-
-	const blending = blendingProp || (isDark ? 'screen' : 'overlay');
-	const skew = typeof skewProp === 'number' ? skewProp : VIBRANT_DEFAULTS.skew;
-	const count = typeof countProp === 'number' ? countProp : VIBRANT_DEFAULTS.count;
-
-	const opacity = useMemo(
-		() => ({ ...VIBRANT_DEFAULTS.opacity, ...(opacityProp || {}) }),
-		[opacityProp]
-	);
-	const size = useMemo(
-		() => ({ ...VIBRANT_DEFAULTS.size, ...(sizeProp || {}) }),
-		[sizeProp]
-	);
-	const speed = useMemo(
-		() => ({
-			x: { ...VIBRANT_DEFAULTS.speed.x, ...(speedProp?.x || {}) },
-			y: { ...VIBRANT_DEFAULTS.speed.y, ...(speedProp?.y || {}) },
-		}),
-		[speedProp]
-	);
-
-	// Per-particle static spec (color, shape, size, quadrant, gradient). Keys
-	// are the index, so React preserves the same DOM nodes across renders and
-	// our refs survive — important for the RAF loop's reads.
-	const specs = useMemo(() => {
-		const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
-		const activeCount = isMobile && count > 5 ? Math.round(count / 2) : count;
-		const midAlpha =
-			typeof opacity.mid === 'number' ? opacity.mid : (opacity.center + opacity.edge) / 2;
-
-		return Array.from({ length: activeCount }, (_, i) => {
-			const colorHex = palette[i % palette.length];
-			const shape = activeShapes[Math.floor(Math.random() * activeShapes.length)];
-			const particleSize = Math.abs(randInRange(size));
-			const quadrant = i % 4;
-			const shapeStyles = getVibrantShapeStyles({
-				shape,
-				color: colorHex,
-				centerAlpha: opacity.center,
-				midAlpha,
-				edgeAlpha: opacity.edge,
-			});
-
-			return { particleSize, quadrant, shapeStyles, key: i };
-		});
-	}, [activeShapes, count, opacity, palette, size]);
-
-	useEffect(() => {
-		if (typeof window === 'undefined') return undefined;
-		const skewBox = skewBoxRef.current;
-		if (!skewBox) return undefined;
-
-		const bounds = { w: 1, h: 1 };
-		let states = [];
-		let rafId = null;
-		let lastTime = null;
-		let resizeTimeout = null;
-
-		const measure = () => {
-			bounds.w = Math.max(skewBox.offsetWidth, 1);
-			bounds.h = Math.max(skewBox.offsetHeight, 1);
-		};
-
-		const initStates = () => {
-			const halfW = bounds.w / 2;
-			const halfH = bounds.h / 2;
-
-			states = specs.map(spec => {
-				const x = Math.random() * halfW;
-				const y = Math.random() * halfH;
-				let px;
-				let py;
-
-				if (spec.quadrant === 3) {
-					px = x + halfW;
-					py = y;
-				} else if (spec.quadrant === 2) {
-					px = x;
-					py = y + halfH;
-				} else if (spec.quadrant === 1) {
-					px = x + halfW;
-					py = y + halfH;
-				} else {
-					px = x;
-					py = y;
-				}
-
-				return {
-					x: px,
-					y: py,
-					vx: randInRange(speed.x) * randSign(),
-					vy: randInRange(speed.y) * randSign(),
-				};
-			});
-		};
-
-		const drawFrame = frames => {
-			for (let i = 0; i < states.length; i += 1) {
-				const s = states[i];
-
-				s.x += s.vx * frames;
-				s.y += s.vy * frames;
-
-				if (s.x < 0) {
-					s.vx *= -1;
-					s.x += 1;
-				} else if (s.x > bounds.w) {
-					s.vx *= -1;
-					s.x -= 1;
-				}
-
-				if (s.y < 0) {
-					s.vy *= -1;
-					s.y += 1;
-				} else if (s.y > bounds.h) {
-					s.vy *= -1;
-					s.y -= 1;
-				}
-
-				const el = particleRefs.current[i];
-				if (el) {
-					el.style.transform = `translate3d(${s.x.toFixed(2)}px, ${s.y.toFixed(2)}px, 0)`;
-				}
-			}
-		};
-
-		const tick = now => {
-			if (lastTime == null) lastTime = now;
-			const dt = Math.min((now - lastTime) / 1000, 0.05);
-			lastTime = now;
-			drawFrame(dt * 60);
-			rafId = window.requestAnimationFrame(tick);
-		};
-
-		measure();
-		initStates();
-		drawFrame(0);
-
-		if (animate) {
-			lastTime = null;
-			rafId = window.requestAnimationFrame(tick);
-		}
-
-		const handleResize = () => {
-			window.clearTimeout(resizeTimeout);
-			resizeTimeout = window.setTimeout(() => {
-				measure();
-				for (let i = 0; i < states.length; i += 1) {
-					const s = states[i];
-					if (s.x < 0) s.x = 0;
-					else if (s.x > bounds.w) s.x = bounds.w;
-					if (s.y < 0) s.y = 0;
-					else if (s.y > bounds.h) s.y = bounds.h;
-				}
-				drawFrame(0);
-			}, 150);
-		};
-
-		const observer =
-			typeof ResizeObserver !== 'undefined' ? new ResizeObserver(handleResize) : null;
-		if (observer) observer.observe(skewBox);
-		window.addEventListener('resize', handleResize);
-
-		return () => {
-			if (rafId) window.cancelAnimationFrame(rafId);
-			window.clearTimeout(resizeTimeout);
-			window.removeEventListener('resize', handleResize);
-			if (observer) observer.disconnect();
-		};
-	}, [animate, specs, speed]);
-
-	return (
-		<Box
-			aria-hidden
-			sx={{
-				position: 'absolute',
-				inset: 0,
-				overflow: 'hidden',
-				pointerEvents: 'none',
-				borderRadius: 'inherit',
-			}}
-		>
-			<Box
-				ref={skewBoxRef}
-				sx={{
-					position: 'absolute',
-					inset: '-14% -10%',
-					transform: `skewY(${skew}deg)`,
-					transformOrigin: 'center',
-				}}
-			>
-				{specs.map((spec, index) => (
-					<Box
-						key={spec.key}
-						ref={el => {
-							particleRefs.current[index] = el;
-						}}
-						sx={{
-							position: 'absolute',
-							left: 0,
-							top: 0,
-							width: spec.particleSize,
-							height: spec.particleSize,
-							marginLeft: `-${spec.particleSize / 2}px`,
-							marginTop: `-${spec.particleSize / 2}px`,
-							mixBlendMode: blending,
-							willChange: 'transform',
-							...spec.shapeStyles,
-						}}
-					/>
-				))}
-			</Box>
-		</Box>
-	);
+	return palette.main;
 };
 
 const KpiRibbonItem = ({ metric, delay = 0 }) => {
 	const theme = useTheme();
 	const { mode, systemMode } = useColorScheme();
 	const isDark = (mode === 'system' ? systemMode : mode) === 'dark';
-	const accent = theme.palette[metric.color]?.main || theme.palette.primary.main;
-	// const trendPercentageColor =
-	// 	metric.direction === 'positive'
-	// 		? theme.palette.success.dark
-	// 		: metric.direction === 'negative'
-	// 			? theme.palette.error.dark
-	// 			: theme.palette.text.secondary;
+	const accent = getMetricSparkColor(theme, metric.color, isDark);
 	const trendColor =
 		metric.direction === 'positive'
-			? theme.palette.success.dark
+			? getPulseAccent(theme, 'success', isDark)
 			: metric.direction === 'negative'
-				? theme.palette.error.dark
+				? getPulseAccent(theme, 'error', isDark)
 				: theme.palette.text.secondary;
 	const trendIcon =
 		metric.direction === 'positive'
@@ -548,81 +221,14 @@ export const BusinessPulse = ({
 	const isDark = (mode === 'system' ? systemMode : mode) === 'dark';
 	const prefersReducedMotion = useReducedMotion();
 
-	const [isOpen, setIsOpen] = useState(false);
-	const [pending, setPending] = useState(() => ({
-		fromDate: toDateValue(draftFromDate),
-		toDate: toDateValue(draftToDate),
-	}));
-
-	useEffect(() => {
-		if (isOpen) return;
-
-		setPending({
-			fromDate: toDateValue(draftFromDate),
-			toDate: toDateValue(draftToDate),
-		});
-	}, [draftFromDate, draftToDate, isOpen]);
-
-	useEffect(() => {
-		if (typeof document === 'undefined') return undefined;
-
-		const portalId = 'business-pulse-datepicker-portal';
-		let node = document.getElementById(portalId);
-
-		if (!node) {
-			node = document.createElement('div');
-			node.setAttribute('id', portalId);
-			node.style.position = 'relative';
-			node.style.zIndex = '1500';
-			document.body.appendChild(node);
-		}
-
-		return undefined;
-	}, []);
-
-	const displayed = isOpen
-		? pending
-		: { fromDate: toDateValue(draftFromDate), toDate: toDateValue(draftToDate) };
-	const displayLabel = formatDateLabel(
-		displayed.fromDate,
-		displayed.toDate,
-		hasActivePeriod ? periodLabel : 'All Time'
-	);
-	const canApply =
-		Boolean(pending.fromDate && pending.toDate) &&
-		(dayjs(pending.fromDate).format('YYYY-MM-DD') !== draftFromDate ||
-			dayjs(pending.toDate).format('YYYY-MM-DD') !== draftToDate);
-	const canReset = hasActivePeriod || Boolean(pending.fromDate || pending.toDate);
-
-	const handleApply = async () => {
-		if (!pending.fromDate || !pending.toDate) return;
-
-		const success = await onApplyDateRange({
-			fromDate: dayjs(pending.fromDate).format('YYYY-MM-DD'),
-			toDate: dayjs(pending.toDate).format('YYYY-MM-DD'),
-		});
-
-		if (success) setIsOpen(false);
-	};
-
-	const handleReset = async () => {
-		if (hasActivePeriod) {
-			await onResetDateRange();
-			setIsOpen(false);
-			return;
-		}
-
-		setPending({ fromDate: null, toDate: null });
-	};
-
-	const positiveColor = theme.palette.success.dark;
-	const negativeColor = theme.palette.error.dark;
+	const positiveColor = getPulseAccent(theme, 'success', isDark);
+	const negativeColor = getPulseAccent(theme, 'error', isDark);
 	const netColor =
 		netDirection === 'positive'
 			? positiveColor
 			: netDirection === 'negative'
 				? negativeColor
-				: theme.palette.info.main;
+				: getPulseAccent(theme, 'info', isDark);
 	const netSign = netIncome > 0 ? '+' : netIncome < 0 ? '−' : '';
 	const absoluteNet = Math.abs(netIncome);
 	const pulseCopy = useMemo(() => {
@@ -660,13 +266,7 @@ export const BusinessPulse = ({
 				border: `1px solid ${alpha(theme.palette.text.primary, isDark ? 0.16 : 0.08)}`,
 				mb: { xs: 2, md: 3 },
 				backgroundImage: isDark
-					? `linear-gradient(135deg, ${alpha(
-						theme.palette.primary.main,
-						0.16
-					)} 0%, ${alpha(theme.palette.primary.main, 0.04)} 48%, ${alpha(
-						theme.palette.info.main,
-						0.05
-					)} 100%)`
+					? `linear-gradient(135deg, ${(theme.vars?.palette?.primary || theme.palette.primary).lighterOpacity} 0%, ${(theme.vars?.palette?.primary || theme.palette.primary).lightestOpacity} 48%, ${(theme.vars?.palette?.info || theme.palette.info).lightestOpacity} 100%)`
 					: `linear-gradient(135deg, ${alpha(
 						theme.palette.primary.main,
 						0.09
@@ -759,8 +359,11 @@ export const BusinessPulse = ({
 									label="AI active"
 									sx={{
 										height: 24,
-										backgroundColor: alpha(theme.palette.primary.main, 0.12),
-										color: theme.palette.primary.main,
+										backgroundColor: alpha(
+											isDark ? theme.palette.primary.dark : theme.palette.primary.main,
+											0.12
+										),
+										color: isDark ? theme.palette.primary.dark : theme.palette.primary.main,
 										'& .MuiChip-icon': { color: 'inherit' },
 										'& .MuiChip-label': { fontWeight: 700, px: 0.8 },
 									}}
@@ -774,53 +377,20 @@ export const BusinessPulse = ({
 
 						<Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2} alignItems="center">
 							<Box sx={{ width: { xs: 200, sm: 240 } }}>
-								<AppReactDatepicker
-									selectsRange
-									open={isOpen}
-									startDate={pending.fromDate}
-									endDate={pending.toDate}
-									selected={pending.fromDate}
-									onChange={dates => {
-										const [start, end] = Array.isArray(dates) ? dates : [null, null];
-										setPending({ fromDate: start, toDate: end });
-									}}
-									onInputClick={() => !isRefreshing && setIsOpen(true)}
-									onClickOutside={() => setIsOpen(false)}
-									onCalendarOpen={() => setIsOpen(true)}
-									onCalendarClose={() => setIsOpen(false)}
+								<CustomDatePicker
+									mode="range"
+									commitOnApply
+									startDate={draftFromDate}
+									endDate={draftToDate}
+									onApply={onApplyDateRange}
+									onReset={onResetDateRange}
+									hasActiveSelection={hasActivePeriod}
+									emptyLabel={hasActivePeriod ? periodLabel : 'All Time'}
 									disabled={isRefreshing}
-									shouldCloseOnSelect={false}
 									popperPlacement="bottom-end"
-									popperProps={{ strategy: 'fixed' }}
 									portalId="business-pulse-datepicker-portal"
-									customInput={<PulseDateInput displayValue={displayLabel} />}
-								>
-									<Box>
-										<Divider />
-										<Stack
-											direction="row"
-											spacing={1.5}
-											justifyContent="flex-end"
-											sx={{ p: 3 }}
-										>
-											<Button
-												variant="text"
-												color="secondary"
-												onClick={handleReset}
-												disabled={isRefreshing || !canReset}
-											>
-												Reset
-											</Button>
-											<Button
-												variant="contained"
-												onClick={handleApply}
-												disabled={isRefreshing || !canApply}
-											>
-												Apply
-											</Button>
-										</Stack>
-									</Box>
-								</AppReactDatepicker>
+									label="Date Range"
+								/>
 							</Box>
 							<Tooltip title="Refresh">
 								<span>
