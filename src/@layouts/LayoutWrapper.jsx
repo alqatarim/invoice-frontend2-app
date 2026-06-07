@@ -2,16 +2,10 @@
 
 // Hook Imports
 import { useSettings } from '@core/hooks/useSettings'
-import useLayoutInit from '@core/hooks/useLayoutInit'
 
 const LayoutWrapper = props => {
-  // Props
-  const { systemMode, verticalLayout, horizontalLayout } = props
-
-  // Hooks
+  const { verticalLayout, horizontalLayout } = props
   const { settings } = useSettings()
-
-  useLayoutInit(systemMode)
 
   // Return the layout based on the layout context
   return (

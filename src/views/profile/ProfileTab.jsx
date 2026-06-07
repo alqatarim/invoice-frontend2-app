@@ -240,12 +240,12 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
             sx={
               item.property === 'email'
                 ? {
-                    minWidth: 0,
-                    flex: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }
+                  minWidth: 0,
+                  flex: 1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }
                 : undefined
             }
           >
@@ -303,7 +303,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
               </Alert>
             )}
 
-            <Grid container spacing={6}>
+            <Grid container spacing={4}>
               {/* Profile Picture Section */}
               <Grid size={{ xs: 12 }}>
                 <div className='flex items-start gap-6'>
@@ -335,7 +335,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                     />
                     <div className='flex gap-4'>
                       <Button
-                        variant="contained"
+                        variant="text"
                         component="label"
                         htmlFor="profile-image-upload"
                         size="small"
@@ -344,7 +344,7 @@ const ProfileTab = ({ data, onUpdate, updating, error, enqueueSnackbar }) => {
                         Upload New Picture
                       </Button>
                       <Button
-                        variant="outlined"
+                        variant="text"
                         size="small"
                         color="error"
                         disabled={!canUpdate}

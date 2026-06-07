@@ -23,6 +23,10 @@
   --backdrop-color: rgb(21 16 43 / 0.6);
 }
 
+.font-arabic {
+  font-family: var(--font-noto-kufi-arabic), sans-serif;
+}
+
 *,
 ::before,
 ::after {

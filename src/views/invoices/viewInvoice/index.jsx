@@ -3,8 +3,9 @@
 import React from 'react';
 import { Paper } from '@mui/material';
 import InvoiceActionBar from '@/components/invoices/InvoiceActionBar';
-import InvoiceReceiptDialog from '@/components/invoices/InvoiceReceiptDialog';
+import CustomerPosReceiptDialog from '@/components/receipts/CustomerPosReceiptDialog';
 import AppSnackbar from '@/components/shared/AppSnackbar';
+import AppSnackbarProvider from '@/components/shared/AppSnackbarProvider';
 import ViewInvoice from './ViewInvoice';
 import { useInvoiceViewHandler } from './handler';
 
@@ -27,7 +28,7 @@ const ViewInvoiceIndex = ({
   }
 
   return (
-    <>
+    <AppSnackbarProvider maxSnack={7}>
       <InvoiceActionBar
         onPrint={handler.handlePrint}
         onDownload={handler.handleDownloadInvoice}
@@ -42,13 +43,11 @@ const ViewInvoiceIndex = ({
         previewId={handler.previewId}
       />
 
-      <InvoiceReceiptDialog
+      <CustomerPosReceiptDialog
         open={handler.receiptOpen}
         loading={false}
-        receiptText={handler.receiptText}
+        receiptData={handler.receiptData}
         onClose={handler.closeReceipt}
-        onCopy={handler.handleCopyReceipt}
-        onDownload={handler.handleDownloadReceipt}
       />
 
       <AppSnackbar
@@ -58,7 +57,7 @@ const ViewInvoiceIndex = ({
         onClose={handler.closeSnackbar}
         autoHideDuration={3000}
       />
-    </>
+    </AppSnackbarProvider>
   );
 };
 

@@ -1,53 +1,24 @@
 'use client'
 
-// React Imports
 import { useMemo } from 'react'
-
-// MUI Imports
 import { deepmerge } from '@mui/utils'
 import { ThemeProvider, lighten, darken, createTheme } from '@mui/material/styles'
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter'
 import CssBaseline from '@mui/material/CssBaseline'
-
-// Third-party Imports
 import { useMedia } from 'react-use'
 import stylisRTLPlugin from 'stylis-plugin-rtl'
-
-// Component Imports
-import ModeChanger from './ModeChanger'
-
-// Config Imports
+import ModeSync from './ModeSync'
 import themeConfig from '@configs/themeConfig'
-
-// Hook Imports
 import { useSettings } from '@core/hooks/useSettings'
-
-// Core Theme Imports
+import { resolveColorSchemeMode } from '@core/utils/colorScheme'
 import defaultCoreTheme from '@core/theme'
 
 const CustomThemeProvider = props => {
-  // Props
   const { children, direction, systemMode } = props
-
-  // Vars
-  const isServer = typeof window === 'undefined'
-  let currentMode
-
-  // Hooks
   const { settings } = useSettings()
-  const isDark = useMedia('(prefers-color-scheme: dark)', systemMode === 'dark')
+  const prefersDark = useMedia('(prefers-color-scheme: dark)', systemMode === 'dark')
+  const currentMode = resolveColorSchemeMode(settings.mode, systemMode, prefersDark)
 
-  if (isServer) {
-    currentMode = systemMode
-  } else {
-    if (settings.mode === 'system') {
-      currentMode = isDark ? 'dark' : 'light'
-    } else {
-      currentMode = settings.mode
-    }
-  }
-
-  // Merge the primary color scheme override with the core theme
   const theme = useMemo(() => {
     const newTheme = {
       colorSchemes: {
@@ -81,9 +52,7 @@ const CustomThemeProvider = props => {
       }
     }
 
-    const coreTheme = deepmerge(defaultCoreTheme(settings, currentMode, direction), newTheme)
-
-    return createTheme(coreTheme)
+    return createTheme(deepmerge(defaultCoreTheme(settings, currentMode, direction), newTheme))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.primaryColor, settings.skin, currentMode])
 
@@ -99,14 +68,13 @@ const CustomThemeProvider = props => {
     >
       <ThemeProvider
         theme={theme}
-        defaultMode={systemMode}
-        modeStorageKey={`${themeConfig.templateName.toLowerCase().split(' ').join('-')}-mui-template-mode`}
+        defaultMode={currentMode}
+        modeStorageKey={`${themeConfig.settingsCookieName}-mui-mode`}
+        disableTransitionOnChange
       >
-        <>
-          <ModeChanger systemMode={systemMode} />
-          <CssBaseline />
-          {children}
-        </>
+        <ModeSync systemMode={systemMode} />
+        <CssBaseline enableColorScheme />
+        {children}
       </ThemeProvider>
     </AppRouterCacheProvider>
   )

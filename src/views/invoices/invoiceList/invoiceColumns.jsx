@@ -142,6 +142,18 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
 
       const menuOptions = [];
 
+      if (permissions.canView) {
+        menuOptions.push({
+          text: 'View Receipt',
+          icon: <Icon icon="mdi:invoice-outline" />,
+          menuItemProps: {
+            className: 'flex items-center gap-2 text-textSecondary',
+            onClick: () => handlers.handleViewReceipt(row)
+          }
+        });
+      }
+
+
       if (permissions.canUpdate) {
         const editAction = actionButtons.find(action => action.id === 'edit');
         menuOptions.push({
@@ -156,6 +168,8 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
 
       // Add additional menu options (not view/edit)
       if (permissions.canCreate) {
+
+
         menuOptions.push({
           text: actionButtons.find(action => action.id === 'clone').label,
           icon: <Icon icon={actionButtons.find(action => action.id === 'clone').icon} />,
@@ -199,6 +213,8 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
           }
         });
       }
+
+
 
       if (permissions.canCreate) {
         menuOptions.push({

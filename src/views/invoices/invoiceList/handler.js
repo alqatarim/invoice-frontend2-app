@@ -11,6 +11,11 @@ import {
   sendPaymentLink,
   printDownloadInvoice,
 } from '@/app/(dashboard)/invoices/invoice-list/actions';
+import {
+  getCompanyProfile,
+  getInvoiceById,
+} from '@/app/(dashboard)/invoices/invoice-view/[id]/actions';
+import { buildInvoiceReceiptData } from '@/utils/buildInvoiceReceiptData';
 
 const DEFAULT_PAGINATION = { current: 1, pageSize: 10, total: 0 };
 const DEFAULT_FILTERS = {
@@ -78,6 +83,11 @@ export function useInvoiceListHandler({
   const [convertDialogState, setConvertDialogState] = useState({
     open: false,
     invoice: null,
+  });
+  const [receiptDialogState, setReceiptDialogState] = useState({
+    open: false,
+    loading: false,
+    receiptData: null,
   });
 
   const loadingRef = useRef(false);
@@ -337,6 +347,39 @@ export function useInvoiceListHandler({
     setConvertDialogState({ open: false, invoice: null });
   }, []);
 
+  const handleViewReceipt = useCallback(async (row) => {
+    const invoiceId = row?.id || row?._id;
+
+    if (!invoiceId) return;
+
+    setReceiptDialogState({ open: true, loading: true, receiptData: null });
+
+    try {
+      const invoiceData = await getInvoiceById(invoiceId);
+
+      if (!invoiceData) {
+        throw new Error('Invoice not found');
+      }
+
+      const companyId = invoiceData?.companyId?._id || invoiceData?.companyId || '';
+      const companyData = companyId ? await getCompanyProfile(companyId) : null;
+
+      setReceiptDialogState({
+        open: true,
+        loading: false,
+        receiptData: buildInvoiceReceiptData(invoiceData, companyData),
+      });
+    } catch (error) {
+      console.error('Failed to load receipt:', error);
+      onErrorRef.current?.(error.message || 'Failed to load receipt');
+      setReceiptDialogState({ open: false, loading: false, receiptData: null });
+    }
+  }, []);
+
+  const closeReceiptDialog = useCallback(() => {
+    setReceiptDialogState({ open: false, loading: false, receiptData: null });
+  }, []);
+
   const confirmConvertToSalesReturn = useCallback(async () => {
     const invoiceId = convertDialogState.invoice?.id || convertDialogState.invoice?._id;
 
@@ -387,6 +430,9 @@ export function useInvoiceListHandler({
       manageColumnsOpen,
       convertDialogOpen: convertDialogState.open,
       invoiceToConvert: convertDialogState.invoice,
+      receiptDialogOpen: receiptDialogState.open,
+      receiptDialogLoading: receiptDialogState.loading,
+      receiptDialogData: receiptDialogState.receiptData,
       fetchData,
       handlePageChange,
       handlePageSizeChange,
@@ -400,10 +446,12 @@ export function useInvoiceListHandler({
       handleSend,
       handleConvertToSalesReturn,
       handlePrintDownload,
+      handleViewReceipt,
       handleSendPaymentLink,
       openConvertDialog,
       closeConvertDialog,
       confirmConvertToSalesReturn,
+      closeReceiptDialog,
       handleManageColumnsOpen,
       handleManageColumnsClose,
       handleColumnCheckboxChange,
@@ -435,9 +483,13 @@ export function useInvoiceListHandler({
     [
       availableColumns,
       closeConvertDialog,
+      closeReceiptDialog,
       confirmConvertToSalesReturn,
       convertDialogState.invoice,
       convertDialogState.open,
+      receiptDialogState.loading,
+      receiptDialogState.open,
+      receiptDialogState.receiptData,
       customerOptions,
       fetchData,
       filterOpen,
@@ -454,6 +506,7 @@ export function useInvoiceListHandler({
       handlePageChange,
       handlePageSizeChange,
       handlePrintDownload,
+      handleViewReceipt,
       handleSearchInputChange,
       handleSend,
       handleSendPaymentLink,

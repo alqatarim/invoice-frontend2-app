@@ -10,6 +10,7 @@ import { useTheme } from '@mui/material/styles'
 
 // Custom Components
 import CustomChip from '@/components/custom-components/CustomChip'
+import CustomAvatar from '@core/components/mui/Avatar'
 import AnimatedDynamicCover from '@/components/AnimatedDynamicCover'
 
 // Hooks
@@ -47,8 +48,8 @@ const UserProfileHeader = ({ data }) => {
   return (
     <Card>
       <Box className='relative'>
-        <Box className='bs-[250px] overflow-hidden'>
-          <AnimatedDynamicCover 
+        <Box className='bs-[200px] overflow-hidden'>
+          <AnimatedDynamicCover
             colors={extractedColors}
           />
         </Box>
@@ -74,24 +75,27 @@ const UserProfileHeader = ({ data }) => {
         )} */}
       </Box>
       <CardContent className='flex gap-6 justify-center flex-col items-center md:items-end md:flex-row !pt-0 md:justify-start'>
-        <Card className='flex rounded-bs-md mbs-[-60px] relative z-10 ring-2 ring-white'>
-          {avatarSrc ? (
-            <img
-              height={120}
-              width={120}
-              src={avatarSrc}
-              className='rounded'
-              alt='Profile Background'
-              onError={(e) => {
-                e.target.style.display = 'none'
-              }}
-            />
-          ) : (
-            <Box className='flex items-center justify-center h-[120px] w-[120px] rounded bg-primary text-white text-2xl font-medium'>
-              {data?.firstName?.[0]?.toUpperCase() || data?.fullname?.[0]?.toUpperCase() || 'U'}
-            </Box>
-          )}
-        </Card>
+        <CustomAvatar
+          src={avatarSrc || undefined}
+          alt={fullName}
+          size={120}
+          variant='rounded'
+          color='primary'
+          className='mbs-[-60px] relative z-10 ring-2 ring-white'
+          onError={(event) => {
+            const fallbackSrc = resolveUserAvatarUrl({
+              image: '',
+              defaultAvatar: data?.defaultAvatar || '',
+              userId: data?._id || data?.id || '',
+            })
+
+            if (fallbackSrc && event.currentTarget.src !== fallbackSrc) {
+              event.currentTarget.src = fallbackSrc
+            }
+          }}
+        >
+          {data?.firstName?.[0]?.toUpperCase() || data?.fullname?.[0]?.toUpperCase() || 'U'}
+        </CustomAvatar>
         <Box className='flex is-full flex-wrap justify-center flex-col items-center sm:flex-row sm:justify-between sm:items-end gap-5'>
           <Box className='flex flex-col items-center sm:items-start gap-2'>
             <Typography variant='h4'>{fullName}</Typography>
@@ -100,25 +104,14 @@ const UserProfileHeader = ({ data }) => {
                 @{data.userName}
               </Typography>
             )}
-            {data?.companyName && (
-              <Box className='flex items-center gap-2'>
-                <Icon icon='mdi:office-building-outline' fontSize={20} color={theme.palette.primary.main} />
-                <Typography variant='subtitle2' className='text-primary font-medium'>
-                  {data.companyName}
-                </Typography>
-              </Box>
-            )}
+
             <Box className='flex flex-wrap gap-6 justify-center sm:justify-normal'>
-              {data?.email && (
+              {data?.companyName && (
                 <Box className='flex items-center gap-2'>
-                  <Icon icon='mdi:email-outline' fontSize={23} color={theme.palette.secondary.main} />
-                  <Typography className='font-medium'>{data.email}</Typography>
-                </Box>
-              )}
-              {data?.mobileNumber && (
-                <Box className='flex items-center gap-2'>
-                  <Icon icon='mdi:phone-led-outline' fontSize={23} color={theme.palette.secondary.main} />
-                  <Typography className='font-medium'>{data.mobileNumber}</Typography>
+                  <Icon icon='mdi:office-building-outline' fontSize={20} color={theme.palette.secondary.main} />
+                  <Typography className='font-medium'>
+                    {data.companyName}
+                  </Typography>
                 </Box>
               )}
               {roleLabel && (

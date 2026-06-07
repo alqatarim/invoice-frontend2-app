@@ -16,6 +16,8 @@ import { usePermission } from '@/Auth/usePermission';
 import InvoiceHead from '@/views/invoices/invoiceList/invoiceHead';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import AppSnackbar from '@/components/shared/AppSnackbar';
+import AppSnackbarProvider from '@/components/shared/AppSnackbarProvider';
+import CustomerPosReceiptDialog from '@/components/receipts/CustomerPosReceiptDialog';
 import { useInvoiceListHandler } from './handler';
 import { getInvoiceColumns } from './invoiceColumns';
 
@@ -108,6 +110,7 @@ const InvoiceList = ({
   );
 
   return (
+    <AppSnackbarProvider maxSnack={7}>
     <div className='flex flex-col gap-5'>
       {/* Header and Stats */}
       <InvoiceHead
@@ -183,7 +186,15 @@ const InvoiceList = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <CustomerPosReceiptDialog
+        open={handlers.receiptDialogOpen}
+        loading={handlers.receiptDialogLoading}
+        receiptData={handlers.receiptDialogData}
+        onClose={handlers.closeReceiptDialog}
+      />
     </div>
+    </AppSnackbarProvider>
   );
 };
 

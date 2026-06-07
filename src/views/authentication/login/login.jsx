@@ -14,15 +14,15 @@ import Checkbox from '@mui/material/Checkbox'
 import Button from '@mui/material/Button'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Divider from '@mui/material/Divider'
-import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Alert from '@mui/material/Alert'
 import Card from '@mui/material/Card'
 import { Snackbar, CircularProgress } from '@mui/material'
 import { alpha, styled, useColorScheme, useTheme } from '@mui/material/styles'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import CloseIcon from '@mui/icons-material/Close'
-
+import CustomAlert from '@/components/Alert/CustomAlert'
 // Third-party Imports
 import { Controller } from 'react-hook-form'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
@@ -254,6 +254,7 @@ const Login = ({ controller }) => {
   }
 
   const { mode: colorMode, systemMode } = useColorScheme()
+  const theme = useTheme()
   const currentMode = (colorMode === 'system' ? systemMode : colorMode) || 'light'
   const isDark = currentMode === 'dark'
   const prefersReducedMotion = useReducedMotion()
@@ -290,10 +291,19 @@ const Login = ({ controller }) => {
     <div className='flex bs-full min-bs-[100dvh] justify-center relative overflow-hidden'>
       <LoginHeroPanel isDark={isDark} animate={!prefersReducedMotion} />
 
+      <Box
+        className='absolute block-start-5 sm:block-start-[33px] inline-start-6 sm:inline-start-[38px] z-[3] flex items-center gap-3'
+      >
+        <Logo className='text-primary' width={60} height={60} />
+        {/* <Typography variant='h4' className='font-semibold tracking-[0.15px]'>
+          Invoices
+        </Typography> */}
+      </Box>
+
       {/* Right side with login form */}
       {!hasFormPanelExited && (
         <MotionCard
-          className='flex rounded-none justify-center items-center bs-full !min-is-full p-6 md:!min-is-[unset] md:p-12 md:is-[400px]'
+          className='flex rounded-none justify-center items-center bs-full !min-is-full p-20 md:!min-is-[unset] md:p-9 md:is-[400px]'
           sx={{
             position: 'absolute',
             insetBlock: 0,
@@ -315,17 +325,6 @@ const Login = ({ controller }) => {
             }
           }}
         >
-          <div
-            className='absolute block-start-5 sm:block-start-[33px] inline-start-6 sm:inline-start-[38px]'
-          >
-            <div className='flex justify-center items-center gap-3 mbe-6'>
-              <Logo className='text-primary' width={50} height={50} />
-              <Typography variant='h4' className='font-semibold tracking-[0.15px]'>
-                Invoices
-              </Typography>
-            </div>
-          </div>
-
           <motion.div
             className='flex flex-col gap-5 is-full sm:is-auto md:is-full sm:max-is-[380px] md:max-is-[unset]'
             variants={containerVariants}
@@ -333,17 +332,21 @@ const Login = ({ controller }) => {
             animate='show'
           >
             <motion.div variants={itemVariants}>
-              <Typography variant='h4'>{`Welcome to Invoices!👋🏻`}</Typography>
-              <Typography>Please sign-in to your account and start the adventure</Typography>
+              <Typography variant='h4'>{`Welcome Back!`}</Typography>
+              <Typography>Please sign-in to your account</Typography>
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <Alert icon={false} className='bg-[var(--mui-palette-primary-lightOpacity)]'>
-                <Typography variant='body2' color='primary'>
-                  Email: <span className='font-medium'>superadmin@dreamstechnologies.com</span> / Pass:{' '}
-                  <span className='font-medium'>Dgt@2023</span>
-                </Typography>
-              </Alert>
+              <CustomAlert icon={false} skin='lighter' severity='info'>
+                <Box className='flex flex-col gap-0'>
+                  <Typography variant='body2' color='primary'>
+                    Email: john.doe@example.com
+                  </Typography>
+                  <Typography variant='body2' color='primary'>
+                    Pass: Test@123
+                  </Typography>
+                </Box>
+              </CustomAlert>
             </motion.div>
 
             {errorState ? (
@@ -406,9 +409,9 @@ const Login = ({ controller }) => {
               />
               <div className='flex justify-between items-center flex-wrap gap-x-3 gap-y-1'>
                 <FormControlLabel control={<Checkbox defaultChecked />} label='Remember me' />
-                <Typography className='text-end' color='primary' component={Link} href='/forgot-password'>
+                {/* <Typography className='text-end' color='primary' component={Link} href='/forgot-password'>
                   Forgot password?
-                </Typography>
+                </Typography> */}
               </div>
               <motion.div
                 whileHover={disableAuthActions ? undefined : { y: -2 }}
@@ -423,9 +426,11 @@ const Login = ({ controller }) => {
                   sx={{
                     position: 'relative',
                     overflow: 'hidden',
-                    boxShadow: '0 8px 24px rgba(115,103,240,0.35)',
+                    boxShadow: `0 3px 12px ${alpha(theme.palette.common.black, isDark ? 0.28 : 0.15)}`,
                     transition: 'box-shadow 0.3s ease',
-                    '&:hover': { boxShadow: '0 12px 28px rgba(115,103,240,0.45)' },
+                    '&:hover': {
+                      boxShadow: `0 6px 20px ${alpha(theme.palette.common.black, isDark ? 0.34 : 0.19)}`,
+                    },
                   }}
                 >
                   Log In
@@ -433,7 +438,7 @@ const Login = ({ controller }) => {
               </motion.div>
             </motion.form>
 
-            <motion.div variants={itemVariants}>
+            {/* <motion.div variants={itemVariants}>
               <Divider className='gap-3'>or</Divider>
             </motion.div>
 
@@ -454,7 +459,7 @@ const Login = ({ controller }) => {
               >
                 Sign in with Google
               </Button>
-            </motion.div>
+            </motion.div> */}
           </motion.div>
         </MotionCard>
       )}
