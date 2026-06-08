@@ -2,6 +2,7 @@
 
 import { useRef, useState, useMemo } from 'react'
 import Chip from '@mui/material/Chip'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import Tooltip from '@mui/material/Tooltip'
 import Popper from '@mui/material/Popper'
 import Paper from '@mui/material/Paper'
@@ -24,6 +25,7 @@ const getLocationIconClass = (branch, selected) => {
 
 const LocationChip = () => {
   const theme = useTheme()
+  const isCompact = useMediaQuery(theme.breakpoints.down('sm'))
   const anchorRef = useRef(null)
   const [open, setOpen] = useState(false)
   const {
@@ -65,17 +67,19 @@ const LocationChip = () => {
         <Chip
           ref={anchorRef}
           icon={<i className={`${getLocationIconClass(selectedLocation, true)} text-[16px]`} />}
-          label={label}
+          label={isCompact ? undefined : label}
           size='medium'
           variant='outlined'
           onClick={handleToggle}
           sx={{
-            // mx: 0.5,
             cursor: 'pointer',
             fontWeight: 500,
-            maxWidth: 350,
-            // display: { xs: 'none', sm: 'inline-flex' },
-            // '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
+            maxWidth: { xs: 40, sm: 200, md: 350 },
+            '& .MuiChip-label': {
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            },
           }}
         />
       </Tooltip>

@@ -84,7 +84,7 @@ const SalesOverviewSkeleton = () => (
 );
 
 const SaudiDigitalMapSkeleton = () => (
-	<Card sx={{ height: '100%', minHeight: 510, overflow: 'hidden' }}>
+	<Card sx={{ height: '100%', minHeight: { xs: 360, md: 510 }, overflow: 'hidden' }}>
 		<CardContent sx={{ height: '100%', p: { xs: 2.5, md: 3 } }}>
 			<Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
 				<Box>
@@ -171,7 +171,7 @@ const Dashboard = ({
 	handleRefresh = () => { },
 }) => {
 	return (
-		<Grid container spacing={6}>
+		<Grid container spacing={{ xs: 3, md: 6 }}>
 			{/* ── HERO: BUSINESS PULSE ───────────────────────────────────── */}
 			<Grid size={{ xs: 12 }}>
 				{isLoading ? (
@@ -210,7 +210,7 @@ const Dashboard = ({
 				/>
 			</Grid>
 
-			<Grid size={{ xs: 12, lg: 4.75 }}>
+			<Grid size={{ xs: 12, md: 6, lg: 4.75 }}>
 				{isLoading ? (
 					<SaudiDigitalMapSkeleton />
 				) : (

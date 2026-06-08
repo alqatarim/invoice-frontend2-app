@@ -1,15 +1,12 @@
 'use client'
 
 import React, { useMemo } from 'react'
-import { Grid } from '@mui/material'
 import PageIconHeader from '@components/headers/PageIconHeader'
-import HorizontalWithoutBorder from '@/components/card-statistics/HorizontalWithoutBorder'
+import StatCardGrid from '@/components/shared/StatCardGrid'
 
 const percentOfTotal = (value, total) => Math.round((value / Math.max(total, 1)) * 100)
 
 const CustomerHead = ({ customerListData }) => {
-  // const theme = useTheme()
-
   const cardCounts = useMemo(
     () => ({
       totalCustomers: customerListData?.totalCustomers || 0,
@@ -63,16 +60,7 @@ const CustomerHead = ({ customerListData }) => {
   return (
     <>
       <PageIconHeader title='Customers' iconSize={30} icon='mdi:account-group-outline' />
-
-      <div className='mb-2'>
-        <Grid container className='flex flex-wrap justify-between gap-0'>
-          {statCards.map((card, index) => (
-            <Grid key={card.title} >
-              <HorizontalWithoutBorder {...card} />
-            </Grid>
-          ))}
-        </Grid>
-      </div>
+      <StatCardGrid cards={statCards} />
     </>
   )
 }

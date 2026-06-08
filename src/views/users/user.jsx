@@ -22,6 +22,8 @@ import {
      Select,
      TextField,
      Typography,
+     useMediaQuery,
+     useTheme,
 } from '@mui/material';
 import { Icon } from '@iconify/react';
 import SectionHeader from '@components/headers/SectionHeader';
@@ -50,6 +52,8 @@ const User = ({
      submitLabel,
      closeLabel = 'Cancel',
 }) => {
+     const theme = useTheme();
+     const isFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
      const {
           mode,
           control,
@@ -331,6 +335,7 @@ const User = ({
      return (
           <Dialog
                fullWidth
+               fullScreen={isFullScreen}
                open
                onClose={handleClose}
                maxWidth="md"

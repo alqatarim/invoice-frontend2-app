@@ -201,8 +201,7 @@ const userAccessColumns = ({
       label: 'Organizational role',
       visible: true,
       align: 'left',
-      minWidth: 200,
-      width: 200,
+      minWidth: 160,
       renderCell: (row, rowIdx) =>
         isEditMode
           ? renderEditCell('organizationalRole', row, rowIdx)
@@ -213,8 +212,7 @@ const userAccessColumns = ({
       label: 'Store',
       visible: true,
       align: 'left',
-      minWidth: 250,
-      width: 250,
+      minWidth: 140,
       renderCell: (row, rowIdx) =>
         isEditMode ? renderEditCell('branchId', row, rowIdx) : renderViewCell('branchId', row),
     },
@@ -223,8 +221,8 @@ const userAccessColumns = ({
       label: 'Permission profile',
       visible: true,
       align: 'left',
-      minWidth: 200,
-      width: 200,
+      hideBelow: 'md',
+      minWidth: 160,
       renderCell: (row, rowIdx) =>
         isEditMode
           ? renderEditCell('permissionRoleId', row, rowIdx)
@@ -235,8 +233,8 @@ const userAccessColumns = ({
       label: 'Default',
       visible: true,
       align: 'center',
+      hideBelow: 'md',
       minWidth: 72,
-      width: 72,
       renderCell: (row, rowIdx) =>
         isEditMode ? renderEditCell('isPrimary', row, rowIdx) : renderViewCell('isPrimary', row),
     },

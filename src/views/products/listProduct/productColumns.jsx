@@ -109,6 +109,7 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     visible: true,
     label: 'Image',
     align: 'center',
+    hideBelow: 'md',
     minWidth: 70,
     renderCell: (row) => (
       <Box>
@@ -151,6 +152,7 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     visible: true,
     label: 'SKU',
     sortable: true,
+    hideBelow: 'md',
     minWidth: 100,
     align: 'center',
     renderCell: (row) => (
@@ -164,6 +166,7 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     visible: true,
     label: 'Category',
     sortable: true,
+    hideBelow: 'md',
     minWidth: 130,
     align: 'center',
     renderCell: (row) => (
@@ -182,6 +185,7 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     label: 'Selling Price',
     align: 'left',
     sortable: true,
+    hideBelow: 'md',
     minWidth: 100,
     renderCell: (row) => {
       const price = parseFloat(row.sellingPrice) || 0;
@@ -208,6 +212,7 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
     label: 'Purchase Price',
     align: 'left',
     sortable: true,
+    hideBelow: 'md',
     minWidth: 100,
     renderCell: (row) => {
       const price = parseFloat(row.purchasePrice) || 0;

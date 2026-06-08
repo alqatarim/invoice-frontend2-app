@@ -98,6 +98,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     label: '#',
     visible: true,
     align: 'center',
+    hideBelow: 'md',
     minWidth: 60,
     renderCell: (row, { pagination }) => {
       const { current, pageSize } = pagination || { current: 1, pageSize: 10 }
@@ -173,6 +174,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     visible: true,
     sortable: true,
     align: 'left',
+    hideBelow: 'md',
     minWidth: 120, // Stable width for contact info
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
@@ -186,6 +188,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     visible: true,
     sortable: true,
     align: 'center',
+    hideBelow: 'md',
     minWidth: 120, // Stable width for financial data
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap text-start'>
@@ -212,6 +215,7 @@ export const getCustomerColumns = ({ theme, permissions }) => [
     visible: true,
     sortable: true,
     align: 'center',
+    hideBelow: 'md',
     minWidth: 130, // Stable width for dates
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>

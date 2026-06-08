@@ -13,7 +13,8 @@ import {
   TableCell,
   Checkbox,
   Paper,
-  Divider
+  Divider,
+  TableContainer,
 } from '@mui/material'
 import { usePermissionsHandler } from './handler'
 import { isAlwaysEnabledModule } from '@/common/allModules'
@@ -37,7 +38,13 @@ const ViewPermissions = ({ roleId, initialPermissions, roleName }) => {
       {/* Header */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            justifyContent: 'space-between',
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            gap: 2,
+          }}>
             <Box>
               <Typography variant='h5'>Permissions Management</Typography>
               <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
@@ -72,11 +79,12 @@ const ViewPermissions = ({ roleId, initialPermissions, roleName }) => {
 
           {/* Permissions Table */}
           <Paper variant='outlined'>
-            <Table>
+            <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 640 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Modules</TableCell>
-                  <TableCell>Sub Modules</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Sub Modules</TableCell>
                   <TableCell align='center'>Create</TableCell>
                   <TableCell align='center'>Edit</TableCell>
                   <TableCell align='center'>Delete</TableCell>
@@ -92,7 +100,7 @@ const ViewPermissions = ({ roleId, initialPermissions, roleName }) => {
                   return (
                     <TableRow key={module.module}>
                       <TableCell>{module.label}</TableCell>
-                      <TableCell>-</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>-</TableCell>
                       <TableCell align='center'>
                         <Checkbox
                           checked={module.permissions?.create || false}
@@ -133,6 +141,7 @@ const ViewPermissions = ({ roleId, initialPermissions, roleName }) => {
                 })}
               </TableBody>
             </Table>
+            </TableContainer>
           </Paper>
 
           {/* Action Buttons */}

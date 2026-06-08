@@ -122,7 +122,8 @@ const CompanyProfile = ({ controller, initialErrorMessage = '' }) => {
           <Tabs
             value={activeTab}
             onChange={(_event, value) => setActiveTab(value)}
-            // variant='fullWidth'
+            variant='scrollable'
+            scrollButtons='auto'
             sx={{ borderBottom: 1, borderColor: 'divider', mb: 4 }}
           >
             <Tab icon={<i className='ri-building-line' />} iconPosition='start' label='Information' />
@@ -131,7 +132,7 @@ const CompanyProfile = ({ controller, initialErrorMessage = '' }) => {
             <Tab icon={<i className='ri-palette-line' />} iconPosition='start' label='Branding' />
           </Tabs>
 
-          <Box sx={{ height: TAB_PANEL_MIN_HEIGHT }}>
+          <Box sx={{ minHeight: { xs: 'auto', md: TAB_PANEL_MIN_HEIGHT } }}>
             <Box
               role='tabpanel'
               hidden={activeTab !== 0}

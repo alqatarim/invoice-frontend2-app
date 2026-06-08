@@ -129,6 +129,7 @@ export const getVendorColumns = ({
       label: 'Phone',
       sortable: true,
       align: 'center',
+      hideBelow: 'md',
       renderCell: (row) => (
         <Typography variant="body1" color='text.primary' className='text-[0.9rem] text-start'>
           {row.vendor_phone || 'N/A'}
@@ -142,6 +143,7 @@ export const getVendorColumns = ({
       label: 'Email',
       sortable: true,
       align: 'center',
+      hideBelow: 'md',
       renderCell: (row) => (
         <Typography variant="body1" color='text.primary' className='text-[0.9rem] text-start'>
           {row.vendor_email || 'N/A'}
@@ -154,6 +156,7 @@ export const getVendorColumns = ({
       visible: true,
       align: 'center',
       sortable: true,
+      hideBelow: 'md',
       renderCell: (row) => {
         const rawBalance = Number(row?.closingBalance ?? row?.balance ?? 0) || 0;
         const balanceType = row?.closingBalanceType ?? row?.balanceType ?? (rawBalance >= 0 ? 'Credit' : 'Debit');
@@ -197,6 +200,7 @@ export const getVendorColumns = ({
       visible: true,
       align: 'center',
       sortable: true,
+      hideBelow: 'md',
       renderCell: (row) => (
         <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
           {formatVendorDate(row.created_at)}

@@ -52,6 +52,18 @@ const headCellSx = {
   color: 'text.primary',
 };
 
+const getHideBelowSx = hideBelow => {
+  if (hideBelow === 'md') {
+    return { display: { xs: 'none', sm: 'none', md: 'table-cell' } }
+  }
+
+  if (hideBelow === 'sm') {
+    return { display: { xs: 'none', sm: 'table-cell' } }
+  }
+
+  return {}
+}
+
 const bodyCellSx = (col) => ({
   py: 2.5,
   px: 2,
@@ -247,6 +259,7 @@ function CustomListTableSmall({
                   align={col.align || 'left'}
                   sx={{
                     ...headCellSx,
+                    ...getHideBelowSx(col.hideBelow),
                     bgcolor: headerBg,
                     ...(col.minWidth != null && { minWidth: col.minWidth }),
                     ...(col.width != null && { width: col.width, maxWidth: col.width }),
@@ -329,6 +342,7 @@ function CustomListTableSmall({
                           align={col.align || 'left'}
                           sx={{
                             ...bodyCellSx(col),
+                            ...getHideBelowSx(col.hideBelow),
                             ...(isLastRow && { borderBottom: 0 }),
                           }}
                           className={tableCellClassName}

@@ -1,9 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Grid } from '@mui/material'
 import PageIconHeader from '@components/headers/PageIconHeader'
-import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder'
+import StatCardGrid from '@/components/shared/StatCardGrid'
 
 const RolesHead = ({ cardCounts }) => {
   const statCards = useMemo(
@@ -33,16 +32,7 @@ const RolesHead = ({ cardCounts }) => {
   return (
     <>
       <PageIconHeader title='Access Control' icon='ri-group-line' />
-
-      <div className="mb-2">
-        <Grid container className='flex flex-wrap justify-between gap-0'>
-          {statCards.map(card => (
-            <Grid key={card.title}>
-              <HorizontalWithoutBorder {...card} />
-            </Grid>
-          ))}
-        </Grid>
-      </div>
+      <StatCardGrid cards={statCards} />
     </>
   )
 }

@@ -131,6 +131,7 @@ export const getInvoiceFormColumns = ({
       label: <Typography variant="overline" fontWeight={500} >SKU</Typography>,
       width: '10%',
       align: 'center',
+      hideBelow: 'md',
       renderCell: (_, index) => {
         const watched = watchItems?.[index] || {};
         const product = resolveProductById(watched.productId);
@@ -206,6 +207,7 @@ export const getInvoiceFormColumns = ({
       label: <Typography variant="overline" fontWeight={500} >Rate</Typography>,
       width: '12%',
       align: 'center',
+      hideBelow: 'md',
       renderCell: (item, index) => (
         <Controller
           name={`items.${index}.rate`}
@@ -258,6 +260,7 @@ export const getInvoiceFormColumns = ({
       label: <Typography variant="overline" fontWeight={500} >Discount</Typography>,
       width: '18%',
       align: 'center',
+      hideBelow: 'md',
       renderCell: (item, index) => {
         const watched = watchItems[index] || {};
         return (

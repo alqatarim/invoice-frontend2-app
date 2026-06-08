@@ -190,7 +190,7 @@ const UserAccessSection = ({
           className='mb-3'
 
         />
-        <Box className="">
+        <Box sx={{ overflowX: 'auto' }}>
           {accessTable}
         </Box>
 
@@ -206,11 +206,7 @@ const UserAccessSection = ({
         icon="mdi:shield-account-outline"
         className="mb-0"
       />
-      <Box className="mt-[-15px]"
-      // sx={{
-      //   mt: '-30px',
-      // }}
-      >
+      <Box className="mt-[-15px]" sx={{ overflowX: 'auto' }}>
         {accessTable}
       </Box>
 

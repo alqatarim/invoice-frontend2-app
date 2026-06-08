@@ -5,7 +5,11 @@ import styled from '@emotion/styled'
 import themeConfig from '@configs/themeConfig'
 
 const StyledMain = styled.main`
-  padding: ${themeConfig.layoutPadding}px;
+  padding: 16px;
+
+  @media (min-width: 600px) {
+    padding: ${themeConfig.layoutPadding}px;
+  }
   ${({ isContentCompact }) =>
     isContentCompact &&
     `

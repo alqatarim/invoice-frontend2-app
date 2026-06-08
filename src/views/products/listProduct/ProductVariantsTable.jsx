@@ -149,6 +149,7 @@ const ProductVariantsTable = ({ product, variants = [], canEdit = false, onSaveV
         component={Paper}
         variant="outlined"
         onClick={(e) => e.stopPropagation()}
+        sx={{ overflowX: 'auto' }}
       >
         <Table
           size="small"

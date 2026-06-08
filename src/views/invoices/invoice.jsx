@@ -20,6 +20,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { Icon } from '@iconify/react';
 import CustomIconButton from '@core/components/mui/CustomIconButton';
 import CustomerAutocomplete from '@/components/custom-components/CustomerAutocomplete';
@@ -42,6 +43,7 @@ const InvoicePosLikeForm = ({
   resetOnCompleteClose = true,
 }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [heldInvoices, setHeldInvoices] = useState(() => {
     if (typeof window === 'undefined') return [];
@@ -237,7 +239,7 @@ const InvoicePosLikeForm = ({
 
   const addRowButton = (
     <CustomIconButton
-      className="flex flex-row items-center justify-center gap-3 w-[13rem]"
+      className="flex flex-row items-center justify-center gap-3 max-sm:is-full sm:w-[13rem]"
       variant="tonal"
       skin="lighter"
       color="primary"
@@ -444,7 +446,7 @@ const InvoicePosLikeForm = ({
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 0.5 }}>
+              <Grid size={{ xs: 12, md: 0.5 }} sx={{ display: { xs: 'none', md: 'block' } }}>
                 <IconButton
                   color="secondary"
                   onClick={() => setDrawerOpen(true)}
@@ -452,6 +454,18 @@ const InvoicePosLikeForm = ({
                 >
                   <Icon icon="mdi:unfold-more-vertical" />
                 </IconButton>
+              </Grid>
+
+              <Grid size={{ xs: 12 }} sx={{ display: { xs: 'block', md: 'none' } }}>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  fullWidth
+                  startIcon={<Icon icon="mdi:unfold-more-vertical" width={18} />}
+                  onClick={() => setDrawerOpen(true)}
+                >
+                  More options
+                </Button>
               </Grid>
 
             </Grid>
@@ -470,7 +484,7 @@ const InvoicePosLikeForm = ({
       />
 
       <Grid size={{ xs: 12 }}>
-        <Box sx={{ position: 'relative', mb: '280px' }}>
+        <Box sx={{ position: 'relative', mb: isMobile ? 0 : '280px' }}>
           <Card>
             <CardContent className="flex flex-col px-0 pt-0">
               <Box sx={{ overflowX: 'auto' }}>

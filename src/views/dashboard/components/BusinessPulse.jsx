@@ -537,7 +537,7 @@ export const BusinessPulse = ({
 								flex: 1,
 								minWidth: 0,
 								display: 'grid',
-								gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, minmax(0, 1fr))' },
+								gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
 								gap: 5,
 							}}
 						>

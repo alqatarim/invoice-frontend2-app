@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -25,11 +25,13 @@ import {
   Collapse,
 } from '@mui/material';
 import { useTheme, alpha } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import classnames from 'classnames';
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css';
+import CustomListTableMobileCards, { filterColumnsForViewport } from './CustomListTableMobileCards';
 
 /**
  * @typedef {Object} Column
@@ -40,7 +42,20 @@ import tableStyles from '@core/styles/table.module.css';
  * @property {boolean} [sortable]
  * @property {number} [skeletonWidth]
  * @property {(row: any, rowIdx: number) => React.ReactNode} [renderCell]
+ * @property {'sm'|'md'} [hideBelow]
  */
+
+const getHideBelowSx = hideBelow => {
+  if (hideBelow === 'md') {
+    return { display: { xs: 'none', sm: 'none', md: 'table-cell' } }
+  }
+
+  if (hideBelow === 'sm') {
+    return { display: { xs: 'none', sm: 'table-cell' } }
+  }
+
+  return {}
+}
 
 const DebouncedInput = ({ value: initialValue, onChange, debounce = 500, ...props }) => {
   const [value, setValue] = useState(initialValue);
@@ -101,9 +116,23 @@ function CustomListTable({
   getRowClassName,
   expandedRows = {},
   expandableRowRender,
-  tableMinWidth = '900px',
+  tableMinWidth = '720px',
 }) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const useMobileCards = isTablet;
+  const visibleColumns = useMemo(
+    () => filterColumnsForViewport(columns, { isMobile, isTablet }),
+    [columns, isMobile, isTablet]
+  );
+  const tableColumns = useMemo(
+    () => (useMobileCards ? visibleColumns : columns),
+    [useMobileCards, visibleColumns, columns]
+  );
+  const resolvedTableMinWidth = tableMinWidth;
+  const cellPadding = isMobile ? '8px 10px' : '12px 16px';
+  const cellFontSize = isMobile ? '0.8125rem' : '0.875rem';
   // Use a distinct light info tint for expanded rows (different from header background)
   const expandedRowBackground = theme.palette.secondary.lightestOpacity;
 
@@ -139,7 +168,7 @@ function CustomListTable({
   };
 
   return (
-    <Card>
+    <Card sx={{ overflow: 'hidden', maxWidth: '100%' }}>
       {(showSearch || headerActions || title || addRowButton) && (
         <CardContent className='flex justify-between flex-wrap max-sm:flex-col sm:items-center gap-4'>
           <div className="flex items-center gap-4">
@@ -177,24 +206,45 @@ function CustomListTable({
         </CardContent>
       )}
 
+      {useMobileCards ? (
+        <CustomListTableMobileCards
+          columns={visibleColumns}
+          rows={rows}
+          rowKey={rowKey}
+          renderCell={renderCell}
+          emptyContent={emptyContent}
+          noDataText={noDataText}
+          onRowClick={onRowClick}
+          enableHover={enableHover}
+          getRowClassName={getRowClassName}
+          selectedRows={selectedRows}
+          onRowSelect={onRowSelect}
+          expandedRows={expandedRows}
+          expandableRowRender={expandableRowRender}
+          interactiveSelector={interactiveSelector}
+        />
+      ) : (
       <TableContainer
         sx={{
-          maxHeight: '70vh', // Enables vertical scrolling for large datasets
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          maxHeight: '70vh',
+          width: '100%',
           '& > .MuiTable-root > .MuiTableHead-root': {
             position: 'sticky',
             top: 0,
             zIndex: 10,
-            // backgroundColor: 'background.paper'
           }
         }}
       >
         <Table
           className={classnames(tableStyles.table, tableClassName)}
           sx={{
-            minWidth: tableMinWidth,
-            tableLayout: 'auto' // Explicit for better browser optimization
+            minWidth: resolvedTableMinWidth,
+            tableLayout: 'auto',
+            whiteSpace: 'normal',
           }}
-          stickyHeader // Works with TableContainer for sticky headers
+          stickyHeader
         >
           <TableHead
             align={'end'}
@@ -210,16 +260,18 @@ function CustomListTable({
                   />
                 </TableCell>
               )}
-              {columns.map((col) => (
+              {tableColumns.map((col) => (
                 <TableCell
                   key={col.key}
                   align={col.align}
-                // sx={{
-                //   ...(col.minWidth && { minWidth: col.minWidth }),
-                //   ...(col.width && { width: col.width })
-                // }}
-                // className={tableCellClassName}
-
+                  sx={{
+                    ...getHideBelowSx(col.hideBelow),
+                    ...(col.minWidth && { minWidth: col.minWidth }),
+                    ...(col.width && { width: col.width }),
+                    padding: cellPadding,
+                    fontSize: cellFontSize,
+                    whiteSpace: 'nowrap',
+                  }}
                 >
                   {col.label}
                 </TableCell>
@@ -229,7 +281,7 @@ function CustomListTable({
           {rows.length === 0 ? (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={columns.length + (onRowSelect ? 1 : 0)} className='text-center'>
+                <TableCell colSpan={tableColumns.length + (onRowSelect ? 1 : 0)} className='text-center'>
                   {emptyContent || noDataText}
                 </TableCell>
               </TableRow>
@@ -283,13 +335,17 @@ function CustomListTable({
                           />
                         </TableCell>
                       )}
-                      {columns.map((col) => (
+                      {tableColumns.map((col) => (
                         <TableCell
                           key={col.key}
                           align={col.align || 'left'}
                           sx={{
                             ...(col.minWidth && { minWidth: col.minWidth }),
-                            ...(col.width && { width: col.width })
+                            ...(col.width && { width: col.width }),
+                            padding: cellPadding,
+                            fontSize: cellFontSize,
+                            wordBreak: 'break-word',
+                            whiteSpace: 'normal',
                           }}
                           className={tableCellClassName}
                         >
@@ -309,7 +365,7 @@ function CustomListTable({
                         }}
                       >
                         <TableCell
-                          colSpan={columns.length + (onRowSelect ? 1 : 0)}
+                          colSpan={tableColumns.length + (onRowSelect ? 1 : 0)}
                           style={{ paddingBottom: 0, paddingTop: 0 }}
                           sx={{
                             border: 0,
@@ -341,6 +397,7 @@ function CustomListTable({
           )}
         </Table>
       </TableContainer>
+      )}
 
       {pagination && (
         <TablePagination

@@ -69,6 +69,7 @@ const HorizontalWithoutBorder = ({
 	formatter = formatCompactNumber,
 	isCurrency = false,
 	currencyIconWidth = '1.1rem',
+	compact = false,
 }) => {
 	const theme = useTheme()
 	const rawDisplayValue = value ?? stats ?? 0
@@ -88,15 +89,15 @@ const HorizontalWithoutBorder = ({
 			variant='outlined'
 			className='border border-0 bg-transparent'
 		>
-			<CardContent className='py-3 px-4'>
+			<CardContent className={compact ? 'py-2 px-3' : 'py-3 px-4'}>
 				<Box className='flex flex-row justify-start gap-3'>
 					<Avatar
 						variant='rounded'
 						skin='light'
-						size={55}
+						size={compact ? 44 : 55}
 						color={color}
 					>
-						<Icon icon={displayIcon} width='2.1rem' color={iconColor} />
+						<Icon icon={displayIcon} width={compact ? '1.6rem' : '2.1rem'} color={iconColor} />
 					</Avatar>
 
 					<Box className='flex flex-col items-start justify-between '>
@@ -118,7 +119,7 @@ const HorizontalWithoutBorder = ({
 									display: 'flex',
 									alignItems: 'center',
 									gap: 0.5,
-									fontSize: '1.8rem',
+									fontSize: compact ? { xs: '1.35rem', sm: '1.8rem' } : '1.8rem',
 									fontWeight: 700,
 									lineHeight: 0.8,
 									letterSpacing: '-0.025em',

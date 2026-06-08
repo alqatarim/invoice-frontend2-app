@@ -210,7 +210,7 @@ const SaudiDigitalMapCardImpl = ({ stores = [], provincesCities = [], delay = 0.
 			transition={{ duration: 0.55, ease: dashboardEasing, delay }}
 			sx={{
 				height: '100%',
-				minHeight: 510,
+				minHeight: { xs: 360, md: 510 },
 				overflow: 'visible',
 				position: 'relative',
 				zIndex: selectedLocation ? theme.zIndex.tooltip : 1,

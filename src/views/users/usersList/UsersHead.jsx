@@ -1,13 +1,10 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Grid } from '@mui/material';
 import PageIconHeader from '@components/headers/PageIconHeader';
-import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
+import StatCardGrid from '@/components/shared/StatCardGrid';
 import { orgRoleOptions } from '@/data/dataSets';
-/**
- * UsersHead — reads list summary card counts (same pattern as InvoiceHead / CustomerHead).
- */
+
 const UsersHead = ({ userListData = {} }) => {
   const cardCounts = useMemo(
     () => ({
@@ -52,16 +49,7 @@ const UsersHead = ({ userListData = {} }) => {
   return (
     <>
       <PageIconHeader title="Team" icon="mdi:users-group-outline" />
-
-      <div className="mb-2">
-        <Grid container className="flex flex-wrap justify-between gap-0">
-          {statCards.map(card => (
-            <Grid key={card.title}>
-              <HorizontalWithoutBorder {...card} />
-            </Grid>
-          ))}
-        </Grid>
-      </div>
+      <StatCardGrid cards={statCards} />
     </>
   );
 };

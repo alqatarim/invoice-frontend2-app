@@ -2,7 +2,13 @@ const tablePagination = {
   MuiTablePagination: {
     styleOverrides: {
       toolbar: ({ theme }) => ({
-        paddingInlineEnd: `${theme.spacing(3)} !important`
+        paddingInlineEnd: `${theme.spacing(3)} !important`,
+        [theme.breakpoints.down('sm')]: {
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: theme.spacing(1),
+          paddingInline: `${theme.spacing(2)} !important`,
+        },
       }),
       select: ({ theme }) => ({
         ...theme.typography.body1,
@@ -18,13 +24,19 @@ const tablePagination = {
         color: 'var(--mui-palette-text-secondary)'
       }),
       input: ({ theme }) => ({
-        marginInlineEnd: theme.spacing(6)
+        marginInlineEnd: theme.spacing(6),
+        [theme.breakpoints.down('sm')]: {
+          marginInlineEnd: theme.spacing(2),
+        },
       }),
       displayedRows: ({ theme }) => ({
         ...theme.typography.body1
       }),
       actions: ({ theme }) => ({
         marginInlineStart: theme.spacing(6),
+        [theme.breakpoints.down('sm')]: {
+          marginInlineStart: 0,
+        },
         '& .Mui-disabled': {
           color: 'var(--mui-palette-action-active)'
         },

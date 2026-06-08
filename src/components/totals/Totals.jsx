@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { Icon } from '@iconify/react';
 
 import { CustomButton } from '@/components/buttons';
@@ -92,6 +93,10 @@ const Totals = ({
   sx,
 }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const useFixedPosition = fixedPosition && !isMobile;
+  const resolvedActionColumnSize = isMobile ? { xs: 12 } : actionColumnSize;
+  const resolvedSummaryColumnSize = isMobile ? { xs: 12 } : summaryColumnSize;
   const roundOffValue = useWatch({ control, name: 'roundOffValue' });
   const totalAmount = useWatch({ control, name: 'TotalAmount' });
   const hasRoundOff = showRoundOff && Number(roundOffValue || 0) !== 0;
@@ -406,17 +411,23 @@ const Totals = ({
   return (
     <Box
       sx={{
-        ...(fixedPosition ? { position: 'fixed', bottom, right } : {}),
+        ...(useFixedPosition ? { position: 'fixed', bottom, right } : {}),
         zIndex: theme.zIndex.appBar + 1,
-        width,
-        maxWidth,
+        width: isMobile ? '100%' : width,
+        maxWidth: isMobile ? '100%' : maxWidth,
+        ...(isMobile ? { left: 0, right: 0, px: 2 } : {}),
         ...containerSx,
       }}
     >
-      <Card sx={{ borderRadius: 2, width: '100%', ml: 'auto', ...cardSx }}>
+      <Card sx={{ borderRadius: 2, width: '100%', ml: isMobile ? 0 : 'auto', ...cardSx }}>
         <CardContent sx={{ p: { xs: 2, md: 2.5 }, '&:last-child': { pb: { xs: 2, md: 2.5 } } }}>
-          <Grid container spacing={2} alignItems="stretch" direction={{ xs: 'row-reverse', md: 'row-reverse' }}>
-            <Grid size={actionColumnSize}>
+          <Grid
+            container
+            spacing={2}
+            alignItems="stretch"
+            direction={isMobile ? 'column' : 'row-reverse'}
+          >
+            <Grid size={resolvedActionColumnSize}>
               <Box
                 sx={{
                   p: 2,
@@ -432,7 +443,7 @@ const Totals = ({
                 {renderActionContent ? renderActionContent() : defaultActionContent}
               </Box>
             </Grid>
-            <Grid size={summaryColumnSize} sx={{ display: 'flex', ...summaryPanelSx }}>
+            <Grid size={resolvedSummaryColumnSize} sx={{ display: 'flex', ...summaryPanelSx }}>
               <Box sx={{ width: '100%', height: '100%', display: 'flex' }}>
                 {renderSummary({
                   withActions: false,

@@ -8,7 +8,7 @@ const PageIconHeader = ({
   description,
   className = 'mb-5',
   iconSize = 26,
-  avatarClassName = 'bg-primary/12 text-primary bg-primaryLight w-12 h-12'
+  avatarClassName = 'bg-primary/12 text-primary bg-primaryLight w-10 h-10 sm:w-12 sm:h-12'
 }) => {
   return (
     <Box className={`flex justify-start items-center ${className}`.trim()}>
@@ -17,7 +17,11 @@ const PageIconHeader = ({
           <Icon icon={icon} fontSize={iconSize} />
         </Avatar>
         <Box>
-          <Typography variant='h5' className='font-semibold text-primary'>
+          <Typography
+            variant='h5'
+            className='font-semibold text-primary'
+            sx={{ typography: { xs: 'h6', sm: 'h5' } }}
+          >
             {title}
           </Typography>
           {description ? (

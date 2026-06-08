@@ -158,15 +158,17 @@ import { verticalLayoutClasses } from '@layouts/utils/layoutClasses'
 
 const NavbarContent = () => {
   return (
-    <div className={classnames(verticalLayoutClasses.navbarContent, 'flex items-center justify-between gap-4 is-full')}>
-      <div className='flex items-center gap-[7px]'>
+    <div className={classnames(verticalLayoutClasses.navbarContent, 'flex items-center justify-between gap-4 max-sm:gap-2 is-full min-is-0')}>
+      <div className='flex items-center gap-[7px] shrink-0'>
         <NavToggle />
         {/* <NavSearch /> */}
       </div>
-      <div className='flex items-center'>
+      <div className='flex items-center min-is-0 overflow-hidden max-sm:gap-1'>
         {/* <LanguageDropdown /> */}
         <LocationChip />
-        <ModeDropdown />
+        <div className='hidden sm:contents'>
+          <ModeDropdown />
+        </div>
         {/* <ShortcutsDropdown shortcuts={shortcuts} /> */}
         <NotificationsDropdown />
         <UserDropdown />

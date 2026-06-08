@@ -88,7 +88,7 @@ const MultiSelectDropdown = ({
  */
 const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange }) => (
   <Grid container spacing={2}>
-    <Grid item xs={6}>
+    <Grid size={{ xs: 12, sm: 6 }}>
       <DatePicker
         slotProps={{
           textField: {
@@ -107,7 +107,7 @@ const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange }) => 
         format="DD/MM/YYYY"
       />
     </Grid>
-    <Grid item xs={6}>
+    <Grid size={{ xs: 12, sm: 6 }}>
       <DatePicker
         slotProps={{
           textField: {

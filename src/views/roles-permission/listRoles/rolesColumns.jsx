@@ -54,6 +54,7 @@ const rolesColumns = ({
       visible: true,
       sortable: true,
       align: 'center',
+      hideBelow: 'md',
       renderCell: (row) => (
         <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
           {row.id || 'N/A'}
@@ -217,6 +218,7 @@ const rolesColumns = ({
       visible: true,
       sortable: true,
       align: 'center',
+      hideBelow: 'md',
       renderCell: (row) => (
         <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
           {row?.createdAt ? formatDate(row.createdAt) : 'N/A'}

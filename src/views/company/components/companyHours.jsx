@@ -46,7 +46,8 @@ const CompanyHours = ({
                 key={day.key}
                 sx={{
                   display: 'flex',
-                  alignItems: 'center',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: { xs: 'flex-start', sm: 'center' },
                   gap: 2,
                   p: 2,
                   borderRadius: 1,
@@ -55,12 +56,12 @@ const CompanyHours = ({
                   backgroundColor: theme.palette.secondary.lightestOpacity,
                 }}
               >
-                <Box sx={{ width: 120, flexShrink: 0 }}>
+                <Box sx={{ width: { xs: '100%', sm: 120 }, flexShrink: 0 }}>
                   <Typography variant='body1'>{day.label}</Typography>
                 </Box>
 
                 {isOpen && (
-                  <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 2, flex: 1, width: { xs: '100%', sm: 'auto' } }}>
                     <TextField
                       size='small'
                       fullWidth
@@ -82,7 +83,7 @@ const CompanyHours = ({
                 )}
 
                 <FormControlLabel
-                  sx={{ m: 0, mr: 2 }}
+                  sx={{ m: 0, mr: { xs: 0, sm: 2 }, alignSelf: { xs: 'flex-start', sm: 'center' } }}
                   control={
                     <Switch
                       size='small'

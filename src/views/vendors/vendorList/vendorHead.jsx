@@ -1,13 +1,9 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Grid } from '@mui/material';
-import HorizontalWithoutBorder from '@components/card-statistics/HorizontalWithoutBorder';
 import PageIconHeader from '@components/headers/PageIconHeader';
+import StatCardGrid from '@/components/shared/StatCardGrid';
 
-/**
- * VendorHead Component - Displays vendor statistics header
- */
 const VendorHead = ({ vendorListData }) => {
   const vendorStats = useMemo(
     () =>
@@ -74,16 +70,7 @@ const VendorHead = ({ vendorListData }) => {
   return (
     <>
       <PageIconHeader title='Vendors' iconSize={30} icon='mdi:truck-outline' />
-
-      <div className="mb-2">
-        <Grid container className='flex flex-wrap justify-between gap-0'>
-          {statCards.map(card => (
-            <Grid key={card.title}>
-              <HorizontalWithoutBorder {...card} />
-            </Grid>
-          ))}
-        </Grid>
-      </div>
+      <StatCardGrid cards={statCards} />
     </>
   );
 };

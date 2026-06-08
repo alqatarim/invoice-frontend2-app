@@ -16,6 +16,8 @@ import {
   MenuItem,
   Select,
   TextField,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import SectionHeader from '@components/headers/SectionHeader';
 import CustomAlert from '@/components/Alert/CustomAlert';
@@ -423,6 +425,8 @@ const BranchDialog = ({
   onClosed,
   onSave,
 }) => {
+  const theme = useTheme();
+  const isFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [formData, setFormData] = useState(defaultForm);
   const [errors, setErrors] = useState({});
 
@@ -673,6 +677,7 @@ const BranchDialog = ({
   return (
     <Dialog
       fullWidth
+      fullScreen={isFullScreen}
       open={open}
       onClose={handleClose}
       maxWidth="md"

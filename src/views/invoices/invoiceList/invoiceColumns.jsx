@@ -35,6 +35,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     label: 'Created',
     sortable: true,
     align: 'center',
+    hideBelow: 'md',
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
         {row.invoiceDate ? moment(row.invoiceDate).format('DD MMM YY') : 'N/A'}
@@ -77,6 +78,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     label: 'Phone',
     sortable: true,
     align: 'center',
+    hideBelow: 'md',
     renderCell: (row) => (
       <Typography
         variant="body1"
@@ -119,6 +121,7 @@ export const getInvoiceColumns = ({ theme, permissions }) => [
     visible: true,
     align: 'center',
     sortable: true,
+    hideBelow: 'md',
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
         {row.dueDate ? moment(row.dueDate).format('DD MMM YY') : 'N/A'}

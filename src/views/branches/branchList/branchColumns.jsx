@@ -90,6 +90,7 @@ export const getBranchColumns = ({ permissions = {}, provincesCities = [] } = {}
     label: 'Store Code',
     align: 'left',
     sortable: true,
+    hideBelow: 'md',
     renderCell: (row) => (
       <Typography variant="body1" color='text.primary' className='text-[0.9rem]'>
         {row.storeCode || row.branchId || 'N/A'}
@@ -144,6 +145,7 @@ export const getBranchColumns = ({ permissions = {}, provincesCities = [] } = {}
     visible: true,
     label: 'Province',
     align: 'left',
+    hideBelow: 'md',
     renderCell: (row) => (
       <Typography variant="body2" color='text.primary'>
         {resolveProvinceDisplayName(row.province, provincesCities) || 'N/A'}
@@ -155,6 +157,7 @@ export const getBranchColumns = ({ permissions = {}, provincesCities = [] } = {}
     visible: true,
     label: 'City',
     align: 'left',
+    hideBelow: 'md',
     renderCell: (row) => (
       <Typography variant="body2" color='text.primary'>
         {row.city || 'N/A'}
@@ -166,6 +169,7 @@ export const getBranchColumns = ({ permissions = {}, provincesCities = [] } = {}
     visible: true,
     label: 'District',
     align: 'left',
+    hideBelow: 'md',
     renderCell: (row) => (
       <Typography variant="body2" color='text.primary'>
         {row.district || '-'}

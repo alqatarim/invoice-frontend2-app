@@ -80,6 +80,7 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
           label: 'Phone',
           sortable: false,
           align: 'left',
+          hideBelow: 'md',
           renderCell: (row) => (
                <Typography variant="body1" color='text.primary' className='text-[0.9rem] whitespace-nowrap'>
                     {row.mobileNumber || ''}
@@ -93,6 +94,7 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
           label: 'Org Role',
           sortable: true,
           align: 'center',
+          hideBelow: 'md',
           renderCell: (row) => {
                const orgRole = row.organizationalRole || row.orgRole || '';
                return (
@@ -119,6 +121,7 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
           label: 'Permission',
           sortable: true,
           align: 'center',
+          hideBelow: 'md',
           renderCell: (row) => (
                <CustomChip
                     size="small"
@@ -140,6 +143,7 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
           label: 'Primary Store',
           sortable: false,
           align: 'left',
+          hideBelow: 'md',
           renderCell: (row) => (
                <Typography variant="body1.5" color="text.primary">
                     {row.primaryBranchName || 'Company-wide'}
