@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 
 import { useTheme } from '@mui/material/styles';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/Auth/SessionContext';
 import { usePermission } from '@/Auth/usePermission';
 import { useSearchParams } from 'next/navigation';
 import { useSnackbar } from 'notistack';

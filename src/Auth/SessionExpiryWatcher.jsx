@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { signOut, useSession } from "next-auth/react";
 
-import { isTokenExpired } from "@/Auth/tokenUtils";
+import { signOut, useSession } from "@/Auth/SessionContext";
+import { isTokenExpired } from "@/Auth/jwt";
 import { sessionConfig } from "@/data/dataSets";
 
 const SessionExpiryWatcher = () => {
@@ -29,10 +29,7 @@ const SessionExpiryWatcher = () => {
 
     checkExpiry();
 
-    const interval = setInterval(
-      checkExpiry,
-      sessionConfig.checkIntervals.frequent
-    );
+    const interval = setInterval(checkExpiry, sessionConfig.checkIntervals.frequent);
 
     return () => clearInterval(interval);
   }, [session?.user?.token, status]);

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, memo } from "react";
 
 import Typography from "@mui/material/Typography";
 
-import { formatTimeRemaining } from "@/Auth/tokenUtils";
+import { formatTimeRemaining } from "@/Auth/jwt";
 import { sessionConfig } from "@/data/dataSets";
 
 const SessionCountdown = memo(({ token }) => {

@@ -33,7 +33,7 @@ import CustomAvatar from '@core/components/mui/Avatar'
 import { useTheme } from '@mui/material/styles'
 
 // Auth Imports
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/Auth/SessionContext'
 import { usePermission } from '@/Auth/usePermission'
 
 // Add imports for datasets

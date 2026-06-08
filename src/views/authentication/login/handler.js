@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
-import { signIn } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { passwordRegex, passwordValidMessage, emailRgx } from '../../../constants'
 import { getLocalizedUrl } from '@/utils/i18n'
+import { authApi } from '@/Auth/authApi'
+import { persistAuthCookie } from '@/Auth/authActions'
+import { getStoredSession, normalizeAuthUser, setAuthSession } from '@/Auth/session'
 
 const schema = yup.object({
   email: yup.string().matches(emailRgx, 'Please Enter valid Email').required('Email is required').trim(),
@@ -43,10 +45,10 @@ export function useLoginHandler({ initialMode }) {
   const [errorState, setErrorState] = useState(null)
   const [isLoginProcessing, setIsLoginProcessing] = useState(false)
 
-  const resolveRedirectURL = () => {
+  const resolveRedirectURL = useCallback(() => {
     const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
     return getLocalizedUrl(redirectURL, locale)
-  }
+  }, [locale, searchParams])
 
   const {
     control,
@@ -84,9 +86,25 @@ export function useLoginHandler({ initialMode }) {
     setIsPasswordShown(show => !show)
   }
 
-  const navigateToRedirect = () => {
+  const navigateToRedirect = useCallback(async () => {
+    const storedSession = getStoredSession()
+    const token = storedSession?.token
+    const user = storedSession?.user
+
+    if (token && user) {
+      const cookieResult = await persistAuthCookie(token, user)
+
+      if (!cookieResult?.success) {
+        const message = cookieResult?.message || 'Failed to persist login session.'
+        setSnackbar({ open: true, message, status: 'error' })
+        setErrorState(message)
+        setIsLoginProcessing(false)
+        return
+      }
+    }
+
     window.location.assign(resolveRedirectURL())
-  }
+  }, [resolveRedirectURL])
 
   const handleCredentialsSubmit = async data => {
     if (isLoginProcessing) {
@@ -98,24 +116,16 @@ export function useLoginHandler({ initialMode }) {
     setErrorState(null)
 
     try {
-      const res = await signIn('credentials', {
+      const authData = await authApi.login({
         email: data.email,
         password: data.password,
-        redirect: false
       })
 
-      if (res && res.ok && res.error === null) {
-        setIsLoginProcessing(false)
-        setSnackbar({ open: true, message: 'Login Successful', status: 'success' })
-        // The actual navigation is triggered by the form panel after its
-        // exit animation completes (see login.jsx). No artificial delay here.
-        return
-      }
+      const user = normalizeAuthUser(authData, data.email)
 
-      const error = getAuthErrorMessage(res?.error) || 'Unable to sign in. Please try again.'
-      setSnackbar({ open: true, message: `An error occurred: ${error}`, status: 'error' })
-      setErrorState(error)
+      setAuthSession({ token: authData.token, user })
       setIsLoginProcessing(false)
+      setSnackbar({ open: true, message: 'Login Successful', status: 'success' })
     } catch (error) {
       const message = error?.message || 'Unable to sign in. Please try again.'
       setSnackbar({ open: true, message, status: 'error' })
@@ -129,22 +139,10 @@ export function useLoginHandler({ initialMode }) {
       return
     }
 
-    const redirectURL = searchParams.get('redirectTo') ?? '/dashboard'
-
     setIsLoginProcessing(true)
     setErrorState(null)
-    setSnackbar({ open: true, message: 'Redirecting to Google...', status: 'loading' })
-
-    try {
-      await signIn('google', {
-        callbackUrl: getLocalizedUrl(redirectURL, locale)
-      })
-    } catch (error) {
-      const message = error?.message || 'Unable to start Google sign-in. Please try again.'
-      setSnackbar({ open: true, message, status: 'error' })
-      setErrorState(message)
-      setIsLoginProcessing(false)
-    }
+    setSnackbar({ open: true, message: 'Google sign-in is not available in this flow yet.', status: 'error' })
+    setIsLoginProcessing(false)
   }
 
   const handleCloseSnackbar = (event, reason) => {

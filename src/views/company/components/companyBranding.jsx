@@ -12,15 +12,16 @@ import { useDropzone } from 'react-dropzone'
 import CustomAvatar from '@core/components/mui/Avatar'
 import SectionHeader from '@components/headers/SectionHeader'
 
-const BRANDING_IMAGE_ACCEPT = 'image/jpeg,image/png,image/jpg,image/gif'
+const BRANDING_IMAGE_ACCEPT = 'image/jpeg,image/png,image/jpg'
+const COMPANY_ICON_ACCEPT = 'image/svg+xml,image/jpeg,image/png,image/jpg'
 
-const BrandingDropzone = ({ preview, onSelectFile, onClear, readOnly }) => {
+const BrandingDropzone = ({ preview, onSelectFile, onClear, readOnly, accept = BRANDING_IMAGE_ACCEPT }) => {
   const hasPreview = Boolean(preview)
 
   const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
     multiple: false,
     disabled: readOnly,
-    accept: BRANDING_IMAGE_ACCEPT,
+    accept,
     onDrop: acceptedFiles => {
       const file = acceptedFiles?.[0]
       if (file) onSelectFile(file)
@@ -166,6 +167,7 @@ const CompanyBranding = ({
                 onSelectFile={selectCompanyIconFile}
                 onClear={clearCompanyIconSelection}
                 readOnly={readOnly}
+                accept={COMPANY_ICON_ACCEPT}
               />
             </CardContent>
           </Card>

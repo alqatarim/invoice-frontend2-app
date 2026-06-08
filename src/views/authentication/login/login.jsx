@@ -23,6 +23,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import CloseIcon from '@mui/icons-material/Close'
 import CustomAlert from '@/components/Alert/CustomAlert'
+import CustomChip from '@/components/chips/CustomChip'
 // Third-party Imports
 import { Controller } from 'react-hook-form'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
@@ -64,6 +65,40 @@ const itemVariants = {
 
 const MotionCard = motion(Card)
 const SUCCESS_REDIRECT_DELAY_MS = 1000
+
+const MOBILE_HERO_TOP_HEIGHT = { xs: 200, sm: 200 }
+const MOBILE_HERO_BOTTOM_HEIGHT = { xs: 200, sm: 200 }
+const LOGIN_MOBILE_VIBRANT_SIZE = { min: 480, max: 720 }
+
+const getHeroPanelBackgroundSx = (theme, isDark) => ({
+  backgroundColor: 'background.paper',
+  backgroundImage: isDark
+    ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.18)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 48%, ${alpha(theme.palette.info.main, 0.08)} 100%)`
+    : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.11)} 0%, ${alpha(theme.palette.background.paper, 0)} 58%)`,
+})
+
+const LoginMobileHeroBackground = ({ isDark, animate }) => {
+  const theme = useTheme()
+
+  return (
+    <Box
+      className='absolute inset-0 z-[1] md:hidden'
+      sx={{
+        overflow: 'hidden',
+        isolation: 'isolate',
+        ...getHeroPanelBackgroundSx(theme, isDark),
+      }}
+    >
+      <VibrantHeader
+        isDark={isDark}
+        animate={animate}
+        shapes={['circle']}
+        count={5}
+        size={LOGIN_MOBILE_VIBRANT_SIZE}
+      />
+    </Box>
+  )
+}
 
 // Full-screen success animation shown right after login
 const SuccessOverlay = () => (
@@ -160,72 +195,10 @@ const LoginHeroPanel = ({ isDark, animate }) => {
       sx={{
         overflow: 'hidden',
         isolation: 'isolate',
-        backgroundColor: 'background.paper',
-        backgroundImage: isDark
-          ? `linear-gradient(135deg, ${(theme.vars?.palette?.primary || theme.palette.primary).lighterOpacity} 0%, ${(theme.vars?.palette?.primary || theme.palette.primary).lightestOpacity} 48%, ${(theme.vars?.palette?.info || theme.palette.info).lightestOpacity} 100%)`
-          : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.11)} 0%, ${alpha(
-            theme.palette.background.paper,
-            0
-          )} 58%)`,
+        ...getHeroPanelBackgroundSx(theme, isDark),
       }}
     >
-      <VibrantHeader isDark={isDark} animate={animate} shapes={['circle']} />
-
-      {/* <Box
-        sx={{
-          position: 'relative',
-          zIndex: 1,
-          width: 'min(540px, 100%)',
-          p: { md: 6, lg: 7 },
-          borderRadius: 4,
-          backgroundColor: alpha(theme.palette.background.paper, isDark ? 0.7 : 0.78),
-          border: `1px solid ${alpha(theme.palette.text.primary, isDark ? 0.16 : 0.08)}`,
-          boxShadow: `0 30px 80px ${alpha(theme.palette.common.black, isDark ? 0.32 : 0.12)}`,
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
-        }}
-      >
-        <div className='flex items-center gap-3 mbe-8'>
-          <Logo className='text-primary' width={56} height={56} />
-          <Typography variant='h3' className='font-semibold tracking-[0.15px]'>
-            Invoices
-          </Typography>
-        </div>
-
-        <Typography variant='h2' sx={{ fontWeight: 800, letterSpacing: '-0.04em', mb: 2 }}>
-          Manage every invoice with clarity.
-        </Typography>
-        <Typography variant='body1' color='text.secondary' sx={{ lineHeight: 1.8, maxWidth: 440 }}>
-          Track sales, purchases, payments, and business performance from one calm workspace.
-        </Typography>
-
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 1.5,
-            mt: 5,
-          }}
-        >
-          {['Invoices', 'Customers', 'Reports'].map(label => (
-            <Box
-              key={label}
-              sx={{
-                py: 1.4,
-                px: 1.5,
-                borderRadius: 2.4,
-                textAlign: 'center',
-                backgroundColor: alpha(theme.palette.primary.main, isDark ? 0.14 : 0.08),
-                color: 'text.primary',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-              }}
-            >
-              {label}
-            </Box>
-          ))}
-        </Box>
-      </Box> */}
+      <VibrantHeader isDark={isDark} animate={animate} shapes={['square']} />
     </Box>
   )
 }
@@ -251,7 +224,6 @@ const Login = ({ controller }) => {
   }
 
   const { mode: colorMode, systemMode } = useColorScheme()
-  const theme = useTheme()
   const currentMode = (colorMode === 'system' ? systemMode : colorMode) || 'light'
   const isDark = currentMode === 'dark'
   const prefersReducedMotion = useReducedMotion()
@@ -260,10 +232,20 @@ const Login = ({ controller }) => {
   const disableAuthActions = isLoginProcessing || isSuccess
   const [hasFormPanelExited, setHasFormPanelExited] = useState(false)
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false)
+  const [hasMounted, setHasMounted] = useState(false)
   const redirectTimerRef = useRef(null)
+  const navigateToRedirectRef = useRef(navigateToRedirect)
   const formExitTransition = prefersReducedMotion
     ? { duration: 0.01 }
     : { duration: 0.45, ease: [0.76, 0, 0.24, 1] }
+
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
+
+  useEffect(() => {
+    navigateToRedirectRef.current = navigateToRedirect
+  }, [navigateToRedirect])
 
   useEffect(() => {
     if (!isSuccess) {
@@ -273,7 +255,13 @@ const Login = ({ controller }) => {
         clearTimeout(redirectTimerRef.current)
         redirectTimerRef.current = null
       }
+      return
     }
+
+    setShowSuccessOverlay(true)
+    redirectTimerRef.current = setTimeout(() => {
+      void navigateToRedirectRef.current?.()
+    }, SUCCESS_REDIRECT_DELAY_MS)
   }, [isSuccess])
 
   useEffect(() => {
@@ -284,28 +272,56 @@ const Login = ({ controller }) => {
     }
   }, [])
 
+  if (!hasMounted) {
+    return <div className='flex bs-full min-bs-[100dvh] justify-center relative overflow-hidden' />
+  }
+
   return (
     <div className='flex bs-full min-bs-[100dvh] justify-center relative overflow-hidden'>
       <LoginHeroPanel isDark={isDark} animate={!prefersReducedMotion} />
+      <LoginMobileHeroBackground isDark={isDark} animate={!prefersReducedMotion} />
 
-      <Box
-        className='absolute block-start-5 sm:block-start-[33px] inline-start-6 sm:inline-start-[38px] z-[3] flex items-center gap-3'
-      >
-        <Logo className='text-primary' width={60} height={60} />
-        {/* <Typography variant='h4' className='font-semibold tracking-[0.15px]'>
+      <Box className='absolute z-[3] flex items-center gap-2 block-start-5 sm:block-start-[33px] inline-start-6 sm:inline-start-[38px]'>
+        <Box sx={{ lineHeight: 0, '& svg': { width: { xs: 44, md: 55 }, height: { xs: 44, md: 55 } } }}>
+          <Logo className='text-primary' width={55} height={55} />
+        </Box>
+        <Typography
+          variant='h5'
+          className='font-semibold tracking-[0.15px]'
+          sx={{ fontSize: { xs: '1.05rem', sm: '1.1rem', md: '1.25rem' } }}
+        >
           Invoices
-        </Typography> */}
+        </Typography>
       </Box>
 
-      {/* Right side with login form */}
+      <Box
+        component='img'
+        src='/images/flags/saudi-flag.svg'
+        alt='Saudi Arabia'
+        className='absolute z-[3] block-end-5 sm:block-end-[33px] inline-start-6 sm:inline-start-[38px]'
+        sx={{
+          width: { xs: 75, md: 75 },
+          height: 'auto',
+          borderRadius: 1,
+          boxShadow: themeArg => `0 4px 16px ${alpha(themeArg.palette.common.black, 0.12)}`,
+        }}
+      />
+
       {!hasFormPanelExited && (
         <MotionCard
-          className='flex rounded-none justify-center items-center bs-full !min-is-full p-20 md:!min-is-[unset] md:p-9 md:is-[400px]'
+          className='flex rounded-none max-sm:justify-center max-sm:items-center sm:justify-center sm:items-center md:justify-center md:items-center max-md:bs-auto md:bs-full !min-is-full p-4 max-sm:py-5 sm:p-5 sm:py-4 md:!min-is-[unset] md:px-10 md:py-8 md:is-[400px]'
           sx={{
             position: 'absolute',
-            insetBlock: 0,
             insetInlineEnd: 0,
             zIndex: 2,
+            backgroundColor: 'background.paper',
+            top: { xs: MOBILE_HERO_TOP_HEIGHT.xs, sm: MOBILE_HERO_TOP_HEIGHT.sm, md: 0 },
+            bottom: { xs: MOBILE_HERO_BOTTOM_HEIGHT.xs, sm: MOBILE_HERO_BOTTOM_HEIGHT.sm, md: 0 },
+            left: { xs: 0, md: 'auto' },
+            right: { xs: 0, md: 0 },
+            blockSize: { xs: 'auto', sm: 'auto', md: '100%' },
+            minBlockSize: { xs: 0, md: 'auto' },
+            overflowY: { xs: 'auto', md: 'visible' },
           }}
           initial={false}
           animate={isSuccess ? { x: '110%' } : { x: 0 }}
@@ -313,25 +329,38 @@ const Login = ({ controller }) => {
           onAnimationComplete={() => {
             if (isSuccess) {
               setHasFormPanelExited(true)
-              setShowSuccessOverlay(true)
-              if (typeof navigateToRedirect === 'function') {
-                redirectTimerRef.current = setTimeout(() => {
-                  navigateToRedirect()
-                }, SUCCESS_REDIRECT_DELAY_MS)
-              }
             }
           }}
         >
           <motion.div
-            className='flex flex-col gap-5 is-full sm:is-auto md:is-full sm:max-is-[380px] md:max-is-[unset]'
+            className='flex flex-col gap-3 sm:gap-4 md:gap-4 is-full max-is-[380px] sm:max-is-[360px] md:max-is-[320px] max-sm:-translate-y-4 sm:mx-auto md:mx-auto'
             variants={containerVariants}
             initial='hidden'
             animate='show'
           >
-            <motion.div variants={itemVariants}>
-              <Typography variant='h4'>{`Welcome Back!`}</Typography>
-              <Typography>Please sign-in to your account</Typography>
-            </motion.div>
+            <CustomChip
+              label='Business Portal'
+              size='large'
+              corners='corner'
+              color='primary'
+              skin='lighter'
+              variant='tonal'
+              sx={{ fontWeight: 600, width: 'fit-content' }}
+            />
+
+            <Box>
+              <motion.div variants={itemVariants}>
+                <Box className='flex items-start justify-between gap-3'>
+                  <Typography variant='h4' sx={{ flex: 1, minWidth: 0 }}>
+                    Welcome Back!
+                  </Typography>
+                </Box>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className='flex flex-col gap-1.5'>
+                <Typography color='text.secondary'>Please sign-in to your account</Typography>
+              </motion.div>
+            </Box>
 
             <motion.div variants={itemVariants}>
               <CustomAlert icon={false} skin='lighter' severity='info'>
@@ -423,11 +452,9 @@ const Login = ({ controller }) => {
                   sx={{
                     position: 'relative',
                     overflow: 'hidden',
-                    boxShadow: `0 3px 12px ${alpha(theme.palette.common.black, isDark ? 0.28 : 0.15)}`,
+                    // boxShadow: '0 8px 24px rgba(115,103,240,0.35)',
                     transition: 'box-shadow 0.3s ease',
-                    '&:hover': {
-                      boxShadow: `0 6px 20px ${alpha(theme.palette.common.black, isDark ? 0.34 : 0.19)}`,
-                    },
+                    "&:hover": { boxShadow: "0 12x 12px rgba(114, 103, 240, 0.22)" },
                   }}
                 >
                   Log In

@@ -25,6 +25,8 @@ import { formatCompactNumber, formatWholeNumber } from '@/utils/numberUtils';
 import { CountUp } from './CountUp';
 import { Sparkline } from './Sparkline';
 
+const VIBRANT_SIZE = { min: 480, max: 720 };
+
 const getPulseAccent = (theme, colorKey, isDark) => {
 	const palette = theme.palette[colorKey] || theme.palette.primary;
 
@@ -277,6 +279,8 @@ export const BusinessPulse = ({
 				isDark={isDark}
 				animate={!prefersReducedMotion}
 				shapes={backgroundShapes}
+				count={5}
+				size={VIBRANT_SIZE}
 			/>
 
 			<CardContent

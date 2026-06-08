@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/Auth/SessionContext';
 
 import {
   findBranchByIdentifier,

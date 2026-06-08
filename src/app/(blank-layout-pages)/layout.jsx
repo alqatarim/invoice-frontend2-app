@@ -3,7 +3,7 @@ import BlankLayout from '@layouts/BlankLayout'
 import { i18n } from '@configs/i18n'
 
 const Layout = ({ children, params }) => {
-  const direction = i18n.langDirection[params.lang]
+  const direction = i18n.langDirection[params?.lang] || i18n.langDirection.en || 'ltr'
 
   return (
     <Providers direction={direction}>

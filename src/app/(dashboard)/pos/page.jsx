@@ -1,6 +1,4 @@
 import React from 'react';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/Auth/auth';
 import {
   getCanonicalModuleName,
   getCanonicalPermissionAction,
@@ -8,6 +6,7 @@ import {
   normalizePermissionModules,
 } from '@/common/allModules';
 import PosIndex from '@/views/pos';
+import { getServerSessionUser } from '@/Auth/serverAuth';
 import {
   getBanks,
   getCustomers,
@@ -35,8 +34,8 @@ const hasServerPermission = (permissionRes, moduleName, actionName) => {
 };
 
 const PosPageRoute = async () => {
-  const session = await getServerSession(authOptions);
-  const permissionRes = session?.user?.permissionRes;
+  const sessionUser = getServerSessionUser();
+  const permissionRes = sessionUser?.permissionRes;
   const initialCanCreateInvoice = hasServerPermission(permissionRes, 'invoice', 'create');
   const initialCanAccessPos =
     initialCanCreateInvoice || hasServerPermission(permissionRes, 'invoice', 'view');

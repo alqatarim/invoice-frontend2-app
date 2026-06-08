@@ -3,9 +3,9 @@
 import { useMemo } from "react";
 
 import { styled } from "@mui/material/styles";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/Auth/SessionContext";
 
-import { getSecondsUntilExpiry } from "@/Auth/tokenUtils";
+import { getSecondsUntilExpiry } from "@/Auth/jwt";
 import { userSessionStatusOptions, sessionConfig } from "@/data/dataSets";
 
 const StatusBadge = styled("span")(({ statusColor }) => ({

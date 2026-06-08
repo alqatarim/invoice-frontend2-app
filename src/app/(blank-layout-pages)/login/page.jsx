@@ -1,5 +1,5 @@
 import LoginIndex from '@/views/authentication/login'
-import GuestOnlyRoute from '@/Auth/GuestOnlyRoute'
+import GuestOnlyRouteServer from '@/components/server/GuestOnlyRouteServer'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -25,7 +25,7 @@ const buildQueryString = searchParams => {
 }
 
 const redirectToCanonicalLoginHost = searchParams => {
-  const frontendUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL
+  const frontendUrl = process.env.NEXT_PUBLIC_APP_URL
 
   if (!frontendUrl) {
     return
@@ -49,9 +49,9 @@ const LoginPage = ({ searchParams }) => {
   const mode = getServerMode()
 
   return (
-    <GuestOnlyRoute>
+    <GuestOnlyRouteServer>
       <LoginIndex initialMode={mode} />
-    </GuestOnlyRoute>
+    </GuestOnlyRouteServer>
   )
 }
 

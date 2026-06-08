@@ -2,7 +2,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/Auth/SessionContext';
 import {
   getCanonicalModuleName,
   getCanonicalPermissionAction,
@@ -79,7 +79,6 @@ export const PermissionsProvider = ({ children }) => {
       return;
     }
 
-    // Keep previous permissions during loading to avoid app-wide permission flicker.
     if (status === 'unauthenticated') {
       setStablePermissions(NO_ACCESS_PERMISSIONS);
     }

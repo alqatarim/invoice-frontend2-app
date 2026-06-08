@@ -2,7 +2,7 @@ import { Inter } from 'next/font/google'
 import InitColorSchemeScript from '@mui/material/InitColorSchemeScript'
 import { i18n } from '@configs/i18n'
 import themeConfig from '@configs/themeConfig'
-import { NextAuthProvider } from '@/Auth/nextAuthProvider'
+import { SessionProvider } from '@/Auth/SessionContext'
 import { arabicFontVariableClassName } from '@/lib/fonts/arabicFonts'
 import { getSystemMode } from '@core/utils/serverHelpers'
 
@@ -34,9 +34,9 @@ export default function RootLayout({ children, params }) {
           defaultMode={systemMode}
           modeStorageKey={`${themeConfig.settingsCookieName}-mui-mode`}
         />
-        <NextAuthProvider basePath={process.env.NEXTAUTH_BASEPATH}>
+        <SessionProvider>
           {children}
-        </NextAuthProvider>
+        </SessionProvider>
       </body>
     </html>
   )
