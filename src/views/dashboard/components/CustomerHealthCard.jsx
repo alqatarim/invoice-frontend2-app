@@ -143,7 +143,7 @@ const CustomerHealthCardImpl = ({ data = {}, delay = 0, panelMinHeight = 295 }) 
 								Avg invoice
 							</Typography>
 							<Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.5 }}>
-								<RiyalIcon width="1rem" color={theme.palette.text.primary} />
+								<RiyalIcon width="1rem" color={theme.vars.palette.text.primary} />
 								<Typography variant="h5" sx={{ fontWeight: 700 }}>
 									<CountUp
 										value={data?.averageInvoiceValue || 0}

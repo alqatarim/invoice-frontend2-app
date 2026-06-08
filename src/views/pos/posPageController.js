@@ -622,7 +622,7 @@ export default function usePosPageController({
       cashierId: current.cashierId || selectedCashier?._id || '',
       cashierName: current.cashierName || selectedCashier?.label || '',
       posMode: true,
-      documentType: 'receipt',
+      type: 'receipt',
       isWalkIn,
       customerId: isWalkIn ? walkInCustomerId : current.customerId || '',
       dueDate: current.invoiceDate || current.dueDate,

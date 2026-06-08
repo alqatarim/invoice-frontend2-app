@@ -184,7 +184,7 @@ const UnifiedListRow = ({ item, index, section, accent, isLast, delay = 0 }) => 
 					>
 						<Stack direction="row" alignItems="center" spacing={0.4}>
 							{showRiyal ? (
-								<RiyalIcon width="0.78rem" color={theme.palette.text.secondary} />
+								<RiyalIcon width="0.78rem" color={theme.vars.palette.text.secondary} />
 							) : null}
 							<Typography
 								sx={{
