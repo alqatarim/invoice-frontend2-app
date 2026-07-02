@@ -1,6 +1,7 @@
+import Link from 'next/link';
 import { Icon } from '@iconify/react';
 import { MoreVert as MoreVertIcon } from '@mui/icons-material';
-import { Avatar, Box, Chip, Typography } from '@mui/material';
+import { Box, Chip, Typography } from '@mui/material';
 import OptionMenu from '@core/components/option-menu';
 import CustomChip from '@/components/chips/CustomChip';
 const DEFAULT_COVERAGE_TYPE = 'repair_or_replace';
@@ -25,7 +26,7 @@ const PolicyActionCell = ({ row, handlers }) => (
             className: 'flex items-center gap-2 text-textSecondary',
             onClick: event => {
               event?.stopPropagation?.();
-              handlers?.openPolicy?.(row, 'view');
+              handlers?.handleView?.(row._id);
             },
           },
         },
@@ -36,7 +37,7 @@ const PolicyActionCell = ({ row, handlers }) => (
             className: 'flex items-center gap-2 text-textSecondary',
             onClick: event => {
               event?.stopPropagation?.();
-              handlers?.openPolicy?.(row, 'edit');
+              handlers?.handleEdit?.(row._id);
             },
           },
         },
@@ -65,7 +66,13 @@ export const getPolicyColumns = () => [
     // minWidth: 280,
     renderCell: row => (
 
-      <Typography variant="h7" className='whitespace-nowrap'>
+      <Typography
+        component={Link}
+        href={`/policies/policy-view/${row._id}`}
+        variant="h7"
+        className='whitespace-nowrap text-primary hover:underline'
+        onClick={event => event.stopPropagation()}
+      >
         {row.code || ''}
       </Typography>
 

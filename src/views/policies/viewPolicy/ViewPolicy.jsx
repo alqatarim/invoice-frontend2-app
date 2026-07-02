@@ -1,5 +1,15 @@
 import Policy from '../policy';
+import usePolicyFormHandler from '../handler';
 
-const ViewPolicy = props => <Policy {...props} mode="view" />;
+const ViewPolicy = ({ policy, initialErrorMessage, onError }) => {
+  const controller = usePolicyFormHandler({
+    mode: 'view',
+    policy,
+    initialErrorMessage,
+    onError,
+  });
+
+  return <Policy controller={controller} />;
+};
 
 export default ViewPolicy;

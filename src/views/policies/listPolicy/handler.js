@@ -1,85 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  addWarrantyPolicy,
   deleteWarrantyPolicy,
   getWarrantyPolicies,
-  updateWarrantyPolicy,
 } from '@/app/(dashboard)/policies/actions';
 
 const DEFAULT_PAGINATION = { current: 1, pageSize: 10, total: 0 };
-
-const EMPTY_POLICY_FORM = {
-  name: '',
-  code: '',
-  description: '',
-  durationValue: 12,
-  durationUnit: 'months',
-  coverageType: 'repair_or_replace',
-  returnBehavior: 'void_on_full_return',
-  extensionAllowed: false,
-  maxExtensionValue: '',
-  maxExtensionUnit: 'months',
-  claimLimitType: 'unlimited',
-  claimLimitCount: '',
-  termsAndConditions: '',
-  exclusions: '',
-  instructions: '',
-  requiresSerialNumber: false,
-  isTransferable: false,
-  status: 'active',
-};
-
-const mapPolicyToForm = policy => ({
-  name: policy?.name || '',
-  code: policy?.code || '',
-  description: policy?.description || '',
-  durationValue: policy?.duration?.value || 12,
-  durationUnit: policy?.duration?.unit || 'months',
-  coverageType: policy?.coverageType || EMPTY_POLICY_FORM.coverageType,
-  returnBehavior: policy?.returnBehavior || EMPTY_POLICY_FORM.returnBehavior,
-  extensionAllowed: Boolean(policy?.extensionAllowed),
-  maxExtensionValue: policy?.maxExtension?.value || '',
-  maxExtensionUnit: policy?.maxExtension?.unit || 'months',
-  claimLimitType: policy?.claimLimit?.type || EMPTY_POLICY_FORM.claimLimitType,
-  claimLimitCount: policy?.claimLimit?.count || '',
-  termsAndConditions: policy?.termsAndConditions || '',
-  exclusions: policy?.exclusions || '',
-  instructions: policy?.instructions || '',
-  requiresSerialNumber: Boolean(policy?.requiresSerialNumber),
-  isTransferable: Boolean(policy?.isTransferable),
-  status: policy?.status || 'active',
-});
-
-const buildPolicyPayload = form => ({
-  name: form.name,
-  code: form.code,
-  description: form.description,
-  duration: {
-    value: Number(form.durationValue || 0),
-    unit: form.durationUnit,
-  },
-  coverageType: form.coverageType,
-  returnBehavior: form.returnBehavior,
-  extensionAllowed: Boolean(form.extensionAllowed),
-  maxExtension: form.extensionAllowed && form.maxExtensionValue
-    ? {
-      value: Number(form.maxExtensionValue || 0),
-      unit: form.maxExtensionUnit,
-    }
-    : null,
-  claimLimit: {
-    type: form.claimLimitType,
-    count: form.claimLimitType === 'count' ? Number(form.claimLimitCount || 0) : null,
-  },
-  termsAndConditions: form.termsAndConditions,
-  exclusions: form.exclusions,
-  instructions: form.instructions,
-  requiresSerialNumber: Boolean(form.requiresSerialNumber),
-  isTransferable: Boolean(form.isTransferable),
-  status: form.status,
-});
 
 export function usePolicyListHandler({
   initialPolicies = [],
@@ -88,15 +16,12 @@ export function usePolicyListHandler({
   onError,
   onSuccess,
 }) {
+  const router = useRouter();
   const [policies, setPolicies] = useState(initialPolicies);
   const [pagination, setPagination] = useState(initialPagination);
   const [summary, setSummary] = useState(initialSummary);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [dialogMode, setDialogMode] = useState(null);
-  const [selectedPolicy, setSelectedPolicy] = useState(null);
-  const [form, setForm] = useState(EMPTY_POLICY_FORM);
   const stateRef = useRef({ pagination: initialPagination, searchTerm: '' });
 
   useEffect(() => {
@@ -153,51 +78,23 @@ export function usePolicyListHandler({
     fetchPolicies({ page: 1, search: String(value || '') });
   }, [fetchPolicies]);
 
-  const openAdd = useCallback(() => {
-    setSelectedPolicy(null);
-    setForm(EMPTY_POLICY_FORM);
-    setDialogMode('add');
-  }, []);
+  const handleAdd = useCallback(() => {
+    router.push('/policies/policy-add');
+  }, [router]);
 
-  const openPolicy = useCallback((policy, mode) => {
-    setSelectedPolicy(policy);
-    setForm(mapPolicyToForm(policy));
-    setDialogMode(mode);
-  }, []);
+  const handleView = useCallback(policyId => {
+    if (!policyId) return;
+    router.push(`/policies/policy-view/${policyId}`);
+  }, [router]);
 
-  const closeDialog = useCallback(() => {
-    setDialogMode(null);
-    setSelectedPolicy(null);
-    setForm(EMPTY_POLICY_FORM);
-  }, []);
+  const handleEdit = useCallback(policyId => {
+    if (!policyId) return;
+    router.push(`/policies/policy-edit/${policyId}`);
+  }, [router]);
 
-  const handleSubmit = useCallback(async () => {
-    if (!form.name || !form.durationValue) {
-      onError?.('Policy name and duration are required');
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const payload = buildPolicyPayload(form);
-      const result = dialogMode === 'edit' && selectedPolicy?._id
-        ? await updateWarrantyPolicy(selectedPolicy._id, payload)
-        : await addWarrantyPolicy(payload);
-
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to save warranty policy');
-      }
-
-      onSuccess?.(result.message || 'Warranty policy saved');
-      closeDialog();
-      await refreshData();
-    } catch (error) {
-      onError?.(error.message || 'Failed to save warranty policy');
-    } finally {
-      setSaving(false);
-    }
-  }, [closeDialog, dialogMode, form, onError, onSuccess, refreshData, selectedPolicy?._id]);
+  const handleRowClick = useCallback(policy => {
+    handleView(policy?._id);
+  }, [handleView]);
 
   const handleDelete = useCallback(async policy => {
     if (!policy?._id) return;
@@ -232,14 +129,10 @@ export function usePolicyListHandler({
     summary,
     searchTerm,
     loading,
-    saving,
-    dialogMode,
-    form,
-    setForm,
-    openAdd,
-    openPolicy,
-    closeDialog,
-    handleSubmit,
+    handleAdd,
+    handleView,
+    handleEdit,
+    handleRowClick,
     handleDelete,
     handlePageChange,
     handlePageSizeChange,

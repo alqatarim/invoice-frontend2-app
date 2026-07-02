@@ -7,9 +7,6 @@ import { useSnackbar } from 'notistack';
 import CustomListTable from '@/components/custom-components/CustomListTable';
 import PolicyHead from './PolicyHead';
 import PolicyNavigationButtons from './PolicyNavigationButtons';
-import AddPolicy from '../addPolicy/AddPolicy';
-import EditPolicy from '../editPolicy/EditPolicy';
-import ViewPolicy from '../viewPolicy/ViewPolicy';
 import { usePolicyListHandler } from './handler';
 import { getPolicyColumns } from './policyColumns';
 
@@ -46,7 +43,8 @@ const PolicyList = ({
   const columns = useMemo(() => getPolicyColumns(), []);
   const tableColumns = useMemo(() => {
     const cellHandlers = {
-      openPolicy: handlers.openPolicy,
+      handleView: handlers.handleView,
+      handleEdit: handlers.handleEdit,
       handleDelete: handlers.handleDelete,
     };
 
@@ -58,16 +56,7 @@ const PolicyList = ({
           ? (row, index) => column.renderCell(row, cellHandlers, index)
           : undefined,
       }));
-  }, [columns, handlers.handleDelete, handlers.openPolicy]);
-
-  const dialogProps = {
-    open: Boolean(handlers.dialogMode),
-    form: handlers.form,
-    onChange: handlers.setForm,
-    onClose: handlers.closeDialog,
-    onSubmit: handlers.handleSubmit,
-    saving: handlers.saving,
-  };
+  }, [columns, handlers.handleDelete, handlers.handleEdit, handlers.handleView]);
 
   return (
     <div className="flex flex-col gap-0">
@@ -78,7 +67,7 @@ const PolicyList = ({
         <Grid size={{ xs: 12 }}>
           <CustomListTable
             addRowButton={
-              <Button variant="contained" startIcon={<Icon icon="mdi:plus" />} onClick={handlers.openAdd}>
+              <Button variant="contained" startIcon={<Icon icon="mdi:plus" />} onClick={handlers.handleAdd}>
                 Add Policy
               </Button>
             }
@@ -94,15 +83,11 @@ const PolicyList = ({
             onSearchChange={handlers.handleSearchInputChange}
             searchPlaceholder="Search policies..."
             noDataText="No warranty policies found"
-            onRowClick={row => handlers.openPolicy(row, 'view')}
+            onRowClick={handlers.handleRowClick}
             enableHover
           />
         </Grid>
       </Grid>
-
-      {handlers.dialogMode === 'add' ? <AddPolicy {...dialogProps} /> : null}
-      {handlers.dialogMode === 'edit' ? <EditPolicy {...dialogProps} /> : null}
-      {handlers.dialogMode === 'view' ? <ViewPolicy {...dialogProps} /> : null}
     </div>
   );
 };
