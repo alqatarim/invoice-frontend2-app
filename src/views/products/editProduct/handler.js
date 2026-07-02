@@ -23,10 +23,16 @@ const editProductSchema = yup.object().shape({
   barcode: yup.string(),
   alertQuantity: yup.number().min(0, 'Alert quantity must be non-negative'),
   tax: yup.string(),
+  warrantyEnabled: yup.boolean(),
+  warrantyPolicyId: yup.string().when('warrantyEnabled', {
+    is: true,
+    then: schema => schema.required('Warranty policy is required when warranty is enabled'),
+    otherwise: schema => schema,
+  }),
   productDescription: yup.string(),
 });
 
-const emptyDropdownData = { units: [], categories: [], taxes: [] };
+const emptyDropdownData = { units: [], categories: [], taxes: [], warrantyPolicies: [] };
 const defaultFormValues = {
   type: 'product',
   name: '',
@@ -40,6 +46,8 @@ const defaultFormValues = {
   barcode: '',
   alertQuantity: '',
   tax: '',
+  warrantyEnabled: false,
+  warrantyPolicyId: '',
   productDescription: '',
 };
 
@@ -109,6 +117,8 @@ export default function useEditProductViewHandler({
       barcode: nextProductData?.barcode || '',
       alertQuantity: nextProductData?.alertQuantity || '',
       tax: nextProductData?.tax?._id || nextProductData?.tax || '',
+      warrantyEnabled: Boolean(nextProductData?.warrantyEnabled),
+      warrantyPolicyId: nextProductData?.warrantyPolicyId?._id || nextProductData?.warrantyPolicyId || '',
       productDescription: parsed.description || '',
     });
 

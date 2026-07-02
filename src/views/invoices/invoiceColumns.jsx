@@ -59,8 +59,18 @@ export const getInvoiceFormColumns = ({
   autoFocusFirstProductCell = false,
   disabled = false,
 }) => {
-  const availableProducts = Array.isArray(productsCloneData) ? productsCloneData : [];
-  const allProducts = Array.isArray(productData) ? productData : [];
+  const sourceProducts = Array.isArray(productData) && productData.length
+    ? productData
+    : Array.isArray(productsCloneData)
+      ? productsCloneData
+      : [];
+  const selectedProductIds = new Set(
+    (Array.isArray(watchItems) ? watchItems : [])
+      .map(item => item?.productId)
+      .filter(Boolean)
+  );
+  const availableProducts = sourceProducts.filter(product => !selectedProductIds.has(product?._id));
+  const allProducts = sourceProducts;
   const taxOptions = Array.isArray(taxRates) ? taxRates : [];
 
   const resolveProductById = (productId) => {

@@ -34,11 +34,35 @@
       "@assets/*": [
         "./src/assets/*"
       ],
+      "@app": [
+        "./src/app"
+      ],
+      "@app/*": [
+        "./src/app/*"
+      ],
+      "@components": [
+        "./src/components"
+      ],
       "@components/*": [
         "./src/components/*"
       ],
       "@configs/*": [
         "./src/configs/*"
+      ],
+      "@data": [
+        "./src/data"
+      ],
+      "@data/*": [
+        "./src/data/*"
+      ],
+      "@utils": [
+        "./src/utils"
+      ],
+      "@utils/*": [
+        "./src/utils/*"
+      ],
+      "@views": [
+        "./src/views"
       ],
       "@views/*": [
         "./src/views/*"

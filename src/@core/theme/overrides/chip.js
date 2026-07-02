@@ -161,6 +161,26 @@ const chip = {
                 color: 'var(--mui-palette-common-white)'
               }
             }
+          },
+          {
+            props: { variant: 'tonal', color: 'accent' },
+            style: {
+              backgroundColor: 'var(--mui-palette-accent-lightOpacity)',
+              color: 'var(--mui-palette-accent-main)',
+              '&.Mui-focusVisible': {
+                backgroundColor: 'var(--mui-palette-accent-mainOpacity)'
+              },
+              '& .MuiChip-deleteIcon': {
+                color: 'rgb(var(--mui-palette-accent-mainChannel) / 0.7)',
+                '&:hover': {
+                  color: 'var(--mui-palette-accent-main)'
+                }
+              },
+              '&.MuiChip-clickable:hover': {
+                backgroundColor: 'var(--mui-palette-accent-main)',
+                color: 'var(--mui-palette-common-white)'
+              }
+            }
           }
         ]
       }),

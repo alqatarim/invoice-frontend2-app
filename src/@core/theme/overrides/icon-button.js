@@ -120,6 +120,23 @@ const iconButton = {
                 color: 'var(--mui-palette-success-main)'
               }
             }
+          },
+          {
+            props: { color: 'accent' },
+            style: {
+              '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active': {
+                backgroundColor: 'var(--mui-palette-accent-lighterOpacity)'
+              },
+              ...(themeConfig.disableRipple && {
+                '&.Mui-focusVisible:not(.Mui-disabled)': {
+                  backgroundColor: 'var(--mui-palette-accent-lighterOpacity)'
+                }
+              }),
+              '&.Mui-disabled': {
+                opacity: 0.45,
+                color: 'var(--mui-palette-accent-main)'
+              }
+            }
           }
         ],
         '& .MuiSvgIcon-root, & i, & svg': {

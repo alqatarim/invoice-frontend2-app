@@ -7,9 +7,8 @@ import {
   getPrimaryStoreBranch,
   mergeAccessibleStoreBranches,
   resolveBranchId,
+  shouldRestrictToAssignedBranches,
 } from '@/utils/branchAccess';
-
-const ELEVATED_ORG_ROLES = new Set(['OWNER', 'COMPANY_ADMIN']);
 
 export default function useAccessibleStoreScope() {
   const { data: session } = useSession();
@@ -27,8 +26,10 @@ export default function useAccessibleStoreScope() {
 
   const defaultBranchId = resolveBranchId(primaryStore) || '';
   const hasStoreScope = storeBranches.length > 0;
-  const isRestrictedToAssignedStores =
-    hasStoreScope && !ELEVATED_ORG_ROLES.has(String(companyMembership?.orgRole || '').trim());
+  const isRestrictedToAssignedStores = shouldRestrictToAssignedBranches({
+    hasAssignedScope: hasStoreScope,
+    orgRole: companyMembership?.orgRole,
+  });
 
   return {
     companyMembership,

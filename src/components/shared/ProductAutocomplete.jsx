@@ -91,6 +91,11 @@ export default function ProductAutocomplete({
   disabled = false,
   autoFocus = false,
   error = false,
+  helperText = '',
+  label = '',
+  placeholder = 'Select Product',
+  required = false,
+  size = 'small',
   preventBlurOnMouseDown = false,
 }) {
   const theme = useTheme();
@@ -172,10 +177,13 @@ export default function ProductAutocomplete({
         return (
           <TextField
             {...params}
-            size="small"
-            placeholder="Select Product"
+            size={size}
+            label={label}
+            placeholder={placeholder}
             autoFocus={autoFocus}
             error={error}
+            helperText={helperText}
+            required={required}
             inputProps={htmlInputProps}
             slotProps={{
               ...params.slotProps,

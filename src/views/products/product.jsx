@@ -683,6 +683,7 @@ export const ProductDetailsSection = ({
   watchName,
   watchType,
   watchCategory,
+  watchWarrantyEnabled,
   watchDiscountType,
   productTypes,
   discountTypes,
@@ -990,6 +991,59 @@ export const ProductDetailsSection = ({
                     ))}
                 </Select>
                 {errors.tax && <FormHelperText>{errors.tax.message}</FormHelperText>}
+              </FormControl>
+            )}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Controller
+            name='warrantyEnabled'
+            control={control}
+            render={({ field }) => (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(field.value)}
+                    onChange={event => field.onChange(event.target.checked)}
+                    disabled={isSubmitting || loading}
+                  />
+                }
+                label='Warranty enabled'
+              />
+            )}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <Controller
+            name='warrantyPolicyId'
+            control={control}
+            render={({ field }) => (
+              <FormControl fullWidth error={Boolean(errors.warrantyPolicyId)} disabled={!watchWarrantyEnabled}>
+                <InputLabel>Warranty Policy</InputLabel>
+                <Select
+                  {...field}
+                  label='Warranty Policy'
+                  disabled={isSubmitting || loading || !watchWarrantyEnabled}
+                  startAdornment={
+                    <Icon
+                      style={{ marginRight: '5px' }}
+                      icon='ri-shield-check-line'
+                      width={23}
+                      color={theme.palette.secondary.light}
+                    />
+                  }
+                >
+                  <MenuItem value=''>No policy</MenuItem>
+                  {Array.isArray(dropdownData.warrantyPolicies) &&
+                    dropdownData.warrantyPolicies.map(policy => (
+                      <MenuItem key={policy._id} value={policy._id}>
+                        {policy.name} ({policy.duration?.value || 0} {policy.duration?.unit || 'months'})
+                      </MenuItem>
+                    ))}
+                </Select>
+                {errors.warrantyPolicyId && <FormHelperText>{errors.warrantyPolicyId.message}</FormHelperText>}
               </FormControl>
             )}
           />

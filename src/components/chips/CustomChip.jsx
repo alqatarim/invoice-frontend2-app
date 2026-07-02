@@ -36,34 +36,39 @@ const getFontSkinColor = (theme, color, fontSkin) => {
 };
 
 const StyledChip = styled(Chip, {
-  shouldForwardProp: prop => prop !== 'corners' && prop !== 'fontSkin' && prop !== 'skin',
+  shouldForwardProp: prop => !['corners', 'fontSkin', 'fontskin', 'skin'].includes(prop),
 })(({ theme, color, corners, fontSkin, skin }) => {
   const resolveRadius = CORNER_RADIUS[corners];
   const radius = resolveRadius?.(theme);
+  const colorPalette = theme.palette[color];
   const fontSkinColor = getFontSkinColor(theme, color, fontSkin);
   const skinColor = resolvePaletteValue(theme, color, skin, SKIN_FALLBACKS);
+  const defaultSkinFontColor = skinColor && !fontSkinColor ? colorPalette?.main : undefined;
+  const resolvedFontColor = fontSkinColor || defaultSkinFontColor;
 
   return {
     ...(radius && { borderRadius: radius }),
     ...(skinColor && {
-      backgroundColor: skinColor,
-      '&:hover': {
+      '&.MuiChip-root': {
         backgroundColor: skinColor,
-      },
-      '&.MuiChip-clickable:hover': {
-        backgroundColor: skinColor,
+        '&:hover, &.MuiChip-clickable:hover': {
+          backgroundColor: skinColor,
+        },
       },
     }),
-    ...(fontSkinColor && {
-      color: fontSkinColor,
-      '& .MuiChip-label': {
-        color: fontSkinColor,
-      },
-      '& .MuiChip-icon': {
-        color: fontSkinColor,
-      },
-      '& .MuiChip-deleteIcon': {
-        color: fontSkinColor,
+
+    ...(resolvedFontColor && {
+      '&.MuiChip-root': {
+        color: resolvedFontColor,
+        '& .MuiChip-label': {
+          color: resolvedFontColor,
+        },
+        '& .MuiChip-icon': {
+          color: resolvedFontColor,
+        },
+        '& .MuiChip-deleteIcon': {
+          color: resolvedFontColor,
+        },
       },
     }),
   };
@@ -74,21 +79,22 @@ const StyledChip = styled(Chip, {
  *
  * @param {'round'|'corner'} [corners='round'] - `round` keeps the default MUI chip radius (pill). `corner` uses `shape.customBorderRadius.sm` (4px).
  * @param {'default'|'normal'|'light'|'lighter'|'lightest'} [skin='default'] - Optional background color skin based on the selected MUI `color` palette.
- * @param {'default'|'normal'|'dark'|'darker'|'darkest'} [fontSkin='default'] - Optional text color skin based on the selected MUI `color` palette.
+ * @param {'default'|'normal'|'dark'|'darker'|'darkest'} [fontSkin] - Optional text color skin. Omit it, or pass `default`/`normal`, to use the chip palette `main` color when a light skin is applied.
  * @param {import('@mui/material/Chip').ChipProps} props - All standard MUI Chip props (label, color, size, variant, icon, onDelete, sx, etc.)
  */
-const CustomChip = React.forwardRef(function CustomChip({ corners = 'round', skin = 'default', fontSkin = 'default', ...props }, ref) {
+const CustomChip = React.forwardRef(function CustomChip({ corners = 'round', skin = 'default', fontSkin, fontskin, ...props }, ref) {
   const normalizedCorners = corners === 'corner' ? 'corner' : 'round';
   const normalizedSkin = skin === 'lisghtest' ? 'lightest' : skin;
   const resolvedSkin = ['light', 'lighter', 'lightest'].includes(normalizedSkin) ? normalizedSkin : 'default';
-  const normalizedFontSkin = ['dark', 'darker', 'darkest'].includes(fontSkin) ? fontSkin : 'default';
+  const requestedFontSkin = fontSkin ?? fontskin;
+  const normalizedFontSkin = ['dark', 'darker', 'darkest'].includes(requestedFontSkin) ? requestedFontSkin : undefined;
 
   return (
     <StyledChip
       ref={ref}
       corners={normalizedCorners}
       skin={resolvedSkin}
-      fontSkin={normalizedFontSkin}
+      {...(normalizedFontSkin ? { fontSkin: normalizedFontSkin } : {})}
       {...props}
     />
   );

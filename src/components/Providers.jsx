@@ -2,7 +2,7 @@
 import { VerticalNavProvider } from '@menu/contexts/verticalNavContext';
 import { SettingsProvider } from '@core/contexts/settingsContext';
 import ThemeProvider from '@components/theme';
-import SessionExpiryWatcher from '@/Auth/SessionExpiryWatcher';
+import { SessionExpiryWatcher } from '@/Auth/SessionContext';
 import { PermissionsProvider } from '@/Auth/PermissionsContext';
 import { GlobalLocationProvider } from '@/contexts/GlobalLocationContext';
 import AppReactToastify from '@/libs/styles/AppReactToastify';

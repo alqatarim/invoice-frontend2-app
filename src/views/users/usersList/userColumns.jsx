@@ -145,7 +145,7 @@ export const getUserColumns = ({ theme, permissions, handleEdit, handleDelete, h
           align: 'left',
           hideBelow: 'md',
           renderCell: (row) => (
-               <Typography variant="body1.5" color="text.primary">
+               <Typography variant="body1.5">
                     {row.primaryBranchName || 'Company-wide'}
                </Typography>
           ),

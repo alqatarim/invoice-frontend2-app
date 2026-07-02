@@ -3,12 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useSession } from '@/Auth/SessionContext';
-import {
-  getCanonicalModuleName,
-  getCanonicalPermissionAction,
-  normalizePermissionFlags,
-  normalizePermissionModules,
-} from '@/common/allModules';
+import { buildPermissionModulesMap, hasPermission } from '@/Auth/permissions';
 
 const EMPTY_MODULES = Object.freeze({});
 const FALLBACK_PERMISSIONS = Object.freeze({
@@ -50,23 +45,12 @@ export const PermissionsProvider = ({ children }) => {
       };
     }
 
-    const modules = normalizePermissionModules(permissionRes.modules || []).reduce((acc, module) => {
-      acc[module.module] = normalizePermissionFlags(module.permissions);
-      return acc;
-    }, {});
+    const modules = buildPermissionModulesMap(permissionRes);
 
     return {
       isAdmin: false,
       modules,
-      hasPermission: (module, action) => {
-        const moduleKey = getCanonicalModuleName(module);
-        const actionKey = getCanonicalPermissionAction(action);
-        const modulePermissions = modules?.[moduleKey];
-
-        if (!modulePermissions) return false;
-
-        return Boolean(modulePermissions.all || modulePermissions[actionKey]);
-      },
+      hasPermission: (module, action) => hasPermission(permissionRes, module, action),
       isReady: true,
       isLoading: false,
       status: 'authenticated',

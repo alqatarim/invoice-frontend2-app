@@ -145,6 +145,19 @@ const button = {
             }
           },
           {
+            props: { variant: 'text', color: 'accent' },
+            style: {
+              '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+                {
+                  backgroundColor: 'var(--mui-palette-accent-lighterOpacity)'
+                },
+              '&.Mui-disabled': {
+                opacity: 0.45,
+                color: 'var(--mui-palette-accent-main)'
+              }
+            }
+          },
+          {
             props: { variant: 'outlined', color: 'primary' },
             style: {
               borderColor: 'var(--mui-palette-primary-main)',
@@ -235,6 +248,21 @@ const button = {
             }
           },
           {
+            props: { variant: 'outlined', color: 'accent' },
+            style: {
+              borderColor: 'var(--mui-palette-accent-main)',
+              '&:not(.Mui-disabled):hover, &:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))':
+                {
+                  backgroundColor: 'var(--mui-palette-accent-lighterOpacity)'
+                },
+              '&.Mui-disabled': {
+                opacity: 0.45,
+                color: 'var(--mui-palette-accent-main)',
+                borderColor: 'var(--mui-palette-accent-main)'
+              }
+            }
+          },
+          {
             props: { variant: 'contained', color: 'primary' },
             style: {
               '&:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
@@ -309,6 +337,19 @@ const button = {
                 opacity: 0.45,
                 color: 'var(--mui-palette-success-contrastText)',
                 backgroundColor: 'var(--mui-palette-success-main)'
+              }
+            }
+          },
+          {
+            props: { variant: 'contained', color: 'accent' },
+            style: {
+              '&:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
+                backgroundColor: 'var(--mui-palette-accent-dark)'
+              },
+              '&.Mui-disabled': {
+                opacity: 0.45,
+                color: 'var(--mui-palette-accent-contrastText)',
+                backgroundColor: 'var(--mui-palette-accent-main)'
               }
             }
           }

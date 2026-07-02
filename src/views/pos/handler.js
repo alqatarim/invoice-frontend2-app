@@ -2,10 +2,8 @@
 
 import { useMemo } from 'react';
 import { useSession } from '@/Auth/SessionContext';
-import { usePermission } from '@/Auth/usePermission';
-import { usePermissions } from '@/Auth/PermissionsContext';
+import { usePosAccess } from '@/Auth/usePermission';
 import {
-  getPrimaryStoreBranch,
   mergeAccessibleStoreBranches,
 } from '@/utils/branchAccess';
 import usePosPageController from './posPageController';
@@ -30,15 +28,12 @@ export function usePosViewHandler({
   closeSnackbar,
 }) {
   const { data: session } = useSession();
-  const permissions = usePermissions();
-  const isPermissionsLoading = Boolean(permissions?.isLoading);
-  const clientCanViewInvoice = usePermission('invoice', 'view');
-  const clientCanCreateInvoice = usePermission('invoice', 'create');
-  const canCreateInvoice = permissions?.isReady
-    ? clientCanCreateInvoice
+  const clientPosAccess = usePosAccess();
+  const canCreateInvoice = clientPosAccess.isReady
+    ? clientPosAccess.canCreatePosSale
     : initialCanCreateInvoice;
-  const canAccessPos = permissions?.isReady
-    ? clientCanViewInvoice || clientCanCreateInvoice
+  const canAccessPos = clientPosAccess.isReady
+    ? clientPosAccess.canAccessPos
     : initialCanAccessPos;
 
   const companyMembership = session?.user?.companyMembership || {};
@@ -48,10 +43,6 @@ export function usePosViewHandler({
       branchesData: initialBranchesData,
     });
   }, [companyMembership, initialBranchesData]);
-  const primaryStore = useMemo(
-    () => getPrimaryStoreBranch(allowedPosStores, companyMembership?.primaryBranchId),
-    [allowedPosStores, companyMembership?.primaryBranchId]
-  );
 
   const controller = usePosPageController({
     customersData: initialCustomersData,
@@ -74,7 +65,6 @@ export function usePosViewHandler({
     controller,
     canAccessPos,
     canCreateInvoice,
-    isPermissionsLoading: isPermissionsLoading && !initialCanAccessPos,
-    primaryStore,
+    isPermissionsLoading: clientPosAccess.isLoading && !initialCanAccessPos,
   };
 }

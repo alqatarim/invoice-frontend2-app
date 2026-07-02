@@ -78,7 +78,8 @@ const typography = fontFamily => ({
   },
   'body1.5': {
     fontSize: '14px',
-    lineHeight: 1.46667
+    lineHeight: 1.46667,
+    color: 'var(--mui-palette-text-primary)'
   },
   body2: {
     fontSize: '0.8125rem',

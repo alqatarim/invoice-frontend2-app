@@ -7,24 +7,44 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { passwordRegex, passwordValidMessage, emailRgx } from '../../../constants'
 import { getLocalizedUrl } from '@/utils/i18n'
-import { authApi } from '@/Auth/authApi'
 import { persistAuthCookie } from '@/Auth/authActions'
 import { getStoredSession, normalizeAuthUser, setAuthSession } from '@/Auth/session'
+
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7005').replace(/\/+$/, '')
 
 const schema = yup.object({
   email: yup.string().matches(emailRgx, 'Please Enter valid Email').required('Email is required').trim(),
   password: yup.string().matches(passwordRegex, passwordValidMessage).required('Password is Required').trim(),
 }).required()
 
-const authErrorMessages = {
-  AccessDenied: 'Google sign-in was cancelled or denied.',
-  Callback: 'Unable to complete sign-in. Please try again.',
-  Configuration: 'Google sign-in is not configured correctly.',
-  CredentialsSignin: 'Invalid email or password.',
-  OAuthAccountNotLinked: 'This email is already linked to a different sign-in method.',
-  OAuthCallback: 'Google sign-in failed during the callback.',
-  OAuthSignin: 'Unable to start Google sign-in.',
-  SessionRequired: 'Please sign in to continue.'
+const toErrorMessage = (payload, fallback) => {
+  const message = payload?.data?.message || payload?.message
+  return Array.isArray(message) ? message.join(', ') : message || fallback
+}
+
+const loginWithCredentials = async payload => {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+    cache: 'no-store',
+  })
+
+  let body = null
+
+  try {
+    body = await response.json()
+  } catch {
+    body = null
+  }
+
+  if (!response.ok || body?.code !== 200) {
+    throw new Error(toErrorMessage(body, `Request failed: ${response.status}`))
+  }
+
+  return body?.data
 }
 
 const getAuthErrorMessage = errorCode => {
@@ -32,8 +52,7 @@ const getAuthErrorMessage = errorCode => {
     return ''
   }
 
-  const decodedError = decodeURIComponent(errorCode)
-  return authErrorMessages[decodedError] || decodedError
+  return decodeURIComponent(errorCode)
 }
 
 export function useLoginHandler({ initialMode }) {
@@ -116,7 +135,7 @@ export function useLoginHandler({ initialMode }) {
     setErrorState(null)
 
     try {
-      const authData = await authApi.login({
+      const authData = await loginWithCredentials({
         email: data.email,
         password: data.password,
       })

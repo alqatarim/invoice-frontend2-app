@@ -1,10 +1,12 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { getAuthSessionSnapshot } from '@/Auth/authActions'
 import { clearAuthSession, getStoredSession, setAuthSession, signOutAndRedirect } from '@/Auth/session'
 import { isTokenExpired } from '@/Auth/jwt'
+import { buildSessionUser } from '@/Auth/sessionUser'
+import { sessionConfig } from '@/data/dataSets'
 
 const isGuestAuthRoute = () => {
   if (typeof window === 'undefined') return false
@@ -33,7 +35,7 @@ const readCurrentSession = () => {
 
   return {
     user: {
-      ...(storedSession.user || {}),
+      ...buildSessionUser(storedSession.user || {}),
       token,
     },
   }
@@ -106,4 +108,35 @@ export const useSession = () => useContext(SessionContext)
 
 export const signOut = ({ callbackUrl = '/login' } = {}) => {
   signOutAndRedirect(callbackUrl)
+}
+
+export const SessionExpiryWatcher = () => {
+  const { data: session, status } = useSession()
+  const signOutTriggered = useRef(false)
+
+  useEffect(() => {
+    signOutTriggered.current = false
+
+    if (status === 'loading') return
+
+    const token = session?.user?.token
+    if (!token) return
+
+    const checkExpiry = () => {
+      if (signOutTriggered.current) return
+
+      if (isTokenExpired(token)) {
+        signOutTriggered.current = true
+        signOut({ callbackUrl: '/login?expired=true' })
+      }
+    }
+
+    checkExpiry()
+
+    const interval = setInterval(checkExpiry, sessionConfig.checkIntervals.frequent)
+
+    return () => clearInterval(interval)
+  }, [session?.user?.token, status])
+
+  return null
 }

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 
 import { AUTH_SESSION_COOKIE_KEY, AUTH_TOKEN_COOKIE_KEY } from '@/Auth/authConstants'
 import { isTokenExpired } from '@/Auth/jwt'
+import { buildSessionUser } from '@/Auth/sessionUser'
 
 export const getTokenFromCookies = () => {
   return cookies().get(AUTH_TOKEN_COOKIE_KEY)?.value || ''
@@ -20,7 +21,7 @@ export const getServerSessionUser = () => {
 
   try {
     const user = JSON.parse(rawSession)
-    return { ...user, token }
+    return { ...buildSessionUser(user), token }
   } catch {
     return { token }
   }

@@ -62,6 +62,15 @@ const alerts = {
             }
           },
           {
+            props: { variant: 'standard', color: 'accent' },
+            style: {
+              '& .MuiAlert-icon': {
+                backgroundColor: 'var(--mui-palette-accent-main)',
+                color: 'var(--mui-palette-accent-contrastText)'
+              }
+            }
+          },
+          {
             props: { variant: 'outlined', severity: 'error' },
             style: {
               borderColor: 'var(--mui-palette-error-main)',
@@ -102,6 +111,16 @@ const alerts = {
             }
           },
           {
+            props: { variant: 'outlined', color: 'accent' },
+            style: {
+              borderColor: 'var(--mui-palette-accent-main)',
+              '& .MuiAlert-icon': {
+                backgroundColor: 'var(--mui-palette-accent-mainOpacity)',
+                color: 'var(--mui-palette-accent-main)'
+              }
+            }
+          },
+          {
             props: { variant: 'filled', severity: 'error' },
             style: {
               '& .MuiAlert-icon': {
@@ -137,6 +156,16 @@ const alerts = {
               '& .MuiAlert-icon': {
                 backgroundColor: 'var(--mui-palette-common-white)',
                 color: 'var(--mui-palette-success-main)',
+                boxShadow: 'var(--mui-customShadows-xs)'
+              }
+            }
+          },
+          {
+            props: { variant: 'filled', color: 'accent' },
+            style: {
+              '& .MuiAlert-icon': {
+                backgroundColor: 'var(--mui-palette-common-white)',
+                color: 'var(--mui-palette-accent-main)',
                 boxShadow: 'var(--mui-customShadows-xs)'
               }
             }

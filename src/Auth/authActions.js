@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { AUTH_SESSION_COOKIE_KEY, AUTH_TOKEN_COOKIE_KEY } from '@/Auth/authConstants'
 import { getTokenMaxAge, isTokenExpired } from '@/Auth/jwt'
 import { clearAuthCookies } from '@/Auth/serverAuth'
+import { buildSessionUser } from '@/Auth/sessionUser'
 
 const DEFAULT_SESSION_MAX_AGE = 60 * 60 * 24
 
@@ -20,19 +21,6 @@ const getCookieOptions = token => {
   }
 }
 
-const buildServerSessionUser = (user = {}) => ({
-  id: user.id || '',
-  email: user.email || '',
-  name: user.name || '',
-  role: user.role || '',
-  authProvider: user.authProvider || 'credentials',
-  permissionRes: user.permissionRes || null,
-  companyDetails: user.companyDetails || null,
-  companyMembership: user.companyMembership || null,
-  accessibleBranches: user.accessibleBranches || [],
-  currencySymbol: user.currencySymbol || '',
-})
-
 export async function persistAuthCookie(token, user) {
   if (!token || isTokenExpired(token)) {
     return {
@@ -42,7 +30,7 @@ export async function persistAuthCookie(token, user) {
   }
 
   const cookieOptions = getCookieOptions(token)
-  const serverSessionUser = buildServerSessionUser(user)
+  const serverSessionUser = buildSessionUser(user)
 
   cookies().set(AUTH_TOKEN_COOKIE_KEY, token, cookieOptions)
   cookies().set(AUTH_SESSION_COOKIE_KEY, JSON.stringify(serverSessionUser), cookieOptions)
@@ -77,7 +65,7 @@ export async function getAuthSessionSnapshot() {
     session: {
       token,
       user: {
-        ...user,
+        ...buildSessionUser(user),
         token,
       },
     },

@@ -16,7 +16,7 @@ import { Menu, SubMenu, MenuItem, MenuSection } from '@menu/vertical-menu'
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
-import { usePermission } from '@/Auth/usePermission'
+import { useModulePermissions, usePosAccess } from '@/Auth/usePermission'
 
 // Styled Component Imports
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
@@ -38,150 +38,82 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
   const params = useParams()
   const { isBreakpointReached } = useVerticalNav()
   const { settings } = useSettings()
-  const canViewInvoice = usePermission('invoice', 'view')
-  const canCreateInvoice = usePermission('invoice', 'create')
-  const canAccessPos = canViewInvoice || canCreateInvoice
-  const customerPermissions = {
-    canCreate: usePermission('customer', 'create'),
-    canUpdate: usePermission('customer', 'update'),
-    canView: usePermission('customer', 'view'),
-    canDelete: usePermission('customer', 'delete')
-  }
-  const vendorPermissions = {
-    canCreate: usePermission('vendor', 'create'),
-    canUpdate: usePermission('vendor', 'update'),
-    canView: usePermission('vendor', 'view'),
-    canDelete: usePermission('vendor', 'delete')
-  }
-  const productPermissions = {
-    canCreate: usePermission('product', 'create'),
-    canUpdate: usePermission('product', 'update'),
-    canView: usePermission('product', 'view'),
-    canDelete: usePermission('product', 'delete')
-  }
-  const categoryPermissions = {
-    canCreate: usePermission('category', 'create'),
-    canUpdate: usePermission('category', 'update'),
-    canView: usePermission('category', 'view'),
-    canDelete: usePermission('category', 'delete')
-  }
-  const unitPermissions = {
-    canCreate: usePermission('unit', 'create'),
-    canUpdate: usePermission('unit', 'update'),
-    canView: usePermission('unit', 'view'),
-    canDelete: usePermission('unit', 'delete')
-  }
-  const inventoryPermissions = {
-    canCreate: usePermission('inventory', 'create'),
-    canUpdate: usePermission('inventory', 'update'),
-    canView: usePermission('inventory', 'view'),
-    canDelete: usePermission('inventory', 'delete')
-  }
-  const salesReturnPermissions = {
-    canCreate: usePermission('creditNote', 'create'),
-    canUpdate: usePermission('creditNote', 'update'),
-    canView: usePermission('creditNote', 'view'),
-    canDelete: usePermission('creditNote', 'delete')
-  }
-  const purchaseOrderPermissions = {
-    canCreate: usePermission('purchaseOrder', 'create'),
-    canUpdate: usePermission('purchaseOrder', 'update'),
-    canView: usePermission('purchaseOrder', 'view'),
-    canDelete: usePermission('purchaseOrder', 'delete')
-  }
-  const purchasePermissions = {
-    canCreate: usePermission('purchase', 'create'),
-    canUpdate: usePermission('purchase', 'update'),
-    canView: usePermission('purchase', 'view'),
-    canDelete: usePermission('purchase', 'delete')
-  }
-  const debitNotePermissions = {
-    canCreate: usePermission('debitNote', 'create'),
-    canUpdate: usePermission('debitNote', 'update'),
-    canView: usePermission('debitNote', 'view'),
-    canDelete: usePermission('debitNote', 'delete')
-  }
-  const expensePermissions = {
-    canCreate: usePermission('expense', 'create'),
-    canUpdate: usePermission('expense', 'update'),
-    canView: usePermission('expense', 'view'),
-    canDelete: usePermission('expense', 'delete')
-  }
-  const paymentPermissions = {
-    canCreate: usePermission('payment', 'create'),
-    canUpdate: usePermission('payment', 'update'),
-    canView: usePermission('payment', 'view'),
-    canDelete: usePermission('payment', 'delete')
-  }
-  const quotationPermissions = {
-    canCreate: usePermission('quotation', 'create'),
-    canUpdate: usePermission('quotation', 'update'),
-    canView: usePermission('quotation', 'view'),
-    canDelete: usePermission('quotation', 'delete')
-  }
-  const deliveryChallanPermissions = {
-    canCreate: usePermission('deliveryChallan', 'create'),
-    canUpdate: usePermission('deliveryChallan', 'update'),
-    canView: usePermission('deliveryChallan', 'view'),
-    canDelete: usePermission('deliveryChallan', 'delete')
-  }
-  const canViewChartOfAccounts = usePermission('chartOfAccounts', 'view')
-  const canViewJournalEntry = usePermission('journalEntry', 'view')
-  const canViewVoucher = usePermission('voucher', 'view')
-  const canViewPaymentSummary = usePermission('paymentSummaryReport', 'view')
-  const canViewTrialBalance = usePermission('trialBalanceReport', 'view')
-  const canViewBalanceSheet = usePermission('balanceSheetReport', 'view')
-  const canViewIncomeStatement = usePermission('incomeStatementReport', 'view')
-  const canViewGeneralLedger = usePermission('generalLedgerReport', 'view')
-  // Keep commented so System Settings can be restored to the vertical menu later if needed.
-  // const canViewAccountSettings = usePermission('accountSettings', 'view')
-  const canViewCompany = usePermission('company', 'view')
-  // const canViewInvoiceSettings = usePermission('invoiceSettings', 'view')
-  // const canViewInvoiceTemplates = usePermission('invoiceTemplate', 'view')
-  // const canViewSignatures = usePermission('signature', 'view')
-  // const canViewPaymentSettings = usePermission('paymentSettings', 'view')
-  // const canViewBankSettings = usePermission('bankSettings', 'view')
-  // const canViewTaxSettings = usePermission('taxSettings', 'view')
-  // const canViewEmailSettings = usePermission('emailSettings', 'view')
-  // const canViewPreferenceSettings = usePermission('preferenceSettings', 'view')
-  // const canViewNotificationSettings = usePermission('notificationSettings', 'view')
-  // const canUpdatePassword = usePermission('changePassword', 'update')
-  const canViewBranches = usePermission('branch', 'view')
-  const canCreateBranches = usePermission('branch', 'create')
-  const canUpdateBranches = usePermission('branch', 'update')
-  const canViewUsers = usePermission('user', 'view')
-  const canCreateUsers = usePermission('user', 'create')
-  const canUpdateUsers = usePermission('user', 'update')
-  const canViewRoles = usePermission('role', 'view')
-  const canCreateRoles = usePermission('role', 'create')
-  const canUpdateRoles = usePermission('role', 'update')
-  const canViewCustomersSection =
-    Object.values(customerPermissions).some(Boolean) || Object.values(vendorPermissions).some(Boolean)
+  const { canAccessPos } = usePosAccess()
+  const customerPermissions = useModulePermissions('customer')
+  const vendorPermissions = useModulePermissions('vendor')
+  const productPermissions = useModulePermissions('product')
+  const categoryPermissions = useModulePermissions('category')
+  const unitPermissions = useModulePermissions('unit')
+  const inventoryPermissions = useModulePermissions('inventory')
+  const warrantyPermissions = useModulePermissions('warranty')
+  const salesReturnPermissions = useModulePermissions('creditNote')
+  const purchaseOrderPermissions = useModulePermissions('purchaseOrder')
+  const purchasePermissions = useModulePermissions('purchase')
+  const debitNotePermissions = useModulePermissions('debitNote')
+  const expensePermissions = useModulePermissions('expense')
+  const paymentPermissions = useModulePermissions('payment')
+  const quotationPermissions = useModulePermissions('quotation')
+  const deliveryChallanPermissions = useModulePermissions('deliveryChallan')
+  const chartOfAccountsPermissions = useModulePermissions('chartOfAccounts')
+  const journalEntryPermissions = useModulePermissions('journalEntry')
+  const voucherPermissions = useModulePermissions('voucher')
+  const paymentSummaryPermissions = useModulePermissions('paymentSummaryReport')
+  const trialBalancePermissions = useModulePermissions('trialBalanceReport')
+  const balanceSheetPermissions = useModulePermissions('balanceSheetReport')
+  const incomeStatementPermissions = useModulePermissions('incomeStatementReport')
+  const generalLedgerPermissions = useModulePermissions('generalLedgerReport')
+  const aiReportPermissions = useModulePermissions('aiReport')
+  const companyPermissions = useModulePermissions('company')
+  const branchPermissions = useModulePermissions('branch')
+  const userPermissions = useModulePermissions('user')
+  const rolePermissions = useModulePermissions('role')
+  const canViewCompany = companyPermissions.canView
+  const canViewBranches = branchPermissions.canView
+  const canCreateBranches = branchPermissions.canCreate
+  const canUpdateBranches = branchPermissions.canUpdate
+  const canViewUsers = userPermissions.canView
+  const canCreateUsers = userPermissions.canCreate
+  const canUpdateUsers = userPermissions.canUpdate
+  const canViewRoles = rolePermissions.canView
+  const canCreateRoles = rolePermissions.canCreate
+  const canUpdateRoles = rolePermissions.canUpdate
+  const canViewChartOfAccounts = chartOfAccountsPermissions.canView
+  const canViewJournalEntry = journalEntryPermissions.canView
+  const canViewVoucher = voucherPermissions.canView
+  const canViewPaymentSummary = paymentSummaryPermissions.canView
+  const canViewTrialBalance = trialBalancePermissions.canView
+  const canViewBalanceSheet = balanceSheetPermissions.canView
+  const canViewIncomeStatement = incomeStatementPermissions.canView
+  const canViewGeneralLedger = generalLedgerPermissions.canView
+  const canViewAiReports = aiReportPermissions.canView
+  const canViewCustomersSection = customerPermissions.hasAny || vendorPermissions.hasAny
   const canViewInventorySection =
-    Object.values(productPermissions).some(Boolean) ||
-    Object.values(categoryPermissions).some(Boolean) ||
-    Object.values(unitPermissions).some(Boolean) ||
-    Object.values(inventoryPermissions).some(Boolean)
-  const canViewSalesSection = canAccessPos || canViewInvoice || Object.values(salesReturnPermissions).some(Boolean)
+    productPermissions.hasAny ||
+    categoryPermissions.hasAny ||
+    unitPermissions.hasAny ||
+    inventoryPermissions.hasAny ||
+    warrantyPermissions.hasAny
+  const canViewSalesSection = canAccessPos || salesReturnPermissions.hasAny
   const canViewPurchasesSection =
-    Object.values(purchaseOrderPermissions).some(Boolean) ||
-    Object.values(purchasePermissions).some(Boolean) ||
-    Object.values(debitNotePermissions).some(Boolean)
+    purchaseOrderPermissions.hasAny ||
+    purchasePermissions.hasAny ||
+    debitNotePermissions.hasAny
   const canViewFinanceSection =
-    Object.values(expensePermissions).some(Boolean) ||
-    Object.values(paymentPermissions).some(Boolean) ||
+    expensePermissions.hasAny ||
+    paymentPermissions.hasAny ||
     canViewChartOfAccounts ||
     canViewJournalEntry ||
     canViewVoucher
   const canViewQuotationSection =
-    Object.values(quotationPermissions).some(Boolean) ||
-    Object.values(deliveryChallanPermissions).some(Boolean)
+    quotationPermissions.hasAny ||
+    deliveryChallanPermissions.hasAny
   const canViewReportsSection =
     canViewPaymentSummary ||
     canViewTrialBalance ||
     canViewBalanceSheet ||
     canViewIncomeStatement ||
-    canViewGeneralLedger
+    canViewGeneralLedger ||
+    canViewAiReports
   const canViewStores = canViewBranches || canCreateBranches || canUpdateBranches
   const canViewTeam = canViewUsers || canCreateUsers || canUpdateUsers
   const canViewAccessControl = canViewRoles || canCreateRoles || canUpdateRoles
@@ -233,33 +165,38 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
         </MenuSection>
         {canViewCustomersSection ? (
           <MenuSection label="Customers">
-            {Object.values(customerPermissions).some(Boolean) ? (
+            {customerPermissions.hasAny ? (
               <MenuItem icon={<i className='ri-user-3-line' />} href="/customers/customer-list">Customers</MenuItem>
             ) : null}
-            {Object.values(vendorPermissions).some(Boolean) ? (
+            {vendorPermissions.hasAny ? (
               <MenuItem icon={<i className='ri-truck-line' />} href="/vendors/vendor-list">Vendors</MenuItem>
             ) : null}
           </MenuSection>
         ) : null}
         {canViewInventorySection ? (
           <MenuSection label="Inventory">
-            {Object.values(productPermissions).some(Boolean) ||
-            Object.values(categoryPermissions).some(Boolean) ||
-            Object.values(unitPermissions).some(Boolean) ? (
+            {productPermissions.hasAny || categoryPermissions.hasAny || unitPermissions.hasAny ? (
               <SubMenu icon={<i className='ri-apps-2-line' />} label="Product / Services">
-                {Object.values(productPermissions).some(Boolean) ? (
+                {productPermissions.hasAny ? (
                   <MenuItem icon={<i className='ri-box-3-line' />} href="/products/product-list">Products</MenuItem>
                 ) : null}
-                {Object.values(categoryPermissions).some(Boolean) ? (
+                {categoryPermissions.hasAny ? (
                   <MenuItem icon={<i className='ri-price-tag-3-line' />} href="/categories/category-list">Categories</MenuItem>
                 ) : null}
-                {Object.values(unitPermissions).some(Boolean) ? (
+                {unitPermissions.hasAny ? (
                   <MenuItem icon={<i className='ri-ruler-line' />} href="/units/unit-list">Units</MenuItem>
                 ) : null}
               </SubMenu>
             ) : null}
-            {Object.values(inventoryPermissions).some(Boolean) ? (
+            {inventoryPermissions.hasAny ? (
               <MenuItem icon={<i className='ri-archive-stack-line' />} href="/inventory">Inventory</MenuItem>
+            ) : null}
+            {warrantyPermissions.hasAny ? (
+              <SubMenu icon={<i className='ri-shield-check-line' />} label="Warranties">
+                <MenuItem icon={<i className='ri-shield-line' />} href="/warranties/warranty-list">Warranties</MenuItem>
+                <MenuItem icon={<i className='ri-shield-star-line' />} href="/policies/policy-list">Policies</MenuItem>
+                <MenuItem icon={<i className='ri-customer-service-2-line' />} href="/claims/claim-list">Claims</MenuItem>
+              </SubMenu>
             ) : null}
           </MenuSection>
         ) : null}
@@ -268,33 +205,33 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
           {canAccessPos ? (
             <MenuItem icon={<i className='ri-store-2-line' />} href="/pos">POS</MenuItem>
           ) : null}
-          {canViewInvoice || canCreateInvoice ? (
+          {canAccessPos ? (
             <MenuItem icon={<i className='ri-file-list-3-line' />} href="/invoices/invoice-list">Invoices</MenuItem>
           ) : null}
-          {Object.values(salesReturnPermissions).some(Boolean) ? (
+          {salesReturnPermissions.hasAny ? (
             <MenuItem icon={<i className='ri-refund-2-line' />} href="/sales-return/sales-return-list">Sales Return</MenuItem>
           ) : null}
         </MenuSection>
         ) : null}
         {canViewPurchasesSection ? (
           <MenuSection label="Purchases">
-            {Object.values(purchaseOrderPermissions).some(Boolean) ? (
+            {purchaseOrderPermissions.hasAny ? (
               <MenuItem icon={<i className='ri-shopping-cart-2-line' />} href="/purchase-orders/order-list">Purchase Orders</MenuItem>
             ) : null}
-            {Object.values(purchasePermissions).some(Boolean) ? (
+            {purchasePermissions.hasAny ? (
               <MenuItem icon={<i className='ri-shopping-bag-3-line' />} href="/purchases/purchase-list">Purchases</MenuItem>
             ) : null}
-            {Object.values(debitNotePermissions).some(Boolean) ? (
+            {debitNotePermissions.hasAny ? (
               <MenuItem icon={<i className='ri-arrow-go-back-line' />} href="/debitNotes/purchaseReturn-list">Purchase Return</MenuItem>
             ) : null}
           </MenuSection>
         ) : null}
         {canViewFinanceSection ? (
           <MenuSection label="Finance & Accounts">
-          {Object.values(expensePermissions).some(Boolean) ? (
+          {expensePermissions.hasAny ? (
             <MenuItem icon={<i className='ri-wallet-3-line' />} href="/expenses/expense-list">Expenses</MenuItem>
           ) : null}
-          {Object.values(paymentPermissions).some(Boolean) ? (
+          {paymentPermissions.hasAny ? (
             <MenuItem icon={<i className='ri-bank-card-line' />} href="/payments/payment-list">Payments</MenuItem>
           ) : null}
           {canViewChartOfAccounts ? (
@@ -310,10 +247,10 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
         ) : null}
         {canViewQuotationSection ? (
           <MenuSection label="Quotations">
-            {Object.values(quotationPermissions).some(Boolean) ? (
+            {quotationPermissions.hasAny ? (
               <MenuItem icon={<i className='ri-file-paper-2-line' />} href="/quotations/quotation-list">Quotations</MenuItem>
             ) : null}
-            {Object.values(deliveryChallanPermissions).some(Boolean) ? (
+            {deliveryChallanPermissions.hasAny ? (
               <MenuItem icon={<i className='ri-truck-line' />} href="/deliveryChallans/deliveryChallans-list">Delivery Challans</MenuItem>
             ) : null}
           </MenuSection>
@@ -334,6 +271,9 @@ const VerticalMenu = ({ dictionary, scrollMenu }) => {
           ) : null}
           {canViewGeneralLedger ? (
             <MenuItem icon={<i className='ri-book-2-line' />} href="/general-ledger">General Ledger</MenuItem>
+          ) : null}
+          {canViewAiReports ? (
+            <MenuItem icon={<i className='ri-robot-2-line' />} href="/ai-reports">AI Reports</MenuItem>
           ) : null}
         </MenuSection>
         ) : null}

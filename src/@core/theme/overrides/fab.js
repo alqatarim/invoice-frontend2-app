@@ -59,6 +59,14 @@ const fab = {
                 backgroundColor: 'var(--mui-palette-success-dark)'
               }
             }
+          },
+          {
+            props: { color: 'accent' },
+            style: {
+              '&.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
+                backgroundColor: 'var(--mui-palette-accent-dark)'
+              }
+            }
           }
         ]
       }

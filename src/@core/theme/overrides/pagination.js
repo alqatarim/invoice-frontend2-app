@@ -22,6 +22,15 @@ const pagination = {
             }
           },
           {
+            props: { variant: 'text', color: 'accent' },
+            style: {
+              '& .MuiPaginationItem-root.Mui-selected.Mui-disabled': {
+                backgroundColor: 'var(--mui-palette-accent-main)',
+                color: 'var(--mui-palette-accent-contrastText)'
+              }
+            }
+          },
+          {
             props: { variant: 'outlined', color: 'standard' },
             style: {
               '& .MuiPaginationItem-root.Mui-selected.Mui-disabled': {
@@ -48,6 +57,17 @@ const pagination = {
                 backgroundColor:
                   'rgb(var(--mui-palette-secondary-mainChannel) / var(--mui-palette-action-activatedOpacity))',
                 borderColor: 'rgba(var(--mui-palette-secondary-mainChannel) / 0.5)'
+              }
+            }
+          },
+          {
+            props: { variant: 'outlined', color: 'accent' },
+            style: {
+              '& .MuiPaginationItem-root.Mui-selected.Mui-disabled': {
+                color: 'var(--mui-palette-accent-main)',
+                backgroundColor:
+                  'rgb(var(--mui-palette-accent-mainChannel) / var(--mui-palette-action-activatedOpacity))',
+                borderColor: 'rgba(var(--mui-palette-accent-mainChannel) / 0.5)'
               }
             }
           },
@@ -121,6 +141,29 @@ const pagination = {
               '& .MuiPaginationItem-root.Mui-selected.Mui-disabled': {
                 backgroundColor: 'var(--mui-palette-secondary-main)',
                 color: 'var(--mui-palette-secondary-contrastText)'
+              }
+            }
+          },
+          {
+            props: { variant: 'tonal', color: 'accent' },
+            style: {
+              '& .MuiPaginationItem-root.Mui-selected': {
+                backgroundColor: 'var(--mui-palette-accent-main)',
+                color: 'var(--mui-palette-accent-contrastText)',
+                '&:not(.Mui-disabled)': {
+                  boxShadow: 'var(--mui-customShadows-xs)'
+                },
+                '&:hover': {
+                  backgroundColor: 'var(--mui-palette-accent-dark)'
+                }
+              },
+              '& .MuiPaginationItem-root:hover:not(.Mui-selected):not(.MuiPaginationItem-ellipsis)': {
+                backgroundColor: 'var(--mui-palette-accent-mainOpacity)',
+                color: 'var(--mui-palette-accent-main)'
+              },
+              '& .MuiPaginationItem-root.Mui-selected.Mui-disabled': {
+                backgroundColor: 'var(--mui-palette-accent-main)',
+                color: 'var(--mui-palette-accent-contrastText)'
               }
             }
           }

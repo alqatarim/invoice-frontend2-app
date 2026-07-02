@@ -23,11 +23,17 @@ const addProductSchema = yup.object().shape({
   barcode: yup.string(),
   alertQuantity: yup.number().min(0, 'Alert quantity must be non-negative'),
   tax: yup.string(),
+  warrantyEnabled: yup.boolean(),
+  warrantyPolicyId: yup.string().when('warrantyEnabled', {
+    is: true,
+    then: schema => schema.required('Warranty policy is required when warranty is enabled'),
+    otherwise: schema => schema,
+  }),
   productDescription: yup.string(),
   status: yup.boolean(),
 });
 
-const emptyDropdownData = { units: [], categories: [], taxes: [] };
+const emptyDropdownData = { units: [], categories: [], taxes: [], warrantyPolicies: [] };
 
 export default function useAddProductViewHandler({
   onClose,
@@ -81,6 +87,8 @@ export default function useAddProductViewHandler({
       barcode: '',
       alertQuantity: '',
       tax: '',
+      warrantyEnabled: false,
+      warrantyPolicyId: '',
       productDescription: '',
       images: null,
       status: true,

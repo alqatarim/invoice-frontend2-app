@@ -1,5 +1,6 @@
 import { clearAuthCookie } from '@/Auth/authActions'
 import { AUTH_SESSION_COOKIE_KEY, AUTH_STORAGE_KEY, AUTH_TOKEN_COOKIE_KEY } from '@/Auth/authConstants'
+import { buildAuthSession, buildSessionUser } from '@/Auth/sessionUser'
 
 const isBrowser = () => typeof window !== 'undefined'
 
@@ -7,31 +8,8 @@ const clearLegacyClientCookie = key => {
   document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
 }
 
-export const normalizeAuthUser = (authData = {}, fallbackEmail = '') => {
-  const profileDetails = authData.profileDetails || {}
-  const firstName = profileDetails.firstName || ''
-  const lastName = profileDetails.lastName || ''
-  const name = `${firstName} ${lastName}`.trim() || fallbackEmail || authData.email || 'User'
-
-  return {
-    id: authData.id || profileDetails.id || '',
-    email: authData.email || fallbackEmail || '',
-    name,
-    image: profileDetails.image || '',
-    firstName,
-    lastName,
-    gender: profileDetails.gender || '',
-    role: authData.role || '',
-    authProvider: authData.authProvider || 'credentials',
-    hasPassword: Boolean(authData.hasPassword),
-    permissionRes: authData.permissionRes || null,
-    companyDetails: authData.companyDetails || null,
-    companyMembership: authData.companyMembership || null,
-    accessibleBranches: authData.accessibleBranches || [],
-    currencySymbol: authData.currencySymbol || '',
-    token: authData.token || '',
-  }
-}
+export const normalizeAuthUser = buildSessionUser
+export const normalizeAuthSession = buildAuthSession
 
 export const getStoredSession = () => {
   if (!isBrowser()) return null
@@ -47,7 +25,12 @@ export const getStoredSession = () => {
 export const setAuthSession = session => {
   if (!isBrowser()) return
 
-  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session || {}))
+  const normalizedSession = {
+    token: session?.token || '',
+    user: buildSessionUser(session?.user || {}),
+  }
+
+  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalizedSession))
   window.dispatchEvent(new CustomEvent('auth-session-updated'))
 }
 

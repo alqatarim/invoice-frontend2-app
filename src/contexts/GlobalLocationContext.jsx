@@ -5,6 +5,8 @@ import { useSession } from '@/Auth/SessionContext';
 
 import {
   findBranchByIdentifier,
+  getBranchTypeLabel,
+  getStoreOnlyValidationMessage,
   isStoreBranch,
   mergeAccessibleBranches,
   resolveBranchId,
@@ -15,26 +17,6 @@ const GLOBAL_LOCATION_STORAGE_PREFIX = 'globalLocationSelection';
 
 const getStorageKey = ({ userId = '', companyId = '' } = {}) =>
   `${GLOBAL_LOCATION_STORAGE_PREFIX}.${userId || 'anonymous'}.${companyId || 'default'}`;
-
-const getLocationTypeLabel = (location = null) =>
-  String(location?.branchType || location?.type || '').trim();
-
-const buildStoreOnlyValidationMessage = (location = null) => {
-  if (!location) {
-    return 'Choose a location from the top bar.';
-  }
-
-  if (isStoreBranch(location)) {
-    return '';
-  }
-
-  const locationType = getLocationTypeLabel(location) || 'location';
-  const normalizedType =
-    locationType.charAt(0).toLowerCase() + locationType.slice(1);
-
-  return `${location?.name || 'The selected location'
-    } is a ${normalizedType}. Choose a store from the top bar to continue.`;
-};
 
 export function GlobalLocationProvider({ children }) {
   const { data: session } = useSession();
@@ -70,10 +52,10 @@ export function GlobalLocationProvider({ children }) {
     primaryLocation ||
     null;
   const selectedLocationId = resolveBranchId(selectedLocation);
-  const selectedLocationType = getLocationTypeLabel(selectedLocation);
+  const selectedLocationType = getBranchTypeLabel(selectedLocation);
   const isStoreSelected = isStoreBranch(selectedLocation);
   const storeOnlyValidationMessage =
-    buildStoreOnlyValidationMessage(selectedLocation);
+    getStoreOnlyValidationMessage(selectedLocation);
 
   useEffect(() => {
     if (

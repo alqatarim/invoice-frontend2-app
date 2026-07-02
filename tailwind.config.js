@@ -7,10 +7,13 @@ module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,css}'],
   safelist: [
     {
-      pattern: /^bg-(primary|secondary|error|warning|info|success)(Main|Light|Lighter|Lightest|Dark|Darker|Darkest)?$/
+      pattern: /^text-(primary|secondary|accent|error|warning|info|success)(Main|Light|Lighter|Lightest|Dark|Darker|Darkest)?$/
     },
     {
-      pattern: /^border-(primary|secondary|error|warning|info|success)(Main|Light|Lighter|Lightest|Dark|Darker|Darkest)?$/
+      pattern: /^bg-(primary|secondary|accent|error|warning|info|success)(Main|Light|Lighter|Lightest|Dark|Darker|Darkest)?$/
+    },
+    {
+      pattern: /^border-(primary|secondary|accent|error|warning|info|success)(Main|Light|Lighter|Lightest|Dark|Darker|Darkest)?$/
     }
   ],
   corePlugins: {

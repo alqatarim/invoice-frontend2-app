@@ -7,9 +7,8 @@ import {
   findBranchByIdentifier,
   mergeAccessibleBranches,
   resolveBranchId,
+  shouldRestrictToAssignedBranches,
 } from '@/utils/branchAccess';
-
-const ELEVATED_ORG_ROLES = new Set(['OWNER', 'COMPANY_ADMIN']);
 
 export default function useAccessibleBranchScope({ branchesData = [] } = {}) {
   const { data: session } = useSession();
@@ -30,8 +29,10 @@ export default function useAccessibleBranchScope({ branchesData = [] } = {}) {
   );
 
   const hasAssignedBranchScope = assignedBranches.length > 0;
-  const isRestrictedToAssignedBranches =
-    hasAssignedBranchScope && !ELEVATED_ORG_ROLES.has(String(companyMembership?.orgRole || '').trim());
+  const isRestrictedToAssignedBranches = shouldRestrictToAssignedBranches({
+    hasAssignedScope: hasAssignedBranchScope,
+    orgRole: companyMembership?.orgRole,
+  });
 
   return {
     companyMembership,

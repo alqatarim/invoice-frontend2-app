@@ -3,7 +3,7 @@
 import { fetchWithAuth } from '@/Auth/fetchWithAuth';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_FORECAST_MODEL = process.env.OPENAI_FORECAST_MODEL || 'gpt-5.2';
+const OPENAI_FORECAST_MODEL = process.env.OPENAI_FORECAST_MODEL || 'gpt-4.1-mini';
 const OPENAI_API_BASE = process.env.OPENAI_API_BASE || 'https://api.openai.com/v1';
 
 const buildDashboardQuery = ({

@@ -49,7 +49,7 @@ const typography = {
           },
           {
             props: { variant: 'body1.5' },
-            style: { color: 'var(--mui-palette-text-secondary)' }
+            style: { color: 'var(--mui-palette-text-primary)' }
           },
           {
             props: { variant: 'body2' },

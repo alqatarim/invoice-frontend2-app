@@ -15,7 +15,8 @@ const ENDPOINTS = {
     UNIT: '/drop_down/unit',
     CATEGORY: '/drop_down/category',
     TAX: '/drop_down/tax',
-    PRODUCT: '/drop_down/product'
+    PRODUCT: '/drop_down/product',
+    WARRANTY_POLICIES: '/policies'
   }
 };
 
@@ -171,6 +172,8 @@ export async function addProduct(productData, preparedImage) {
     
     formData.append("alertQuantity", productData.alertQuantity || '');
     formData.append("tax", productData.tax || ''); // This should be the _id, empty string if none
+    formData.append("warrantyEnabled", productData.warrantyEnabled ? 'true' : 'false');
+    formData.append("warrantyPolicyId", productData.warrantyPolicyId || '');
     formData.append("productDescription", productData.productDescription || '');
 
     // Add image if provided
@@ -244,6 +247,8 @@ export async function updateProduct(id, productData, preparedImage) {
     
     formData.append("alertQuantity", productData.alertQuantity || '');
     formData.append("tax", productData.tax || ''); // This should be the _id, empty string if none
+    formData.append("warrantyEnabled", productData.warrantyEnabled ? 'true' : 'false');
+    formData.append("warrantyPolicyId", productData.warrantyPolicyId || '');
     formData.append("productDescription", productData.productDescription || '');
     formData.append("_id", id); // Add the product ID as expected by backend
 
@@ -323,10 +328,11 @@ export async function deleteProduct(id) {
  */
 export async function getDropdownData() {
   try {
-    const [units, categories, taxes] = await Promise.all([
+    const [units, categories, taxes, warrantyPolicies] = await Promise.all([
       fetchWithAuth(ENDPOINTS.DROPDOWN.UNIT, CACHE_STABLE_DROPDOWN),
       fetchWithAuth(ENDPOINTS.DROPDOWN.CATEGORY, CACHE_STABLE_DROPDOWN),
       fetchWithAuth(ENDPOINTS.DROPDOWN.TAX, CACHE_STABLE_DROPDOWN),
+      fetchWithAuth(`${ENDPOINTS.DROPDOWN.WARRANTY_POLICIES}?skip=0&limit=100&status=active`, CACHE_STABLE_DROPDOWN),
     ]);
 
     // Check for authentication errors
@@ -341,6 +347,7 @@ export async function getDropdownData() {
         units: Array.isArray(units?.data) ? units.data : (Array.isArray(units) ? units : []),
         categories: Array.isArray(categories?.data) ? categories.data : (Array.isArray(categories) ? categories : []),
         taxes: Array.isArray(taxes?.data) ? taxes.data : (Array.isArray(taxes) ? taxes : []),
+        warrantyPolicies: Array.isArray(warrantyPolicies?.data) ? warrantyPolicies.data : [],
       },
     };
   } catch (error) {
@@ -351,7 +358,8 @@ export async function getDropdownData() {
       data: {
         units: [],
         categories: [],
-        taxes: []
+        taxes: [],
+        warrantyPolicies: []
       }
     };
   }

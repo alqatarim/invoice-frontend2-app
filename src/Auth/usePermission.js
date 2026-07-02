@@ -1,23 +1,47 @@
-// Permission checking hook
+'use client'
+
+import { useMemo } from 'react'
 import { usePermissions } from '@/Auth/PermissionsContext'
-import {
-  getCanonicalModuleName,
-  getCanonicalPermissionAction,
-} from '@/common/allModules'
+
+const CRUD_ACTIONS = Object.freeze(['create', 'update', 'view', 'delete'])
 
 export const usePermission = (module, action) => {
   const permissions = usePermissions()
 
-  if (!permissions) return false
+  return Boolean(permissions?.hasPermission?.(module, action))
+}
 
-  if (typeof permissions.hasPermission === 'function') {
-    return permissions.hasPermission(module, action)
-  }
+export const useModulePermissions = moduleName => {
+  const permissions = usePermissions()
 
-  // Fallback for legacy context shape
-  if (permissions.isAdmin) return true
-  const modulePermissions = permissions.modules?.[getCanonicalModuleName(module)]
-  const actionKey = getCanonicalPermissionAction(action)
+  return useMemo(() => {
+    const can = action => Boolean(permissions?.hasPermission?.(moduleName, action))
+    const modulePermissions = CRUD_ACTIONS.reduce((acc, action) => {
+      acc[`can${action.charAt(0).toUpperCase()}${action.slice(1)}`] = can(action)
+      return acc
+    }, {})
 
-  return Boolean(modulePermissions?.all || modulePermissions?.[actionKey])
+    return {
+      ...modulePermissions,
+      hasAny: Object.values(modulePermissions).some(Boolean),
+    }
+  }, [moduleName, permissions])
+}
+
+export const usePosAccess = () => {
+  const permissions = usePermissions()
+
+  return useMemo(() => {
+    const canViewInvoice = Boolean(permissions?.hasPermission?.('invoice', 'view'))
+    const canCreateInvoice = Boolean(permissions?.hasPermission?.('invoice', 'create'))
+
+    return {
+      canAccessPos: canViewInvoice || canCreateInvoice,
+      canCreatePosSale: canCreateInvoice,
+      canViewInvoice,
+      canCreateInvoice,
+      isReady: Boolean(permissions?.isReady),
+      isLoading: Boolean(permissions?.isLoading),
+    }
+  }, [permissions])
 }

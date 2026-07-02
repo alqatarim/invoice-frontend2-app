@@ -245,6 +245,20 @@ export default function useAddInvoiceFeatureHandler({
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
+    const selectedProductIds = new Set(
+      (getValues('items') || [])
+        .map(item => item?.productId)
+        .filter(Boolean)
+    );
+
+    setProductsCloneData(
+      (Array.isArray(productData) ? productData : []).filter(
+        product => !selectedProductIds.has(product?._id)
+      )
+    );
+  }, [getValues, productData]);
+
+  useEffect(() => {
     if (!availableCashiers.length) {
       setValue('cashierId', '');
       return;

@@ -373,6 +373,78 @@ export const productNavigationTabs = [
 	{ key: "units", label: "Units", href: "/units/unit-list" },
 ];
 
+export const warrantyStatusOptions = [
+	{ value: "active", label: "Active", color: "success", icon: "mdi:check-circle-outline" },
+	{ value: "expired", label: "Expired", color: "secondary", icon: "mdi:clock-alert-outline" },
+	{ value: "void", label: "Void", color: "error", icon: "mdi:close-circle-outline" },
+	{ value: "returned_void", label: "Returned Void", color: "error", icon: "mdi:close-circle-outline" },
+	{ value: "partial_return", label: "Partial Return", color: "info", icon: "mdi:close-circle-outline" },
+	{ value: "replaced", label: "Replaced", color: "accent", icon: "mdi:close-circle-outline" },
+	{ value: "claim_open", label: "Claim Open", color: "warning", icon: "mdi:close-circle-outline" },
+	{ value: "claim_closed", label: "Claim Closed", color: "secondary", icon: "mdi:close-circle-outline" },
+]
+
+
+export const warrantyTerminalStatuses = ["void", "returned_void", "replaced"];
+
+export const warrantyClaimStatusOptions = [
+	{ value: "submitted", label: "Submitted", color: "accent", lineColor: "accent.light", icon: "mdi:shield-alert-outline" },
+	{ value: "under_review", label: "Under review", color: "info", lineColor: "info.light", icon: "mdi:progress-clock" },
+	{ value: "approved", label: "Approved", color: "success", lineColor: "success.light", icon: "ri-checkbox-circle-line" },
+	{ value: "rejected", label: "Rejected", color: "error", lineColor: "error.light", icon: "ri-close-circle-line" },
+	{ value: "in_service", label: "In service", color: "warning", lineColor: "warning.light", icon: "mdi:progress-wrench" },
+	{ value: "resolved", label: "Resolved", color: "success", lineColor: "success.light", icon: "ri-checkbox-circle-line" },
+	{ value: "cancelled", label: "Cancelled", color: "secondary", lineColor: "secondary.light", icon: "ri-close-circle-line" },
+];
+
+export const warrantyPolicyStatusOptions = [
+	{ value: "active", label: "Active" },
+	{ value: "inactive", label: "Inactive" },
+	{ value: "archived", label: "Archived" },
+];
+
+export const warrantyDurationUnitOptions = [
+	{ value: "days", label: "Days" },
+	{ value: "months", label: "Months" },
+	{ value: "years", label: "Years" },
+];
+
+export const warrantyCoverageTypeOptions = [
+	{ value: "repair", label: "Repair" },
+	{ value: "replace", label: "Replace" },
+	{ value: "repair_or_replace", label: "Repair or replace" },
+	{ value: "refund", label: "Refund" },
+	{ value: "service", label: "Service" },
+];
+
+export const warrantyReturnBehaviorOptions = [
+	{ value: "void_on_full_return", label: "Void on full return" },
+	{ value: "keep_active", label: "Keep active" },
+	{ value: "manual_review", label: "Manual review" },
+];
+
+export const warrantyClaimLimitOptions = [
+	{ value: "unlimited", label: "Unlimited" },
+	{ value: "count", label: "Limited count" },
+];
+
+export const warrantyClaimIssueTypeOptions = [
+	{ value: "repair", label: "Repair" },
+	{ value: "replace", label: "Replace" },
+	{ value: "refund", label: "Refund" },
+	{ value: "service", label: "Service" },
+	{ value: "other", label: "Other" },
+];
+
+export const warrantyClaimServiceOutcomeOptions = [
+	{ value: "pending", label: "Pending" },
+	{ value: "repair", label: "Repair" },
+	{ value: "replace", label: "Replace" },
+	{ value: "refund", label: "Refund" },
+	{ value: "rejected", label: "Rejected" },
+	{ value: "no_fault_found", label: "No fault found" },
+];
+
 export const productStatusOptions = [
 	{ value: true, label: "Active", color: "success" },
 	{ value: false, label: "Inactive", color: "error" },
@@ -898,7 +970,7 @@ export const userSessionStatusOptions = [
 
 // Session configuration constants
 export const sessionConfig = {
-	// Session duration: 24 hours (backend JWT + frontend NextAuth aligned)
+	// Session duration: 24 hours (backend JWT aligned)
 	// Session expiry warning threshold (30 minutes in seconds)
 	expiryWarningThreshold: 1800,
 

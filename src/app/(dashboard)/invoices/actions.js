@@ -630,7 +630,7 @@ export async function getCustomers() {
 
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, CACHE_STABLE_DROPDOWN);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, { cache: 'no-store' });
     if (response.code === 200) {
       return response.data || [];
     } else {

@@ -78,7 +78,6 @@ const PosContent = ({
       canAccessPos={handler.canAccessPos}
       canCreateInvoice={handler.canCreateInvoice}
       isPermissionsLoading={handler.isPermissionsLoading}
-      primaryStore={handler.primaryStore}
     />
   );
 };

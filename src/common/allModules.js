@@ -43,6 +43,7 @@ export const moduleDefinitions = Object.freeze([
   { module: 'category', label: 'Categories' },
   { module: 'unit', label: 'Units' },
   { module: 'inventory', label: 'Inventory' },
+  { module: 'warranty', label: 'Warranties' },
   { module: 'branch', label: 'Stores' },
   { module: 'invoice', label: 'Invoices' },
   {
@@ -80,6 +81,7 @@ export const moduleDefinitions = Object.freeze([
   { module: 'generalLedgerReport', label: 'General Ledger Report' },
   { module: 'accountingSettings', label: 'Accounting Settings' },
   { module: 'inventoryCosting', label: 'Inventory Costing' },
+  { module: 'aiReport', label: 'AI Reports' },
   { module: 'user', label: 'Users' },
   { module: 'role', label: 'Roles & Permissions' },
   {

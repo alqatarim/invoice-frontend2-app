@@ -66,6 +66,12 @@ const timeline = {
             }
           },
           {
+            props: { variant: 'filled', color: 'accent' },
+            style: {
+              boxShadow: '0 0 0 3px var(--mui-palette-accent-lightOpacity)'
+            }
+          },
+          {
             props: { variant: 'tonal' },
             style: {
               border: 0
@@ -118,6 +124,13 @@ const timeline = {
             style: {
               backgroundColor: 'var(--mui-palette-success-lightOpacity)',
               color: 'var(--mui-palette-success-main)'
+            }
+          },
+          {
+            props: { variant: 'tonal', color: 'accent' },
+            style: {
+              backgroundColor: 'var(--mui-palette-accent-lightOpacity)',
+              color: 'var(--mui-palette-accent-main)'
             }
           }
         ],

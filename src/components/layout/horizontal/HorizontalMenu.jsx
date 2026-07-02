@@ -16,7 +16,7 @@ import VerticalNavContent from './VerticalNavContent'
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
-import { usePermission } from '@/Auth/usePermission'
+import { usePosAccess } from '@/Auth/usePermission'
 
 // Styled Component Imports
 import StyledHorizontalNavExpandIcon from '@menu/styles/horizontal/StyledHorizontalNavExpandIcon'
@@ -47,9 +47,7 @@ const HorizontalMenu = ({ dictionary }) => {
   const theme = useTheme()
   const { settings } = useSettings()
   const params = useParams()
-  const canViewInvoice = usePermission('invoice', 'view')
-  const canCreateInvoice = usePermission('invoice', 'create')
-  const canAccessPos = canViewInvoice || canCreateInvoice
+  const { canAccessPos } = usePosAccess()
 
   // Vars
   const { skin } = settings

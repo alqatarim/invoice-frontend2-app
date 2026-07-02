@@ -247,6 +247,22 @@ export const getProductColumns = ({ theme = {}, permissions = {} } = {}) => [
   //   ),
   // },
   {
+    key: 'warranty',
+    visible: true,
+    label: 'Warranty',
+    align: 'center',
+    hideBelow: 'md',
+    minWidth: 140,
+    renderCell: row => (
+      <Chip
+        size="small"
+        variant="tonal"
+        color={row.warrantyEnabled ? 'success' : 'secondary'}
+        label={row.warrantyEnabled ? row.warrantyPolicyId?.name || 'Enabled' : 'No warranty'}
+      />
+    ),
+  },
+  {
     key: 'status',
     visible: true,
     label: 'Status',

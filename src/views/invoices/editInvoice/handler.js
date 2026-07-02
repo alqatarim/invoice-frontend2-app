@@ -289,6 +289,20 @@ export default function useEditInvoiceFeatureHandler({
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
+    const selectedProductIds = new Set(
+      (getValues('items') || [])
+        .map(item => item?.productId)
+        .filter(Boolean)
+    );
+
+    setProductsCloneData(
+      (Array.isArray(productData) ? productData : []).filter(
+        product => !selectedProductIds.has(product?._id)
+      )
+    );
+  }, [getValues, productData]);
+
+  useEffect(() => {
     setValue('branchId', selectedLocationId || '', { shouldValidate: true });
     setValue('branchType', selectedLocationType || '', { shouldValidate: true });
   }, [selectedLocationId, selectedLocationType, setValue]);

@@ -19,6 +19,7 @@ const ENDPOINTS = {
 };
 
 const CACHE_STABLE_DROPDOWN = { next: { revalidate: 300 } };
+const FETCH_NO_CACHE = { cache: 'no-store' };
 
 const normalizePaymentMethodValue = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
@@ -63,7 +64,7 @@ export async function getCustomers() {
 
 export async function getProducts() {
   try {
-    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, CACHE_STABLE_DROPDOWN);
+    const response = await fetchWithAuth(ENDPOINTS.DROPDOWN.PRODUCT, FETCH_NO_CACHE);
 
     if (response?.code !== 200) {
       throw new Error(response?.message || 'Failed to fetch POS products');

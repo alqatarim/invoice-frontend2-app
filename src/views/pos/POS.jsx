@@ -38,7 +38,6 @@ const PosPage = ({
   canAccessPos,
   canCreateInvoice,
   isPermissionsLoading,
-  primaryStore,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));

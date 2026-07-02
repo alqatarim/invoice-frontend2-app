@@ -19,6 +19,7 @@ const EditProduct = ({ controller }) => {
   const watchDiscountType = controller.watch('discountType');
   const watchType = controller.watch('type');
   const watchCategory = controller.watch('category');
+  const watchWarrantyEnabled = controller.watch('warrantyEnabled');
   const formId = 'edit-product-form';
 
   return (
@@ -80,6 +81,7 @@ const EditProduct = ({ controller }) => {
                         watchName={watchName}
                         watchType={watchType}
                         watchCategory={watchCategory}
+                        watchWarrantyEnabled={watchWarrantyEnabled}
                         watchDiscountType={watchDiscountType}
                         productTypes={controller.productTypes}
                         discountTypes={controller.discountTypes}

@@ -36,11 +36,11 @@ npm run seed       # Seed the database with initial data
 
 ## High-Level Architecture
 
-This is a full-stack invoice management system with separate frontend and backend applications:
+This is a full-stack Saudi SME invoice and business operations and  management platform, for SME stores, shops, companies, etc. The platform has a separate frontend (business owners), customerFrontend (customers/end-users), and backend applications:
 
 ### Project Structure
-- **frontend/** - Next.js 14 application with App Router. User is working on this application and migrating from the frontend-Old application
-- **frontend-Old/** - Legacy React.js application (reference only, being migrated)
+- **frontend/** - Next.js 14 application with App Router.
+- **customerFrontend/** - Next.js 14 application with App Router.
 - **backend/** - Express.js REST API with MongoDB
 
 ### Backend Architecture (Express.js + MongoDB)
@@ -58,72 +58,69 @@ This is a full-stack invoice management system with separate frontend and backen
 - **NextAuth.js v4** for authentication with JWT strategy
 - **Material-UI (MUI) Materio** as the primary UI component library
 - **Server Actions** pattern for API communication
-- **Handler Pattern** are placed respectively in `frontend/src/Handlers/<FeatureName>/<ModuleName>/` folders and is for complex UI logic separation
-- **Utilities Pattern** are placed respectively in `frontend/src/utils/` folder and is for utilities constants and functions
-- **Constant Dat Pattern** are placed respectively in `frontend/src/data/dataSets.js` folder and is for storing constant string, arrays, etc.
-- **Handlers Pattern** are placed respectively in `frontend/src/handlers/` folder and is for components handlers definitions. Avoid making data fetching that conflicts with initial data fetching by serverside files.
+- **Handler Pattern** are placed respectively in `frontend/src/views/<FeatureName>/<ModuleName>/handler.js` or `customerFrontend/src/views/<FeatureName>/<ModuleName>/handler.js` (depending on which app is being modified) folders and is for complex UI controller and logic separation. Handler file MUST contain all handling related consts and code. The handler file MUST NEVER contain initial data fetching for features that have their own route (Page.jsx) files. The handler file MUST NEVER contain utilility related code. Avoid making data fetching that conflicts with initial data fetching by serverside files. The ONLY ALLOWED data fetching is for non-initial filtered data fetching.
+
+- **Utilities Pattern** are placed respectively in `frontend/src/utils/` or `customerFrontend/src/utils/` (depending on which app is being modified) folder and is for utilities constants and functions. When adding util code in the frontend or customerFrontend, ALWAYS check the `/src/utils/` if there is already an existing util you can use. Else, if there is similar const but has a minor difference, ask me whether to use the minorly different util code or create a new file in utils.
+
+- **Constant Dat Pattern** are placed respectively in `frontend/src/data/dataSets.js` or `customerFrontend/src/data/dataSets.js` (depending on which app is being modified) folder and is ONLY FOR storing constant string, arrays, etc. NEVER add logic and functional consts in it. When you need to add some constant(s) in the dataset file, ALWAYS FIRST check if this data already exists. Else, if very closely similar data exists, ask me whether to use the existing const/data or add new one(s).
+
 
 ### Authentication Flow
 1. Frontend authenticates via NextAuth.js with credentials provider
 2. JWT token stored in NextAuth session
 3. `fetchWithAuth` wrapper automatically injects token in API requests
 4. Backend validates JWT on protected routes
-5. Session caching (30 seconds) for performance
+<!-- 5. Session caching (30 seconds) for performance -->
 
-### API Integration Pattern
-```
-Client Component → FormData → Server Action → fetchWithAuth → Backend API
-```
+### Frontend and CustomerFrontend API Integration Pattern
+1. For initial data fetching (features/modules with routes and Page.jsx): Server Page.jsx -> Server Actions (action.jsx) -> Server Page.jsx -> Client component (index.jsx) -> Client component (<Feature_Module_Name>.jsx)
+
+2. For data submission: Client Component → Handler File (FormData) → Server Action → fetchWithAuth → Backend API
+
 
 Key files:
 - `frontend/src/Auth/fetchWithAuth.js` - Authentication wrapper
+- `customerFrontend/src/Auth/fetchWithAuth.js` - Authentication wrapper
 - `frontend/src/constants/end_points.tsx` - All API endpoints
+- `customerFrontend/src/constants/end_points.tsx` - All API endpoints
 - `backend/middleware/jwt.middleware.js` - JWT validation
 
 ### Migration Context
-The project is actively migrating from React.js (frontend-Old) to Next.js 14 (frontend). When migrating features:
-1. Server-side logic goes in `actions.js` files
+1. Server-side API logic goes in `actions.js` files
 2. Client components in `views/` directory
-3. Follow existing patterns in migrated features
+3. Follow existing patterns in features
 4. Use MUI Materio components for consistency
 5. Minimize the usage of re-rendering functions such as useEffect and callback. Only apply when absolutely necessary
 
 
-### Module Structure Pattern
-Each feature module follows this structure:
-```
-frontend/src/app/(dashboard)/[module]/
-├── actions.js                    # Server actions
-├── [module]-list/page.jsx        # List page
-├── [module]-add/page.jsx         # Add page
-├── [module]-edit/[id]/page.jsx   # Edit page
-└── [module]-view/[id]/page.jsx   # View page
-
-frontend/src/views/[module]/
-├── list[Module]/                 # List components
-├── add[Module]/                  # Add components
-├── edit[Module]/                 # Edit components
-└── view[Module]/                 # View components
-└── [Module]Schema/               # Schema
-```
-
 ### Document Form Refactor Pattern
-For document-style features such as invoices, POS, sales returns, purchases, purchase orders, debit notes, delivery challans, and quotations, prefer the refactored sales return shape. The goal is to avoid duplicated add/edit implementations while keeping mode-specific behavior explicit and readable.
+For features such as invoices, POS, sales returns, purchases, purchase orders, debit notes, delivery challans, and quotations, and other applicable features,  prefer the refactored sales return shape. The goal is to avoid duplicated add/edit implementations while keeping mode-specific behavior explicit and readable.
 
-Use this structure when add and edit share the same fields, item table, totals, validation UX, and save flow:
+Use this as the general client side (view folder) structure:
 ```
 frontend/src/views/[feature]/
-├── [feature].jsx                  # Shared add/edit form UI
-├── handler.js                     # Shared add/edit form handler
-├── [feature]Columns.jsx           # Shared item table columns
-├── [Feature]Schema.js             # Add/edit schemas
+├── list[feature]/                 
+│   ├── [feature]List.jsx          # List module's main UI/UX component
+│   ├── index.jsx                  # Snackbar provider + add save action wrapper
+│   ├── [feature]Columns.jsx       # list table columns definitions
+│   ├── [feature]Head.jsx          # Module's Stats Header
+│   └── handler.js                 # All handling/controller related code         
 ├── add[Feature]/
 │   ├── index.jsx                  # Snackbar provider + add save action wrapper
-│   └── Add[Feature].jsx           # Thin add screen wrapper
-└── edit[Feature]/
-    ├── index.jsx                  # Snackbar provider + update save action wrapper
-    └── Edit[Feature].jsx          # Thin edit screen wrapper
+│   └── Add[Feature].jsx           # Thin add screen wrapper (which will use './[feature].jsx) unified form component
+├──  edit[Feature]/
+│   ├── index.jsx                  # Snackbar provider + update save action wrapper
+│   └── Edit[Feature].jsx          # Thin edit screen wrapper (which will use './[feature].jsx) unified form component
+├──  view[Feature]/
+│   ├── index.jsx                  # Snackbar provider + update save action wrapper
+│   └── View[Feature].jsx          # Thin view screen wrapper (which will use './[feature].jsx) unified form component
+├── handler.js                     # Shared add/edit form handler
+├── [feature].jsx                  # unified view/add/edit form
+├── [feature].jsx                  # unified view/add/edit form
+└── [feature]Schema.js             # unified add/edit validation Schema
 ```
+
+Note that there might be exceptions to this structure, including (but not limited to), having a different view form, or having the add and/or edit and/or view in a pop-up dialog ui/ux, and other possible exceptions. Exceptions might also include additional files or folders.
 
 #### Shared Form Component
 - Keep one shared form component at the feature root when add and edit render the same UI, for example `src/views/salesReturn/salesReturn.jsx`.
@@ -203,7 +200,7 @@ Both applications use environment variables:
 
 
 
-### Additional Core Principles and guidelines
+### Additional CRITICAL Core Principles and guidelines
 - Apply best practices
 - Modularize code where applicable
 - Re-use and/or create reusable code blocks and files and components
@@ -218,8 +215,15 @@ Both applications use environment variables:
 - Simple Composition: Main hook just combines handlers, no complex state management
 - Single Responsibility: Each handler has one clear purpose
 - Minimal useEffect: Avoid multiple useEffects and complex dependencies
+- Avoid adding and bloating the apps and code by adding more functions and consts, where applicable
+- Remember we own the database, backend, and the APIs. As such, When fixing an error or implementing a change beyond just ui/ux, Trace back to the database and backend, and implement root cause changes/fixes, including direct database data fixes. DO NOT just throw handling code or do something like " = invoiceId || invoiceNumber || invNo ". We own the backend and database, and know exactly the write data fields and objects, and shouldnt manage instead of root change/fix. Doing such "OR" or "||" is prohibited for things we can trace and consolidate.
 
-### Additional Migration Checklist
+### Proactive code refactoring
+When you are applying change, try to do the following to the related code/files across the current app, and backend:
+- Remove redundant or unnecessary code bloating code/files. Make the code/files clean, concise, written in the least extensive way, and make sure it does not handle something we can better rewrite at its root, instead of throwing more files/code/consts, etc.
+- Where ever applicable, replace the use of "sx{{}}" with tailwind "className=''". You can find all possible tailwind className props here 'frontend/tailwind.css' for the frontend app, and here 'customerFrontend/tailwind.css' for customerFrontend.
+
+### Additional Checklist
 - Create individual handlers with single responsibility
 - Move all hooks to top level of handlers/components
 - Remove complex optimizations that cause bugs
@@ -232,7 +236,7 @@ Both applications use environment variables:
 - keep it simple and follow existing patterns. When in doubt, copy the working pattern from DebitNoteList or another working component rather than creating new complex patterns
 - When using the mui Grid, use the new grid props "<Grid size = {{}}>
 
-### Frontend Action Rules:
+### Frontend and custoemrFrontend Action Rules:
 - Always Check Actual Backend Response: Look at the controller code to see what data structure is returned
 - Use Direct Data Path: In this project, use response.data not response.data.something
 - Verify with Console Logs: Add console.log('API Response:', response) when debugging blank forms
@@ -315,17 +319,7 @@ const styles = {
 <Icon icon="lucide:saudi-riyal" color={theme.vars.palette.primary.main} />
 ```
 
-## Priority Files to Update
-
-Based on the search results, these files have the most `theme.palette.*` usage and should be updated first:
-
-1. `src/views/invoices/addInvoice/AddInvoice.jsx` (25+ instances)
-2. `src/views/invoices/editInvoice/EditInvoice.jsx` (25+ instances)
-3. `src/components/dialogs/permissions-dialog/index.jsx` (20+ instances)
-4. `src/views/invoices/viewInvoice/ViewInvoice.jsx` (12+ instances)
-5. `src/views/salesReturn/viewSalesReturn/ViewSalesReturn.jsx` (12+ instances)
-
-## Automated Migration Steps
+<!-- ## Automated Migration Steps
 
 ### Step 1: Simple Replacements
 Use find/replace in your IDE to update simple cases:
@@ -365,4 +359,4 @@ After migration, verify:
 - ✅ No re-renders when switching themes
 - ✅ Faster theme transitions
 - ✅ Better SSR/hydration performance
-- ✅ Reduced bundle size (no theme re-creation)
+- ✅ Reduced bundle size (no theme re-creation) -->

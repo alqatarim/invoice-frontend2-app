@@ -4,6 +4,8 @@ import React, { useCallback } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { useSnackbar } from 'notistack';
 import FormFeatureSnackbarProvider from '@/components/shared/FormFeatureSnackbarProvider';
+import BankDetailsDialog from '@/components/custom-components/BankDetailsDialog';
+import InvoiceTermsDialog from '@/components/invoices/InvoiceTermsDialog';
 import AddInvoice from './AddInvoice';
 import useAddInvoiceFeatureHandler from './handler';
 import { addInvoice, addBank } from '@/app/(dashboard)/invoices/add/actions';

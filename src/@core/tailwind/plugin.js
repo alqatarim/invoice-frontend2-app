@@ -1,6 +1,14 @@
 import plugin from 'tailwindcss/plugin'
 
-module.exports = plugin(function () { }, {
+module.exports = plugin(function ({ addUtilities }) {
+  addUtilities({
+    '.text-body1-5': {
+      fontSize: '14px',
+      lineHeight: '1.46667',
+      color: 'var(--mui-palette-text-primary)'
+    }
+  })
+}, {
   theme: {
     borderColor: ({ theme }) => ({
       ...theme('colors'),
@@ -56,6 +64,14 @@ module.exports = plugin(function () { }, {
         secondaryDark: 'var(--mui-palette-secondary-darkOpacity)',
         secondaryDarker: 'var(--mui-palette-secondary-darkerOpacity)',
         secondaryDarkest: 'var(--mui-palette-secondary-darkestOpacity)',
+        accent: 'var(--mui-palette-accent-main)',
+        accentMain: 'var(--mui-palette-accent-main)',
+        accentLight: 'var(--mui-palette-accent-lightOpacity)',
+        accentLighter: 'var(--mui-palette-accent-lighterOpacity)',
+        accentLightest: 'var(--mui-palette-accent-lightestOpacity)',
+        accentDark: 'var(--mui-palette-accent-darkOpacity)',
+        accentDarker: 'var(--mui-palette-accent-darkerOpacity)',
+        accentDarkest: 'var(--mui-palette-accent-darkestOpacity)',
         error: 'var(--mui-palette-error-main)',
         errorMain: 'var(--mui-palette-error-main)',
         errorLight: 'var(--mui-palette-error-lightOpacity)',

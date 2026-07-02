@@ -1,11 +1,6 @@
 import React from 'react';
-import {
-  getCanonicalModuleName,
-  getCanonicalPermissionAction,
-  normalizePermissionFlags,
-  normalizePermissionModules,
-} from '@/common/allModules';
 import PosIndex from '@/views/pos';
+import { getPosAccess } from '@/Auth/permissions';
 import { getServerSessionUser } from '@/Auth/serverAuth';
 import {
   getBanks,
@@ -20,25 +15,13 @@ export const metadata = {
   title: 'Point Of Sale | Kanakku',
 };
 
-const hasServerPermission = (permissionRes, moduleName, actionName) => {
-  if (!permissionRes) return false;
-  if (permissionRes.allModules) return true;
-
-  const moduleKey = getCanonicalModuleName(moduleName);
-  const actionKey = getCanonicalPermissionAction(actionName);
-  const moduleRecord = normalizePermissionModules(permissionRes.modules || [])
-    .find(item => item.module === moduleKey);
-  const permissions = normalizePermissionFlags(moduleRecord?.permissions);
-
-  return Boolean(permissions.all || permissions[actionKey]);
-};
+const getSettledValue = (result, fallback) =>
+  result?.status === 'fulfilled' ? result.value || fallback : fallback;
 
 const PosPageRoute = async () => {
   const sessionUser = getServerSessionUser();
-  const permissionRes = sessionUser?.permissionRes;
-  const initialCanCreateInvoice = hasServerPermission(permissionRes, 'invoice', 'create');
-  const initialCanAccessPos =
-    initialCanCreateInvoice || hasServerPermission(permissionRes, 'invoice', 'view');
+  const { canAccessPos: initialCanAccessPos, canCreatePosSale: initialCanCreateInvoice } =
+    getPosAccess(sessionUser?.permissionRes);
 
   let initialCustomersData = [];
   let initialProductData = [];
@@ -54,15 +37,15 @@ const PosPageRoute = async () => {
   let initialErrorMessage = '';
 
   try {
-    if (initialCanAccessPos) {
+    if (sessionUser?.token) {
       const [
-        customersData,
-        productData,
-        taxRates,
-        banks,
-        signatures,
-        posBootstrap,
-      ] = await Promise.all([
+        customersResult,
+        productsResult,
+        taxRatesResult,
+        banksResult,
+        signaturesResult,
+        posBootstrapResult,
+      ] = await Promise.allSettled([
         getCustomers(),
         getProducts(),
         getTaxRates(),
@@ -70,6 +53,13 @@ const PosPageRoute = async () => {
         getManualSignatures(),
         getPosBootstrap(),
       ]);
+
+      const customersData = getSettledValue(customersResult, []);
+      const productData = getSettledValue(productsResult, []);
+      const taxRates = getSettledValue(taxRatesResult, []);
+      const banks = getSettledValue(banksResult, []);
+      const signatures = getSettledValue(signaturesResult, []);
+      const posBootstrap = getSettledValue(posBootstrapResult, {});
 
       initialCustomersData = customersData || [];
       initialProductData = productData || [];
@@ -82,6 +72,19 @@ const PosPageRoute = async () => {
       initialPaymentMethods = posBootstrap?.paymentMethods || [];
       initialCashiers = posBootstrap?.cashiers || [];
       initialCurrentUserId = posBootstrap?.currentUserId || '';
+
+      const failedRequest = [
+        customersResult,
+        productsResult,
+        taxRatesResult,
+        banksResult,
+        signaturesResult,
+        posBootstrapResult,
+      ].find(result => result.status === 'rejected');
+
+      if (failedRequest) {
+        initialErrorMessage = failedRequest.reason?.message || 'Some POS data could not be loaded.';
+      }
     }
   } catch (error) {
     console.error('Error loading POS page data:', error);
